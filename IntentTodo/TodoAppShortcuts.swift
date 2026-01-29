@@ -2,20 +2,21 @@
 //  TodoAppShortcuts.swift
 //  IntentTodo
 //
+//  Created by 藤井陽介 on 2026/01/30.
+//
 
 import AppIntents
+import TodoAppIntents
 
 /// Provides App Shortcuts for the Todo app.
 ///
 /// App Shortcuts allow users to quickly access app features via Siri,
 /// the Shortcuts app, and Spotlight.
-public struct TodoAppShortcuts: AppShortcutsProvider {
+struct TodoAppShortcuts: AppShortcutsProvider {
     // MARK: - App Shortcuts
 
     /// The shortcuts available for this app.
-    ///
-    /// These shortcuts appear in the Shortcuts app and can be triggered by Siri.
-    public static var appShortcuts: [AppShortcut] {
+    static var appShortcuts: [AppShortcut] {
         // Add a new todo
         AppShortcut(
             intent: AddTodoIntent(),

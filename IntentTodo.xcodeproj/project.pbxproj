@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		46AFBD1E2F2C103600444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBD1D2F2C103600444306 /* UI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		46AFBC4B2F2BA68D00444306 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -70,6 +74,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46AFBD1E2F2C103600444306 /* UI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -132,6 +137,7 @@
 			);
 			name = IntentTodo;
 			packageProductDependencies = (
+				46AFBD1D2F2C103600444306 /* UI */,
 			);
 			productName = IntentTodo;
 			productReference = 46AFBC392F2BA68C00444306 /* IntentTodo.app */;
@@ -215,6 +221,9 @@
 			);
 			mainGroup = 46AFBC302F2BA68C00444306;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				46AFBD1C2F2C103600444306 /* XCLocalSwiftPackageReference "Packages/UI" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 46AFBC3A2F2BA68C00444306 /* Products */;
 			projectDirPath = "";
@@ -637,6 +646,20 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		46AFBD1C2F2C103600444306 /* XCLocalSwiftPackageReference "Packages/UI" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/UI;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		46AFBD1D2F2C103600444306 /* UI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = UI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 46AFBC312F2BA68C00444306 /* Project object */;
 }
