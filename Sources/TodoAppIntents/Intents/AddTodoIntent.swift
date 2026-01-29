@@ -90,19 +90,3 @@ public struct AddTodoIntent: AppIntent {
     }
 }
 
-// MARK: - Parameterized Shortcuts
-
-extension AddTodoIntent: AppShortcutsProvider {
-    public static var appShortcuts: [AppShortcut] {
-        AppShortcut(
-            intent: AddTodoIntent(),
-            phrases: [
-                "Add a todo in \(.applicationName)",
-                "Create a new task in \(.applicationName)",
-                "Add \(\.$title) to \(.applicationName)"
-            ],
-            shortTitle: "Add Todo",
-            systemImageName: "plus.circle"
-        )
-    }
-}
