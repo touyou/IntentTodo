@@ -27,6 +27,9 @@ public struct TodoAppEntity: AppEntity {
     /// The due date of the todo item, if any.
     public var dueDate: Date?
 
+    /// The creation date of the todo item.
+    public var createdAt: Date
+
     // MARK: - AppEntity Requirements
 
     public static var typeDisplayRepresentation: TypeDisplayRepresentation {
@@ -64,6 +67,7 @@ public struct TodoAppEntity: AppEntity {
         self.isCompleted = todoItem.isCompleted
         self.isFavorite = todoItem.isFavorite
         self.dueDate = todoItem.dueDate
+        self.createdAt = todoItem.createdAt
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -72,12 +76,14 @@ public struct TodoAppEntity: AppEntity {
         title: String,
         isCompleted: Bool = false,
         isFavorite: Bool = false,
-        dueDate: Date? = nil
+        dueDate: Date? = nil,
+        createdAt: Date = Date()
     ) {
         self.id = id
         self.title = title
         self.isCompleted = isCompleted
         self.isFavorite = isFavorite
         self.dueDate = dueDate
+        self.createdAt = createdAt
     }
 }

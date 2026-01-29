@@ -30,7 +30,10 @@ let package = Package(
         ),
         .testTarget(
             name: "UITests",
-            dependencies: ["UI"]
+            dependencies: [
+                "UI",
+                .product(name: "AppIntents", package: "AppIntents")
+            ]
         )
     ]
 )
