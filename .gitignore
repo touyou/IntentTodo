@@ -38,3 +38,6 @@ docs/references/
 
 # SwiftLint cache
 .swiftlint/
+
+# Claude
+.claude/settings.local.json
