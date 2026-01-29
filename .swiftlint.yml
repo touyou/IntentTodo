@@ -1,0 +1,191 @@
+# IntentTodo SwiftLint Configuration
+# Swift API Design Guidelines準拠
+
+# 除外パス
+excluded:
+  - .build
+  - DerivedData
+  - Packages/**/Tests
+  - docs/references
+
+# 有効化するオプトインルール
+opt_in_rules:
+  - array_init
+  - closure_end_indentation
+  - closure_spacing
+  - collection_alignment
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - discouraged_object_literal
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - enum_case_associated_values_count
+  - explicit_init
+  - extension_access_modifier
+  - fallthrough
+  - fatal_error_message
+  - file_header
+  - first_where
+  - flatmap_over_map_reduce
+  - force_unwrapping
+  - identical_operands
+  - implicit_return
+  - implicitly_unwrapped_optional
+  - joined_default_parameter
+  - last_where
+  - legacy_multiple
+  - legacy_random
+  - literal_expression_end_indentation
+  - lower_acl_than_parent
+  - modifier_order
+  - multiline_arguments
+  - multiline_function_chains
+  - multiline_literal_brackets
+  - multiline_parameters
+  - operator_usage_whitespace
+  - optional_enum_case_matching
+  - overridden_super_call
+  - prefer_self_type_over_type_of_self
+  - prefer_zero_over_explicit_init
+  - private_action
+  - private_outlet
+  - prohibited_super_call
+  - reduce_into
+  - redundant_nil_coalescing
+  - redundant_type_annotation
+  - sorted_first_last
+  - static_operator
+  - toggle_bool
+  - trailing_closure
+  - unavailable_function
+  - unneeded_parentheses_in_closure_argument
+  - unowned_variable_capture
+  - untyped_error_in_catch
+  - vertical_parameter_alignment_on_call
+  - vertical_whitespace_closing_braces
+  - vertical_whitespace_opening_braces
+  - yoda_condition
+
+# 無効化するルール
+disabled_rules:
+  - line_length  # 個別に設定
+  - trailing_whitespace  # 自動修正で対応
+
+# カスタムルール
+custom_rules:
+  # ObservableObject使用禁止 → @Observableを使用
+  no_observable_object:
+    name: "No ObservableObject"
+    regex: "ObservableObject"
+    message: "ObservableObjectは使用禁止です。@Observableを使用してください。"
+    severity: error
+
+  # NavigationView使用禁止 → NavigationStackを使用
+  no_navigation_view:
+    name: "No NavigationView"
+    regex: "NavigationView"
+    message: "NavigationViewは使用禁止です。NavigationStackを使用してください。"
+    severity: error
+
+  # foregroundColor()使用禁止 → foregroundStyle()を使用
+  no_foreground_color:
+    name: "No foregroundColor"
+    regex: "\\.foregroundColor\\("
+    message: "foregroundColor()は使用禁止です。foregroundStyle()を使用してください。"
+    severity: error
+
+  # GCD使用禁止 → Swift Concurrencyを使用
+  no_dispatch_queue:
+    name: "No DispatchQueue"
+    regex: "DispatchQueue"
+    message: "GCDは使用禁止です。Swift Concurrencyを使用してください。"
+    severity: error
+
+  no_dispatch_group:
+    name: "No DispatchGroup"
+    regex: "DispatchGroup"
+    message: "GCDは使用禁止です。Swift Concurrencyを使用してください。"
+    severity: error
+
+# ルール設定
+line_length:
+  warning: 120
+  error: 200
+  ignores_comments: true
+  ignores_urls: true
+
+type_body_length:
+  warning: 300
+  error: 500
+
+file_length:
+  warning: 500
+  error: 1000
+
+function_body_length:
+  warning: 50
+  error: 100
+
+function_parameter_count:
+  warning: 6
+  error: 8
+
+cyclomatic_complexity:
+  warning: 10
+  error: 20
+
+nesting:
+  type_level:
+    warning: 2
+    error: 3
+  function_level:
+    warning: 3
+    error: 5
+
+identifier_name:
+  min_length:
+    warning: 2
+    error: 1
+  max_length:
+    warning: 50
+    error: 60
+  excluded:
+    - id
+    - x
+    - y
+    - i
+    - j
+    - k
+
+type_name:
+  min_length:
+    warning: 3
+    error: 2
+  max_length:
+    warning: 50
+    error: 60
+
+# 修飾子の順序（Swift標準）
+modifier_order:
+  preferred_modifier_order:
+    - acl
+    - setterACL
+    - override
+    - dynamic
+    - mutators
+    - lazy
+    - final
+    - required
+    - convenience
+    - typeMethods
+    - owned
+
+# ファイルヘッダー
+file_header:
+  required_pattern: |
+    \/\/
+    \/\/  .*\.swift
+    \/\/  IntentTodo
+    \/\/

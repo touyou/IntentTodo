@@ -1,0 +1,40 @@
+# Xcode
+build/
+DerivedData/
+*.xcuserstate
+*.xcworkspacedata
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+Packages/*/Package.resolved
+
+# CocoaPods (if used)
+Pods/
+
+# macOS
+.DS_Store
+*.swp
+*~
+
+# IDE
+*.idea/
+*.vscode/
+
+# Secrets
+*.xcconfig
+!*.xcconfig.sample
+
+# Firebase
+firebase-debug.log
+.firebase/
+
+# References (local documentation)
+docs/references/
+
+# Serena
+.serena/
+
+# SwiftLint cache
+.swiftlint/
