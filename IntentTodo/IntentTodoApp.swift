@@ -7,26 +7,50 @@
 
 import SwiftUI
 import SwiftData
+import Domain
+import TodoAppIntents
+import UI
 
 @main
 struct IntentTodoApp: App {
-    var sharedModelContainer: ModelContainer = {
+    // MARK: - Properties
+
+    let modelContainer: ModelContainer
+
+    // MARK: - Initialization
+
+    init() {
+        // Create schema with all domain models
         let schema = Schema([
-            Item.self,
+            TodoItem.self,
+            SubTask.self,
+            Category.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false
+        )
 
         do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            modelContainer = container
+
+            // Configure IntentDependencies for App Intents
+            Task { @MainActor in
+                IntentDependencies.shared.configure(modelContainer: container)
+            }
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
-    }()
+    }
+
+    // MARK: - Body
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            TodoListView()
         }
-        .modelContainer(sharedModelContainer)
+        .modelContainer(modelContainer)
     }
 }

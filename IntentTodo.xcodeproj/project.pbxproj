@@ -58,6 +58,11 @@
 			path = IntentTodoUITests;
 			sourceTree = "<group>";
 		};
+		46AFBC6A2F2BA6AD00444306 /* docs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = docs;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -88,6 +93,7 @@
 		46AFBC302F2BA68C00444306 = {
 			isa = PBXGroup;
 			children = (
+				46AFBC6A2F2BA6AD00444306 /* docs */,
 				46AFBC3B2F2BA68C00444306 /* IntentTodo */,
 				46AFBC4D2F2BA68D00444306 /* IntentTodoTests */,
 				46AFBC572F2BA68D00444306 /* IntentTodoUITests */,
@@ -122,6 +128,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				46AFBC3B2F2BA68C00444306 /* IntentTodo */,
+				46AFBC6A2F2BA6AD00444306 /* docs */,
 			);
 			name = IntentTodo;
 			packageProductDependencies = (
