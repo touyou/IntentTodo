@@ -15,7 +15,6 @@ public struct TodoListView: View {
 
     @State private var viewModel = TodoListViewModel()
     @State private var showingAddTodo = false
-    @State private var newTodoTitle = ""
 
     // MARK: - Initialization
 
@@ -71,10 +70,11 @@ public struct TodoListView: View {
     }
 
     private var emptyView: some View {
-        ContentUnavailableView {
-            Label(emptyViewTitle, systemImage: emptyViewIcon)
+        let content = emptyViewContent
+        return ContentUnavailableView {
+            Label(content.title, systemImage: content.icon)
         } description: {
-            Text(emptyViewDescription)
+            Text(content.description)
         } actions: {
             if viewModel.filter == .all && viewModel.searchText.isEmpty {
                 Button("Add Todo") {
@@ -85,51 +85,19 @@ public struct TodoListView: View {
         }
     }
 
-    private var emptyViewTitle: String {
+    private var emptyViewContent: (title: String, icon: String, description: String) {
         if !viewModel.searchText.isEmpty {
-            return "No Results"
+            return ("No Results", "magnifyingglass", "No todos match your search.")
         }
         switch viewModel.filter {
         case .all:
-            return "No Todos"
+            return ("No Todos", "checklist", "Tap + to add your first todo.")
         case .incomplete:
-            return "All Done!"
+            return ("All Done!", "checkmark.circle", "You've completed all your todos!")
         case .completed:
-            return "No Completed Todos"
+            return ("No Completed Todos", "circle", "Complete some todos to see them here.")
         case .favorites:
-            return "No Favorites"
-        }
-    }
-
-    private var emptyViewIcon: String {
-        if !viewModel.searchText.isEmpty {
-            return "magnifyingglass"
-        }
-        switch viewModel.filter {
-        case .all:
-            return "checklist"
-        case .incomplete:
-            return "checkmark.circle"
-        case .completed:
-            return "circle"
-        case .favorites:
-            return "star"
-        }
-    }
-
-    private var emptyViewDescription: String {
-        if !viewModel.searchText.isEmpty {
-            return "No todos match your search."
-        }
-        switch viewModel.filter {
-        case .all:
-            return "Tap + to add your first todo."
-        case .incomplete:
-            return "You've completed all your todos!"
-        case .completed:
-            return "Complete some todos to see them here."
-        case .favorites:
-            return "Star a todo to add it to favorites."
+            return ("No Favorites", "star", "Star a todo to add it to favorites.")
         }
     }
 

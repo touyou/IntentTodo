@@ -557,3 +557,198 @@ public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppE
 6. **App Shortcuts**: `AppShortcutsProvider` でSiri/ショートカット対応
 
 これらのインサイトは、今後のSwift/SwiftUI/App Intents開発に活用できます。
+
+---
+
+## Swift Package 構成のベストプラクティス
+
+### DevDock式パッケージ構成
+
+各パッケージが独立した `Package.swift` を持ち、相対パスで依存関係を参照する構成です。
+
+```
+ProjectRoot/
+├── ProjectName/              # アプリソース
+├── ProjectName.xcodeproj     # Xcodeプロジェクト
+└── Packages/                 # 独立したパッケージ群
+    ├── Domain/
+    │   ├── Package.swift     # 独立したマニフェスト
+    │   ├── Sources/Domain/
+    │   └── Tests/DomainTests/
+    ├── Repository/
+    │   ├── Package.swift     # path: "../Domain" で依存
+    │   └── ...
+    └── UI/
+        ├── Package.swift     # path: "../Repository" で依存
+        └── ...
+```
+
+### 相対パス依存の記述
+
+```swift
+// Packages/Repository/Package.swift
+let package = Package(
+    name: "Repository",
+    dependencies: [
+        .package(path: "../Domain"),  // 相対パスで参照
+    ],
+    targets: [
+        .target(
+            name: "Repository",
+            dependencies: [
+                .product(name: "Domain", package: "Domain"),
+            ]
+        ),
+    ]
+)
+```
+
+### メリット
+
+1. **xcworkspace不要**: xcodeprojにPackagesフォルダをドラッグするだけ
+2. **各パッケージが独立**: 個別にビルド・テスト可能
+3. **明確な依存関係**: 各Package.swiftで依存が明示される
+4. **Xcodeとの親和性**: パッケージ内のソースが直接編集可能
+
+### ルート Package.swift 方式との比較
+
+| 観点 | DevDock式（独立Package.swift） | ルートPackage.swift方式 |
+|-----|-------------------------------|----------------------|
+| Xcodeでの編集 | ✅ 直接編集可能 | ⚠️ 設定次第 |
+| 個別ビルド | ✅ 各パッケージで可能 | ❌ 全体のみ |
+| 依存の明確さ | ✅ 各ファイルで明示 | ⚠️ 1ファイルに集約 |
+| xcworkspace | ✅ 不要 | ⚠️ 必要な場合あり |
+
+---
+
+## AppShortcutsProvider の制約
+
+### メインアプリターゲットに配置する必要がある
+
+`AppShortcutsProvider` はSwift Packageから公開できません。必ずメインアプリターゲットに配置する必要があります。
+
+```swift
+// ❌ パッケージ内で定義するとエラー
+// Packages/TodoAppIntents/Sources/TodoAppIntents/Shortcuts/TodoAppShortcuts.swift
+public struct TodoAppShortcuts: AppShortcutsProvider { ... }
+
+// ✅ メインアプリターゲットに配置
+// IntentTodo/TodoAppShortcuts.swift
+import TodoAppIntents
+
+struct TodoAppShortcuts: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: AddTodoIntent(),  // パッケージからimport
+            phrases: [ ... ],
+            shortTitle: LocalizedStringResource("Add Todo"),
+            systemImageName: "plus.circle"
+        )
+    }
+}
+```
+
+### 複数のAppShortcutsProviderは不可
+
+アプリ内に `AppShortcutsProvider` が複数存在するとビルドエラーになります。
+
+---
+
+## App Shortcuts フレーズの制限
+
+### パラメータの型制限
+
+App Shortcutのフレーズに埋め込めるのは **AppEntity** と **AppEnum** 型のみです。
+
+```swift
+// ❌ String型パラメータはフレーズに埋め込めない
+AppShortcut(
+    intent: AddTodoIntent(),
+    phrases: [
+        "Add \(\.$title) to \(.applicationName)"  // エラー: Invalid parameter type
+    ],
+    ...
+)
+
+// ✅ AppEntity/AppEnumのみ使用可能
+AppShortcut(
+    intent: ShowTodosIntent(),
+    phrases: [
+        "Show \(\.$filter) todos in \(.applicationName)"  // filter: TodoFilterType (AppEnum)
+    ],
+    ...
+)
+
+// ✅ パラメータなしのフレーズは問題なし
+AppShortcut(
+    intent: AddTodoIntent(),
+    phrases: [
+        "Add a todo in \(.applicationName)",
+        "Create a new todo in \(.applicationName)"
+    ],
+    ...
+)
+```
+
+### 回避策
+
+String型パラメータを使いたい場合は、Siriがユーザーに後から入力を求めるフローを利用します（フレーズには埋め込まない）。
+
+---
+
+## コード簡素化のパターン
+
+### 1. 不要なモジュールマーカーの削除
+
+使われていない `enum ModuleName { static let version = "1.0.0" }` は削除し、コメントのみに変更。
+
+### 2. Dictionary初期化の簡潔化
+
+```swift
+// Before
+for item in items {
+    dict[item.id] = item
+}
+
+// After
+dict = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
+```
+
+### 3. 重複するswitch文の統合
+
+複数のcomputed propertyで同じswitch文を繰り返す場合、タプルを返す単一のプロパティに統合。
+
+```swift
+// Before: 3つのプロパティで同じswitch文を繰り返し
+var emptyViewTitle: String { switch filter { ... } }
+var emptyViewIcon: String { switch filter { ... } }
+var emptyViewDescription: String { switch filter { ... } }
+
+// After: タプルを返す単一のプロパティ
+var emptyViewContent: (title: String, icon: String, description: String) {
+    switch filter {
+    case .all: return ("No Todos", "tray", "Add your first todo")
+    // ...
+    }
+}
+```
+
+### 4. ネストした三項演算子の排除
+
+複雑なネスト三項演算子は、ヘルパープロパティに分離して可読性を向上。
+
+```swift
+// Before
+image: isCompleted ? .init(...) : (isFavorite ? .init(...) : .init(...))
+
+// After
+private var displayImage: DisplayRepresentation.Image {
+    if isCompleted {
+        return .init(systemName: "checkmark.circle.fill")
+    } else if isFavorite {
+        return .init(systemName: "star.fill")
+    } else {
+        return .init(systemName: "circle")
+    }
+}
+```

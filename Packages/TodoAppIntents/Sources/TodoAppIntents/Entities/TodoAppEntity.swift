@@ -43,14 +43,29 @@ public struct TodoAppEntity: AppEntity, IndexedEntity {
     public var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
             title: LocalizedStringResource(stringLiteral: title),
-            subtitle: isCompleted
-                ? LocalizedStringResource("Completed", comment: "Todo completed status")
-                : (dueDate.map { LocalizedStringResource(stringLiteral: "Due: \($0.formatted(date: .abbreviated, time: .omitted))") }
-                    ?? LocalizedStringResource("", comment: "Empty")),
-            image: isCompleted
-                ? .init(systemName: "checkmark.circle.fill")
-                : (isFavorite ? .init(systemName: "star.fill") : .init(systemName: "circle"))
+            subtitle: subtitle,
+            image: displayImage
         )
+    }
+
+    private var subtitle: LocalizedStringResource {
+        if isCompleted {
+            return LocalizedStringResource("Completed", comment: "Todo completed status")
+        }
+        if let dueDate {
+            return LocalizedStringResource(stringLiteral: "Due: \(dueDate.formatted(date: .abbreviated, time: .omitted))")
+        }
+        return LocalizedStringResource("", comment: "Empty")
+    }
+
+    private var displayImage: DisplayRepresentation.Image {
+        if isCompleted {
+            return .init(systemName: "checkmark.circle.fill")
+        }
+        if isFavorite {
+            return .init(systemName: "star.fill")
+        }
+        return .init(systemName: "circle")
     }
 
     public static var defaultQuery: TodoEntityQuery {

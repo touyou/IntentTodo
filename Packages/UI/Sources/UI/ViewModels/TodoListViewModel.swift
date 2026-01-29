@@ -59,34 +59,7 @@ public final class TodoListViewModel {
         }
 
         // Apply sort
-        switch sortOrder {
-        case .createdAtDescending:
-            result = result.sorted { $0.createdAt > $1.createdAt }
-        case .createdAtAscending:
-            result = result.sorted { $0.createdAt < $1.createdAt }
-        case .titleAscending:
-            result = result.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
-        case .titleDescending:
-            result = result.sorted { $0.title.localizedCompare($1.title) == .orderedDescending }
-        case .dueDateAscending:
-            result = result.sorted { first, second in
-                switch (first.dueDate, second.dueDate) {
-                case (nil, nil): return false
-                case (nil, _): return false
-                case (_, nil): return true
-                case let (date1?, date2?): return date1 < date2
-                }
-            }
-        case .dueDateDescending:
-            result = result.sorted { first, second in
-                switch (first.dueDate, second.dueDate) {
-                case (nil, nil): return false
-                case (nil, _): return true
-                case (_, nil): return false
-                case let (date1?, date2?): return date1 > date2
-                }
-            }
-        }
+        result = sortTodos(result, by: sortOrder)
 
         return result
     }
@@ -146,6 +119,38 @@ public final class TodoListViewModel {
     /// Clears the error message.
     public func clearError() {
         errorMessage = nil
+    }
+
+    // MARK: - Private Helpers
+
+    private func sortTodos(_ todos: [TodoAppEntity], by order: TodoSortOrder) -> [TodoAppEntity] {
+        switch order {
+        case .createdAtDescending:
+            return todos.sorted { $0.createdAt > $1.createdAt }
+        case .createdAtAscending:
+            return todos.sorted { $0.createdAt < $1.createdAt }
+        case .titleAscending:
+            return todos.sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
+        case .titleDescending:
+            return todos.sorted { $0.title.localizedCompare($1.title) == .orderedDescending }
+        case .dueDateAscending:
+            return todos.sorted { compareDueDates($0.dueDate, $1.dueDate, ascending: true) }
+        case .dueDateDescending:
+            return todos.sorted { compareDueDates($0.dueDate, $1.dueDate, ascending: false) }
+        }
+    }
+
+    private func compareDueDates(_ lhs: Date?, _ rhs: Date?, ascending: Bool) -> Bool {
+        switch (lhs, rhs) {
+        case (nil, nil):
+            return false
+        case (nil, _):
+            return !ascending
+        case (_, nil):
+            return ascending
+        case let (date1?, date2?):
+            return ascending ? date1 < date2 : date1 > date2
+        }
     }
 }
 

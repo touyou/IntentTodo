@@ -75,8 +75,7 @@ public struct ShowIncompleteTodosIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & OpensIntent {
         let repository = try IntentDependencies.shared.createRepository()
-        let todos = try repository.fetchAll()
-        let incompleteTodos = todos.filter { !$0.isCompleted }
+        let incompleteTodos = try repository.fetchIncomplete()
         let entities = incompleteTodos.map { TodoAppEntity(from: $0) }
 
         return .result(
@@ -114,8 +113,7 @@ public struct ShowFavoriteTodosIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & OpensIntent {
         let repository = try IntentDependencies.shared.createRepository()
-        let todos = try repository.fetchAll()
-        let favoriteTodos = todos.filter { $0.isFavorite }
+        let favoriteTodos = try repository.fetchFavorites()
         let entities = favoriteTodos.map { TodoAppEntity(from: $0) }
 
         return .result(

@@ -23,9 +23,7 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
     /// Creates a mock repository pre-populated with todo items.
     /// - Parameter initialTodos: The initial todo items to populate.
     public init(initialTodos: [TodoItem]) {
-        for todo in initialTodos {
-            todos[todo.id] = todo
-        }
+        todos = Dictionary(uniqueKeysWithValues: initialTodos.map { ($0.id, $0) })
     }
 
     // MARK: - Create
