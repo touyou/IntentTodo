@@ -35,6 +35,34 @@
 		46AFBE8C2F2C1C3B00444306 /* Repository */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Repository; sourceTree = "<group>"; };
 		46AFBE8D2F2C1C3B00444306 /* TodoAppIntents */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = TodoAppIntents; sourceTree = "<group>"; };
 		46AFBE8E2F2C1C3B00444306 /* UI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = UI; sourceTree = "<group>"; };
+		46AFBE932F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		46AFBE942F2C241700444306 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		46AFBE952F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		46AFBE962F2C241700444306 /* AppIntents-Updates.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "AppIntents-Updates.md"; sourceTree = "<group>"; };
+		46AFBE972F2C241700444306 /* AppKit-Implementing-Liquid-Glass-Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "AppKit-Implementing-Liquid-Glass-Design.md"; sourceTree = "<group>"; };
+		46AFBE982F2C241700444306 /* Foundation-AttributedString-Updates.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Foundation-AttributedString-Updates.md"; sourceTree = "<group>"; };
+		46AFBE992F2C241700444306 /* FoundationModels-Using-on-device-LLM-in-your-app.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "FoundationModels-Using-on-device-LLM-in-your-app.md"; sourceTree = "<group>"; };
+		46AFBE9A2F2C241700444306 /* Implementing-Assistive-Access-in-iOS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Implementing-Assistive-Access-in-iOS.md"; sourceTree = "<group>"; };
+		46AFBE9B2F2C241700444306 /* Implementing-Visual-Intelligence-in-iOS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Implementing-Visual-Intelligence-in-iOS.md"; sourceTree = "<group>"; };
+		46AFBE9C2F2C241700444306 /* MapKit-GeoToolbox-PlaceDescriptors.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "MapKit-GeoToolbox-PlaceDescriptors.md"; sourceTree = "<group>"; };
+		46AFBE9D2F2C241700444306 /* StoreKit-Updates.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "StoreKit-Updates.md"; sourceTree = "<group>"; };
+		46AFBE9E2F2C241700444306 /* Swift-Charts-3D-Visualization.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Swift-Charts-3D-Visualization.md"; sourceTree = "<group>"; };
+		46AFBE9F2F2C241700444306 /* Swift-Concurrency-Updates.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Swift-Concurrency-Updates.md"; sourceTree = "<group>"; };
+		46AFBEA02F2C241700444306 /* Swift-InlineArray-Span.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Swift-InlineArray-Span.md"; sourceTree = "<group>"; };
+		46AFBEA12F2C241700444306 /* SwiftData-Class-Inheritance.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftData-Class-Inheritance.md"; sourceTree = "<group>"; };
+		46AFBEA22F2C241700444306 /* SwiftUI-AlarmKit-Integration.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-AlarmKit-Integration.md"; sourceTree = "<group>"; };
+		46AFBEA32F2C241700444306 /* SwiftUI-Implementing-Liquid-Glass-Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-Implementing-Liquid-Glass-Design.md"; sourceTree = "<group>"; };
+		46AFBEA42F2C241700444306 /* SwiftUI-New-Toolbar-Features.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-New-Toolbar-Features.md"; sourceTree = "<group>"; };
+		46AFBEA52F2C241700444306 /* SwiftUI-Styled-Text-Editing.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-Styled-Text-Editing.md"; sourceTree = "<group>"; };
+		46AFBEA62F2C241700444306 /* SwiftUI-WebKit-Integration.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-WebKit-Integration.md"; sourceTree = "<group>"; };
+		46AFBEA72F2C241700444306 /* UIKit-Implementing-Liquid-Glass-Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "UIKit-Implementing-Liquid-Glass-Design.md"; sourceTree = "<group>"; };
+		46AFBEA82F2C241700444306 /* WidgetKit-Implementing-Liquid-Glass-Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "WidgetKit-Implementing-Liquid-Glass-Design.md"; sourceTree = "<group>"; };
+		46AFBEA92F2C241700444306 /* Widgets-for-visionOS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Widgets-for-visionOS.md"; sourceTree = "<group>"; };
+		46AFBEAB2F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
+		46AFBEAC2F2C241700444306 /* INSIGHTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSIGHTS.md; sourceTree = "<group>"; };
+		46AFBEAD2F2C241700444306 /* PLAN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLAN.md; sourceTree = "<group>"; };
+		46AFBEAF2F2C241700444306 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
+		46AFBEB02F2C241700444306 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -97,6 +125,11 @@
 		46AFBC302F2BA68C00444306 = {
 			isa = PBXGroup;
 			children = (
+				46AFBE932F2C241700444306 /* AGENTS.md */,
+				46AFBE942F2C241700444306 /* CLAUDE.md */,
+				46AFBEAE2F2C241700444306 /* docs */,
+				46AFBEAF2F2C241700444306 /* LICENSE */,
+				46AFBEB02F2C241700444306 /* README.md */,
 				46AFBC3B2F2BA68C00444306 /* IntentTodo */,
 				46AFBC4D2F2BA68D00444306 /* IntentTodoTests */,
 				46AFBC572F2BA68D00444306 /* IntentTodoUITests */,
@@ -132,6 +165,45 @@
 			children = (
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		46AFBEAA2F2C241700444306 /* references */ = {
+			isa = PBXGroup;
+			children = (
+				46AFBE952F2C241700444306 /* AGENTS.md */,
+				46AFBE962F2C241700444306 /* AppIntents-Updates.md */,
+				46AFBE972F2C241700444306 /* AppKit-Implementing-Liquid-Glass-Design.md */,
+				46AFBE982F2C241700444306 /* Foundation-AttributedString-Updates.md */,
+				46AFBE992F2C241700444306 /* FoundationModels-Using-on-device-LLM-in-your-app.md */,
+				46AFBE9A2F2C241700444306 /* Implementing-Assistive-Access-in-iOS.md */,
+				46AFBE9B2F2C241700444306 /* Implementing-Visual-Intelligence-in-iOS.md */,
+				46AFBE9C2F2C241700444306 /* MapKit-GeoToolbox-PlaceDescriptors.md */,
+				46AFBE9D2F2C241700444306 /* StoreKit-Updates.md */,
+				46AFBE9E2F2C241700444306 /* Swift-Charts-3D-Visualization.md */,
+				46AFBE9F2F2C241700444306 /* Swift-Concurrency-Updates.md */,
+				46AFBEA02F2C241700444306 /* Swift-InlineArray-Span.md */,
+				46AFBEA12F2C241700444306 /* SwiftData-Class-Inheritance.md */,
+				46AFBEA22F2C241700444306 /* SwiftUI-AlarmKit-Integration.md */,
+				46AFBEA32F2C241700444306 /* SwiftUI-Implementing-Liquid-Glass-Design.md */,
+				46AFBEA42F2C241700444306 /* SwiftUI-New-Toolbar-Features.md */,
+				46AFBEA52F2C241700444306 /* SwiftUI-Styled-Text-Editing.md */,
+				46AFBEA62F2C241700444306 /* SwiftUI-WebKit-Integration.md */,
+				46AFBEA72F2C241700444306 /* UIKit-Implementing-Liquid-Glass-Design.md */,
+				46AFBEA82F2C241700444306 /* WidgetKit-Implementing-Liquid-Glass-Design.md */,
+				46AFBEA92F2C241700444306 /* Widgets-for-visionOS.md */,
+			);
+			path = references;
+			sourceTree = "<group>";
+		};
+		46AFBEAE2F2C241700444306 /* docs */ = {
+			isa = PBXGroup;
+			children = (
+				46AFBEAA2F2C241700444306 /* references */,
+				46AFBEAB2F2C241700444306 /* AGENTS.md */,
+				46AFBEAC2F2C241700444306 /* INSIGHTS.md */,
+				46AFBEAD2F2C241700444306 /* PLAN.md */,
+			);
+			path = docs;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
