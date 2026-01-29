@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		46AFBD1E2F2C103600444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBD1D2F2C103600444306 /* UI */; };
+		46AFBDF32F2C149A00444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBDF22F2C149A00444306 /* UI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -62,11 +63,6 @@
 			path = IntentTodoUITests;
 			sourceTree = "<group>";
 		};
-		46AFBC6A2F2BA6AD00444306 /* docs */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = docs;
-			sourceTree = "<group>";
-		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46AFBDF32F2C149A00444306 /* UI in Frameworks */,
 				46AFBD1E2F2C103600444306 /* UI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -98,7 +95,6 @@
 		46AFBC302F2BA68C00444306 = {
 			isa = PBXGroup;
 			children = (
-				46AFBC6A2F2BA6AD00444306 /* docs */,
 				46AFBC3B2F2BA68C00444306 /* IntentTodo */,
 				46AFBC4D2F2BA68D00444306 /* IntentTodoTests */,
 				46AFBC572F2BA68D00444306 /* IntentTodoUITests */,
@@ -133,11 +129,11 @@
 			);
 			fileSystemSynchronizedGroups = (
 				46AFBC3B2F2BA68C00444306 /* IntentTodo */,
-				46AFBC6A2F2BA6AD00444306 /* docs */,
 			);
 			name = IntentTodo;
 			packageProductDependencies = (
 				46AFBD1D2F2C103600444306 /* UI */,
+				46AFBDF22F2C149A00444306 /* UI */,
 			);
 			productName = IntentTodo;
 			productReference = 46AFBC392F2BA68C00444306 /* IntentTodo.app */;
@@ -222,7 +218,7 @@
 			mainGroup = 46AFBC302F2BA68C00444306;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				46AFBD1C2F2C103600444306 /* XCLocalSwiftPackageReference "Packages/UI" */,
+				46AFBDF12F2C149A00444306 /* XCLocalSwiftPackageReference "../IntentTodo" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 46AFBC3A2F2BA68C00444306 /* Products */;
@@ -648,14 +644,18 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		46AFBD1C2F2C103600444306 /* XCLocalSwiftPackageReference "Packages/UI" */ = {
+		46AFBDF12F2C149A00444306 /* XCLocalSwiftPackageReference "../IntentTodo" */ = {
 			isa = XCLocalSwiftPackageReference;
-			relativePath = Packages/UI;
+			relativePath = ../IntentTodo;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		46AFBD1D2F2C103600444306 /* UI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = UI;
+		};
+		46AFBDF22F2C149A00444306 /* UI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = UI;
 		};
