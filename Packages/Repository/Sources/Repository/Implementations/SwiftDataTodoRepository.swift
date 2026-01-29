@@ -1,0 +1,108 @@
+//
+//  SwiftDataTodoRepository.swift
+//  IntentTodo
+//
+
+import Domain
+import Foundation
+import SwiftData
+
+/// A SwiftData implementation of TodoRepositoryProtocol.
+///
+/// This implementation persists todo items using SwiftData and supports
+/// CloudKit synchronization when configured appropriately.
+@MainActor
+public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
+    // MARK: - Properties
+
+    private let modelContext: ModelContext
+
+    // MARK: - Initialization
+
+    /// Creates a new SwiftData repository with the given model context.
+    /// - Parameter modelContext: The SwiftData model context to use for persistence.
+    public init(modelContext: ModelContext) {
+        self.modelContext = modelContext
+    }
+
+    // MARK: - Create
+
+    public func create(_ todo: TodoItem) throws {
+        modelContext.insert(todo)
+        try modelContext.save()
+    }
+
+    // MARK: - Read
+
+    public func fetchAll() throws -> [TodoItem] {
+        let descriptor = FetchDescriptor<TodoItem>(
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    public func fetch(by id: UUID) throws -> TodoItem? {
+        let predicate = #Predicate<TodoItem> { todo in
+            todo.id == id
+        }
+        let descriptor = FetchDescriptor<TodoItem>(predicate: predicate)
+        return try modelContext.fetch(descriptor).first
+    }
+
+    public func fetch(where predicate: (TodoItem) -> Bool) throws -> [TodoItem] {
+        // Note: For complex predicates that can't be expressed with #Predicate,
+        // we fetch all and filter in memory. For production, consider using
+        // specific fetch methods with #Predicate for better performance.
+        let descriptor = FetchDescriptor<TodoItem>()
+        return try modelContext.fetch(descriptor).filter(predicate)
+    }
+
+    // MARK: - Update
+
+    public func update(_ todo: TodoItem) throws {
+        // SwiftData automatically tracks changes to managed objects.
+        // We just need to ensure the object is in the context and save.
+        guard modelContext.model(for: todo.persistentModelID) as? TodoItem != nil else {
+            throw RepositoryError.notFound(id: todo.id)
+        }
+        try modelContext.save()
+    }
+
+    // MARK: - Delete
+
+    public func delete(_ todo: TodoItem) throws {
+        modelContext.delete(todo)
+        try modelContext.save()
+    }
+
+    public func delete(by id: UUID) throws {
+        guard let todo = try fetch(by: id) else {
+            throw RepositoryError.notFound(id: id)
+        }
+        try delete(todo)
+    }
+
+    // MARK: - Optimized Convenience Methods
+
+    public func fetchIncomplete() throws -> [TodoItem] {
+        let predicate = #Predicate<TodoItem> { todo in
+            !todo.isCompleted
+        }
+        let descriptor = FetchDescriptor<TodoItem>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    public func fetchFavorites() throws -> [TodoItem] {
+        let predicate = #Predicate<TodoItem> { todo in
+            todo.isFavorite
+        }
+        let descriptor = FetchDescriptor<TodoItem>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+}
