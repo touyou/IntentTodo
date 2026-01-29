@@ -16,6 +16,8 @@
 8. [App Intents 設計思想](#app-intents-設計思想)
 9. [App Intents DI の制約と解決策](#app-intents-di-の制約と解決策)
 10. [AppEntity と IndexedEntity](#appentity-と-indexedentity)
+11. [UI層とIntent統合](#ui層とintent統合)
+12. [App Shortcuts](#app-shortcuts)
 
 ---
 
@@ -419,6 +421,130 @@ extension TodoEntityQuery: EntityStringQuery {
 
 ---
 
+## UI層とIntent統合
+
+### Button(intent:) の制限
+
+`Button(intent:)` はiOS専用APIで、macOSでは使用できません。
+
+```swift
+// ❌ macOSでビルドエラー
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+    Text("Complete")
+}
+
+// ✅ クロスプラットフォーム対応
+Button {
+    Task {
+        await toggleCompletion()
+    }
+} label: {
+    Text("Complete")
+}
+
+private func toggleCompletion() async {
+    let intent = ToggleTodoCompletionIntent(todo: entity)
+    _ = try? await intent.perform()
+}
+```
+
+### @Observable + @MainActor
+
+Observation frameworkを使用する際は、必ず `@MainActor` を付与します。
+
+```swift
+@MainActor
+@Observable
+public final class TodoListViewModel {
+    public private(set) var todos: [TodoAppEntity] = []
+    public private(set) var isLoading = false
+    public var errorMessage: String?
+    // ...
+}
+```
+
+### プラットフォーム条件分岐
+
+iOS専用APIは `#if os(iOS)` で分岐します。
+
+```swift
+TextField("Title", text: $title)
+#if os(iOS)
+    .textInputAutocapitalization(.sentences)
+#endif
+```
+
+---
+
+## App Shortcuts
+
+### AppShortcutsProvider
+
+`AppShortcutsProvider` でSiri/ショートカットの初期フレーズを定義します。
+
+```swift
+public struct TodoAppShortcuts: AppShortcutsProvider {
+    public static var appShortcuts: [AppShortcut] {
+        AppShortcut(
+            intent: AddTodoIntent(),
+            phrases: [
+                "Add a todo in \(.applicationName)",
+                "Create a new todo in \(.applicationName)",
+                "Add \(\.$title) to \(.applicationName)"
+            ],
+            shortTitle: LocalizedStringResource("Add Todo"),
+            systemImageName: "plus.circle"
+        )
+    }
+}
+```
+
+### プレースホルダー
+
+- `\(.applicationName)`: アプリ名を動的に挿入
+- `\(\.$parameterName)`: Intentパラメータをフレーズに埋め込み
+
+### AppEnum
+
+IntentパラメータでEnumを使用する場合は `AppEnum` に準拠します。
+
+```swift
+public enum TodoFilterType: String, AppEnum {
+    case all
+    case incomplete
+    case completed
+    case favorites
+
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        TypeDisplayRepresentation(name: "Filter")
+    }
+
+    public static var caseDisplayRepresentations: [TodoFilterType: DisplayRepresentation] {
+        [
+            .all: DisplayRepresentation(title: "All", image: .init(systemName: "list.bullet")),
+            .incomplete: DisplayRepresentation(title: "Incomplete", image: .init(systemName: "circle")),
+            // ...
+        ]
+    }
+}
+```
+
+### OpensIntent
+
+Intentの結果として別のIntentを開くことができます。
+
+```swift
+public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & OpensIntent {
+    // ...
+    return .result(
+        value: entities,
+        opensIntent: OpenTodoListIntent(filter: .incomplete)
+    )
+}
+```
+
+---
+
 ## まとめ
 
 このプロジェクトでは、以下の技術的なチャレンジと解決策を経験しました:
@@ -427,5 +553,7 @@ extension TodoEntityQuery: EntityStringQuery {
 2. **App Intents + SwiftData DI**: 共有ModelContainerパターンで解決
 3. **App Intents中心設計**: ロジックの二重実装を排除
 4. **TDD**: Red-Green-Refactorで品質を確保
+5. **クロスプラットフォーム**: `Button(intent:)` の代わりに手動実行パターン
+6. **App Shortcuts**: `AppShortcutsProvider` でSiri/ショートカット対応
 
 これらのインサイトは、今後のSwift/SwiftUI/App Intents開発に活用できます。

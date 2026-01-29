@@ -9,7 +9,8 @@ import Repository
 /// An App Intents entity representing a todo item.
 ///
 /// This entity is used in Siri, Shortcuts, and Spotlight to reference todo items.
-public struct TodoAppEntity: AppEntity {
+/// Conforms to `IndexedEntity` for Spotlight search integration.
+public struct TodoAppEntity: AppEntity, IndexedEntity {
     // MARK: - Properties
 
     /// The unique identifier for this entity.
