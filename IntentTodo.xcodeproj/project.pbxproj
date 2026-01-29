@@ -7,8 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		46AFBD1E2F2C103600444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBD1D2F2C103600444306 /* UI */; };
-		46AFBDF32F2C149A00444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBDF22F2C149A00444306 /* UI */; };
+		46AFBE922F2C1C7200444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBE912F2C1C7200444306 /* UI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,6 +31,10 @@
 		46AFBC392F2BA68C00444306 /* IntentTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFBC4A2F2BA68D00444306 /* IntentTodoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IntentTodoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFBC542F2BA68D00444306 /* IntentTodoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IntentTodoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		46AFBE8B2F2C1C3B00444306 /* Domain */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Domain; sourceTree = "<group>"; };
+		46AFBE8C2F2C1C3B00444306 /* Repository */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Repository; sourceTree = "<group>"; };
+		46AFBE8D2F2C1C3B00444306 /* TodoAppIntents */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = TodoAppIntents; sourceTree = "<group>"; };
+		46AFBE8E2F2C1C3B00444306 /* UI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = UI; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -70,8 +73,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFBDF32F2C149A00444306 /* UI in Frameworks */,
-				46AFBD1E2F2C103600444306 /* UI in Frameworks */,
+				46AFBE922F2C1C7200444306 /* UI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -98,6 +100,8 @@
 				46AFBC3B2F2BA68C00444306 /* IntentTodo */,
 				46AFBC4D2F2BA68D00444306 /* IntentTodoTests */,
 				46AFBC572F2BA68D00444306 /* IntentTodoUITests */,
+				46AFBE8F2F2C1C3B00444306 /* Packages */,
+				46AFBE902F2C1C7200444306 /* Frameworks */,
 				46AFBC3A2F2BA68C00444306 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -110,6 +114,24 @@
 				46AFBC542F2BA68D00444306 /* IntentTodoUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		46AFBE8F2F2C1C3B00444306 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				46AFBE8B2F2C1C3B00444306 /* Domain */,
+				46AFBE8C2F2C1C3B00444306 /* Repository */,
+				46AFBE8D2F2C1C3B00444306 /* TodoAppIntents */,
+				46AFBE8E2F2C1C3B00444306 /* UI */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		46AFBE902F2C1C7200444306 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -132,8 +154,7 @@
 			);
 			name = IntentTodo;
 			packageProductDependencies = (
-				46AFBD1D2F2C103600444306 /* UI */,
-				46AFBDF22F2C149A00444306 /* UI */,
+				46AFBE912F2C1C7200444306 /* UI */,
 			);
 			productName = IntentTodo;
 			productReference = 46AFBC392F2BA68C00444306 /* IntentTodo.app */;
@@ -218,7 +239,6 @@
 			mainGroup = 46AFBC302F2BA68C00444306;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				46AFBDF12F2C149A00444306 /* XCLocalSwiftPackageReference "../IntentTodo" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 46AFBC3A2F2BA68C00444306 /* Products */;
@@ -643,19 +663,8 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		46AFBDF12F2C149A00444306 /* XCLocalSwiftPackageReference "../IntentTodo" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = ../IntentTodo;
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCSwiftPackageProductDependency section */
-		46AFBD1D2F2C103600444306 /* UI */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = UI;
-		};
-		46AFBDF22F2C149A00444306 /* UI */ = {
+		46AFBE912F2C1C7200444306 /* UI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = UI;
 		};
