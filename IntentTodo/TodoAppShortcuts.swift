@@ -23,7 +23,6 @@ struct TodoAppShortcuts: AppShortcutsProvider {
             phrases: [
                 "Add a todo in \(.applicationName)",
                 "Create a new todo in \(.applicationName)",
-                "Add \(\.$title) to \(.applicationName)",
                 "New todo in \(.applicationName)"
             ],
             shortTitle: LocalizedStringResource("Add Todo", comment: "Add todo shortcut title"),
