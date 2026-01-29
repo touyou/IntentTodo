@@ -9,6 +9,7 @@ import TodoAppIntents
 /// A view for adding a new todo item.
 ///
 /// This view collects todo details and creates the todo via AddTodoIntent.
+/// Data updates are handled automatically by SwiftData's @Query in the parent view.
 public struct AddTodoView: View {
     // MARK: - Properties
 
@@ -22,14 +23,14 @@ public struct AddTodoView: View {
     @State private var isSubmitting = false
     @State private var errorMessage: String?
 
-    private let onAdd: (TodoAppEntity) -> Void
+    private let onSuccess: () -> Void
 
     // MARK: - Initialization
 
     /// Creates an add todo view.
-    /// - Parameter onAdd: Callback when a todo is successfully added.
-    public init(onAdd: @escaping (TodoAppEntity) -> Void) {
-        self.onAdd = onAdd
+    /// - Parameter onSuccess: Callback when a todo is successfully added.
+    public init(onSuccess: @escaping () -> Void) {
+        self.onSuccess = onSuccess
     }
 
     // MARK: - Body
@@ -108,10 +109,8 @@ public struct AddTodoView: View {
         )
 
         do {
-            let result = try await intent.perform()
-            if let entity = result.value {
-                onAdd(entity)
-            }
+            _ = try await intent.perform()
+            onSuccess()
         } catch {
             errorMessage = error.localizedDescription
             isSubmitting = false
@@ -123,6 +122,6 @@ public struct AddTodoView: View {
 
 #Preview {
     NavigationStack {
-        AddTodoView { _ in }
+        AddTodoView { }
     }
 }

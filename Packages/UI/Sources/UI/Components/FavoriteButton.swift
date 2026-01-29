@@ -10,66 +10,32 @@ import TodoAppIntents
 ///
 /// Usage:
 /// ```swift
-/// FavoriteButton(todo: entity) { updatedEntity in
-///     viewModel.updateTodo(updatedEntity)
-/// }
+/// FavoriteButton(todo: entity)
 /// ```
 public struct FavoriteButton: View {
     // MARK: - Properties
 
     private let todo: TodoAppEntity
-    private let onToggle: ((TodoAppEntity) -> Void)?
-
-    @State private var isProcessing = false
 
     // MARK: - Initialization
 
     /// Creates a favorite button for the given todo.
-    /// - Parameters:
-    ///   - todo: The todo entity to display and toggle.
-    ///   - onToggle: Optional callback when the favorite status is toggled.
-    public init(
-        todo: TodoAppEntity,
-        onToggle: ((TodoAppEntity) -> Void)? = nil
-    ) {
+    /// - Parameter todo: The todo entity to display and toggle.
+    public init(todo: TodoAppEntity) {
         self.todo = todo
-        self.onToggle = onToggle
     }
 
     // MARK: - Body
 
     public var body: some View {
-        Button {
-            Task {
-                await toggleFavorite()
-            }
-        } label: {
+        Button(intent: ToggleFavoriteIntent(todo: todo)) {
             Image(systemName: todo.isFavorite ? "star.fill" : "star")
                 .font(.body)
                 .foregroundStyle(todo.isFavorite ? .yellow : .secondary)
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
-        .disabled(isProcessing)
         .accessibilityLabel(todo.isFavorite ? "Remove from favorites" : "Add to favorites")
-    }
-
-    // MARK: - Actions
-
-    @MainActor
-    private func toggleFavorite() async {
-        isProcessing = true
-        defer { isProcessing = false }
-
-        let intent = ToggleFavoriteIntent(todo: todo)
-        do {
-            let result = try await intent.perform()
-            if let entity = result.value {
-                onToggle?(entity)
-            }
-        } catch {
-            // Error handling could be added here
-        }
     }
 }
 

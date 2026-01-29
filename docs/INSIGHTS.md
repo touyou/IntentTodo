@@ -423,29 +423,28 @@ extension TodoEntityQuery: EntityStringQuery {
 
 ## UI層とIntent統合
 
-### Button(intent:) の制限
+### Button(intent:) の使用
 
-`Button(intent:)` はiOS専用APIで、macOSでは使用できません。
+macOS 14 / iOS 17 以降、`Button(intent:)` は両プラットフォームで使用可能です。
 
 ```swift
-// ❌ macOSでビルドエラー
+// ✅ 推奨: Button(intent:) を直接使用
 Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
     Text("Complete")
 }
 
-// ✅ クロスプラットフォーム対応
-Button {
-    Task {
-        await toggleCompletion()
-    }
-} label: {
-    Text("Complete")
+// カスタムラベル付き
+Button(intent: DeleteTodoIntent(todo: entity)) {
+    Image(systemName: "trash")
+        .foregroundStyle(.red)
 }
+.buttonStyle(.plain)
+```
 
-private func toggleCompletion() async {
-    let intent = ToggleTodoCompletionIntent(todo: entity)
-    _ = try? await intent.perform()
-}
+**メリット**:
+- 宣言的でシンプル
+- Siri/Shortcuts と同じ実行経路
+- ボイラープレートが不要
 ```
 
 ### @Observable + @MainActor
@@ -553,7 +552,7 @@ public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppE
 2. **App Intents + SwiftData DI**: 共有ModelContainerパターンで解決
 3. **App Intents中心設計**: ロジックの二重実装を排除
 4. **TDD**: Red-Green-Refactorで品質を確保
-5. **クロスプラットフォーム**: `Button(intent:)` の代わりに手動実行パターン
+5. **Button(intent:)**: iOS 17 / macOS 14 以降で両プラットフォーム対応
 6. **App Shortcuts**: `AppShortcutsProvider` でSiri/ショートカット対応
 
 これらのインサイトは、今後のSwift/SwiftUI/App Intents開発に活用できます。

@@ -314,30 +314,28 @@ phrases: ["Show \(\.$filter) todos in \(.applicationName)"]  // OK
 
 ## UI からの Intent 実行
 
-### iOS専用: Button(intent:)
+### Button(intent:) を使用（推奨）
+
+macOS 14 / iOS 17 以降、`Button(intent:)` は両プラットフォームで使用可能です。
 
 ```swift
-// iOSのみで使用可能
+// ✅ 推奨: Button(intent:) を直接使用
 Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
     Label("Complete", systemImage: "checkmark")
 }
-```
 
-### クロスプラットフォーム: 手動実行
-
-```swift
-// iOS/macOS両対応
-Button {
-    Task { await toggleCompletion() }
-} label: {
-    Label("Complete", systemImage: "checkmark")
-}
-
-private func toggleCompletion() async {
-    let intent = ToggleTodoCompletionIntent(todo: entity)
-    _ = try? await intent.perform()
+// 削除ボタン（role: .destructive 付き）
+Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
+    Image(systemName: "trash")
+        .foregroundStyle(.red)
 }
 ```
+
+**メリット**:
+- 宣言的でシンプル
+- Siri/Shortcuts と同じ実行経路
+- Task/async のボイラープレートが不要
+- システムがIntent実行を管理
 
 ---
 

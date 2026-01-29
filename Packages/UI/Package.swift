@@ -15,12 +15,14 @@ let package = Package(
     ],
     dependencies: [
         .package(path: "../TodoAppIntents"),
+        .package(path: "../Domain"),
     ],
     targets: [
         .target(
             name: "UI",
             dependencies: [
                 .product(name: "TodoAppIntents", package: "TodoAppIntents"),
+                .product(name: "Domain", package: "Domain"),
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
