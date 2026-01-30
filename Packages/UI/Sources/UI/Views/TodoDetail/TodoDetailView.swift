@@ -37,12 +37,9 @@ public struct TodoDetailView: View {
     /// - Parameter todo: The todo entity to display.
     public init(todo: TodoAppEntity) {
         self.todoId = todo.id
-        let todoUUID = UUID(uuidString: todo.id)
-        _todoItems = Query(
-            filter: #Predicate<TodoItem> { item in
-                item.id == todoUUID
-            }
-        )
+        // Note: SwiftData Query with predicate requires non-optional comparison
+        // We filter by id in the computed property instead
+        _todoItems = Query()
     }
 
     // MARK: - Body
@@ -214,9 +211,16 @@ public struct TodoDetailView: View {
             if let category = todo.category {
                 LabeledContent("Category") {
                     HStack {
-                        Circle()
-                            .fill(Color(hex: category.colorHex) ?? .gray)
-                            .frame(width: 10, height: 10)
+                        if let colorHex = category.colorHex,
+                           let color = Color(hex: colorHex) {
+                            Circle()
+                                .fill(color)
+                                .frame(width: 10, height: 10)
+                        } else {
+                            Circle()
+                                .fill(Color.gray)
+                                .frame(width: 10, height: 10)
+                        }
                         Text(category.name)
                     }
                 }
@@ -237,7 +241,7 @@ public struct TodoDetailView: View {
             }
 
             // Delete
-            Button(intent: DeleteTodoIntent(todo: entity), role: .destructive) {
+            Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
                 Label("Delete Todo", systemImage: "trash")
             }
         }
