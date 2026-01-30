@@ -552,19 +552,18 @@ public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppE
 2. **App Intents + SwiftData DI**: 共有ModelContainerパターンで解決
 3. **App Intents中心設計**: ビジネスロジック（CRUD）の二重実装を排除
 4. **App Intents vs ViewModel の役割分担**:
-   - App Intents = ビジネスロジック（Siri/Shortcutsからも使用）
-   - ViewModel = UI状態管理（フィルター、ソート、検索）
-5. **Button(intent:)**: 即座に実行できるアクションに使用（トグル、削除など）
-6. **手動Intent実行**: フォーム入力が必要な場合（作成画面など）
-7. **App Shortcuts**: `AppShortcutsProvider` でSiri/ショートカット対応
+   - App Intents = ビジネスロジック（Siri/Shortcutsからも使用、検索クエリ実行含む）
+   - ViewModel = UI状態管理（フィルター状態、ソート順、検索テキスト）
+5. **Button(intent:)**: Computed Propertyで動的生成すればフォーム入力にも対応可能
+6. **App Shortcuts**: `AppShortcutsProvider` でSiri/ショートカット対応
 
 ### Button(intent:) の使い分け
 
-| ケース | 方式 | 理由 |
+| ケース | 方式 | 備考 |
 |--------|------|------|
-| チェックボックス、お気に入り | `Button(intent:)` | パラメータが既知、即座に実行 |
-| 削除ボタン | `Button(intent:)` | パラメータが既知、即座に実行 |
-| 作成フォーム | 手動 `intent.perform()` | フォーム入力を収集してから実行 |
+| チェックボックス、お気に入り | `Button(intent:)` | パラメータが既知 |
+| 削除ボタン | `Button(intent:)` | パラメータが既知 |
+| 作成フォーム | `Button(intent:)` + Computed Property | 動的にIntent生成、dismissは`onChange`で |
 
 これらのインサイトは、今後のSwift/SwiftUI/App Intents開発に活用できます。
 

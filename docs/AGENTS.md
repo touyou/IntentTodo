@@ -345,8 +345,8 @@ Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
 
 | 責務 | 担当 | 例 |
 |------|------|-----|
-| **ビジネスロジック** | App Intents | CRUD操作、バリデーション、データ変換 |
-| **UI状態管理** | ViewModel | フィルター、ソート、検索、ローディング状態 |
+| **ビジネスロジック** | App Intents | CRUD操作、バリデーション、データ取得 |
+| **UI状態管理** | ViewModel | フィルター状態、ソート順、検索テキスト |
 | **表示** | View | レイアウト、アニメーション |
 
 ### なぜ分けるのか？
@@ -355,12 +355,12 @@ Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
 【App Intents】
 - Siri/Shortcuts からも実行される
 - UIに依存しない純粋なロジック
-- 例: Todo作成、完了切り替え、削除
+- 例: Todo作成、完了切り替え、削除、検索クエリ実行
 
 【ViewModel】
 - アプリUI固有のロジック
 - Siri/Shortcuts からは使われない
-- 例: フィルター状態、ソート順、検索テキスト
+- 例: フィルター状態、ソート順、検索テキスト（入力値）
 ```
 
 ### Button(intent:) が使えるケース
@@ -376,14 +376,19 @@ Button(intent: DeleteTodoIntent(todo: entity)) {
 }
 ```
 
-### Button(intent:) が使えないケース
+### フォーム入力 + Button(intent:)
+
+Computed Propertyを使えば、フォーム入力が必要なケースでも `Button(intent:)` が使えます。
 
 ```swift
-// ❌ フォーム入力が必要なアクション
-// → パラメータを収集してから実行する必要がある
 struct AddTodoView: View {
     @State private var title = ""
     @State private var dueDate: Date?
+
+    // ✅ Computed Propertyで動的にIntent生成
+    private var addTodoIntent: AddTodoIntent {
+        AddTodoIntent(title: title, dueDate: dueDate)
+    }
 
     var body: some View {
         Form {
@@ -391,17 +396,18 @@ struct AddTodoView: View {
             DatePicker("Due Date", selection: ...)
         }
         .toolbar {
-            Button("Add") {
-                Task {
-                    // フォームの値を使ってIntent実行
-                    let intent = AddTodoIntent(title: title, dueDate: dueDate)
-                    try await intent.perform()
-                }
+            Button(intent: addTodoIntent) {
+                Text("Add")
             }
+            .disabled(title.isEmpty)
         }
     }
 }
 ```
+
+**注意点**:
+- 完了通知がないため、dismissは `onChange(of:)` でデータ変更を検知して行う
+- エラーはシステムがアラートで表示（カスタムエラーUI不可）
 
 ---
 

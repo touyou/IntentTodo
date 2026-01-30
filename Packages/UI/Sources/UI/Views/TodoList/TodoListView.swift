@@ -143,11 +143,15 @@ public struct TodoListView: View {
 
     private var addTodoSheet: some View {
         NavigationStack {
-            AddTodoView {
+            AddTodoView()
+        }
+        .presentationDetents([.medium])
+        .onChange(of: todoItems.count) { oldCount, newCount in
+            // Close sheet when a new todo is added
+            if newCount > oldCount {
                 showingAddTodo = false
             }
         }
-        .presentationDetents([.medium])
     }
 }
 
