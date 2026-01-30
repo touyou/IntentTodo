@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import AppIntents
 import TodoAppIntents
 
 /// A button component that deletes a todo via App Intent.

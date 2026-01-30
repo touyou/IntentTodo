@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import AppIntents
 import TodoAppIntents
 
 /// A button component that toggles todo favorite status via App Intent.

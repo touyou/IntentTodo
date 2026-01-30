@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import AppIntents
 import TodoAppIntents
 
 /// A checkbox component that toggles todo completion via App Intent.

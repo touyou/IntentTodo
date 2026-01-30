@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import AppIntents
 import TodoAppIntents
 
 /// A view for adding a new todo item.
