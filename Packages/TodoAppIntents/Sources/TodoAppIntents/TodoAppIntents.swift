@@ -17,8 +17,7 @@ import AppIntents
 ///   - `ToggleFavoriteIntent`: Toggles favorite status
 ///   - `ShowTodosIntent`: Shows all/filtered todos
 ///   - `OpenTodoListIntent`: Opens the todo list
-///   - `OpenAddTodoIntent`: Opens the add todo screen
-///   - `ActionButtonAddTodoIntent`: Action Button integration
+///   - `OpenAddTodoIntent`: Opens the add todo screen (also used for Action Button)
 /// - **Entity**:
 ///   - `TodoAppEntity`: App Intents entity for todos
 /// - **Query**:

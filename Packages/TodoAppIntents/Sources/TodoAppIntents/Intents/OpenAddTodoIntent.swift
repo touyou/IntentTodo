@@ -1,16 +1,17 @@
 //
 //  OpenAddTodoIntent.swift
-//  TodoAppIntents
-//
-//  Intent to open app with add todo screen.
+//  IntentTodo
 //
 
 import AppIntents
 
 /// Intent to open app with add todo sheet.
 ///
-/// This intent is used by widgets and control center to open the app
-/// directly to the add todo screen.
+/// This intent is used by:
+/// - Widgets: Quick add button
+/// - Control Center: Quick add control
+/// - Action Button: Physical button press on iPhone 15 Pro+
+/// - Shortcuts: Open to add screen
 public struct OpenAddTodoIntent: AppIntent {
     // MARK: - Metadata
 
@@ -23,7 +24,9 @@ public struct OpenAddTodoIntent: AppIntent {
             LocalizedStringResource(
                 "Opens the app to add a new todo",
                 comment: "Intent description for opening add todo"
-            )
+            ),
+            categoryName: "Todos",
+            searchKeywords: ["add", "create", "new", "quick", "action button"]
         )
     }
 
@@ -36,40 +39,6 @@ public struct OpenAddTodoIntent: AppIntent {
     // MARK: - Perform
 
     public func perform() async throws -> some IntentResult {
-        // The app will handle showing the add todo sheet
-        return .result()
-    }
-}
-
-/// Intent for Action Button integration.
-///
-/// Allows quick todo creation with physical button press.
-public struct ActionButtonAddTodoIntent: AppIntent {
-    // MARK: - Metadata
-
-    public static var title: LocalizedStringResource {
-        LocalizedStringResource("Quick Add Todo", comment: "Intent title for quick add")
-    }
-
-    public static var description: IntentDescription {
-        IntentDescription(
-            LocalizedStringResource(
-                "Create a new todo with Action Button",
-                comment: "Intent description for action button add"
-            )
-        )
-    }
-
-    public static var openAppWhenRun: Bool { true }
-
-    // MARK: - Initialization
-
-    public init() {}
-
-    // MARK: - Perform
-
-    public func perform() async throws -> some IntentResult {
-        // Opens app to add todo screen
-        return .result()
+        .result()
     }
 }
