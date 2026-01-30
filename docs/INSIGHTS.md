@@ -428,6 +428,8 @@ extension TodoEntityQuery: EntityStringQuery {
 macOS 14 / iOS 17 以降、`Button(intent:)` は両プラットフォームで使用可能です。
 
 ```swift
+import AppIntents  // ← Button(intent:) を使用するために必須
+
 // ✅ 推奨: Button(intent:) を直接使用
 Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
     Text("Complete")
@@ -435,9 +437,9 @@ Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
 
 // カスタムラベル付き
 Button(intent: DeleteTodoIntent(todo: entity)) {
-    Image(systemName: "trash")
-        .foregroundStyle(.red)
+    Label("Delete", systemImage: "trash")
 }
+.tint(.red)
 .buttonStyle(.plain)
 ```
 

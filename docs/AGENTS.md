@@ -319,16 +319,18 @@ phrases: ["Show \(\.$filter) todos in \(.applicationName)"]  // OK
 macOS 14 / iOS 17 以降、`Button(intent:)` は両プラットフォームで使用可能です。
 
 ```swift
+import AppIntents  // ← Button(intent:) を使用するために必須
+
 // ✅ 推奨: Button(intent:) を直接使用
 Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
     Label("Complete", systemImage: "checkmark")
 }
 
-// 削除ボタン（role: .destructive 付き）
-Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
-    Image(systemName: "trash")
-        .foregroundStyle(.red)
+// 削除ボタン
+Button(intent: DeleteTodoIntent(todo: entity)) {
+    Label("Delete", systemImage: "trash")
 }
+.tint(.red)
 ```
 
 **メリット**:
@@ -381,6 +383,8 @@ Button(intent: DeleteTodoIntent(todo: entity)) {
 Computed Propertyを使えば、フォーム入力が必要なケースでも `Button(intent:)` が使えます。
 
 ```swift
+import AppIntents  // ← 必須
+
 struct AddTodoView: View {
     @State private var title = ""
     @State private var dueDate: Date?
