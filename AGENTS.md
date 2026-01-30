@@ -5,9 +5,32 @@
 ## プロジェクト概要
 
 ### 設計思想
-- **全てのアクションはApp Intentとして定義**されること
-- App Intentsで定義したアクションは`Button(intent:)`で直接実行
-- ロジックの二重実装を避け、App Intentsを唯一の実行経路とする
+
+本プロジェクトは**App Intents中心設計**を採用しています。これは以下の概念を統合した独自のアプローチです：
+
+- **App Intent Driven Development** (SwiftLee): コード再利用とシステム統合
+- **Action-Centered Design** (Vidit Bhargava): アクション中心のUXデザイン
+- **モデルベースUIデザイン**: ユースケース中心設計との写像
+
+#### 核心原則
+
+1. **全てのアクションはApp Intentとして定義**されること
+2. App Intentsで定義したアクションは`Button(intent:)`で直接実行
+3. ロジックの二重実装を避け、App Intentsを唯一の実行経路とする
+4. **アクションと情報（Entity）が設計の原子単位** - UIやプラットフォームは二次的
+
+#### モデルベースUIデザインとの関係
+
+> 「誰が何を行動できる」というユースケース中心設計は、App IntentsのEntity-Intentモデルに直接写像できる。
+> - **Entity（名詞）** = ユースケースの「誰が」「何を」
+> - **Intent（動詞）** = ユースケースの「行動できる」
+
+これにより、デザインと実装の間に自然な対応関係が生まれます。
+
+#### Liquid Glass時代の設計
+
+UIクローム（装飾）が透明化し背景に溶け込む時代において、**コンテンツとアクションが本質**となります。
+標準UIで十分となり、カスタムスタイリングへの投資は減少。代わりにIntent定義に注力することで、Apple Intelligenceとの統合が自然に実現されます。
 
 ### パッケージ構成（App Intents中心設計）
 ```
@@ -22,6 +45,26 @@ Packages/
 - UseCase層は廃止 → AppIntentsがロジックを担う
 - UIはIntent実行トリガーと結果表示のみ
 - Repository ProtocolによりMock可能、テスタビリティ確保
+
+### マルチプラットフォーム展開指針（Action-Centered Design）
+
+アクションと情報の特性に応じて、適切なプラットフォームに展開します：
+
+| コンテンツ/アクションの特性 | 展開先 | 例 |
+|---------------------------|--------|-----|
+| 毎日確認する情報 | **ウィジェット** | 今日のTodo一覧、未完了数 |
+| 頻繁に変わる情報 | **watchOSコンプリケーション** | 次の期限、進捗状況 |
+| 繰り返しのアクション | **Shortcuts / Siri** | Todo追加、完了切り替え |
+| 常時追跡が必要な情報 | **ライブアクティビティ** | 期限間近のTodo |
+| 素早いアクセスが必要 | **コントロールセンター** | クイック追加 |
+| 物理的なトリガーが自然 | **Action Button** | 新規Todo作成 |
+
+#### 設計プロセス
+
+1. **最小のスクリーンから設計開始**: Apple Watch等、最も制約の厳しい環境で本質的なアクションを特定
+2. **アクションをIntent化**: 特定したアクションをApp Intentとして定義
+3. **プラットフォーム固有の実装へ拡張**: 上記の表に従って各プラットフォームに展開
+4. **メインアプリUIは最後**: 複数のアクションをクラスター化してスクリーン設計
 
 ## 技術要件
 
@@ -173,4 +216,12 @@ Types: feat, fix, refactor, test, docs, chore
 ## 参照ドキュメント
 
 - `docs/PLAN.md` - 開発計画
+- `docs/AGENTS.md` - App Intents中心設計の詳細ガイド
+- `docs/APP_INTENT_DRIVEN_DESIGN.md` - 関連概念の整理と比較
+- `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
+
+## 設計思想の背景
+
+本プロジェクトの設計思想については以下を参照：
+- [Liquid GlassとApp Intents中心設計](https://goodpatch-tech.hatenablog.com/entry/liquid_glass_and_app_intents) - モデルベースUIデザインとの関係

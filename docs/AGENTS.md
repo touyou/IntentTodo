@@ -4,7 +4,35 @@
 
 ---
 
-## 設計思想
+## 設計思想の背景
+
+本設計は以下の概念を統合しています：
+
+| 概念 | 出典 | 本設計での活用 |
+|------|------|--------------|
+| **App Intent Driven Development** | SwiftLee | コード再利用とシステム統合の基盤 |
+| **Action-Centered Design** | Vidit Bhargava | マルチプラットフォーム展開指針 |
+| **モデルベースUIデザイン** | usagimaru理論 | ユースケースとIntentの写像 |
+
+### アプリ = アクションのクラスター
+
+> アプリはプラットフォームに縛られない「アクションと情報の集合体」である。
+
+- **Intent（動詞）** = ユースケースの「行動できる」
+- **Entity（名詞）** = ユースケースの「誰が」「何を」
+
+この考え方により、デザイン（ユースケース定義）と実装（Intent定義）の間に**自然な写像**が生まれます。
+
+### Liquid Glass時代の設計観
+
+UIクローム（装飾）が透明化し背景に溶け込む時代：
+- **コンテンツとアクションが本質** - 標準UIで十分
+- **Intent定義に注力** - Apple Intelligenceとの統合が自然に実現
+- **UI、アプリ、デバイスの境界が曖昧化** - アクション/情報へのアクセスが本質
+
+---
+
+## 従来設計との比較
 
 ### 従来のMVVM設計 vs App Intents中心設計
 
@@ -18,7 +46,7 @@ View → ViewModel → UseCase → Repository → Domain
 View → Intent → Repository → Domain
          ↑
    ビジネスロジック
-   (Siri/Shortcuts からも実行可能)
+   (Siri/Shortcuts/Widget/Apple Intelligence からも実行可能)
 ```
 
 ### 核心原則
@@ -27,6 +55,7 @@ View → Intent → Repository → Domain
 2. **IntentがビジネスロジックのSingle Source of Truth**
 3. **UIはIntent実行のトリガーと結果表示のみ**
 4. **ロジックの二重実装を排除**
+5. **アクションと情報が設計の原子単位** - UIやプラットフォームは二次的
 
 ---
 
@@ -541,9 +570,56 @@ struct AddTodoIntentTests {
 
 ---
 
+---
+
+## マルチプラットフォーム展開指針
+
+Action-Centered Designの考え方に基づき、アクション/情報の特性に応じて適切なプラットフォームに展開します。
+
+### 展開の判断基準
+
+| コンテンツ/アクションの特性 | 展開先 | 理由 |
+|---------------------------|--------|------|
+| 毎日確認する情報 | **ウィジェット** | グランスで確認可能 |
+| 頻繁に変わる情報 | **watchOSコンプリケーション** | 常時表示、即時確認 |
+| 繰り返しのアクション | **Shortcuts / Siri** | 音声/自動化で効率化 |
+| 常時追跡が必要な情報 | **ライブアクティビティ** | ロック画面で継続表示 |
+| 素早いアクセスが必要 | **コントロールセンター** | ワンタップでアクセス |
+| 物理的なトリガーが自然 | **Action Button** | 即座に実行 |
+
+### 設計プロセス
+
+1. **最小のスクリーンから設計開始**
+   - Apple Watch等、最も制約の厳しい環境で本質的なアクションを特定
+   - 「本当に必要なアクションは何か？」を問う
+
+2. **アクションをIntent化**
+   - 特定したアクションをApp Intentとして定義
+   - EntityとIntentの関係を明確化
+
+3. **プラットフォーム固有の実装へ拡張**
+   - 上記の表に従って各プラットフォームに展開
+   - 同一のIntentを複数のプラットフォームで再利用
+
+4. **メインアプリUIは最後**
+   - 複数のアクションをクラスター化
+   - ナビゲーション階層を決定してスクリーン設計
+
+---
+
 ## 参考資料
+
+### Apple公式
 
 - [Apple: App Intents](https://developer.apple.com/documentation/appintents)
 - [Apple: Making your app's functionality available to Siri](https://developer.apple.com/documentation/appintents/making-your-app-s-functionality-available-to-siri)
 - [WWDC22: Dive into App Intents](https://developer.apple.com/videos/play/wwdc2022/10032/)
 - [WWDC23: Explore enhancements to App Intents](https://developer.apple.com/videos/play/wwdc2023/10103/)
+- [WWDC24: Bring your app's core features to users with App Intents](https://developer.apple.com/videos/play/wwdc2024/10210/)
+- [WWDC25: Get to know App Intents](https://developer.apple.com/videos/play/wwdc2025/244/)
+
+### 設計思想
+
+- [Action-Centered Design - Vidit Bhargava](https://blog.viditb.com/action-centered-design/)
+- [App Intent Driven Development - SwiftLee](https://www.avanderlee.com/swift/app-intent-driven-development/)
+- [Liquid GlassとApp Intents中心設計](https://goodpatch-tech.hatenablog.com/entry/liquid_glass_and_app_intents) - モデルベースUIデザインとの関係

@@ -7,9 +7,10 @@
 1. [概念の概要](#概念の概要)
 2. [App Intent Driven Development (SwiftLee)](#app-intent-driven-development-swiftlee)
 3. [Action-Centered Design Framework (Vidit Bhargava)](#action-centered-design-framework-vidit-bhargava)
-4. [MVI (Model-View-Intent) Architecture](#mvi-model-view-intent-architecture)
-5. [本リポジトリの思想との比較](#本リポジトリの思想との比較)
-6. [参考リンク](#参考リンク)
+4. [モデルベースUIデザインとユースケース中心設計](#モデルベースuiデザインとユースケース中心設計)
+5. [MVI (Model-View-Intent) Architecture](#mvi-model-view-intent-architecture)
+6. [本リポジトリの思想との比較](#本リポジトリの思想との比較)
+7. [参考リンク](#参考リンク)
 
 ---
 
@@ -21,6 +22,7 @@ App Intentsを中心とした設計アプローチには、いくつかの異な
 |--------|-------------|----------|
 | App Intent Driven Development | Antoine van der Lee (SwiftLee) | コード再利用とシステム統合 |
 | Action-Centered Design | Vidit Bhargava | UXデザインとマルチプラットフォーム |
+| モデルベースUIデザイン | usagimaru理論 | ユースケース中心設計とIntent/Entityの写像 |
 | MVI Architecture | Hannes Dorfmann (Android) | 状態管理と単方向データフロー |
 
 ---
@@ -123,6 +125,62 @@ Apple Intelligenceは「アクションと情報を個別化された体験に�
 - UX/デザイン視点からのアプローチ
 - マルチプラットフォーム対応を前提
 - Apple Intelligenceとの親和性を重視
+
+---
+
+## モデルベースUIデザインとユースケース中心設計
+
+### 定義
+
+usagimaruによる理論的フレームワークで、**「誰が何を行動できる」という構造**を中心にUIを設計するアプローチです。
+
+### 核心的な考え方
+
+ユースケース中心設計は以下の構造で表現されます：
+
+```
+「誰が」（Actor/Entity） + 「何を」（Object/Entity） + 「行動できる」（Action/Intent）
+```
+
+この構造はApp IntentsのEntity-Intentモデルに**直接写像**できます：
+
+| ユースケース要素 | App Intents要素 | 例 |
+|----------------|----------------|-----|
+| 誰が（Actor） | Entity | User, TodoItem |
+| 何を（Object） | Entity | TodoItem, Category |
+| 行動できる（Action） | Intent | AddTodoIntent, DeleteTodoIntent |
+
+### App Intentsとの自然な対応
+
+```swift
+// ユースケース: 「ユーザーが」「Todoを」「追加できる」
+struct AddTodoIntent: AppIntent {
+    @Parameter(title: "Title")
+    var title: String  // 「何を」
+
+    func perform() async throws -> some IntentResult {
+        // 「行動できる」の実装
+    }
+}
+```
+
+### Liquid Glass時代との関連
+
+> UIクローム（装飾）が透明化し背景に溶け込む時代において、**コンテンツとアクションが本質**となる。
+
+- UI、アプリ、デバイスの境界が曖昧化
+- **アクション/情報へのアクセスが本質**として残る
+- Intent定義に注力することで、Apple Intelligenceとの統合が自然に実現
+
+### 特徴
+
+- デザインと実装の間に**自然な対応関係**が生まれる
+- ユースケース図がそのままIntent定義のガイドになる
+- デザイナーとエンジニアの共通言語となりうる
+
+### 参考
+
+- [Liquid GlassとApp Intents中心設計](https://goodpatch-tech.hatenablog.com/entry/liquid_glass_and_app_intents)
 
 ---
 
@@ -229,9 +287,20 @@ Packages/
 
 2. **マルチプラットフォーム対応**
    - ウィジェット、Shortcuts、Siriなど複数の接点を想定
+   - **Action-Centered Designの展開指針を採用**: アクション/情報の特性に応じた展開先の決定
 
 3. **Apple Intelligenceへの対応**
    - 将来的なAI統合を見据えた設計
+
+#### IntentTodo と モデルベースUIデザイン
+
+1. **ユースケースとIntentの写像**
+   - 「誰が何を行動できる」= Entity-Intentモデル
+   - デザインと実装の間の自然な対応関係
+
+2. **Liquid Glass時代の設計観**
+   - コンテンツとアクションが本質
+   - UIクロームへの投資より、Intent定義に注力
 
 ### 差分・独自性
 
@@ -253,25 +322,29 @@ Packages/
    - Domain / Repository / AppIntents / UIの4層構造
    - 各層の責務が明確
 
-#### 他の概念にあってIntentTodoにないもの
+#### 統合された独自性
 
-1. **デザインプロセスの指針**（Action-Centered Design）
-   - 「4つの質問から始める」などのデザイン方法論
-   - IntentTodoは技術的なアーキテクチャに焦点
+IntentTodoは以下の概念を**統合**しています：
 
-2. **状態管理パターン**（MVI）
-   - 単方向データフローの詳細な規定
-   - IntentTodoは@Observableベースで、特定のパターンを強制しない
+| 取り入れた概念 | 出典 | IntentTodoでの活用 |
+|--------------|------|-------------------|
+| デフォルトでIntent定義 | App Intent Driven Dev | UseCase層を廃止し、Intentがロジックを担う |
+| アクション中心の設計 | Action-Centered Design | アプリ=アクションのクラスターという思想 |
+| プラットフォーム展開指針 | Action-Centered Design | 特性に応じた展開先マトリクス |
+| ユースケースとの写像 | モデルベースUIデザイン | Entity-Intentモデルとデザインの対応 |
+| Liquid Glass時代の設計観 | モデルベースUIデザイン | コンテンツとアクションが本質 |
 
 ### 結論
 
 IntentTodoの「App Intents中心設計」は、以下の点で独自の立場を取っています：
 
-1. **より徹底したIntent中心主義**: UseCase層を廃止し、App Intentsをビジネスロジック層として位置づける
-2. **実装レベルの具体性**: Button(intent:)の必須化など、実装方法を明確に規定
-3. **アーキテクチャ全体の再構成**: 従来のClean Architectureを、App Intents前提で再設計
+1. **概念の統合**: App Intent Driven Development、Action-Centered Design、モデルベースUIデザインを統合
+2. **より徹底したIntent中心主義**: UseCase層を廃止し、App Intentsをビジネスロジック層として位置づける
+3. **実装レベルの具体性**: Button(intent:)の必須化など、実装方法を明確に規定
+4. **アーキテクチャ全体の再構成**: 従来のClean Architectureを、App Intents前提で再設計
+5. **マルチプラットフォーム展開指針**: Action-Centered Designの考え方を採用
 
-これは、App Intent Driven DevelopmentやAction-Centered Designの考え方を参考にしつつ、より実装に踏み込んだ独自のアーキテクチャと言えます。
+これは、複数の設計思想を参考にしつつ、**デザインから実装まで一貫した思想**を持つ独自のアーキテクチャと言えます。
 
 ---
 
@@ -282,6 +355,7 @@ IntentTodoの「App Intents中心設計」は、以下の点で独自の立場�
 - [App Intent Driven Development in Swift and SwiftUI - SwiftLee](https://www.avanderlee.com/swift/app-intent-driven-development/)
 - [Action-Centered Design - Vidit Bhargava](https://blog.viditb.com/action-centered-design/)
 - [Apple Intelligence: Action Centered Design Framework - Matthew Cassinelli](https://matthewcassinelli.com/apple-intelligence-action-centered-design-framework-feat-vidit-bhargava/)
+- [Liquid GlassとApp Intents中心設計](https://goodpatch-tech.hatenablog.com/entry/liquid_glass_and_app_intents) - モデルベースUIデザインとの関係
 
 ### Apple公式ドキュメント
 
