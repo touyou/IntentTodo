@@ -83,15 +83,7 @@ cd IntentTodo
 open IntentTodo.xcodeproj
 ```
 
-3. Packages フォルダをプロジェクトナビゲータにドラッグ（初回のみ）
-
-4. ターゲット設定で各パッケージをリンク
-   - Domain
-   - Repository
-   - TodoAppIntents
-   - UI
-
-5. ビルド & 実行
+3. ビルド & 実行
 
 ## テスト
 
