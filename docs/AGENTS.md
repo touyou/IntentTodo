@@ -339,43 +339,123 @@ Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
 
 ---
 
+## App Intents と ViewModel の役割分担
+
+### 基本原則
+
+| 責務 | 担当 | 例 |
+|------|------|-----|
+| **ビジネスロジック** | App Intents | CRUD操作、バリデーション、データ変換 |
+| **UI状態管理** | ViewModel | フィルター、ソート、検索、ローディング状態 |
+| **表示** | View | レイアウト、アニメーション |
+
+### なぜ分けるのか？
+
+```
+【App Intents】
+- Siri/Shortcuts からも実行される
+- UIに依存しない純粋なロジック
+- 例: Todo作成、完了切り替え、削除
+
+【ViewModel】
+- アプリUI固有のロジック
+- Siri/Shortcuts からは使われない
+- 例: フィルター状態、ソート順、検索テキスト
+```
+
+### Button(intent:) が使えるケース
+
+```swift
+// ✅ 即座に実行できるアクション
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+    Image(systemName: "checkmark.circle")
+}
+
+Button(intent: DeleteTodoIntent(todo: entity)) {
+    Label("Delete", systemImage: "trash")
+}
+```
+
+### Button(intent:) が使えないケース
+
+```swift
+// ❌ フォーム入力が必要なアクション
+// → パラメータを収集してから実行する必要がある
+struct AddTodoView: View {
+    @State private var title = ""
+    @State private var dueDate: Date?
+
+    var body: some View {
+        Form {
+            TextField("Title", text: $title)
+            DatePicker("Due Date", selection: ...)
+        }
+        .toolbar {
+            Button("Add") {
+                Task {
+                    // フォームの値を使ってIntent実行
+                    let intent = AddTodoIntent(title: title, dueDate: dueDate)
+                    try await intent.perform()
+                }
+            }
+        }
+    }
+}
+```
+
+---
+
 ## ViewModel パターン
 
-### Intent実行をViewModelに委譲
+### UI状態管理に特化
 
 ```swift
 @MainActor
 @Observable
 public final class TodoListViewModel {
-    public private(set) var todos: [TodoAppEntity] = []
-    public private(set) var isLoading = false
-    public var errorMessage: String?
+    // MARK: - UI State（アプリ固有）
+    public var filter: TodoFilter = .all
+    public var sortOrder: TodoSortOrder = .createdAtDescending
+    public var searchText = ""
 
-    // Intent経由でデータ取得
-    public func loadTodos() async {
-        isLoading = true
-        defer { isLoading = false }
+    // MARK: - Computed（フィルタリング・ソート）
+    public func filteredTodos(from todos: [TodoAppEntity]) -> [TodoAppEntity] {
+        var result = todos
 
-        do {
-            let intent = ShowTodosIntent()
-            let result = try await intent.perform()
-            todos = result.value ?? []
-        } catch {
-            errorMessage = error.localizedDescription
+        // フィルター適用
+        switch filter {
+        case .all: break
+        case .incomplete: result = result.filter { !$0.isCompleted }
+        case .completed: result = result.filter { $0.isCompleted }
+        case .favorites: result = result.filter { $0.isFavorite }
         }
+
+        // 検索適用
+        if !searchText.isEmpty {
+            result = result.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+        }
+
+        // ソート適用
+        return sortTodos(result, by: sortOrder)
     }
+}
+```
 
-    // Intent経由で更新
-    public func toggleCompletion(for entity: TodoAppEntity) async {
-        do {
-            let intent = ToggleTodoCompletionIntent(todo: entity)
-            let result = try await intent.perform()
-            if let updated = result.value {
-                updateTodo(updated)
-            }
-        } catch {
-            errorMessage = error.localizedDescription
+### View との連携
+
+```swift
+struct TodoListView: View {
+    @Query private var todoItems: [TodoItem]  // SwiftData
+    @State private var viewModel = TodoListViewModel()
+
+    var body: some View {
+        let entities = todoItems.map { TodoAppEntity(from: $0) }
+        let filtered = viewModel.filteredTodos(from: entities)
+
+        List(filtered) { todo in
+            TodoRowView(todo: todo)
         }
+        .searchable(text: $viewModel.searchText)
     }
 }
 ```
