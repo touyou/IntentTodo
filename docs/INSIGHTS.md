@@ -763,3 +763,217 @@ private var displayImage: DisplayRepresentation.Image {
     }
 }
 ```
+
+---
+
+## Extension ターゲットの制約と設計
+
+### WidgetBundle の明示的登録
+
+WidgetやControlWidgetは、定義しただけでは動作しません。必ず `WidgetBundle` に登録する必要があります。
+
+```swift
+// ❌ 定義だけでは不十分
+struct ToggleUrgentTodoControl: ControlWidget { ... }
+
+// ✅ WidgetBundleに明示的に登録
+@main
+struct IntentTodoWidgetBundle: WidgetBundle {
+    var body: some Widget {
+        IntentTodoWidget()           // ホーム画面ウィジェット
+
+        if #available(iOS 18.0, *) {
+            QuickAddTodoControl()     // コントロールセンター
+            TodoCountControl()
+            ToggleUrgentTodoControl() // ← 忘れがち！
+        }
+    }
+}
+```
+
+### ControlConfigurationIntent の配置制約
+
+`ControlConfigurationIntent` はSwift Package内で定義できません。Extension ターゲットに直接配置する必要があります。
+
+```swift
+// ❌ パッケージ内では不可
+// Packages/TodoAppIntents/Sources/.../QuickAddTodoControlIntent.swift
+
+// ✅ Extension ターゲットに配置
+// IntentTodoWidget/TodoControlWidget.swift
+@available(iOS 18.0, *)
+struct QuickAddTodoControlIntent: ControlConfigurationIntent {
+    static var title: LocalizedStringResource = "Add Todo"
+    static var openAppWhenRun = true
+
+    func perform() async throws -> some IntentResult & OpensIntent {
+        // パッケージのIntentを利用
+        return .result(opensIntent: OpenAddTodoIntent())
+    }
+}
+```
+
+### Extension ターゲットごとの ModelContainer
+
+各Extension（Widget、LiveActivity）は独立したプロセスで動作するため、ModelContainerを個別に作成する必要があります。
+
+```swift
+// IntentTodoWidget/IntentTodoWidget.swift
+private let widgetModelContainer: ModelContainer = {
+    let schema = Schema([TodoItem.self, SubTask.self, Category.self])
+    let config = ModelConfiguration(schema: schema)
+    return try! ModelContainer(for: schema, configurations: [config])
+}()
+
+// IntentTodoLiveActivity/Intents/LiveActivityIntents.swift
+let liveActivityModelContainer: ModelContainer = {
+    // 同じスキーマでも別インスタンスが必要
+    let schema = Schema([TodoItem.self, SubTask.self, Category.self])
+    let config = ModelConfiguration(schema: schema)
+    return try! ModelContainer(for: schema, configurations: [config])
+}()
+```
+
+**重要**: App Group を設定していれば、同じデータベースファイルを共有できます。
+
+---
+
+## watchOS 固有の制約
+
+### Button(intent:) の API 差異
+
+watchOS では iOS と同じ `Button(intent:role:)` シグネチャが利用できません。代わりに async パターンを使用します。
+
+```swift
+// ❌ watchOS ではエラー
+Button(intent: ToggleTodoCompletionIntent(todo: entity), role: .none) {
+    Text("Complete")
+}
+
+// ✅ watchOS 対応パターン
+Button {
+    Task {
+        try? await ToggleTodoCompletionIntent(todo: entity).perform()
+    }
+} label: {
+    Text("Complete")
+}
+```
+
+### watchOS向けファイル分割
+
+watchOSアプリは単一ファイルが肥大化しやすいため、早期に分割することを推奨。
+
+```
+IntentTodoWatchApp/
+├── IntentTodoWatchApp.swift      # Appエントリーのみ
+├── Views/
+│   ├── WatchTodoListView.swift   # メインリスト
+│   ├── WatchAddTodoView.swift    # 追加画面
+│   └── WatchTodoDetailView.swift # 詳細画面
+├── Components/
+│   ├── WatchTodoRow.swift        # 行コンポーネント
+│   └── WatchDueDateLabel.swift   # 期限ラベル
+└── TodoComplication.swift        # コンプリケーション
+```
+
+---
+
+## LiveActivity の Intent 設計
+
+### LiveActivityIntent vs AppIntent
+
+Live Activity からアクションを実行する場合は `LiveActivityIntent` を使用します。
+
+```swift
+// LiveActivityIntent: Live Activity専用
+struct CompleteTodoFromActivityIntent: LiveActivityIntent {
+    static var title: LocalizedStringResource = "Complete Todo"
+
+    @Parameter(title: "Todo ID")
+    var todoId: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        // Todo完了処理
+        // ...
+
+        // Live Activity を終了（LiveActivityIntent固有の処理）
+        await endLiveActivity(for: todoId)
+
+        return .result()
+    }
+}
+```
+
+### 通常の AppIntent との使い分け
+
+| Intent種別 | 用途 | 特徴 |
+|-----------|------|------|
+| `AppIntent` | Siri/Shortcuts/UI | 汎用的なアクション |
+| `LiveActivityIntent` | Dynamic Island/ロック画面 | Activity状態の操作が可能 |
+| `ControlConfigurationIntent` | コントロールセンター | Extension配置必須 |
+
+---
+
+## Intent 統合のベストプラクティス
+
+### 重複Intentの検出と統合
+
+似た機能を持つIntentは統合を検討します。
+
+```swift
+// ❌ 重複: 両方とも「アプリを開いてTodo追加画面を表示」
+struct OpenAddTodoIntent: AppIntent { ... }
+struct ActionButtonAddTodoIntent: AppIntent { ... }
+
+// ✅ 統合: searchKeywordsでユースケースをカバー
+public struct OpenAddTodoIntent: AppIntent {
+    public static var description: IntentDescription {
+        IntentDescription(
+            LocalizedStringResource("Opens the app to add a new todo"),
+            categoryName: "Todos",
+            searchKeywords: ["add", "create", "new", "quick", "action button"]
+        )
+    }
+}
+```
+
+### 統合すべきでないケース
+
+| Intent組み合わせ | 統合しない理由 |
+|-----------------|---------------|
+| `ShowTodosIntent` / `ShowIncompleteTodosIntent` | Siriフレーズが異なり、UX的に別ショートカットとして意味がある |
+| `CompleteTodoFromActivityIntent` / `ToggleTodoCompletionIntent` | Live Activity固有の終了処理が必要 |
+| `QuickAddTodoControlIntent` / `OpenAddTodoIntent` | ControlConfigurationIntentはExtension配置必須 |
+
+---
+
+## ファイル分割のパターン
+
+### 肥大化したファイルの分割指針
+
+1ファイルが200行を超えたら分割を検討。以下のパターンで整理：
+
+```
+Target/
+├── TargetMain.swift              # エントリーポイント・Widget定義のみ
+├── Configuration/                # Intent/Configuration定義
+│   └── TargetConfigurationIntent.swift
+├── Views/                        # UI View
+│   ├── MainView.swift
+│   └── DetailView.swift
+├── Components/                   # 再利用可能な小さいView
+│   ├── RowComponent.swift
+│   └── BadgeComponent.swift
+├── Intents/                      # ターゲット固有のIntent
+│   └── TargetSpecificIntent.swift
+└── Manager/                      # ビジネスロジック管理
+    └── TargetManager.swift
+```
+
+### 分割時の注意点
+
+- **internal型の共有**: 同じターゲット内なら `import` 不要
+- **Preview**: 分割後も各ファイルでPreviewが動作するよう依存を整理
+- **ビルドエラー**: 循環参照に注意（型の定義順序）

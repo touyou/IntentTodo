@@ -35,10 +35,28 @@ UIクローム（装飾）が透明化し背景に溶け込む時代において
 ### パッケージ構成（App Intents中心設計）
 ```
 Packages/
-├── Domain/       # SwiftDataモデル、共通Entity
-├── Repository/   # データアクセス層（Protocol + 実装）
-├── AppIntents/   # ★コア：Intent定義 + ビジネスロジック
-└── UI/           # SwiftUI Views, ViewModels（表示のみ）
+├── Domain/           # SwiftDataモデル、共通Entity、ActivityAttributes
+├── Repository/       # データアクセス層（Protocol + 実装）
+├── TodoAppIntents/   # ★コア：Intent定義 + ビジネスロジック + Shortcuts
+└── UI/               # SwiftUI Views, ViewModels（表示のみ）
+```
+
+### Extension ターゲット構成
+```
+IntentTodoWidget/           # ホーム画面ウィジェット + コントロールセンター
+├── Configuration/          # WidgetConfigurationIntent
+├── Views/                  # Small/Medium/Large ウィジェットView
+└── IntentTodoWidgetBundle.swift  # 全Widget/Controlをバンドル
+
+IntentTodoLiveActivity/     # ライブアクティビティ
+├── Views/                  # ロック画面・Dynamic Island View
+├── Intents/                # LiveActivityIntent（完了/スヌーズ）
+└── Manager/                # TodoLiveActivityManager
+
+IntentTodoWatchApp/         # watchOS アプリ
+├── Views/                  # リスト・詳細・追加View
+├── Components/             # 再利用可能コンポーネント
+└── TodoComplication.swift  # コンプリケーション定義
 ```
 
 **ポイント**:
@@ -186,18 +204,28 @@ struct TodoEntity: AppEntity, IndexedEntity {
 ## Todoアプリ機能要件
 
 ### 基本機能
-- [ ] Todo作成
-- [ ] Todo完了/未完了の切り替え
-- [ ] Todo削除
-- [ ] お気に入り機能
+- [x] Todo作成（AddTodoIntent）
+- [x] Todo完了/未完了の切り替え（ToggleTodoCompletionIntent）
+- [x] Todo削除（DeleteTodoIntent）
+- [x] お気に入り機能（ToggleFavoriteIntent）
 
 ### 拡張機能
-- [ ] 検索
-- [ ] 期限設定
-- [ ] ソート
-- [ ] カテゴリ分類
-- [ ] 詳細説明
-- [ ] サブタスク
+- [x] 検索（TodoListView + .searchable）
+- [x] 期限設定（TodoItem.dueDate）
+- [x] ソート（TodoSortOrder）
+- [x] カテゴリ分類（Category model）
+- [x] 詳細説明（TodoItem.todoDescription）
+- [x] サブタスク（SubTask model）
+
+### マルチプラットフォーム
+- [x] iOS/iPadOS メインアプリ
+- [x] macOS（Catalyst対応）
+- [x] watchOS アプリ + コンプリケーション
+- [x] visionOS 空間UI
+- [x] ホーム画面ウィジェット（Small/Medium/Large）
+- [x] ライブアクティビティ（Dynamic Island + ロック画面）
+- [x] コントロールセンター（クイック追加/Todo数/緊急Todo）
+- [x] Siri/Shortcuts（TodoAppShortcuts）
 
 ## 開発フロー（TDD）
 

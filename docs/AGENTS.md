@@ -607,6 +607,117 @@ Action-Centered Designの考え方に基づき、アクション/情報の特性
 
 ---
 
+## エクステンションターゲットでの注意点
+
+### WidgetBundle への明示的登録
+
+ウィジェット・コントロールは `WidgetBundle` に**明示的に登録**しないと利用できません。
+
+```swift
+@main
+struct IntentTodoWidgetBundle: WidgetBundle {
+    var body: some Widget {
+        // ホーム画面ウィジェット
+        IntentTodoWidget()
+
+        // コントロールセンター（iOS 18+）
+        if #available(iOS 18.0, *) {
+            QuickAddTodoControl()
+            TodoCountControl()
+            ToggleUrgentTodoControl()  // 忘れがち！
+        }
+    }
+}
+```
+
+### ControlConfigurationIntent の配置
+
+`ControlConfigurationIntent` を準拠するIntentは**エクステンションターゲット内**に配置する必要があります。Swift Package内では動作しません。
+
+```swift
+// ❌ Swift Package内では動作しない
+// Packages/TodoAppIntents/Sources/.../ToggleUrgentTodoIntent.swift
+
+// ✅ Widgetエクステンションターゲット内に配置
+// IntentTodoWidget/Controls/ToggleUrgentTodoControl.swift
+struct ToggleUrgentTodoIntent: AppIntent, ControlConfigurationIntent {
+    // ...
+}
+```
+
+### LiveActivityIntent の違い
+
+ライブアクティビティからのボタン操作には `LiveActivityIntent` プロトコルが必要です（通常の `AppIntent` では動作しない）。
+
+```swift
+// ❌ 通常のAppIntentはLiveActivityで動作しない
+struct CompleteTodoIntent: AppIntent { ... }
+
+// ✅ LiveActivityIntentを準拠
+struct CompleteTodoFromActivityIntent: AppIntent, LiveActivityIntent {
+    static var title: LocalizedStringResource = "Complete Todo"
+
+    @Parameter(title: "Todo ID")
+    var todoId: String
+
+    init() {}
+
+    init(todoId: String) {
+        self.todoId = todoId
+    }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        // Live Activity終了処理も含める
+        return .result()
+    }
+}
+```
+
+### エクステンション専用 ModelContainer
+
+各エクステンションターゲットは**独自のModelContainer**を持つ必要があります。メインアプリの `IntentDependencies.shared` は利用できません。
+
+```swift
+// IntentTodoLiveActivity/Intents/LiveActivityIntents.swift
+
+/// エクステンション専用のModelContainer
+@MainActor
+let liveActivityModelContainer: ModelContainer = {
+    let schema = Schema([TodoItem.self, SubTask.self, Category.self])
+    let config = ModelConfiguration(
+        schema: schema,
+        isStoredInMemoryOnly: false,
+        cloudKitDatabase: .private("iCloud.com.example.IntentTodo")
+    )
+    return try! ModelContainer(for: schema, configurations: [config])
+}()
+```
+
+### watchOS での Button(intent:) 制約
+
+watchOS では `Button(intent:label:)` のシグネチャが iOS と異なります。複数のAPIオーバーロードが存在し、型推論がうまく働かないことがあります。
+
+```swift
+// ❌ watchOSで曖昧な場合あり
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+    Image(systemName: "checkmark")
+}
+
+// ✅ 明示的なButtonインスタンス生成で対処
+// または onTapGesture + Task で直接実行
+VStack {
+    // 表示コンテンツ
+}
+.onTapGesture {
+    Task {
+        _ = try? await ToggleTodoCompletionIntent(todo: entity).perform()
+    }
+}
+```
+
+---
+
 ## 参考資料
 
 ### Apple公式
