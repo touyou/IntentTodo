@@ -4,11 +4,13 @@
 //
 
 import SwiftUI
+import AppIntents
 import TodoAppIntents
 
 /// A view for adding a new todo item.
 ///
 /// This view collects todo details and creates the todo via AddTodoIntent.
+/// Uses `Button(intent:)` with a computed property for dynamic intent generation.
 public struct AddTodoView: View {
     // MARK: - Properties
 
@@ -16,21 +18,29 @@ public struct AddTodoView: View {
 
     @State private var title = ""
     @State private var todoDescription = ""
-    @State private var dueDate: Date?
+    @State private var dueDate = Date()
     @State private var hasDueDate = false
     @State private var isFavorite = false
-    @State private var isSubmitting = false
-    @State private var errorMessage: String?
 
-    private let onAdd: (TodoAppEntity) -> Void
+    // MARK: - Computed Intent
+
+    /// Dynamically generated intent based on current form state.
+    private var addTodoIntent: AddTodoIntent {
+        AddTodoIntent(
+            title: title,
+            todoDescription: todoDescription.isEmpty ? nil : todoDescription,
+            dueDate: hasDueDate ? dueDate : nil,
+            isFavorite: isFavorite
+        )
+    }
+
+    private var isValid: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
 
     // MARK: - Initialization
 
-    /// Creates an add todo view.
-    /// - Parameter onAdd: Callback when a todo is successfully added.
-    public init(onAdd: @escaping (TodoAppEntity) -> Void) {
-        self.onAdd = onAdd
-    }
+    public init() {}
 
     // MARK: - Body
 
@@ -52,22 +62,12 @@ public struct AddTodoView: View {
                 if hasDueDate {
                     DatePicker(
                         "Due Date",
-                        selection: Binding(
-                            get: { dueDate ?? Date() },
-                            set: { dueDate = $0 }
-                        ),
+                        selection: $dueDate,
                         displayedComponents: [.date]
                     )
                 }
 
                 Toggle("Mark as Favorite", isOn: $isFavorite)
-            }
-
-            if let errorMessage {
-                Section {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                }
             }
         }
         .navigationTitle("New Todo")
@@ -82,39 +82,11 @@ public struct AddTodoView: View {
             }
 
             ToolbarItem(placement: .confirmationAction) {
-                Button("Add") {
-                    Task {
-                        await addTodo()
-                    }
+                Button(intent: addTodoIntent) {
+                    Text("Add")
                 }
-                .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSubmitting)
+                .disabled(!isValid)
             }
-        }
-        .interactiveDismissDisabled(isSubmitting)
-    }
-
-    // MARK: - Actions
-
-    @MainActor
-    private func addTodo() async {
-        isSubmitting = true
-        errorMessage = nil
-
-        let intent = AddTodoIntent(
-            title: title,
-            todoDescription: todoDescription.isEmpty ? nil : todoDescription,
-            dueDate: hasDueDate ? dueDate : nil,
-            isFavorite: isFavorite
-        )
-
-        do {
-            let result = try await intent.perform()
-            if let entity = result.value {
-                onAdd(entity)
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-            isSubmitting = false
         }
     }
 }
@@ -123,6 +95,6 @@ public struct AddTodoView: View {
 
 #Preview {
     NavigationStack {
-        AddTodoView { _ in }
+        AddTodoView()
     }
 }

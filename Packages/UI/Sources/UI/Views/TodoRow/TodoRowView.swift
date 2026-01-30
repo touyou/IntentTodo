@@ -9,28 +9,18 @@ import TodoAppIntents
 /// A row view displaying a single todo item.
 ///
 /// This view uses App Intent buttons for all interactions.
+/// Data updates are handled automatically by SwiftData's @Query in the parent view.
 public struct TodoRowView: View {
     // MARK: - Properties
 
     private let todo: TodoAppEntity
-    private let onUpdate: ((TodoAppEntity) -> Void)?
-    private let onDelete: (() -> Void)?
 
     // MARK: - Initialization
 
     /// Creates a row view for the given todo.
-    /// - Parameters:
-    ///   - todo: The todo entity to display.
-    ///   - onUpdate: Callback when the todo is updated.
-    ///   - onDelete: Callback when the todo is deleted.
-    public init(
-        todo: TodoAppEntity,
-        onUpdate: ((TodoAppEntity) -> Void)? = nil,
-        onDelete: (() -> Void)? = nil
-    ) {
+    /// - Parameter todo: The todo entity to display.
+    public init(todo: TodoAppEntity) {
         self.todo = todo
-        self.onUpdate = onUpdate
-        self.onDelete = onDelete
     }
 
     // MARK: - Body
@@ -38,7 +28,7 @@ public struct TodoRowView: View {
     public var body: some View {
         HStack(spacing: 12) {
             // Checkbox
-            TodoCheckbox(todo: todo, onToggle: onUpdate)
+            TodoCheckbox(todo: todo)
 
             // Content
             VStack(alignment: .leading, spacing: 4) {
@@ -55,7 +45,7 @@ public struct TodoRowView: View {
             Spacer()
 
             // Favorite button
-            FavoriteButton(todo: todo, onToggle: onUpdate)
+            FavoriteButton(todo: todo)
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())

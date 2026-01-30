@@ -314,70 +314,158 @@ phrases: ["Show \(\.$filter) todos in \(.applicationName)"]  // OK
 
 ## UI からの Intent 実行
 
-### iOS専用: Button(intent:)
+### Button(intent:) を使用（推奨）
+
+macOS 14 / iOS 17 以降、`Button(intent:)` は両プラットフォームで使用可能です。
 
 ```swift
-// iOSのみで使用可能
+import AppIntents  // ← Button(intent:) を使用するために必須
+
+// ✅ 推奨: Button(intent:) を直接使用
 Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
     Label("Complete", systemImage: "checkmark")
 }
+
+// 削除ボタン
+Button(intent: DeleteTodoIntent(todo: entity)) {
+    Label("Delete", systemImage: "trash")
+}
+.tint(.red)
 ```
 
-### クロスプラットフォーム: 手動実行
+**メリット**:
+- 宣言的でシンプル
+- Siri/Shortcuts と同じ実行経路
+- Task/async のボイラープレートが不要
+- システムがIntent実行を管理
+
+---
+
+## App Intents と ViewModel の役割分担
+
+### 基本原則
+
+| 責務 | 担当 | 例 |
+|------|------|-----|
+| **ビジネスロジック** | App Intents | CRUD操作、バリデーション、データ取得 |
+| **UI状態管理** | ViewModel | フィルター状態、ソート順、検索テキスト |
+| **表示** | View | レイアウト、アニメーション |
+
+### なぜ分けるのか？
+
+```
+【App Intents】
+- Siri/Shortcuts からも実行される
+- UIに依存しない純粋なロジック
+- 例: Todo作成、完了切り替え、削除、検索クエリ実行
+
+【ViewModel】
+- アプリUI固有のロジック
+- Siri/Shortcuts からは使われない
+- 例: フィルター状態、ソート順、検索テキスト（入力値）
+```
+
+### Button(intent:) が使えるケース
 
 ```swift
-// iOS/macOS両対応
-Button {
-    Task { await toggleCompletion() }
-} label: {
-    Label("Complete", systemImage: "checkmark")
+// ✅ 即座に実行できるアクション
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+    Image(systemName: "checkmark.circle")
 }
 
-private func toggleCompletion() async {
-    let intent = ToggleTodoCompletionIntent(todo: entity)
-    _ = try? await intent.perform()
+Button(intent: DeleteTodoIntent(todo: entity)) {
+    Label("Delete", systemImage: "trash")
 }
 ```
+
+### フォーム入力 + Button(intent:)
+
+Computed Propertyを使えば、フォーム入力が必要なケースでも `Button(intent:)` が使えます。
+
+```swift
+import AppIntents  // ← 必須
+
+struct AddTodoView: View {
+    @State private var title = ""
+    @State private var dueDate: Date?
+
+    // ✅ Computed Propertyで動的にIntent生成
+    private var addTodoIntent: AddTodoIntent {
+        AddTodoIntent(title: title, dueDate: dueDate)
+    }
+
+    var body: some View {
+        Form {
+            TextField("Title", text: $title)
+            DatePicker("Due Date", selection: ...)
+        }
+        .toolbar {
+            Button(intent: addTodoIntent) {
+                Text("Add")
+            }
+            .disabled(title.isEmpty)
+        }
+    }
+}
+```
+
+**注意点**:
+- 完了通知がないため、dismissは `onChange(of:)` でデータ変更を検知して行う
+- エラーはシステムがアラートで表示（カスタムエラーUI不可）
 
 ---
 
 ## ViewModel パターン
 
-### Intent実行をViewModelに委譲
+### UI状態管理に特化
 
 ```swift
 @MainActor
 @Observable
 public final class TodoListViewModel {
-    public private(set) var todos: [TodoAppEntity] = []
-    public private(set) var isLoading = false
-    public var errorMessage: String?
+    // MARK: - UI State（アプリ固有）
+    public var filter: TodoFilter = .all
+    public var sortOrder: TodoSortOrder = .createdAtDescending
+    public var searchText = ""
 
-    // Intent経由でデータ取得
-    public func loadTodos() async {
-        isLoading = true
-        defer { isLoading = false }
+    // MARK: - Computed（フィルタリング・ソート）
+    public func filteredTodos(from todos: [TodoAppEntity]) -> [TodoAppEntity] {
+        var result = todos
 
-        do {
-            let intent = ShowTodosIntent()
-            let result = try await intent.perform()
-            todos = result.value ?? []
-        } catch {
-            errorMessage = error.localizedDescription
+        // フィルター適用
+        switch filter {
+        case .all: break
+        case .incomplete: result = result.filter { !$0.isCompleted }
+        case .completed: result = result.filter { $0.isCompleted }
+        case .favorites: result = result.filter { $0.isFavorite }
         }
+
+        // 検索適用
+        if !searchText.isEmpty {
+            result = result.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+        }
+
+        // ソート適用
+        return sortTodos(result, by: sortOrder)
     }
+}
+```
 
-    // Intent経由で更新
-    public func toggleCompletion(for entity: TodoAppEntity) async {
-        do {
-            let intent = ToggleTodoCompletionIntent(todo: entity)
-            let result = try await intent.perform()
-            if let updated = result.value {
-                updateTodo(updated)
-            }
-        } catch {
-            errorMessage = error.localizedDescription
+### View との連携
+
+```swift
+struct TodoListView: View {
+    @Query private var todoItems: [TodoItem]  // SwiftData
+    @State private var viewModel = TodoListViewModel()
+
+    var body: some View {
+        let entities = todoItems.map { TodoAppEntity(from: $0) }
+        let filtered = viewModel.filteredTodos(from: entities)
+
+        List(filtered) { todo in
+            TodoRowView(todo: todo)
         }
+        .searchable(text: $viewModel.searchText)
     }
 }
 ```

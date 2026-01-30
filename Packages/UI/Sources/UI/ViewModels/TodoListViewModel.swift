@@ -4,26 +4,22 @@
 //
 
 import Foundation
-import SwiftUI
 import TodoAppIntents
 
 /// View model for the todo list view.
 ///
-/// This view model manages the display state of the todo list.
-/// Business logic is delegated to App Intents.
+/// This view model manages **UI state only** (filter, sort, search).
+/// Business logic (CRUD operations) is handled by App Intents.
+///
+/// ## Responsibilities
+/// - Filter state management
+/// - Sort order management
+/// - Search text management
+/// - Filtering and sorting logic (UI-specific, not used by Siri/Shortcuts)
 @MainActor
 @Observable
 public final class TodoListViewModel {
-    // MARK: - Published State
-
-    /// All todo items to display.
-    public private(set) var todos: [TodoAppEntity] = []
-
-    /// Whether the view is currently loading.
-    public private(set) var isLoading = false
-
-    /// Error message to display, if any.
-    public var errorMessage: String?
+    // MARK: - UI State
 
     /// Current filter for the todo list.
     public var filter: TodoFilter = .all
@@ -34,10 +30,18 @@ public final class TodoListViewModel {
     /// Search text for filtering todos.
     public var searchText = ""
 
-    // MARK: - Computed Properties
+    // MARK: - Initialization
 
-    /// Filtered and sorted todos based on current settings.
-    public var filteredTodos: [TodoAppEntity] {
+    public init() {}
+
+    // MARK: - Filtering & Sorting
+
+    /// Filters and sorts todos based on current UI state.
+    ///
+    /// This logic is UI-specific and not exposed to Siri/Shortcuts.
+    /// - Parameter todos: The source todos to filter and sort.
+    /// - Returns: Filtered and sorted todos.
+    public func filteredTodos(from todos: [TodoAppEntity]) -> [TodoAppEntity] {
         var result = todos
 
         // Apply filter
@@ -59,66 +63,19 @@ public final class TodoListViewModel {
         }
 
         // Apply sort
-        result = sortTodos(result, by: sortOrder)
-
-        return result
+        return sortTodos(result, by: sortOrder)
     }
 
+    // MARK: - Statistics
+
     /// Number of incomplete todos.
-    public var incompleteCount: Int {
+    public func incompleteCount(from todos: [TodoAppEntity]) -> Int {
         todos.filter { !$0.isCompleted }.count
     }
 
     /// Number of favorite todos.
-    public var favoriteCount: Int {
+    public func favoriteCount(from todos: [TodoAppEntity]) -> Int {
         todos.filter { $0.isFavorite }.count
-    }
-
-    // MARK: - Initialization
-
-    public init() {}
-
-    // MARK: - Actions
-
-    /// Loads all todos from the repository.
-    public func loadTodos() async {
-        isLoading = true
-        errorMessage = nil
-
-        do {
-            let repository = try IntentDependencies.shared.createRepository()
-            let todoItems = try repository.fetchAll()
-            todos = todoItems.map { TodoAppEntity(from: $0) }
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-
-        isLoading = false
-    }
-
-    /// Refreshes the todo at the specified index after an intent completes.
-    /// - Parameter entity: The updated entity from the intent result.
-    public func updateTodo(_ entity: TodoAppEntity) {
-        if let index = todos.firstIndex(where: { $0.id == entity.id }) {
-            todos[index] = entity
-        }
-    }
-
-    /// Removes a todo from the local list.
-    /// - Parameter entity: The entity to remove.
-    public func removeTodo(_ entity: TodoAppEntity) {
-        todos.removeAll { $0.id == entity.id }
-    }
-
-    /// Adds a new todo to the local list.
-    /// - Parameter entity: The entity to add.
-    public func addTodo(_ entity: TodoAppEntity) {
-        todos.insert(entity, at: 0)
-    }
-
-    /// Clears the error message.
-    public func clearError() {
-        errorMessage = nil
     }
 
     // MARK: - Private Helpers
@@ -157,7 +114,7 @@ public final class TodoListViewModel {
 // MARK: - Supporting Types
 
 /// Filter options for the todo list.
-public enum TodoFilter: String, CaseIterable, Identifiable {
+public enum TodoFilter: String, CaseIterable, Identifiable, Sendable {
     case all
     case incomplete
     case completed
@@ -185,7 +142,7 @@ public enum TodoFilter: String, CaseIterable, Identifiable {
 }
 
 /// Sort options for the todo list.
-public enum TodoSortOrder: String, CaseIterable, Identifiable {
+public enum TodoSortOrder: String, CaseIterable, Identifiable, Sendable {
     case createdAtDescending
     case createdAtAscending
     case titleAscending
