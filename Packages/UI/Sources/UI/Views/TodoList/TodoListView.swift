@@ -14,12 +14,13 @@ import TodoAppIntents
 /// - **Data**: SwiftData's `@Query` provides automatic updates
 /// - **Actions**: `Button(intent:)` executes App Intents directly
 /// - **UI State**: `TodoListViewModel` manages filter, sort, and search
+/// - **Navigation**: `NavigationViewModel` manages navigation state
 public struct TodoListView: View {
     // MARK: - Properties
 
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
-    @State private var showingAddTodo = false
+    @State private var navigationViewModel = NavigationViewModel()
 
     // MARK: - Computed Properties
 
@@ -38,7 +39,7 @@ public struct TodoListView: View {
     // MARK: - Body
 
     public var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationViewModel.path) {
             Group {
                 if filteredTodos.isEmpty {
                     emptyView
@@ -47,11 +48,17 @@ public struct TodoListView: View {
                 }
             }
             .navigationTitle("Todos")
+            .navigationDestination(for: NavigationDestination.self) { destination in
+                switch destination {
+                case .todoDetail(let todo):
+                    TodoDetailView(todo: todo)
+                }
+            }
             .toolbar {
                 toolbarContent
             }
             .searchable(text: $viewModel.searchText, prompt: "Search todos")
-            .sheet(isPresented: $showingAddTodo) {
+            .sheet(isPresented: $navigationViewModel.showingAddTodo) {
                 addTodoSheet
             }
         }
@@ -68,7 +75,7 @@ public struct TodoListView: View {
         } actions: {
             if viewModel.filter == .all && viewModel.searchText.isEmpty {
                 Button("Add Todo") {
-                    showingAddTodo = true
+                    navigationViewModel.showAddTodo()
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -94,10 +101,15 @@ public struct TodoListView: View {
     private var todoList: some View {
         List {
             ForEach(filteredTodos, id: \.id) { todo in
-                TodoRowView(todo: todo)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        DeleteButton(todo: todo)
-                    }
+                Button {
+                    navigationViewModel.showDetail(for: todo)
+                } label: {
+                    TodoRowView(todo: todo)
+                }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    DeleteButton(todo: todo)
+                }
             }
         }
         .listStyle(.plain)
@@ -108,7 +120,7 @@ public struct TodoListView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button {
-                showingAddTodo = true
+                navigationViewModel.showAddTodo()
             } label: {
                 Image(systemName: "plus")
             }
@@ -149,7 +161,7 @@ public struct TodoListView: View {
         .onChange(of: todoItems.count) { oldCount, newCount in
             // Close sheet when a new todo is added
             if newCount > oldCount {
-                showingAddTodo = false
+                navigationViewModel.dismissAddTodo()
             }
         }
     }

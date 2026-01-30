@@ -5,7 +5,9 @@ let package = Package(
     name: "TodoAppIntents",
     platforms: [
         .iOS(.v18),
-        .macOS(.v15)
+        .macOS(.v15),
+        .watchOS(.v11),
+        .visionOS(.v2)
     ],
     products: [
         .library(

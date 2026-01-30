@@ -61,9 +61,15 @@ public struct AddTodoView: View {
 
                 if hasDueDate {
                     DatePicker(
-                        "Due Date",
+                        "Date",
                         selection: $dueDate,
                         displayedComponents: [.date]
+                    )
+
+                    DatePicker(
+                        "Time",
+                        selection: $dueDate,
+                        displayedComponents: [.hourAndMinute]
                     )
                 }
 
