@@ -39,19 +39,36 @@ Domain ← Repository ← TodoAppIntents ← UI ← App
 
 従来の MVVM では ViewModel や UseCase にビジネスロジックを配置しますが、本プロジェクトでは **App Intent がビジネスロジックの唯一の場所** です。
 
+#### App Intents vs ViewModel の役割分担
+
+| 責務 | 担当 |
+|------|------|
+| ビジネスロジック（CRUD、バリデーション） | App Intents |
+| UI状態管理（フィルター、ソート、検索テキスト） | ViewModel |
+
+#### Button(intent:) による宣言的なIntent実行
+
 ```swift
-// UIからの呼び出し
-Button {
-    Task {
-        let intent = AddTodoIntent(title: "Buy groceries")
-        _ = try? await intent.perform()
-    }
-} label: {
-    Text("Add Todo")
+import AppIntents  // ← 必須
+
+// ✅ 推奨: Button(intent:) を直接使用
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+    Image(systemName: "checkmark.circle")
 }
 
-// Siri/ショートカットからも同じIntentが実行される
+// フォーム入力が必要な場合は Computed Property で動的生成
+private var addTodoIntent: AddTodoIntent {
+    AddTodoIntent(title: title, dueDate: dueDate)
+}
+
+Button(intent: addTodoIntent) {
+    Text("Add")
+}
 ```
+
+- Siri/ショートカットと同じ実行経路
+- Task/async のボイラープレートが不要
+- SwiftData の `@Query` と組み合わせてリアクティブな更新
 
 ## セットアップ
 
