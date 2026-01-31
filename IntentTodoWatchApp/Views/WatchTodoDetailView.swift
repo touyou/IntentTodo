@@ -5,28 +5,55 @@
 //  Detail view for a todo item on watchOS.
 //
 
+import AppIntents
 import Domain
+import SwiftData
 import SwiftUI
 import TodoAppIntents
 
 /// Detail view for a todo item on watchOS.
 struct WatchTodoDetailView: View {
-    let todo: TodoItem
+    private let todoId: UUID
+    @Query private var todoItems: [TodoItem]
+    @Environment(\.dismiss) private var dismiss
 
-    private var entity: TodoAppEntity {
-        TodoAppEntity(from: todo)
+    private var todo: TodoItem? {
+        todoItems.first { $0.id == todoId }
+    }
+
+    private var entity: TodoAppEntity? {
+        todo.map { TodoAppEntity(from: $0) }
+    }
+
+    init(todo: TodoItem) {
+        self.todoId = todo.id
+        _todoItems = Query()
     }
 
     var body: some View {
+        Group {
+            if let todo, let entity {
+                detailContent(todo: todo, entity: entity)
+            } else {
+                ContentUnavailableView(
+                    "Todo Not Found",
+                    systemImage: "questionmark.circle"
+                )
+            }
+        }
+        .onChange(of: todo) { _, newValue in
+            if newValue == nil {
+                dismiss()
+            }
+        }
+    }
+
+    private func detailContent(todo: TodoItem, entity: TodoAppEntity) -> some View {
         List {
             // Title section
             Section {
                 HStack {
-                    Button {
-                        Task {
-                            try? await ToggleTodoCompletionIntent(todo: entity).perform()
-                        }
-                    } label: {
+                    Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
                         Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                             .foregroundStyle(todo.isCompleted ? .green : .secondary)
                     }
@@ -58,22 +85,14 @@ struct WatchTodoDetailView: View {
 
             // Actions section
             Section {
-                Button {
-                    Task {
-                        try? await ToggleFavoriteIntent(todo: entity).perform()
-                    }
-                } label: {
+                Button(intent: ToggleFavoriteIntent(todo: entity)) {
                     Label(
                         todo.isFavorite ? "Remove Favorite" : "Add Favorite",
                         systemImage: todo.isFavorite ? "star.slash" : "star"
                     )
                 }
 
-                Button(role: .destructive) {
-                    Task {
-                        try? await DeleteTodoIntent(todo: entity).perform()
-                    }
-                } label: {
+                Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
                     Label("Delete", systemImage: "trash")
                 }
             }

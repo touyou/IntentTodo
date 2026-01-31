@@ -102,3 +102,12 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.createdAt = createdAt
     }
 }
+
+// MARK: - IndexedEntity (Spotlight Integration)
+
+#if os(iOS) || os(macOS)
+/// Spotlight integration for todo items.
+/// Allows users to search for todos via Spotlight.
+/// Uses default implementation which indexes based on DisplayRepresentation.
+extension TodoAppEntity: IndexedEntity {}
+#endif

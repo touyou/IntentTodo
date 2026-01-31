@@ -290,40 +290,27 @@ public struct TodoEntityQuery: EntityQuery, EntityStringQuery {
 
 ## App Shortcuts
 
-### 配置場所（重要）
+### 配置場所
 
-**AppShortcutsProvider は必ずメインアプリターゲットに配置**（パッケージ内は不可）
+**AppShortcutsProvider はパッケージ内で定義可能**ですが、メインアプリターゲットから `@_exported import` で再エクスポートする必要があります。
 
 ```swift
-// IntentTodo/TodoAppShortcuts.swift
-import AppIntents
-import TodoAppIntents
-
-struct TodoAppShortcuts: AppShortcutsProvider {
-    static var appShortcuts: [AppShortcut] {
-        // Todo追加
+// Packages/TodoAppIntents/Sources/TodoAppIntents/Shortcuts/TodoAppShortcuts.swift
+public struct TodoAppShortcuts: AppShortcutsProvider {
+    public static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: AddTodoIntent(),
-            phrases: [
-                "Add a todo in \(.applicationName)",
-                "Create a new todo in \(.applicationName)"
-            ],
+            phrases: ["Add a todo in \(.applicationName)"],
             shortTitle: LocalizedStringResource("Add Todo"),
             systemImageName: "plus.circle"
         )
-
-        // Todo一覧表示
-        AppShortcut(
-            intent: ShowTodosIntent(),
-            phrases: [
-                "Show my todos in \(.applicationName)",
-                "Open \(.applicationName)"
-            ],
-            shortTitle: LocalizedStringResource("Show Todos"),
-            systemImageName: "list.bullet"
-        )
+        // ... other shortcuts
     }
 }
+
+// IntentTodo/TodoAppShortcuts.swift（メインアプリターゲット）
+import AppIntents
+@_exported import TodoAppIntents  // パッケージのShortcutsも公開される
 ```
 
 ### フレーズの制限
@@ -563,7 +550,7 @@ struct AddTodoIntentTests {
 
 ### App Shortcuts実装時
 
-- [ ] メインアプリターゲットに配置
+- [ ] パッケージで定義可能だが、メインアプリから `@_exported import` で再エクスポート
 - [ ] String型パラメータはフレーズに埋め込まない
 - [ ] `shortTitle` と `systemImageName` を設定
 - [ ] 複数のAppShortcutsProviderを作らない

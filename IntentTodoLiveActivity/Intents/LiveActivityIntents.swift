@@ -93,11 +93,12 @@ struct SnoozeTodoIntent: LiveActivityIntent {
         if let todo = try await repository.fetch(by: uuid),
            let currentDueDate = todo.dueDate {
             // Snooze by 30 minutes
-            todo.dueDate = currentDueDate.addingTimeInterval(30 * 60)
+            let newDueDate = currentDueDate.addingTimeInterval(30 * 60)
+            todo.dueDate = newDueDate
             try await repository.update(todo)
 
             // Update the Live Activity
-            await updateLiveActivity(for: todoId, newDueDate: todo.dueDate!)
+            await updateLiveActivity(for: todoId, newDueDate: newDueDate)
         }
 
         return .result()

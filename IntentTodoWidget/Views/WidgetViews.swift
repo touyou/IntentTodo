@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import TodoAppIntents
 import WidgetKit
 
 // MARK: - Entry View

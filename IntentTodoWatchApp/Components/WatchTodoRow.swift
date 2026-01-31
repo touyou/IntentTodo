@@ -5,6 +5,7 @@
 //  Row component for displaying a todo item on watchOS.
 //
 
+import AppIntents
 import Domain
 import SwiftUI
 import TodoAppIntents
@@ -18,11 +19,7 @@ struct WatchTodoRow: View {
     }
 
     var body: some View {
-        Button {
-            Task {
-                try? await ToggleTodoCompletionIntent(todo: entity).perform()
-            }
-        } label: {
+        Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
             HStack {
                 Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                     .foregroundStyle(todo.isCompleted ? .green : .secondary)

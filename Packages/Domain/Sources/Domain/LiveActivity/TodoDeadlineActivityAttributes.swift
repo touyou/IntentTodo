@@ -9,7 +9,7 @@
 
 import Foundation
 
-#if canImport(ActivityKit)
+#if os(iOS)
 import ActivityKit
 
 /// Attributes for the todo deadline Live Activity.

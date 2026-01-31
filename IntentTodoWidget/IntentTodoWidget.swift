@@ -32,8 +32,8 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
         TodoWidgetEntry(
             date: Date(),
             todos: [
-                TodoWidgetItem(id: "1", title: "Sample Todo", isCompleted: false, dueDate: nil),
-                TodoWidgetItem(id: "2", title: "Another Todo", isCompleted: true, dueDate: Date())
+                TodoAppEntity(id: "1", title: "Sample Todo", isCompleted: false),
+                TodoAppEntity(id: "2", title: "Another Todo", isCompleted: true, dueDate: Date())
             ],
             configuration: TodoWidgetConfigurationIntent()
         )
@@ -79,20 +79,11 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
                 return lhs.createdAt > rhs.createdAt
             }
 
-            let widgetItems = await MainActor.run {
-                sortedTodos.prefix(10).map {
-                    TodoWidgetItem(
-                        id: $0.id.uuidString,
-                        title: $0.title,
-                        isCompleted: $0.isCompleted,
-                        dueDate: $0.dueDate
-                    )
-                }
-            }
+            let entities = sortedTodos.prefix(10).map { TodoAppEntity(from: $0) }
 
             return TodoWidgetEntry(
                 date: Date(),
-                todos: Array(widgetItems),
+                todos: Array(entities),
                 configuration: configuration
             )
         } catch {
@@ -110,16 +101,8 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
 /// Entry for the todo widget timeline.
 struct TodoWidgetEntry: TimelineEntry {
     let date: Date
-    let todos: [TodoWidgetItem]
+    let todos: [TodoAppEntity]
     let configuration: TodoWidgetConfigurationIntent
-}
-
-/// Item representing a todo in the widget.
-struct TodoWidgetItem: Identifiable {
-    let id: String
-    let title: String
-    let isCompleted: Bool
-    let dueDate: Date?
 }
 
 // MARK: - Widget Definition
@@ -149,9 +132,9 @@ struct IntentTodoWidget: Widget {
     TodoWidgetEntry(
         date: .now,
         todos: [
-            TodoWidgetItem(id: "1", title: "Buy groceries", isCompleted: false, dueDate: Date()),
-            TodoWidgetItem(id: "2", title: "Call mom", isCompleted: false, dueDate: nil),
-            TodoWidgetItem(id: "3", title: "Finish report", isCompleted: true, dueDate: nil)
+            TodoAppEntity(id: "1", title: "Buy groceries", isCompleted: false, dueDate: Date()),
+            TodoAppEntity(id: "2", title: "Call mom", isCompleted: false),
+            TodoAppEntity(id: "3", title: "Finish report", isCompleted: true)
         ],
         configuration: TodoWidgetConfigurationIntent()
     )
@@ -163,9 +146,9 @@ struct IntentTodoWidget: Widget {
     TodoWidgetEntry(
         date: .now,
         todos: [
-            TodoWidgetItem(id: "1", title: "Buy groceries", isCompleted: false, dueDate: Date()),
-            TodoWidgetItem(id: "2", title: "Call mom", isCompleted: false, dueDate: nil),
-            TodoWidgetItem(
+            TodoAppEntity(id: "1", title: "Buy groceries", isCompleted: false, dueDate: Date()),
+            TodoAppEntity(id: "2", title: "Call mom", isCompleted: false),
+            TodoAppEntity(
                 id: "3",
                 title: "Finish report",
                 isCompleted: true,

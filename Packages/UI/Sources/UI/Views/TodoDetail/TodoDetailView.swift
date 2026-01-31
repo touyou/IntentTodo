@@ -60,6 +60,12 @@ public struct TodoDetailView: View {
         #if !os(watchOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
+        .onChange(of: todo) { _, newValue in
+            // Automatically dismiss when todo is deleted
+            if newValue == nil {
+                dismiss()
+            }
+        }
     }
 
     // MARK: - Subviews

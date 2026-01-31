@@ -6,12 +6,13 @@
 //
 
 import SwiftUI
+import TodoAppIntents
 
 // MARK: - Todo Widget Row
 
 /// Row component for displaying a todo item in widgets.
 struct TodoWidgetRow: View {
-    let todo: TodoWidgetItem
+    let todo: TodoAppEntity
     let compact: Bool
 
     var body: some View {
