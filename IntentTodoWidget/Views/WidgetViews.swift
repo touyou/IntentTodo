@@ -5,6 +5,7 @@
 //  Views for different widget sizes.
 //
 
+import AppIntents
 import SwiftUI
 import TodoAppIntents
 import WidgetKit
@@ -155,11 +156,26 @@ struct LargeTodoWidgetView: View {
                 }
                 Spacer()
             } else {
-                ForEach(entry.todos.prefix(8)) { todo in
+                ForEach(entry.todos.prefix(5)) { todo in
                     TodoWidgetRow(todo: todo, compact: false)
                 }
             }
+
             Spacer()
+
+            // Quick Add Button
+            Button(intent: OpenAddTodoIntent()) {
+                HStack {
+                    Image(systemName: "plus.circle.fill")
+                    Text("Add Todo")
+                }
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+                .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(.plain)
         }
         .containerBackground(.fill.tertiary, for: .widget)
     }

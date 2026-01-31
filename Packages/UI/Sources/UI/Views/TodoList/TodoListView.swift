@@ -62,6 +62,9 @@ public struct TodoListView: View {
                 addTodoSheet
             }
         }
+        #if os(iOS)
+        .monitorLiveActivities(for: todoItems)
+        #endif
     }
 
     // MARK: - Subviews

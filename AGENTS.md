@@ -85,8 +85,8 @@ IntentTodoWatchApp/         # watchOS アプリ
 - **watchOS**: アプリ + コンプリケーション（Circular/Corner/Rectangular/Inline）
 - **visionOS**: 空間UI（NavigationSplitView、Ornament、ホバーエフェクト）
 - **ウィジェット**: Small/Medium/Large サイズ対応（Todo一覧表示）
-- **ライブアクティビティ**: Dynamic Island + ロック画面（手動開始、完了/スヌーズアクション）
-- **コントロールセンター**: クイック追加、Todoリスト起動
+- **ライブアクティビティ**: Dynamic Island + ロック画面（期限1時間以内で自動表示）
+- **コントロールセンター**: クイック追加、Todo数表示、緊急Todo切り替え
 
 #### 設計プロセス
 
