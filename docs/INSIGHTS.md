@@ -977,3 +977,142 @@ Target/
 - **internal型の共有**: 同じターゲット内なら `import` 不要
 - **Preview**: 分割後も各ファイルでPreviewが動作するよう依存を整理
 - **ビルドエラー**: 循環参照に注意（型の定義順序）
+
+---
+
+## Control Widget の制約
+
+### ControlConfigurationIntent と SetValueIntent の非互換性
+
+iOS 18のControl Widget APIでは、`ControlConfigurationIntent`と`SetValueIntent`を同時に準拠させることができません：
+
+```swift
+// ❌ コンパイルエラー: ControlConfigurationIntentは全パラメータoptional必須
+// SetValueIntentはvalue: Bool (non-optional) を要求
+struct ToggleControlIntent: ControlConfigurationIntent, SetValueIntent {
+    @Parameter(title: "Value")
+    var value: Bool  // ← ControlConfigurationIntentではoptionalが必須
+}
+```
+
+### 解決策: ControlWidgetButton でトグル実装
+
+```swift
+// ✅ ボタンでトグル操作を実装
+@available(iOS 18.0, *)
+struct ToggleUrgentTodoControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        AppIntentControlConfiguration(
+            kind: Self.kind,
+            intent: ToggleUrgentTodoControlIntent.self
+        ) { configuration in
+            ControlWidgetButton(action: ToggleUrgentTodoControlIntent()) {
+                Label {
+                    Text(configuration.todoTitle ?? "No urgent todo")
+                } icon: {
+                    Image(systemName: configuration.isCompleted
+                        ? "checkmark.circle.fill"
+                        : "clock.badge.exclamationmark")
+                }
+            }
+        }
+    }
+}
+
+// perform()でトグル
+func perform() async throws -> some IntentResult {
+    guard let todo = fetchUrgentTodo() else { return .result() }
+    todo.isCompleted.toggle()
+    try? context.save()
+    return .result()
+}
+```
+
+---
+
+## Live Activity の自動管理
+
+### View Modifier パターン
+
+Live Activityの自動開始/終了は、View modifierとして実装することで既存UIに非侵入的に追加できます：
+
+```swift
+#if os(iOS)
+@available(iOS 16.1, *)
+struct LiveActivityMonitorModifier: ViewModifier {
+    let todos: [TodoItem]
+
+    func body(content: Content) -> some View {
+        content
+            .task { await checkAndStartActivities() }
+            .onChange(of: todos.map(\.id)) { _, _ in
+                Task { await checkAndStartActivities() }
+            }
+    }
+
+    @MainActor
+    private func checkAndStartActivities() async {
+        let now = Date()
+        let oneHourFromNow = now.addingTimeInterval(3600)
+
+        // 期限1時間以内の未完了Todoを自動でLive Activity表示
+        let urgentTodos = todos.filter { todo in
+            guard let dueDate = todo.dueDate, !todo.isCompleted else { return false }
+            return dueDate > now && dueDate <= oneHourFromNow
+        }
+
+        for todo in urgentTodos where !existingActivityIds.contains(todo.id) {
+            await startActivity(for: todo)
+        }
+
+        // 完了時または期限15分経過後に自動終了
+        for activity in Activity<TodoDeadlineActivityAttributes>.activities {
+            if shouldEndActivity(activity) {
+                await activity.end(dismissalPolicy: .immediate)
+            }
+        }
+    }
+}
+#endif
+```
+
+### 使用方法
+
+```swift
+public var body: some View {
+    NavigationStack { /* ... */ }
+    #if os(iOS)
+    .monitorLiveActivities(for: todoItems)
+    #endif
+}
+```
+
+---
+
+## Widget への Button(intent:) 統合
+
+### iOS 17+ での直接Intent実行
+
+Widget内でボタンをタップして直接Intentを実行できます：
+
+```swift
+// ✅ Widget Large にクイック追加ボタン
+Button(intent: OpenAddTodoIntent()) {
+    HStack {
+        Image(systemName: "plus.circle.fill")
+        Text("Add Todo")
+    }
+    .font(.subheadline.weight(.medium))
+    .foregroundStyle(.orange)
+    .frame(maxWidth: .infinity)
+    .padding(.vertical, 8)
+    .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
+}
+.buttonStyle(.plain)
+```
+
+### 注意点
+
+- `AppIntents`モジュールのimportが必要
+- `Intent`は`openAppWhenRun = true`でアプリを開くか、バックグラウンド実行
+- Widget Extensionでは`@main`バンドルにIntentが含まれている必要あり（パッケージからのre-export対応）

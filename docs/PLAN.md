@@ -97,6 +97,152 @@ Action-Centered Designの指針に従い、アクション/情報の特性に応
 3. **プラットフォーム展開**: 上記マトリクスに従って各プラットフォームに実装
 4. **メインアプリUI**: アクションをクラスター化してスクリーン設計
 
+## 拡張可能性（Future Enhancements）
+
+App Intents中心設計をさらに深化させる次のフェーズ：
+
+### Apple Intelligence統合（FoundationModels）
+
+| Intent | 説明 | 実装方針 |
+|--------|------|----------|
+| GenerateTodosIntent | 「買い物リストを作って」でTodo自動生成 | LanguageModelSession + @Generable |
+| SummarizeTodosIntent | 今日のTodoをサマリー表示 | Guided Generation |
+| SmartCategorizeIntent | AI によるカテゴリ自動分類 | Tool Calling連携 |
+
+```swift
+// Tool Calling例: LLMからTodoIntentを呼び出し
+struct TodoSearchTool: Tool {
+    func call(arguments: Arguments) async throws -> ToolOutput {
+        let todos = try await repository.search(term: arguments.query)
+        return .string(todos.map { $0.title }.joined(separator: "\n"))
+    }
+}
+```
+
+### Visual Intelligence
+
+- **IntentValueQuery**: カメラで撮影したメモや付箋からTodo項目を認識
+- **Onscreen Entities**: 表示中のTodoについてSiri/ChatGPTに質問可能
+
+```swift
+// 画面上のTodoをSiriに認識させる
+.userActivity("ViewingTodo") { activity in
+    activity.appEntityIdentifier = EntityIdentifier(for: todoEntity)
+}
+```
+
+### Intent Modes強化
+
+現状の`openAppWhenRun`から、より細かい制御へ：
+
+```swift
+struct SmartAddTodoIntent: AppIntent {
+    // バックグラウンドで実行、必要時のみフォアグラウンド
+    static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
+
+    func perform() async throws -> some IntentResult {
+        if needsUserInput {
+            try await continueInForeground()
+        }
+        // ...
+    }
+}
+```
+
+### Interactive Snippets
+
+Siri応答にインタラクティブなボタンを追加：
+
+```swift
+struct TodoSnippetIntent: SnippetIntent {
+    var snippet: some View {
+        VStack {
+            Text(todo.title)
+            HStack {
+                Button("完了にする") { /* ToggleTodoCompletionIntent */ }
+                Button("30分延長") { /* SnoozeTodoIntent */ }
+            }
+        }
+    }
+}
+```
+
+### Entity強化
+
+```swift
+struct TodoAppEntity: IndexedEntity {
+    // 動的プロパティ（キャッシュなし、常に最新）
+    @ComputedProperty
+    var isFavorite: Bool {
+        UserDefaults.standard.favorites.contains(id)
+    }
+
+    // 遅延ロード（明示的に要求されたときのみ取得）
+    @DeferredProperty
+    var subtaskCount: Int {
+        get async throws {
+            try await repository.fetchSubtasks(for: id).count
+        }
+    }
+
+    // Spotlight詳細検索
+    var searchableAttributes: CSSearchableItemAttributeSet {
+        let attrs = CSSearchableItemAttributeSet()
+        attrs.keywords = [category?.name, "todo", title].compactMap { $0 }
+        attrs.dueDate = dueDate
+        return attrs
+    }
+}
+```
+
+### Liquid Glass対応強化
+
+```swift
+// Widget: アクセントモード対応
+struct TodoWidgetView: View {
+    @Environment(\.widgetRenderingMode) var renderingMode
+
+    var body: some View {
+        VStack {
+            Text(todo.title)
+                .widgetAccentable()  // アクセントグループ
+            // ...
+        }
+    }
+}
+
+// App: ガラスボタンスタイル
+Button("Add Todo") { }
+    .buttonStyle(.glass)
+```
+
+### visionOS Widget強化
+
+```swift
+struct TodoWidget: Widget {
+    var body: some WidgetConfiguration {
+        StaticConfiguration(...) { entry in
+            TodoWidgetView(entry: entry)
+        }
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge])
+        .supportedMountingStyles([.elevated, .recessed])
+        .widgetTexture(.glass)
+    }
+}
+
+struct TodoWidgetView: View {
+    @Environment(\.levelOfDetail) var levelOfDetail  // 近接認識
+
+    var body: some View {
+        if levelOfDetail == .simplified {
+            // 遠距離: 大きいフォント、シンプル表示
+        } else {
+            // 近距離: 詳細表示
+        }
+    }
+}
+```
+
 ## SwiftUI, Swiftなどについて
 
 - docs/referencesに最新の知識を置いておくので、そちらをまず見ること

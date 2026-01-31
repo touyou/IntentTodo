@@ -227,6 +227,22 @@ struct TodoEntity: AppEntity, IndexedEntity {
 - [x] コントロールセンター（クイック追加/Todo数/緊急Todo）
 - [x] Siri/Shortcuts（TodoAppShortcuts）
 
+### 拡張ロードマップ（Next Phase）
+
+Action-Centered DesignとApp Intents中心設計をさらに深化させる次のフェーズ：
+
+| フェーズ | 機能 | 概要 |
+|---------|------|------|
+| **Apple Intelligence** | FoundationModels統合 | Todo自動生成、サマリー、Tool Calling |
+| **Visual Intelligence** | IntentValueQuery | カメラからTodo認識、Onscreen Entities |
+| **Intent Modes** | 高度な実行制御 | .background/.foreground(.dynamic) |
+| **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット |
+| **Entity強化** | プロパティマクロ | @ComputedProperty, @DeferredProperty |
+| **Liquid Glass** | UI適応 | widgetAccentable, glassEffect() |
+| **visionOS強化** | 空間体験 | mountingStyles, levelOfDetail, ExtraLarge |
+
+> 詳細は `docs/PLAN.md` の「拡張可能性」セクションを参照
+
 ## 開発フロー（TDD）
 
 1. **テスト作成（Red）**: 機能のテストを先に書く
