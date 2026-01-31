@@ -108,6 +108,7 @@ App Intents中心設計をさらに深化させる次のフェーズ：
 | GenerateTodosIntent | 「買い物リストを作って」でTodo自動生成 | LanguageModelSession + @Generable |
 | SummarizeTodosIntent | 今日のTodoをサマリー表示 | Guided Generation |
 | SmartCategorizeIntent | AI によるカテゴリ自動分類 | Tool Calling連携 |
+| SuggestEmojiIntent | Todoの内容に合わせた絵文字提案 | Guided Generation |
 
 ```swift
 // Tool Calling例: LLMからTodoIntentを呼び出し
@@ -116,6 +117,22 @@ struct TodoSearchTool: Tool {
         let todos = try await repository.search(term: arguments.query)
         return .string(todos.map { $0.title }.joined(separator: "\n"))
     }
+}
+
+// 絵文字提案例: Todoの内容に合わせた絵文字
+@Generable(description: "Todoに適した絵文字の提案")
+struct TodoEmojiSuggestion {
+    @Guide(description: "Todoの内容に最も適した絵文字1つ")
+    var emoji: String
+}
+
+func suggestEmoji(for todoTitle: String) async throws -> String {
+    let session = LanguageModelSession(instructions: """
+        Todoの内容を分析し、最も適切な絵文字を1つ提案してください。
+        買い物→🛒、運動→🏃、仕事→💼、勉強→📚、料理→🍳 のように。
+        """)
+    let result = try await session.respond(to: todoTitle, generating: TodoEmojiSuggestion.self)
+    return result.content.emoji
 }
 ```
 
