@@ -13,15 +13,6 @@ import SwiftUI
 import TodoAppIntents
 import WidgetKit
 
-// MARK: - Model Container for Widget
-
-private let widgetModelContainer: ModelContainer = {
-    let schema = Schema([TodoItem.self, SubTask.self, Category.self])
-    let config = ModelConfiguration(schema: schema)
-    // swiftlint:disable:next force_try
-    return try! ModelContainer(for: schema, configurations: [config])
-}()
-
 // MARK: - Timeline Provider
 
 struct TodoWidgetProvider: AppIntentTimelineProvider {
@@ -52,7 +43,7 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
     @MainActor
     private func fetchEntry(for configuration: Intent) async -> TodoWidgetEntry {
         do {
-            let repository = SwiftDataTodoRepository(modelContext: widgetModelContainer.mainContext)
+            let repository = SwiftDataTodoRepository(modelContext: sharedWidgetModelContainer.mainContext)
             let todos = try await repository.fetchAll()
 
             let filteredTodos: [TodoItem]

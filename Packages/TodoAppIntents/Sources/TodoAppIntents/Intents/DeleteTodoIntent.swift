@@ -27,7 +27,8 @@ public struct DeleteTodoIntent: AppIntent {
         )
     }
 
-    public static var openAppWhenRun: Bool { false }
+    /// Runs in background without opening the app.
+    public static var supportedModes: IntentModes { .background }
 
     // MARK: - Parameters
 
@@ -55,6 +56,9 @@ public struct DeleteTodoIntent: AppIntent {
 
         // Delete the todo
         try repository.delete(by: uuid)
+
+        // Reload widgets to reflect the change
+        WidgetReloader.reloadAllWidgets()
 
         return .result()
     }

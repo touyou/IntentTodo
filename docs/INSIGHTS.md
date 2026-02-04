@@ -634,30 +634,37 @@ let package = Package(
 
 ## AppShortcutsProvider の制約
 
-### メインアプリターゲットに配置する必要がある
+### iOS 26+: パッケージ内でも定義可能
 
-`AppShortcutsProvider` はSwift Packageから公開できません。必ずメインアプリターゲットに配置する必要があります。
+iOS 26以降では、`AppShortcutsProvider`をSwift Package内で定義し、`AppIntentsPackage`経由で統合できます。
 
 ```swift
-// ❌ パッケージ内で定義するとエラー
+// ✅ iOS 26+: パッケージ内で定義可能
 // Packages/TodoAppIntents/Sources/TodoAppIntents/Shortcuts/TodoAppShortcuts.swift
-public struct TodoAppShortcuts: AppShortcutsProvider { ... }
-
-// ✅ メインアプリターゲットに配置
-// IntentTodo/TodoAppShortcuts.swift
-import TodoAppIntents
-
-struct TodoAppShortcuts: AppShortcutsProvider {
-    static var appShortcuts: [AppShortcut] {
+public struct TodoAppShortcuts: AppShortcutsProvider {
+    public static var appShortcuts: [AppShortcut] {
         AppShortcut(
-            intent: AddTodoIntent(),  // パッケージからimport
+            intent: AddTodoIntent(),
             phrases: [ ... ],
             shortTitle: LocalizedStringResource("Add Todo"),
             systemImageName: "plus.circle"
         )
     }
 }
+
+// メインアプリでAppIntentsPackageとして統合
+// IntentTodo/AppIntentsExtension.swift
+struct IntentTodoAppIntentsPackage: AppIntentsPackage {
+    static var includedPackages: [any AppIntentsPackage.Type] {
+        [TodoIntentsPackage.self]  // パッケージ内のAppShortcutsProviderも含まれる
+    }
+}
 ```
+
+### iOS 18以前の制約（参考）
+
+iOS 18以前では、`AppShortcutsProvider`はメインアプリターゲットに配置する必要がありました。
+パッケージ内で定義すると認識されない問題がありました。
 
 ### 複数のAppShortcutsProviderは不可
 
@@ -1116,3 +1123,625 @@ Button(intent: OpenAddTodoIntent()) {
 - `AppIntents`モジュールのimportが必要
 - `Intent`は`openAppWhenRun = true`でアプリを開くか、バックグラウンド実行
 - Widget Extensionでは`@main`バンドルにIntentが含まれている必要あり（パッケージからのre-export対応）
+
+---
+
+## App Groups によるデータ共有
+
+### 問題: Extension とメインアプリのデータ分離
+
+ウィジェット、コントロールセンター、Live Activityなどの**Extension**は、メインアプリとは**別プロセス**で動作します。そのため、各ターゲットで個別に`ModelContainer`を作成すると、**データが共有されません**。
+
+```swift
+// ❌ 各ターゲットで別々にModelContainerを作成
+// → データベースファイルが異なり、データが共有されない
+
+// Widget
+private let widgetModelContainer = try! ModelContainer(for: schema, configurations: [config])
+
+// Main App
+let appModelContainer = try! ModelContainer(for: schema, configurations: [config])
+
+// 結果: Widget は常に空のデータを表示（All done!）
+```
+
+### 解決策: App Groups と SharedModelContainer
+
+App Groupsを使用して共有コンテナにデータベースを配置することで、全ターゲット間でデータを共有できます。
+
+```swift
+// Packages/Domain/Sources/Domain/SharedModelContainer.swift
+public enum SharedModelContainer {
+    /// App Group identifier（全ターゲットで同じ値を使用）
+    public static let appGroupIdentifier = "group.com.example.MyApp"
+
+    /// 共有コンテナURL
+    public static var sharedContainerURL: URL? {
+        FileManager.default.containerURL(
+            forSecurityApplicationGroupIdentifier: appGroupIdentifier
+        )
+    }
+
+    /// 共有ModelConfigurationを作成
+    public static var configuration: ModelConfiguration? {
+        if let containerURL = sharedContainerURL {
+            let storeURL = containerURL.appendingPathComponent("MyApp.store")
+            return ModelConfiguration(schema: schema, url: storeURL)
+        }
+        return nil  // フォールバック
+    }
+
+    /// 共有ModelContainerを作成
+    public static func createContainer() throws -> ModelContainer {
+        if let config = configuration {
+            return try ModelContainer(for: schema, configurations: [config])
+        }
+        return try ModelContainer(for: schema)
+    }
+}
+```
+
+### 使用方法
+
+全ターゲットで`SharedModelContainer`を使用:
+
+```swift
+// Main App
+let container = try SharedModelContainer.createContainer()
+
+// Widget
+private let widgetModelContainer = try! SharedModelContainer.createContainer()
+
+// Live Activity
+let liveActivityModelContainer = try! SharedModelContainer.createContainer()
+
+// Control Center
+private let controlWidgetModelContainer = try! SharedModelContainer.createContainer()
+```
+
+### Xcodeでの App Groups 設定手順
+
+1. **メインアプリターゲット**: Signing & Capabilities → + Capability → App Groups
+2. **各Extensionターゲット**: 同様に App Groups を追加
+3. **全ターゲットで同じ識別子を使用**: `group.com.example.MyApp`
+
+**重要**: この設定はXcodeで手動で行う必要があり、コードだけでは完結しません。
+
+### watchOS の注意点
+
+watchOS と iOS は別デバイスのため、App Groups では直接データ共有できません。Watch Connectivityを使用するか、CloudKitで同期する必要があります。
+
+---
+
+## コントロールセンターのタップが動作しない問題
+
+### 原因
+
+Control Widgetはメインアプリとは別プロセスで動作するため、以下が起きます:
+
+1. **独自のModelContainer**: メインアプリのデータにアクセスできない
+2. **IntentDependenciesが未設定**: `IntentDependencies.shared.modelContainer`が`nil`
+3. **結果**: `perform()`が空のデータで動作、または失敗
+
+### 解決策
+
+1. **SharedModelContainer**を使用してデータ共有
+2. **App Groups**をXcodeで設定
+3. **Intent内で直接ModelContainerにアクセス**（IntentDependenciesに依存しない）
+
+```swift
+@MainActor
+func perform() async throws -> some IntentResult {
+    // SharedModelContainerから直接取得
+    let container = try SharedModelContainer.createContainer()
+    let context = container.mainContext
+
+    // データ操作
+    guard let todo = fetchUrgentTodo(from: context) else {
+        return .result()
+    }
+    todo.isCompleted.toggle()
+    try context.save()
+
+    return .result()
+}
+```
+
+---
+
+## Intent から UI へのコミュニケーション
+
+### 問題: Intent からアプリUIを操作したい
+
+`OpenAddTodoIntent`のようにアプリを開いて特定のUI状態（モーダル表示など）を設定したい場合、IntentからSwiftUIのViewに直接アクセスできません。
+
+### 解決策: SharedState + UserDefaults
+
+```swift
+// Packages/TodoAppIntents/Sources/TodoAppIntents/AppState/IntentAppState.swift
+@MainActor
+public final class IntentAppState {
+    public static let shared = IntentAppState()
+
+    private enum Keys {
+        static let shouldShowAddTodo = "IntentAppState.shouldShowAddTodo"
+    }
+
+    /// Add Todo画面を表示すべきかどうか
+    public var shouldShowAddTodo: Bool {
+        get { UserDefaults.standard.bool(forKey: Keys.shouldShowAddTodo) }
+        set { UserDefaults.standard.set(newValue, forKey: Keys.shouldShowAddTodo) }
+    }
+
+    /// Intent側: 表示をリクエスト
+    public func requestShowAddTodo() {
+        shouldShowAddTodo = true
+    }
+
+    /// UI側: リクエストを消費（一度だけ処理）
+    public func consumeShowAddTodoRequest() -> Bool {
+        guard shouldShowAddTodo else { return false }
+        shouldShowAddTodo = false
+        return true
+    }
+}
+```
+
+### Intent での使用
+
+```swift
+public struct OpenAddTodoIntent: AppIntent {
+    public static var openAppWhenRun: Bool { true }
+
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        // UI にリクエストを送信
+        IntentAppState.shared.requestShowAddTodo()
+        return .result()
+    }
+}
+```
+
+### View での使用
+
+```swift
+public var body: some View {
+    NavigationStack { /* ... */ }
+        .onAppear {
+            // アプリ起動時にチェック
+            if IntentAppState.shared.consumeShowAddTodoRequest() {
+                navigationViewModel.showAddTodo()
+            }
+        }
+        #if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // バックグラウンドから復帰時にもチェック
+            if IntentAppState.shared.consumeShowAddTodoRequest() {
+                navigationViewModel.showAddTodo()
+            }
+        }
+        #endif
+}
+```
+
+### ポイント
+
+- **UserDefaults**を使用することでExtensionからもアクセス可能
+- **consume パターン**でリクエストを一度だけ処理
+- **複数のタイミングでチェック**: `onAppear`と`didBecomeActiveNotification`
+
+---
+
+## WidgetKit 更新パターン
+
+### 問題: データ変更後にウィジェットが更新されない
+
+Intentでデータを変更しても、ウィジェットは自動的に更新されません。明示的にタイムラインの再読み込みが必要です。
+
+### 解決策: WidgetReloader ヘルパー
+
+```swift
+// Packages/TodoAppIntents/Sources/TodoAppIntents/Helpers/WidgetReloader.swift
+import Foundation
+#if canImport(WidgetKit)
+import WidgetKit
+#endif
+
+public enum WidgetReloader {
+    /// 全ウィジェットのタイムラインを再読み込み
+    public static func reloadAllWidgets() {
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadAllTimelines()
+        #endif
+    }
+
+    /// 特定のウィジェット種別のみ再読み込み
+    public static func reloadWidget(kind: String) {
+        #if canImport(WidgetKit)
+        WidgetCenter.shared.reloadTimelines(ofKind: kind)
+        #endif
+    }
+}
+```
+
+### 使用箇所（全データ変更Intent）
+
+```swift
+// AddTodoIntent
+try repository.create(todoItem)
+WidgetReloader.reloadAllWidgets()  // ← 追加
+
+// ToggleTodoCompletionIntent
+todoItem.isCompleted.toggle()
+try repository.update(todoItem)
+WidgetReloader.reloadAllWidgets()  // ← 追加
+
+// DeleteTodoIntent
+try repository.delete(by: uuid)
+WidgetReloader.reloadAllWidgets()  // ← 追加
+
+// ToggleFavoriteIntent
+todoItem.isFavorite.toggle()
+try repository.update(todoItem)
+WidgetReloader.reloadAllWidgets()  // ← 追加
+```
+
+### Extension内での直接呼び出し
+
+Extension内（LiveActivity, Control Widget）では`WidgetReloader`をimportできない場合があるため、直接呼び出します:
+
+```swift
+// IntentTodoWidget/TodoControlWidget.swift
+import WidgetKit
+
+func perform() async throws -> some IntentResult {
+    // データ変更
+    todo.isCompleted.toggle()
+    try? context.save()
+
+    // ウィジェット更新（直接呼び出し）
+    WidgetCenter.shared.reloadAllTimelines()
+
+    return .result()
+}
+```
+
+---
+
+## ControlConfigurationIntent のフィードバック制限
+
+### 問題: Control Center で完了時のフィードバックがない
+
+`ControlConfigurationIntent`は通常の`AppIntent`と異なり、`.result(dialog:)`をサポートしていません。
+
+### 利用可能なフィードバック手段
+
+| 手段 | サポート状況 | 備考 |
+|------|------------|------|
+| dialog パラメータ | ❌ | ControlConfigurationIntentでは不可 |
+| 視覚的状態変化 | ✅ | アイコン/テキストの変更 |
+| システムハプティック | ✅ | 自動提供 |
+| ローカル通知 | ✅ | 実装可能だが侵入的 |
+
+### 現在の設計
+
+Control Centerのフィードバックは**視覚的な状態変化**で提供:
+
+1. **タップ前**: `clock.badge.exclamationmark` アイコン + Todo タイトル
+2. **タップ後**: `checkmark.circle.fill` アイコン + 次のUrgent Todo タイトル
+
+```swift
+ControlWidgetButton(action: ToggleUrgentTodoControlIntent()) {
+    Label {
+        Text(configuration.todoTitle ?? "No urgent todo")
+    } icon: {
+        Image(systemName: configuration.isCompleted
+            ? "checkmark.circle.fill"    // 完了後
+            : "clock.badge.exclamationmark")  // 未完了
+    }
+}
+```
+
+### 実装: ローカル通知によるフィードバック
+
+Control Center操作の結果をローカル通知で伝えることで、明示的なフィードバックを実現：
+
+```swift
+// IntentTodoWidget/Helpers/ControlNotificationHelper.swift
+enum ControlNotificationHelper {
+    /// Todo完了時の通知
+    static func sendCompletedNotification(todoTitle: String) {
+        let content = UNMutableNotificationContent()
+        content.title = "Todo Completed"
+        content.body = "✅ \(todoTitle)"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "todo-completed-\(UUID().uuidString)",
+            content: content,
+            trigger: nil  // 即座に配信
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    /// Todo数の通知
+    static func sendTodoCountNotification(incompleteCount: Int, totalCount: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "Todo Status"
+        content.body = incompleteCount == 0
+            ? "🎉 All done! No pending todos."
+            : "📋 \(incompleteCount) of \(totalCount) todos remaining"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "todo-count-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+}
+```
+
+### 通知権限のリクエスト
+
+アプリ起動時に通知権限をリクエスト：
+
+```swift
+// IntentTodoApp.swift
+var body: some Scene {
+    WindowGroup {
+        TodoListView()
+            .task {
+                await requestNotificationPermission()
+            }
+    }
+}
+
+private func requestNotificationPermission() async {
+    let center = UNUserNotificationCenter.current()
+    _ = try? await center.requestAuthorization(options: [.alert, .sound, .badge])
+}
+```
+
+---
+
+## OpensIntent の制約
+
+### 問題: Control Widget から OpensIntent が機能しない
+
+`ControlConfigurationIntent`で`OpensIntent`を使ってIntentをチェインしても、期待通りに動作しないことがあります。
+
+```swift
+// ❌ 機能しない場合がある
+struct QuickAddTodoControlIntent: ControlConfigurationIntent {
+    static var openAppWhenRun = true
+
+    func perform() async throws -> some IntentResult & OpensIntent {
+        return .result(opensIntent: OpenAddTodoIntent())
+    }
+}
+```
+
+### 解決策: 直接状態を設定
+
+`OpensIntent`を使わず、直接共有状態を設定してアプリを開く：
+
+```swift
+// ✅ 直接状態を設定
+struct QuickAddTodoControlIntent: ControlConfigurationIntent {
+    static var openAppWhenRun = true
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        // 共有状態を直接設定
+        IntentAppState.shared.requestShowAddTodo()
+
+        // 通知でフィードバック
+        ControlNotificationHelper.sendQuickAddNotification()
+
+        return .result()
+    }
+}
+```
+
+### ポイント
+
+- `openAppWhenRun = true`でアプリは開く（はずだが不安定な場合あり）
+- `IntentAppState`で必要な状態を伝達
+- 通知でユーザーに操作結果を伝える
+
+---
+
+## Extension間データ共有のベストプラクティス
+
+### UserDefaults の App Group 対応
+
+Widget、Control Center、Live Activity などの Extension は別プロセスで動作するため、`UserDefaults.standard` ではデータを共有できません。
+
+```swift
+// ❌ 共有されない
+UserDefaults.standard.bool(forKey: "someKey")
+
+// ✅ App Group で共有
+let sharedDefaults = UserDefaults(suiteName: "group.com.example.MyApp") ?? .standard
+sharedDefaults.bool(forKey: "someKey")
+```
+
+### IntentAppState の実装例
+
+```swift
+@MainActor
+public final class IntentAppState {
+    public static let shared = IntentAppState()
+
+    /// App Group 経由の共有 UserDefaults
+    private var sharedDefaults: UserDefaults {
+        UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier) ?? .standard
+    }
+
+    public var shouldShowAddTodo: Bool {
+        get { sharedDefaults.bool(forKey: Keys.shouldShowAddTodo) }
+        set { sharedDefaults.set(newValue, forKey: Keys.shouldShowAddTodo) }
+    }
+}
+```
+
+### 重要なポイント
+
+- **ModelContainer** と **UserDefaults** の両方で App Group を使用
+- フォールバックとして `.standard` を用意（App Group 未設定時のデバッグ用）
+- Xcode で全ターゲットに同じ App Group を設定することが必須
+
+---
+
+## openAppWhenRun から supportedModes/OpenIntent への移行
+
+### 背景: openAppWhenRun の問題 (iOS 18以前)
+
+iOS 18以前では、Widget および Control Center Widget において、`openAppWhenRun = true` を設定すると **`perform()` メソッドが呼ばれない**という問題がありました。これは通知経由やURLスキームでの回避策が必要でした。
+
+### iOS 26+ での解決: OpenIntent と supportedModes
+
+iOS 26（Xcode 26）では、以下の新しいAPIが導入されました：
+
+1. **`OpenIntent`プロトコル**: アプリを開くIntentの専用プロトコル
+2. **`supportedModes`**: `openAppWhenRun`を置き換える新しいプロパティ
+3. **`IntentModes`**: `.foreground(.dynamic)`（動的フォアグラウンド）、`.foreground`（アプリを開く）、`.background`（バックグラウンド実行）
+
+### supportedModes: .foreground(.dynamic) の重要性
+
+iOS 26では、**`ForegroundContinuableIntent`は非推奨**になりました。代わりに `supportedModes: .foreground(.dynamic)` を使用します。
+
+`.foreground(.dynamic)` を使用することで、IntentがWidget Extensionのプロセスではなく、**メインアプリのプロセスで実行される**ようになります。これにより、メインアプリのコンテキスト（共有状態など）にアクセスできます。
+
+### OpenIntent の実装
+
+`OpenIntent`プロトコルには`target`パラメータ（`AppEnum`型）が必要です。`supportedModes: .foreground(.dynamic)`も追加してControl Widgetから確実にアプリを開けるようにします：
+
+```swift
+// 画面を表す AppEnum
+public enum AppScreenTarget: String, AppEnum {
+    case addTodo
+    case todoList
+    case incompleteTodos
+    case favoriteTodos
+
+    public static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        TypeDisplayRepresentation(name: "App Screen")
+    }
+
+    public static var caseDisplayRepresentations: [AppScreenTarget: DisplayRepresentation] {
+        [
+            .addTodo: DisplayRepresentation(title: "Add Todo"),
+            .todoList: DisplayRepresentation(title: "Todo List"),
+            // ...
+        ]
+    }
+}
+
+// 統一された LaunchAppIntent
+// OpenIntent に準拠 + supportedModes で動的フォアグラウンド実行
+public struct LaunchAppIntent: OpenIntent {
+    public static var title: LocalizedStringResource = "Open Todo App"
+
+    /// 動的フォアグラウンド: メインアプリプロセスで実行
+    /// iOS 26+ で ForegroundContinuableIntent を置き換える
+    public static var supportedModes: IntentModes { .foreground(.dynamic) }
+
+    @Parameter(title: "Target")
+    public var target: AppScreenTarget
+
+    public init() {
+        self.target = .todoList
+    }
+
+    public init(target: AppScreenTarget) {
+        self.target = target
+    }
+
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        switch target {
+        case .addTodo:
+            IntentAppState.shared.requestShowAddTodo()
+        case .todoList, .incompleteTodos, .favoriteTodos:
+            // アプリが適切な画面を表示
+            break
+        }
+        return .result()
+    }
+}
+```
+
+### 重要: OpenIntent の target は一意である必要
+
+**同じ`AppEnum`型を複数の`OpenIntent`で使用することはできません。** 以下のようなエラーになります：
+
+```
+error: OpenIntent targets should be unique, but these all have 'AppScreenTarget' as their target: OpenAddTodoIntent, OpenTodoListIntent
+```
+
+**解決策**: 単一の`LaunchAppIntent`で全ての画面を管理し、`target`パラメータで分岐します。
+
+### supportedModes の使用
+
+バックグラウンドで実行するIntent（アプリを開かない）には`supportedModes: .background`を使用：
+
+```swift
+public struct AddTodoIntent: AppIntent {
+    public static var title: LocalizedStringResource = "Add Todo"
+
+    /// バックグラウンドで実行（アプリを開かない）
+    public static var supportedModes: IntentModes { .background }
+
+    // ...
+}
+```
+
+### Control Center Widget での使用
+
+`StaticControlConfiguration`を使用してConfigurationIntentの問題を回避：
+
+```swift
+struct QuickAddTodoControl: ControlWidget {
+    static let kind = "QuickAddTodoControl"
+
+    var body: some ControlWidgetConfiguration {
+        // StaticControlConfiguration を使用（ConfigurationIntent不要）
+        StaticControlConfiguration(kind: Self.kind) {
+            // OpenIntent を使用してアプリを開く
+            ControlWidgetButton(action: LaunchAppIntent(target: .addTodo)) {
+                Label("New Todo", systemImage: "plus.circle.fill")
+            }
+        }
+        .displayName("Add Todo")
+        .description("Quickly add a new todo.")
+    }
+}
+```
+
+### ConfigurationIntent のモジュール境界問題
+
+Widget Extension内で定義した`ControlConfigurationIntent`は、アプリ本体から参照できません。これはSwiftのモジュール名mangling（例: `25IntentTodoWidgetExtension0bc13ConfigurationA0V`）が原因です。
+
+**解決策**: `StaticControlConfiguration`を使用し、ConfigurationIntentを必要としない設計にします。動的な設定が必要な場合は、TodoAppIntentsパッケージ内でIntentを定義し、両方のターゲットから参照できるようにします。
+
+### まとめ
+
+| 項目 | iOS 18以前 | iOS 26+ |
+|------|-----------|---------|
+| アプリを開く | `openAppWhenRun = true`（不安定） | `OpenIntent` + `supportedModes: .foreground(.dynamic)` |
+| バックグラウンド実行 | `openAppWhenRun = false` | `supportedModes: .background` |
+| フォアグラウンド実行 | URLスキーム/通知回避策 | `supportedModes: .foreground` |
+| 動的フォアグラウンド | `ForegroundContinuableIntent` | `supportedModes: .foreground(.dynamic)` |
+| 画面指定 | `IntentAppState`で間接的に | `target`パラメータで明示的に |
+| Control Widget設定 | `AppIntentControlConfiguration` | `StaticControlConfiguration`推奨 |
+
+**iOS 26+では、`OpenIntent` + `supportedModes: .foreground(.dynamic)`と`StaticControlConfiguration`を使用することで、Widget/Control Widget からアプリを確実に開くことができます。**
+
+**注意**: `ForegroundContinuableIntent`はiOS 26で非推奨になりました。代わりに`supportedModes`に`.foreground(.dynamic)`を含めてください。
+
+---

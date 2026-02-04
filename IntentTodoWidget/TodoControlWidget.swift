@@ -3,7 +3,7 @@
 //  IntentTodoWidget
 //
 //  Control Center widget for quick todo access.
-//  Supports iOS 18+ Control Center integration.
+//  Supports iOS 26+ Control Center integration with OpenIntent.
 //
 
 import AppIntents
@@ -12,30 +12,22 @@ import Repository
 import SwiftData
 import SwiftUI
 import TodoAppIntents
+import UserNotifications
 import WidgetKit
-
-// MARK: - Model Container for Control Widget
-
-private let controlWidgetModelContainer: ModelContainer = {
-    let schema = Schema([TodoItem.self, SubTask.self, Category.self])
-    let config = ModelConfiguration(schema: schema)
-    // swiftlint:disable:next force_try
-    return try! ModelContainer(for: schema, configurations: [config])
-}()
 
 // MARK: - Quick Add Control Widget
 
 /// Control widget for quickly adding a new todo.
-@available(iOS 18.0, *)
+///
+/// Uses `StaticControlConfiguration` with `LaunchAppIntent` (OpenIntent) for proper app launch.
 struct QuickAddTodoControl: ControlWidget {
     static let kind = "QuickAddTodoControl"
 
     var body: some ControlWidgetConfiguration {
-        AppIntentControlConfiguration(
-            kind: Self.kind,
-            intent: QuickAddTodoControlIntent.self
-        ) { _ in
-            ControlWidgetButton(action: QuickAddTodoControlIntent()) {
+        // Use StaticControlConfiguration - no ConfigurationIntent needed
+        StaticControlConfiguration(kind: Self.kind) {
+            // Use LaunchAppIntent with .addTodo target to open add screen
+            ControlWidgetButton(action: LaunchAppIntent(target: .addTodo)) {
                 Label("New Todo", systemImage: "plus.circle.fill")
             }
         }
@@ -44,36 +36,21 @@ struct QuickAddTodoControl: ControlWidget {
     }
 }
 
-/// Intent for quick add control.
-///
-/// Note: ControlConfigurationIntent must be defined in the extension target,
-/// not in a package, due to platform-specific requirements.
-@available(iOS 18.0, *)
-struct QuickAddTodoControlIntent: ControlConfigurationIntent {
-    static var title: LocalizedStringResource = "Add Todo"
-    static var openAppWhenRun = true
-
-    func perform() async throws -> some IntentResult & OpensIntent {
-        // Uses OpenAddTodoIntent from TodoAppIntents package
-        return .result(opensIntent: OpenAddTodoIntent())
-    }
-}
-
 // MARK: - Todo Count Control Widget
 
 /// Control widget showing incomplete todo count.
-@available(iOS 18.0, *)
+///
+/// Uses `StaticControlConfiguration` with `LaunchAppIntent` (OpenIntent) for proper app launch.
 struct TodoCountControl: ControlWidget {
     static let kind = "TodoCountControl"
 
     var body: some ControlWidgetConfiguration {
-        AppIntentControlConfiguration(
-            kind: Self.kind,
-            intent: TodoCountControlIntent.self
-        ) { configuration in
-            ControlWidgetButton(action: OpenTodoListIntent()) {
+        // Use StaticControlConfiguration - fetches count directly
+        StaticControlConfiguration(kind: Self.kind) {
+            // Use LaunchAppIntent with .todoList target to open the list
+            ControlWidgetButton(action: LaunchAppIntent(target: .todoList)) {
                 Label {
-                    Text("\(configuration.incompleteCount)")
+                    Text("\(fetchIncompleteCount())")
                 } icon: {
                     Image(systemName: "checklist")
                 }
@@ -82,24 +59,14 @@ struct TodoCountControl: ControlWidget {
         .displayName("Todo Count")
         .description("Shows incomplete todo count. Tap to open list.")
     }
-}
-
-/// Intent for todo count control configuration.
-@available(iOS 18.0, *)
-struct TodoCountControlIntent: ControlConfigurationIntent {
-    static var title: LocalizedStringResource = "Todo Count"
 
     @MainActor
-    var incompleteCount: Int {
-        let context = controlWidgetModelContainer.mainContext
+    private func fetchIncompleteCount() -> Int {
+        let context = sharedWidgetModelContainer.mainContext
         let descriptor = FetchDescriptor<TodoItem>(
             predicate: #Predicate { !$0.isCompleted }
         )
         return (try? context.fetchCount(descriptor)) ?? 0
-    }
-
-    func perform() async throws -> some IntentResult {
-        .result()
     }
 }
 
@@ -109,20 +76,17 @@ struct TodoCountControlIntent: ControlConfigurationIntent {
 ///
 /// Displays the most urgent (earliest due date) incomplete todo.
 /// Tap to toggle its completion status.
-@available(iOS 18.0, *)
 struct ToggleUrgentTodoControl: ControlWidget {
     static let kind = "ToggleUrgentTodoControl"
 
     var body: some ControlWidgetConfiguration {
-        AppIntentControlConfiguration(
-            kind: Self.kind,
-            intent: ToggleUrgentTodoControlIntent.self
-        ) { configuration in
-            ControlWidgetButton(action: ToggleUrgentTodoControlIntent()) {
+        // Use StaticControlConfiguration
+        StaticControlConfiguration(kind: Self.kind) {
+            ControlWidgetButton(action: ToggleUrgentTodoIntent()) {
                 Label {
-                    Text(configuration.todoTitle ?? "No urgent todo")
+                    Text(fetchUrgentTodoTitle() ?? "No urgent todo")
                 } icon: {
-                    Image(systemName: configuration.isCompleted
+                    Image(systemName: isUrgentTodoCompleted()
                         ? "checkmark.circle.fill"
                         : "clock.badge.exclamationmark")
                 }
@@ -131,55 +95,67 @@ struct ToggleUrgentTodoControl: ControlWidget {
         .displayName("Urgent Todo")
         .description("Toggle completion of the most urgent todo.")
     }
-}
 
-/// Intent for toggling the most urgent todo.
-@available(iOS 18.0, *)
-struct ToggleUrgentTodoControlIntent: ControlConfigurationIntent {
-    static var title: LocalizedStringResource = "Toggle Urgent Todo"
-
-    /// The title of the most urgent todo.
     @MainActor
-    var todoTitle: String? {
-        guard let todo = fetchUrgentTodo() else { return nil }
-        return todo.title
-    }
-
-    /// Whether the most urgent todo is completed.
-    @MainActor
-    var isCompleted: Bool {
-        guard let todo = fetchUrgentTodo() else { return false }
-        return todo.isCompleted
-    }
-
-    /// The ID of the most urgent todo (for configuration).
-    @MainActor
-    var todoId: String? {
-        guard let todo = fetchUrgentTodo() else { return nil }
-        return todo.id.uuidString
+    private func fetchUrgentTodoTitle() -> String? {
+        fetchUrgentTodo()?.title
     }
 
     @MainActor
-    func perform() async throws -> some IntentResult {
-        guard let todo = fetchUrgentTodo() else {
-            return .result()
-        }
-
-        let context = controlWidgetModelContainer.mainContext
-        todo.isCompleted.toggle()
-        try? context.save()
-
-        return .result()
+    private func isUrgentTodoCompleted() -> Bool {
+        fetchUrgentTodo()?.isCompleted ?? false
     }
 
     @MainActor
     private func fetchUrgentTodo() -> TodoItem? {
-        let context = controlWidgetModelContainer.mainContext
+        let context = sharedWidgetModelContainer.mainContext
         var descriptor = FetchDescriptor<TodoItem>(
             predicate: #Predicate { !$0.isCompleted && $0.dueDate != nil },
             sortBy: [SortDescriptor(\TodoItem.dueDate, order: .forward)]
         )
         descriptor.fetchLimit = 1
         return try? context.fetch(descriptor).first
+    }
+}
+
+// MARK: - Toggle Urgent Todo Intent
+
+/// Intent for toggling the most urgent todo.
+/// Defined here because it uses SwiftData which requires Widget Extension context.
+struct ToggleUrgentTodoIntent: AppIntent {
+    static var title: LocalizedStringResource = "Toggle Urgent Todo"
+
+    /// Runs in background without opening the app.
+    static var supportedModes: IntentModes { .background }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        let context = sharedWidgetModelContainer.mainContext
+        var descriptor = FetchDescriptor<TodoItem>(
+            predicate: #Predicate { !$0.isCompleted && $0.dueDate != nil },
+            sortBy: [SortDescriptor(\TodoItem.dueDate, order: .forward)]
+        )
+        descriptor.fetchLimit = 1
+
+        guard let todo = try? context.fetch(descriptor).first else {
+            return .result()
+        }
+
+        let todoTitle = todo.title
+        todo.isCompleted.toggle()
+        let isNowCompleted = todo.isCompleted
+        try? context.save()
+
+        // Reload widgets to reflect the change
+        WidgetCenter.shared.reloadAllTimelines()
+
+        // Send notification with feedback
+        if isNowCompleted {
+            ControlNotificationHelper.sendCompletedNotification(todoTitle: todoTitle)
+        } else {
+            ControlNotificationHelper.sendUncompletedNotification(todoTitle: todoTitle)
+        }
+
+        return .result()
     }
 }

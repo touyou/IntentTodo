@@ -27,7 +27,8 @@ public struct AddTodoIntent: AppIntent {
         )
     }
 
-    public static var openAppWhenRun: Bool { false }
+    /// Runs in background without opening the app.
+    public static var supportedModes: IntentModes { .background }
 
     // MARK: - Parameters
 
@@ -83,6 +84,9 @@ public struct AddTodoIntent: AppIntent {
 
         // Save to repository
         try repository.create(todoItem)
+
+        // Reload widgets to show the new todo
+        WidgetReloader.reloadAllWidgets()
 
         // Return the created entity
         let entity = TodoAppEntity(from: todoItem)
