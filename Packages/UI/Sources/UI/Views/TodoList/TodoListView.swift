@@ -65,6 +65,20 @@ public struct TodoListView: View {
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
+        .onAppear {
+            // Check if an Intent requested to show add todo
+            if IntentAppState.shared.consumeShowAddTodoRequest() {
+                navigationViewModel.showAddTodo()
+            }
+        }
+        #if os(iOS)
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            // Also check when app becomes active (from background)
+            if IntentAppState.shared.consumeShowAddTodoRequest() {
+                navigationViewModel.showAddTodo()
+            }
+        }
+        #endif
     }
 
     // MARK: - Subviews

@@ -16,13 +16,14 @@
 		46AFBEE02F2D6D9C00444306 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEBF2F2CFEA400444306 /* WidgetKit.framework */; };
 		46AFBEE12F2D6D9C00444306 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEC12F2CFEA400444306 /* SwiftUI.framework */; };
 		46AFBEF22F2D6D9E00444306 /* IntentTodoLiveActivityExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 46AFBEDF2F2D6D9C00444306 /* IntentTodoLiveActivityExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		46AFBF072F2D6E5B00444306 /* IntentTodoWatchApp Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		46AFBF072F2D6E5B00444306 /* IntentTodoWatchApp.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		46AFBFA62F2D731900444306 /* Repository in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBEDB2F2D6E6A00444306 /* Repository */; };
 		46AFBFA72F2D731900444306 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBEDC2F2D6E6A00444306 /* Domain */; };
 		46AFBFA82F2D731900444306 /* Repository in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBEDD2F2D6E6A00444306 /* Repository */; };
 		46AFBFA92F2D731900444306 /* TodoAppIntents in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBEDE2F2D6E6A00444306 /* TodoAppIntents */; };
 		46AFBFAA2F2D731900444306 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBEDF2F2D6E6A00444306 /* Domain */; };
 		46AFBFAB2F2D731900444306 /* TodoAppIntents in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBEE02F2D6E6A00444306 /* TodoAppIntents */; };
+		46AFBFF72F32BC5000444306 /* TodoAppIntents in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBFF62F32BC5000444306 /* TodoAppIntents */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -68,7 +69,7 @@
 			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
 			dstSubfolderSpec = 16;
 			files = (
-				46AFBF072F2D6E5B00444306 /* IntentTodoWatchApp Watch App.app in Embed Watch Content */,
+				46AFBF072F2D6E5B00444306 /* IntentTodoWatchApp.app in Embed Watch Content */,
 			);
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -113,7 +114,7 @@
 		46AFBEBF2F2CFEA400444306 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = /System/Library/Frameworks/WidgetKit.framework; sourceTree = "<absolute>"; };
 		46AFBEC12F2CFEA400444306 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = /System/Library/Frameworks/SwiftUI.framework; sourceTree = "<absolute>"; };
 		46AFBEDF2F2D6D9C00444306 /* IntentTodoLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IntentTodoLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-		46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "IntentTodoWatchApp Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodoWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -177,6 +178,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46AFBFF72F32BC5000444306 /* TodoAppIntents in Frameworks */,
 				46AFBE922F2C1C7200444306 /* UI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -241,7 +243,7 @@
 				46AFBC392F2BA68C00444306 /* IntentTodo.app */,
 				46AFBEBE2F2CFEA400444306 /* IntentTodoWidgetExtension.appex */,
 				46AFBEDF2F2D6D9C00444306 /* IntentTodoLiveActivityExtension.appex */,
-				46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp Watch App.app */,
+				46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -331,6 +333,7 @@
 			name = IntentTodo;
 			packageProductDependencies = (
 				46AFBE912F2C1C7200444306 /* UI */,
+				46AFBFF62F32BC5000444306 /* TodoAppIntents */,
 			);
 			productName = IntentTodo;
 			productReference = 46AFBC392F2BA68C00444306 /* IntentTodo.app */;
@@ -386,9 +389,9 @@
 			productReference = 46AFBEDF2F2D6D9C00444306 /* IntentTodoLiveActivityExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		46AFBEFC2F2D6E5A00444306 /* IntentTodoWatchApp Watch App */ = {
+		46AFBEFC2F2D6E5A00444306 /* IntentTodoWatchApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 46AFBF082F2D6E5B00444306 /* Build configuration list for PBXNativeTarget "IntentTodoWatchApp Watch App" */;
+			buildConfigurationList = 46AFBF082F2D6E5B00444306 /* Build configuration list for PBXNativeTarget "IntentTodoWatchApp" */;
 			buildPhases = (
 				46AFBEF92F2D6E5A00444306 /* Sources */,
 				46AFBEFA2F2D6E5A00444306 /* Frameworks */,
@@ -401,13 +404,13 @@
 			fileSystemSynchronizedGroups = (
 				46AFBEFE2F2D6E5A00444306 /* IntentTodoWatchApp */,
 			);
-			name = "IntentTodoWatchApp Watch App";
+			name = IntentTodoWatchApp;
 			packageProductDependencies = (
 				46AFBEDF2F2D6E6A00444306 /* Domain */,
 				46AFBEE02F2D6E6A00444306 /* TodoAppIntents */,
 			);
 			productName = "IntentTodoWatchApp Watch App";
-			productReference = 46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp Watch App.app */;
+			productReference = 46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -453,7 +456,7 @@
 				46AFBC382F2BA68C00444306 /* IntentTodo */,
 				46AFBEBD2F2CFEA400444306 /* IntentTodoWidgetExtension */,
 				46AFBEDE2F2D6D9C00444306 /* IntentTodoLiveActivityExtension */,
-				46AFBEFC2F2D6E5A00444306 /* IntentTodoWatchApp Watch App */,
+				46AFBEFC2F2D6E5A00444306 /* IntentTodoWatchApp */,
 			);
 		};
 /* End PBXProject section */
@@ -533,7 +536,7 @@
 		};
 		46AFBF062F2D6E5B00444306 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 46AFBEFC2F2D6E5A00444306 /* IntentTodoWatchApp Watch App */;
+			target = 46AFBEFC2F2D6E5A00444306 /* IntentTodoWatchApp */;
 			targetProxy = 46AFBF052F2D6E5B00444306 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -544,6 +547,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = IntentTodo/IntentTodo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B4S4333JDW;
@@ -589,6 +593,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = IntentTodo/IntentTodo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B4S4333JDW;
@@ -750,6 +755,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = IntentTodoWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B4S4333JDW;
@@ -774,6 +780,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.IntentTodoWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -792,6 +799,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = IntentTodoWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B4S4333JDW;
@@ -816,6 +824,7 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.IntentTodoWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -834,6 +843,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = IntentTodoLiveActivityExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B4S4333JDW;
@@ -866,6 +876,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = IntentTodoLiveActivityExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B4S4333JDW;
@@ -899,6 +910,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = IntentTodoWatchApp/IntentTodoWatchApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B4S4333JDW;
@@ -932,6 +944,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = IntentTodoWatchApp/IntentTodoWatchApp.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B4S4333JDW;
@@ -1000,7 +1013,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		46AFBF082F2D6E5B00444306 /* Build configuration list for PBXNativeTarget "IntentTodoWatchApp Watch App" */ = {
+		46AFBF082F2D6E5B00444306 /* Build configuration list for PBXNativeTarget "IntentTodoWatchApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				46AFBF092F2D6E5B00444306 /* Debug */,
@@ -1045,6 +1058,10 @@
 			productName = Domain;
 		};
 		46AFBEE02F2D6E6A00444306 /* TodoAppIntents */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = TodoAppIntents;
+		};
+		46AFBFF62F32BC5000444306 /* TodoAppIntents */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = TodoAppIntents;
 		};

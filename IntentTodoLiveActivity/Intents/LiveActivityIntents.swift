@@ -10,15 +10,15 @@ import AppIntents
 import Domain
 import Repository
 import SwiftData
+import WidgetKit
 
 // MARK: - Model Container
 
-/// Shared model container for Live Activity intents.
+/// Uses SharedModelContainer for data sharing with the main app.
+/// Requires App Group to be configured in Xcode.
 let liveActivityModelContainer: ModelContainer = {
-    let schema = Schema([TodoItem.self, SubTask.self, Category.self])
-    let config = ModelConfiguration(schema: schema)
     // swiftlint:disable:next force_try
-    return try! ModelContainer(for: schema, configurations: [config])
+    return try! SharedModelContainer.createContainer()
 }()
 
 // MARK: - Complete Todo Intent
@@ -48,6 +48,9 @@ struct CompleteTodoFromActivityIntent: LiveActivityIntent {
         if let todo = try await repository.fetch(by: uuid) {
             todo.isCompleted = true
             try await repository.update(todo)
+
+            // Reload widgets to reflect the change
+            WidgetCenter.shared.reloadAllTimelines()
 
             // End the Live Activity
             await endLiveActivity(for: todoId)
@@ -96,6 +99,9 @@ struct SnoozeTodoIntent: LiveActivityIntent {
             let newDueDate = currentDueDate.addingTimeInterval(30 * 60)
             todo.dueDate = newDueDate
             try await repository.update(todo)
+
+            // Reload widgets to reflect the change
+            WidgetCenter.shared.reloadAllTimelines()
 
             // Update the Live Activity
             await updateLiveActivity(for: todoId, newDueDate: newDueDate)

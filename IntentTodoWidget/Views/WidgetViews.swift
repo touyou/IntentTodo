@@ -163,8 +163,8 @@ struct LargeTodoWidgetView: View {
 
             Spacer()
 
-            // Quick Add Button
-            Button(intent: OpenAddTodoIntent()) {
+            // Quick Add Link - opens app to Add Todo screen
+            Link(destination: URL(string: "intenttodo://addTodo")!) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                     Text("Add Todo")
@@ -175,7 +175,6 @@ struct LargeTodoWidgetView: View {
                 .padding(.vertical, 8)
                 .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
             }
-            .buttonStyle(.plain)
         }
         .containerBackground(.fill.tertiary, for: .widget)
     }

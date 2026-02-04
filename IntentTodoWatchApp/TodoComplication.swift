@@ -40,10 +40,9 @@ struct TodoComplicationProvider: TimelineProvider {
     private let modelContainer: ModelContainer
 
     init() {
-        let schema = Schema([TodoItem.self, SubTask.self, Category.self])
-        let config = ModelConfiguration(schema: schema)
+        // Use SharedModelContainer for consistent data access
         // swiftlint:disable:next force_try
-        self.modelContainer = try! ModelContainer(for: schema, configurations: [config])
+        self.modelContainer = try! SharedModelContainer.createContainer()
     }
 
     func placeholder(in context: Context) -> TodoComplicationEntry {

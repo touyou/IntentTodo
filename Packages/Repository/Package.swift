@@ -1,13 +1,13 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 let package = Package(
     name: "Repository",
     platforms: [
-        .iOS(.v18),
-        .macOS(.v15),
-        .watchOS(.v11),
-        .visionOS(.v2)
+        .iOS(.v26),
+        .macOS(.v26),
+        .watchOS(.v26),
+        .visionOS(.v26)
     ],
     products: [
         .library(

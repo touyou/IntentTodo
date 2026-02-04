@@ -16,10 +16,10 @@ struct IntentTodoWatchApp: App {
     let modelContainer: ModelContainer
 
     init() {
-        let schema = Schema([TodoItem.self, SubTask.self, Category.self])
-        let config = ModelConfiguration(schema: schema)
+        // Use SharedModelContainer for data sharing
+        // Note: watchOS uses a separate data store (no App Group sharing with iOS)
         // swiftlint:disable:next force_try
-        let container = try! ModelContainer(for: schema, configurations: [config])
+        let container = try! SharedModelContainer.createContainer()
         modelContainer = container
 
         Task { @MainActor in

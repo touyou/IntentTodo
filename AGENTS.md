@@ -98,10 +98,10 @@ IntentTodoWatchApp/         # watchOS アプリ
 ## 技術要件
 
 ### ターゲット
-- iOS 18.0+ / iPadOS 18.0+
-- macOS 15.0+
-- watchOS 11.0+
-- visionOS 2.0+
+- iOS 26.0+ / iPadOS 26.0+
+- macOS 26.0+
+- watchOS 26.0+
+- visionOS 26.0+
 - Swift 6.0+
 
 ### コーディング規約
