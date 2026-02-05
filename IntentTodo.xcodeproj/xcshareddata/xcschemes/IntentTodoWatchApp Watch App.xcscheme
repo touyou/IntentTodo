@@ -43,6 +43,30 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
       shouldAutocreateTestPlan = "YES">
+      <Testables>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "46AFC0F22F34F72800444306"
+               BuildableName = "IntentTodoUITest.xctest"
+               BlueprintName = "IntentTodoUITest"
+               ReferencedContainer = "container:IntentTodo.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "46AFC1062F34F75C00444306"
+               BuildableName = "IntentTodoWatchAppUITest.xctest"
+               BlueprintName = "IntentTodoWatchAppUITest"
+               ReferencedContainer = "container:IntentTodo.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
+      </Testables>
    </TestAction>
    <LaunchAction
       buildConfiguration = "Debug"
