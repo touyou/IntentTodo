@@ -145,7 +145,7 @@ public struct TodoListView: View {
             .accessibilityLabel("Add todo")
         }
 
-        ToolbarItem(placement: .secondaryAction) {
+        ToolbarItem(placement: .topBarTrailing) {
             Menu {
                 Picker("Filter", selection: $viewModel.filter) {
                     ForEach(TodoFilter.allCases) { filterOption in
@@ -165,7 +165,8 @@ public struct TodoListView: View {
                     }
                 }
             } label: {
-                Image(systemName: "line.3.horizontal.decrease.circle")
+                Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
+                    .labelStyle(.iconOnly)
             }
             .accessibilityIdentifier("filterSortMenu")
             .accessibilityLabel("Filter and sort")
