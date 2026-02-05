@@ -48,16 +48,19 @@ public struct AddTodoView: View {
         Form {
             Section {
                 TextField("Title", text: $title)
+                    .accessibilityIdentifier("todoTitleField")
                 #if os(iOS)
                     .textInputAutocapitalization(.sentences)
                 #endif
 
                 TextField("Description (optional)", text: $todoDescription, axis: .vertical)
+                    .accessibilityIdentifier("todoDescriptionField")
                     .lineLimit(3...6)
             }
 
             Section {
                 Toggle("Set Due Date", isOn: $hasDueDate.animation())
+                    .accessibilityIdentifier("dueDateToggle")
 
                 if hasDueDate {
                     DatePicker(
@@ -65,15 +68,18 @@ public struct AddTodoView: View {
                         selection: $dueDate,
                         displayedComponents: [.date]
                     )
+                    .accessibilityIdentifier("dueDatePicker")
 
                     DatePicker(
                         "Time",
                         selection: $dueDate,
                         displayedComponents: [.hourAndMinute]
                     )
+                    .accessibilityIdentifier("dueTimePicker")
                 }
 
                 Toggle("Mark as Favorite", isOn: $isFavorite)
+                    .accessibilityIdentifier("favoriteToggle")
             }
         }
         .navigationTitle("New Todo")
@@ -85,12 +91,14 @@ public struct AddTodoView: View {
                 Button("Cancel") {
                     dismiss()
                 }
+                .accessibilityIdentifier("cancelButton")
             }
 
             ToolbarItem(placement: .confirmationAction) {
                 Button(intent: addTodoIntent) {
                     Text("Add")
                 }
+                .accessibilityIdentifier("addButton")
                 .disabled(!isValid)
             }
         }

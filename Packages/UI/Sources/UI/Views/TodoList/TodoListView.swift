@@ -141,6 +141,7 @@ public struct TodoListView: View {
             } label: {
                 Image(systemName: "plus")
             }
+            .accessibilityIdentifier("addTodoButton")
             .accessibilityLabel("Add todo")
         }
 
@@ -166,6 +167,7 @@ public struct TodoListView: View {
             } label: {
                 Image(systemName: "line.3.horizontal.decrease.circle")
             }
+            .accessibilityIdentifier("filterSortMenu")
             .accessibilityLabel("Filter and sort")
         }
     }

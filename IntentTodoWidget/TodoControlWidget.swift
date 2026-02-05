@@ -19,15 +19,16 @@ import WidgetKit
 
 /// Control widget for quickly adding a new todo.
 ///
-/// Uses `StaticControlConfiguration` with `LaunchAppIntent` (OpenIntent) for proper app launch.
+/// Uses `StaticControlConfiguration` with `OpenAddTodoIntent` for reliable app launch.
+/// This uses a simple, parameterless intent which works more reliably with Control Center.
 struct QuickAddTodoControl: ControlWidget {
     static let kind = "QuickAddTodoControl"
 
     var body: some ControlWidgetConfiguration {
         // Use StaticControlConfiguration - no ConfigurationIntent needed
         StaticControlConfiguration(kind: Self.kind) {
-            // Use LaunchAppIntent with .addTodo target to open add screen
-            ControlWidgetButton(action: LaunchAppIntent(target: .addTodo)) {
+            // Use local intent defined in Widget Extension for reliable app opening
+            ControlWidgetButton(action: LocalOpenAddTodoIntent()) {
                 Label("New Todo", systemImage: "plus.circle.fill")
             }
         }
@@ -40,15 +41,15 @@ struct QuickAddTodoControl: ControlWidget {
 
 /// Control widget showing incomplete todo count.
 ///
-/// Uses `StaticControlConfiguration` with `LaunchAppIntent` (OpenIntent) for proper app launch.
+/// Uses `StaticControlConfiguration` with `OpenTodoListIntent` for reliable app launch.
 struct TodoCountControl: ControlWidget {
     static let kind = "TodoCountControl"
 
     var body: some ControlWidgetConfiguration {
         // Use StaticControlConfiguration - fetches count directly
         StaticControlConfiguration(kind: Self.kind) {
-            // Use LaunchAppIntent with .todoList target to open the list
-            ControlWidgetButton(action: LaunchAppIntent(target: .todoList)) {
+            // Use local intent defined in Widget Extension for reliable app opening
+            ControlWidgetButton(action: LocalOpenTodoListIntent()) {
                 Label {
                     Text("\(fetchIncompleteCount())")
                 } icon: {
@@ -115,6 +116,40 @@ struct ToggleUrgentTodoControl: ControlWidget {
         )
         descriptor.fetchLimit = 1
         return try? context.fetch(descriptor).first
+    }
+}
+
+// MARK: - Widget Extension Local Intents
+
+/// Intent for opening the app to add a todo.
+/// Defined in Widget Extension for reliable Control Center behavior.
+struct LocalOpenAddTodoIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Add Todo"
+
+    /// Runs in foreground to open the app.
+    static var supportedModes: IntentModes { .foreground }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        // Set flag for the main app to show add todo screen
+        let sharedDefaults = UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier) ?? .standard
+        sharedDefaults.set(true, forKey: "IntentAppState.shouldShowAddTodo")
+        return .result()
+    }
+}
+
+/// Intent for opening the app to todo list.
+/// Defined in Widget Extension for reliable Control Center behavior.
+struct LocalOpenTodoListIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Todo List"
+
+    /// Runs in foreground to open the app.
+    static var supportedModes: IntentModes { .foreground }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        // Just open the app - no special state needed
+        return .result()
     }
 }
 

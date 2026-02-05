@@ -36,6 +36,7 @@ public struct FavoriteButton: View {
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("favorite_\(todo.id)")
         .accessibilityLabel(todo.isFavorite ? "Remove from favorites" : "Add to favorites")
     }
 }

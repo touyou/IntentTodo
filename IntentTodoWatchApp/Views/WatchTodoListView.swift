@@ -37,6 +37,7 @@ struct WatchTodoListView: View {
                     NavigationLink(destination: WatchAddTodoView()) {
                         Image(systemName: "plus")
                     }
+                    .accessibilityIdentifier("addTodoButton")
                 }
             }
         }

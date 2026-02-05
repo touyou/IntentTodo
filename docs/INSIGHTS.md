@@ -18,6 +18,11 @@
 10. [AppEntity と IndexedEntity](#appentity-と-indexedentity)
 11. [UI層とIntent統合](#ui層とintent統合)
 12. [App Shortcuts](#app-shortcuts)
+13. [Extension ターゲットの制約と設計](#extension-ターゲットの制約と設計)
+14. [App Groups によるデータ共有](#app-groups-によるデータ共有)
+15. [Intent から UI へのコミュニケーション](#intent-から-ui-へのコミュニケーション)
+16. [openAppWhenRun から supportedModes/OpenIntent への移行](#openappwhenrun-から-supportedmodesopenintent-への移行)
+17. [Control Widget 用シンプルIntent パターン](#control-widget-用シンプルintent-パターン)
 
 ---
 
@@ -1743,5 +1748,116 @@ Widget Extension内で定義した`ControlConfigurationIntent`は、アプリ本
 **iOS 26+では、`OpenIntent` + `supportedModes: .foreground(.dynamic)`と`StaticControlConfiguration`を使用することで、Widget/Control Widget からアプリを確実に開くことができます。**
 
 **注意**: `ForegroundContinuableIntent`はiOS 26で非推奨になりました。代わりに`supportedModes`に`.foreground(.dynamic)`を含めてください。
+
+---
+
+## Control Widget 用シンプルIntent パターン
+
+### 問題: パラメータ付きIntentが機能しない
+
+Control Widgetで`@Parameter`付きのIntentを使用すると、アプリが開かない場合があります。これはControl Widgetの実行コンテキストの制約によるものと考えられます。
+
+```swift
+// ⚠️ 動作が不安定な場合がある
+public struct LaunchAppIntent: AppIntent {
+    public static var supportedModes: IntentModes { .foreground }
+
+    @Parameter(title: "Target")
+    public var target: AppScreenTarget  // パラメータ付き
+
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        // ...
+    }
+}
+
+// Control Widget での使用
+ControlWidgetButton(action: LaunchAppIntent(target: .addTodo)) { ... }
+```
+
+### 解決策: パラメータなしの専用Intent
+
+Control Widget用に**パラメータなし**のシンプルなIntentを作成します：
+
+```swift
+// ✅ Control Widget で確実に動作
+public struct OpenAddTodoIntent: AppIntent {
+    public static var title: LocalizedStringResource {
+        LocalizedStringResource("Open Add Todo")
+    }
+
+    /// フォアグラウンドモードでアプリを開く
+    public static var supportedModes: IntentModes { .foreground }
+
+    public init() {}  // パラメータなし
+
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        // 共有状態を設定
+        IntentAppState.shared.requestShowAddTodo()
+        return .result()
+    }
+}
+
+public struct OpenTodoListIntent: AppIntent {
+    public static var title: LocalizedStringResource {
+        LocalizedStringResource("Open Todo List")
+    }
+
+    public static var supportedModes: IntentModes { .foreground }
+
+    public init() {}
+
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        // アプリを開くだけ（デフォルト画面）
+        return .result()
+    }
+}
+```
+
+### Control Widget での使用
+
+```swift
+struct QuickAddTodoControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: Self.kind) {
+            // シンプルなパラメータなしIntentを使用
+            ControlWidgetButton(action: OpenAddTodoIntent()) {
+                Label("New Todo", systemImage: "plus.circle.fill")
+            }
+        }
+        .displayName("Add Todo")
+    }
+}
+
+struct TodoCountControl: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: Self.kind) {
+            ControlWidgetButton(action: OpenTodoListIntent()) {
+                Label { Text("\(fetchIncompleteCount())") }
+                icon: { Image(systemName: "checklist") }
+            }
+        }
+        .displayName("Todo Count")
+    }
+}
+```
+
+### 使い分けの指針
+
+| Intent種別 | 用途 | 特徴 |
+|-----------|------|------|
+| **パラメータなしIntent** | Control Widget, Action Button | シンプル、確実に動作 |
+| **パラメータ付きIntent** | Shortcuts, Siri, 通常のUI | 柔軟性が高い |
+| **OpenIntent + target** | アプリ内ナビゲーション | 汎用的だがControl Widgetでは不安定 |
+
+### ポイント
+
+1. **Control Widget専用Intentを作成**: 各画面ごとに専用のIntentを定義
+2. **パラメータを排除**: `@Parameter`を使わず、固定動作のみ
+3. **`supportedModes: .foreground`**: アプリを開くために必須
+4. **IntentAppState経由の状態共有**: アプリにどの画面を表示すべきか伝達
+5. **StaticControlConfiguration使用**: ConfigurationIntentの複雑さを回避
 
 ---

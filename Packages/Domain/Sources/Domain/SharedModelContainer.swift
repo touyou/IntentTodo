@@ -13,7 +13,10 @@
 //
 
 import Foundation
+import os.log
 import SwiftData
+
+private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "SharedModelContainer")
 
 /// Provides shared SwiftData configuration for data sharing between app and extensions.
 public enum SharedModelContainer {
@@ -70,9 +73,15 @@ public enum SharedModelContainer {
     /// - Returns: A configured ModelContainer for shared data access.
     /// - Throws: Error if container creation fails.
     public static func createContainer() throws -> ModelContainer {
+        logger.info("createContainer() called")
+        logger.info("App Group identifier: \(appGroupIdentifier)")
+        logger.info("Shared container URL: \(sharedContainerURL?.absoluteString ?? "nil")")
+
         if let config = configuration {
+            logger.info("Using shared configuration with URL")
             return try ModelContainer(for: schema, configurations: [config])
         } else {
+            logger.info("Using fallback configuration (no App Group)")
             // Minimal fallback
             return try ModelContainer(for: schema)
         }

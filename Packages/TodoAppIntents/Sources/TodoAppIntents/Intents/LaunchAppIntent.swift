@@ -48,9 +48,9 @@ public enum AppScreenTarget: String, AppEnum {
     }
 }
 
-// MARK: - Launch App Intent (Unified OpenIntent)
+// MARK: - Launch App Intent
 
-/// Unified intent to open app to a specific screen.
+/// Intent to open app to a specific screen.
 ///
 /// This intent is used by:
 /// - Widgets: Quick add button, todo list
@@ -58,14 +58,9 @@ public enum AppScreenTarget: String, AppEnum {
 /// - Action Button: Physical button press on iPhone 15 Pro+
 /// - Shortcuts: Open to specific screen
 ///
-/// Conforms to:
-/// - `OpenIntent`: For proper Control Center and Widget integration
-///
-/// Uses `supportedModes: .foreground(.dynamic)` to ensure the intent runs in
-/// the main app process with dynamic foreground behavior (iOS 26+).
-///
-/// The `target` parameter specifies which screen to open.
-public struct LaunchAppIntent: OpenIntent {
+/// Uses `supportedModes: .foreground` to run in foreground and open the app.
+/// The `target` parameter specifies which screen to navigate to after opening.
+public struct LaunchAppIntent: AppIntent {
     // MARK: - Metadata
 
     public static var title: LocalizedStringResource {
@@ -83,11 +78,10 @@ public struct LaunchAppIntent: OpenIntent {
         )
     }
 
-    /// Forces execution in foreground with dynamic behavior.
-    /// This is the iOS 26+ replacement for ForegroundContinuableIntent.
-    public static var supportedModes: IntentModes { .foreground(.dynamic) }
+    /// Runs in foreground mode to open the app.
+    public static var supportedModes: IntentModes { .foreground }
 
-    // MARK: - OpenIntent Target
+    // MARK: - Parameters
 
     /// The target screen to open.
     @Parameter(title: "Target")

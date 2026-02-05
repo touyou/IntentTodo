@@ -4,8 +4,11 @@
 //
 
 import Foundation
+import os.log
 import Repository
 import SwiftData
+
+private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "IntentDependencies")
 
 /// Configuration for Intent dependencies.
 ///
@@ -47,16 +50,37 @@ public final class IntentDependencies {
 
     /// Creates a new TodoRepository using the configured ModelContainer.
     /// - Returns: A TodoRepository instance (or test repository if configured).
-    /// - Throws: If the ModelContainer is not configured and no test repository is set.
+    /// - Throws: If the ModelContainer cannot be created.
+    ///
+    /// When running in the main app, uses the configured ModelContainer.
+    /// When running in extensions (Shortcuts, Siri, Control Center), falls back
+    /// to SharedModelContainer for automatic App Group data access.
     public func createRepository() throws -> any TodoRepositoryProtocol {
+        logger.info("createRepository() called")
+
         // Return test repository if configured (for testing)
         if let testRepo = testRepository {
+            logger.info("Using test repository")
             return testRepo
         }
 
-        guard let container = modelContainer else {
-            throw IntentDependenciesError.notConfigured
+        // Use configured container if available (main app process)
+        // Otherwise, create from SharedModelContainer (extension processes)
+        let container: ModelContainer
+        if let configuredContainer = modelContainer {
+            logger.info("Using configured modelContainer (main app process)")
+            container = configuredContainer
+        } else {
+            logger.info("modelContainer is nil, falling back to SharedModelContainer")
+            do {
+                container = try SharedModelContainer.createContainer()
+                logger.info("SharedModelContainer created successfully")
+            } catch {
+                logger.error("Failed to create SharedModelContainer: \(error.localizedDescription)")
+                throw error
+            }
         }
+
         return SwiftDataTodoRepository(modelContext: container.mainContext)
     }
 

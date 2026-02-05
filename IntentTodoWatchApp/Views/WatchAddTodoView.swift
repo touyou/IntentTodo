@@ -22,6 +22,7 @@ struct WatchAddTodoView: View {
         VStack(spacing: 16) {
             TextField("Todo title", text: $title)
                 .textContentType(.none)
+                .accessibilityIdentifier("todoTitleField")
 
             Button {
                 Task {
@@ -33,6 +34,7 @@ struct WatchAddTodoView: View {
             }
             .buttonStyle(.borderedProminent)
             .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .accessibilityIdentifier("addButton")
         }
         .navigationTitle("New Todo")
     }
