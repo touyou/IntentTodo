@@ -1,15 +1,15 @@
 //
-//  SimpleOpenAppIntent.swift
+//  NavigationIntents.swift
 //  TodoAppIntents
 //
-//  Simple intent for opening the app to add a todo.
-//  Designed specifically for Control Center widgets where parameterized intents may not work reliably.
+//  Navigation intents for opening the app to specific screens.
+//  Designed for Control Center widgets and Shortcuts.
 //
 
 import AppIntents
 import os.log
 
-private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "SimpleOpenAppIntent")
+private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "NavigationIntents")
 
 // MARK: - Simple Open Add Todo Intent
 

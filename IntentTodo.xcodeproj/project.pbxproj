@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1C705389FC37403269D452E2 /* TodoComplicationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */; };
+		20DA4B561B89965F7ECA1085 /* CompleteTodoFromActivityIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2535F428150C14304E30756D /* CompleteTodoFromActivityIntent.swift */; };
+		44BCFCE39B70EFAA7541F776 /* TodoComplicationEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */; };
 		46AFBE922F2C1C7200444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBE912F2C1C7200444306 /* UI */; };
 		46AFBEC02F2CFEA400444306 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEBF2F2CFEA400444306 /* WidgetKit.framework */; };
 		46AFBEC22F2CFEA400444306 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEC12F2CFEA400444306 /* SwiftUI.framework */; };
@@ -32,9 +35,7 @@
 		46AFC00F2F33047800444306 /* WidgetViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0002F33047800444306 /* WidgetViews.swift */; };
 		46AFC0102F33047800444306 /* IntentTodoWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0042F33047800444306 /* IntentTodoWidget.swift */; };
 		46AFC0112F33047800444306 /* IntentTodoWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0052F33047800444306 /* IntentTodoWidgetBundle.swift */; };
-		46AFC0122F33047800444306 /* TodoControlWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0072F33047800444306 /* TodoControlWidget.swift */; };
 		46AFC0202F33047B00444306 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46AFC01A2F33047B00444306 /* Assets.xcassets */; };
-		46AFC0222F33047B00444306 /* LiveActivityIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0132F33047B00444306 /* LiveActivityIntents.swift */; };
 		46AFC0232F33047B00444306 /* TodoLiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0152F33047B00444306 /* TodoLiveActivityManager.swift */; };
 		46AFC0242F33047B00444306 /* LockScreenLiveActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0172F33047B00444306 /* LockScreenLiveActivityView.swift */; };
 		46AFC0252F33047B00444306 /* TimeRemainingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0182F33047B00444306 /* TimeRemainingView.swift */; };
@@ -54,7 +55,13 @@
 		46AFC0462F33048000444306 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46AFC03E2F33048000444306 /* Assets.xcassets */; };
 		46AFC1012F34F73500444306 /* IntentTodoUITest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0FE2F34F73500444306 /* IntentTodoUITest.swift */; };
 		46AFC1152F34F76300444306 /* IntentTodoWatchAppUITest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1122F34F76300444306 /* IntentTodoWatchAppUITest.swift */; };
-		46AFC1162F34F76300444306 /* IntentTodoWatchAppUITestLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1132F34F76300444306 /* IntentTodoWatchAppUITestLaunchTests.swift */; };
+		46AFC1212F33048100444306 /* QuickAddTodoControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1202F33048100444306 /* QuickAddTodoControl.swift */; };
+		46AFC1232F33048100444306 /* TodoCountControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1222F33048100444306 /* TodoCountControl.swift */; };
+		46AFC1252F33048100444306 /* ToggleUrgentTodoControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */; };
+		46AFC1272F33048100444306 /* ControlIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1262F33048100444306 /* ControlIntents.swift */; };
+		5DD240B26272C51FC4546B1C /* LiveActivityModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2483D6B0974DE44EA52216C2 /* LiveActivityModelContainer.swift */; };
+		C3297BD09C01F2A85932C98B /* SnoozeTodoIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D655987C44E2EA859DECDDE /* SnoozeTodoIntent.swift */; };
+		CDC173DEB3E94D8EDD4ECAEC /* TodoComplicationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -122,6 +129,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		2483D6B0974DE44EA52216C2 /* LiveActivityModelContainer.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LiveActivityModelContainer.swift; sourceTree = "<group>"; };
+		2535F428150C14304E30756D /* CompleteTodoFromActivityIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CompleteTodoFromActivityIntent.swift; sourceTree = "<group>"; };
+		3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationProvider.swift; sourceTree = "<group>"; };
+		3D655987C44E2EA859DECDDE /* SnoozeTodoIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnoozeTodoIntent.swift; sourceTree = "<group>"; };
 		46AFBC392F2BA68C00444306 /* IntentTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFBE8B2F2C1C3B00444306 /* Domain */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Domain; sourceTree = "<group>"; };
 		46AFBE8C2F2C1C3B00444306 /* Repository */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Repository; sourceTree = "<group>"; };
@@ -170,8 +181,6 @@
 		46AFC0042F33047800444306 /* IntentTodoWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWidget.swift; sourceTree = "<group>"; };
 		46AFC0052F33047800444306 /* IntentTodoWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWidgetBundle.swift; sourceTree = "<group>"; };
 		46AFC0062F33047800444306 /* IntentTodoWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IntentTodoWidgetExtension.entitlements; sourceTree = "<group>"; };
-		46AFC0072F33047800444306 /* TodoControlWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoControlWidget.swift; sourceTree = "<group>"; };
-		46AFC0132F33047B00444306 /* LiveActivityIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityIntents.swift; sourceTree = "<group>"; };
 		46AFC0152F33047B00444306 /* TodoLiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoLiveActivityManager.swift; sourceTree = "<group>"; };
 		46AFC0172F33047B00444306 /* LockScreenLiveActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LockScreenLiveActivityView.swift; sourceTree = "<group>"; };
 		46AFC0182F33047B00444306 /* TimeRemainingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeRemainingView.swift; sourceTree = "<group>"; };
@@ -199,7 +208,12 @@
 		46AFC0FE2F34F73500444306 /* IntentTodoUITest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoUITest.swift; sourceTree = "<group>"; };
 		46AFC1072F34F75C00444306 /* IntentTodoWatchAppUITest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IntentTodoWatchAppUITest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFC1122F34F76300444306 /* IntentTodoWatchAppUITest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWatchAppUITest.swift; sourceTree = "<group>"; };
-		46AFC1132F34F76300444306 /* IntentTodoWatchAppUITestLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWatchAppUITestLaunchTests.swift; sourceTree = "<group>"; };
+		46AFC1202F33048100444306 /* QuickAddTodoControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddTodoControl.swift; sourceTree = "<group>"; };
+		46AFC1222F33048100444306 /* TodoCountControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCountControl.swift; sourceTree = "<group>"; };
+		46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleUrgentTodoControl.swift; sourceTree = "<group>"; };
+		46AFC1262F33048100444306 /* ControlIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlIntents.swift; sourceTree = "<group>"; };
+		7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationEntry.swift; sourceTree = "<group>"; };
+		8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -384,14 +398,15 @@
 			isa = PBXGroup;
 			children = (
 				46AFBFFB2F33047800444306 /* Configuration */,
+				46AFC1282F33048100444306 /* Controls */,
 				46AFBFFE2F33047800444306 /* Helpers */,
+				46AFC1292F33048100444306 /* Intents */,
 				46AFC0012F33047800444306 /* Views */,
 				46AFC0022F33047800444306 /* Assets.xcassets */,
 				46AFC0032F33047800444306 /* Info.plist */,
 				46AFC0042F33047800444306 /* IntentTodoWidget.swift */,
 				46AFC0052F33047800444306 /* IntentTodoWidgetBundle.swift */,
 				46AFC0062F33047800444306 /* IntentTodoWidgetExtension.entitlements */,
-				46AFC0072F33047800444306 /* TodoControlWidget.swift */,
 			);
 			path = IntentTodoWidget;
 			sourceTree = "<group>";
@@ -399,7 +414,8 @@
 		46AFC0142F33047B00444306 /* Intents */ = {
 			isa = PBXGroup;
 			children = (
-				46AFC0132F33047B00444306 /* LiveActivityIntents.swift */,
+				2535F428150C14304E30756D /* CompleteTodoFromActivityIntent.swift */,
+				3D655987C44E2EA859DECDDE /* SnoozeTodoIntent.swift */,
 			);
 			path = Intents;
 			sourceTree = "<group>";
@@ -432,6 +448,7 @@
 				46AFC01C2F33047B00444306 /* IntentTodoLiveActivityBundle.swift */,
 				46AFC01D2F33047B00444306 /* IntentTodoLiveActivityExtension.entitlements */,
 				46AFC01E2F33047B00444306 /* TodoLiveActivity.swift */,
+				62C686075FAE312B74A1CAC1 /* Helpers */,
 			);
 			path = IntentTodoLiveActivity;
 			sourceTree = "<group>";
@@ -464,6 +481,7 @@
 				46AFC0302F33047D00444306 /* IntentTodoWatchApp.entitlements */,
 				46AFC0312F33047D00444306 /* IntentTodoWatchApp.swift */,
 				46AFC0322F33047D00444306 /* TodoComplication.swift */,
+				AFA9219572A43F00C464036E /* Complication */,
 			);
 			path = IntentTodoWatchApp;
 			sourceTree = "<group>";
@@ -493,9 +511,46 @@
 			isa = PBXGroup;
 			children = (
 				46AFC1122F34F76300444306 /* IntentTodoWatchAppUITest.swift */,
-				46AFC1132F34F76300444306 /* IntentTodoWatchAppUITestLaunchTests.swift */,
 			);
 			path = IntentTodoWatchAppUITest;
+			sourceTree = "<group>";
+		};
+		46AFC1282F33048100444306 /* Controls */ = {
+			isa = PBXGroup;
+			children = (
+				46AFC1202F33048100444306 /* QuickAddTodoControl.swift */,
+				46AFC1222F33048100444306 /* TodoCountControl.swift */,
+				46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */,
+			);
+			path = Controls;
+			sourceTree = "<group>";
+		};
+		46AFC1292F33048100444306 /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				46AFC1262F33048100444306 /* ControlIntents.swift */,
+			);
+			path = Intents;
+			sourceTree = "<group>";
+		};
+		62C686075FAE312B74A1CAC1 /* Helpers */ = {
+			isa = PBXGroup;
+			children = (
+				2483D6B0974DE44EA52216C2 /* LiveActivityModelContainer.swift */,
+			);
+			name = Helpers;
+			path = Helpers;
+			sourceTree = "<group>";
+		};
+		AFA9219572A43F00C464036E /* Complication */ = {
+			isa = PBXGroup;
+			children = (
+				7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */,
+				3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */,
+				8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */,
+			);
+			name = Complication;
+			path = Complication;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -606,8 +661,6 @@
 				46AFC0FA2F34F72800444306 /* PBXTargetDependency */,
 			);
 			name = IntentTodoUITest;
-			packageProductDependencies = (
-			);
 			productName = IntentTodoUITest;
 			productReference = 46AFC0F32F34F72800444306 /* IntentTodoUITest.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -626,8 +679,6 @@
 				46AFC10E2F34F75C00444306 /* PBXTargetDependency */,
 			);
 			name = IntentTodoWatchAppUITest;
-			packageProductDependencies = (
-			);
 			productName = IntentTodoWatchAppUITest;
 			productReference = 46AFC1072F34F75C00444306 /* IntentTodoWatchAppUITest.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
@@ -673,8 +724,6 @@
 			);
 			mainGroup = 46AFBC302F2BA68C00444306;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 46AFBC3A2F2BA68C00444306 /* Products */;
 			projectDirPath = "";
@@ -754,6 +803,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				46AFC1272F33048100444306 /* ControlIntents.swift in Sources */,
 				46AFC00B2F33047800444306 /* TodoWidgetConfiguration.swift in Sources */,
 				46AFC00C2F33047800444306 /* ControlNotificationHelper.swift in Sources */,
 				46AFC00D2F33047800444306 /* WidgetModelContainer.swift in Sources */,
@@ -761,7 +811,9 @@
 				46AFC00F2F33047800444306 /* WidgetViews.swift in Sources */,
 				46AFC0102F33047800444306 /* IntentTodoWidget.swift in Sources */,
 				46AFC0112F33047800444306 /* IntentTodoWidgetBundle.swift in Sources */,
-				46AFC0122F33047800444306 /* TodoControlWidget.swift in Sources */,
+				46AFC1212F33048100444306 /* QuickAddTodoControl.swift in Sources */,
+				46AFC1232F33048100444306 /* TodoCountControl.swift in Sources */,
+				46AFC1252F33048100444306 /* ToggleUrgentTodoControl.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -769,12 +821,14 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC0222F33047B00444306 /* LiveActivityIntents.swift in Sources */,
 				46AFC0232F33047B00444306 /* TodoLiveActivityManager.swift in Sources */,
 				46AFC0242F33047B00444306 /* LockScreenLiveActivityView.swift in Sources */,
 				46AFC0252F33047B00444306 /* TimeRemainingView.swift in Sources */,
 				46AFC0262F33047B00444306 /* IntentTodoLiveActivityBundle.swift in Sources */,
 				46AFC0272F33047B00444306 /* TodoLiveActivity.swift in Sources */,
+				20DA4B561B89965F7ECA1085 /* CompleteTodoFromActivityIntent.swift in Sources */,
+				C3297BD09C01F2A85932C98B /* SnoozeTodoIntent.swift in Sources */,
+				5DD240B26272C51FC4546B1C /* LiveActivityModelContainer.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -789,6 +843,9 @@
 				46AFC0382F33047D00444306 /* WatchTodoListView.swift in Sources */,
 				46AFC0392F33047D00444306 /* IntentTodoWatchApp.swift in Sources */,
 				46AFC03A2F33047D00444306 /* TodoComplication.swift in Sources */,
+				44BCFCE39B70EFAA7541F776 /* TodoComplicationEntry.swift in Sources */,
+				CDC173DEB3E94D8EDD4ECAEC /* TodoComplicationProvider.swift in Sources */,
+				1C705389FC37403269D452E2 /* TodoComplicationViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -805,7 +862,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				46AFC1152F34F76300444306 /* IntentTodoWatchAppUITest.swift in Sources */,
-				46AFC1162F34F76300444306 /* IntentTodoWatchAppUITestLaunchTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
