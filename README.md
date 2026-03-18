@@ -20,36 +20,38 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 ### プラットフォーム別
 
-| プラットフォーム | 実行パターン | AppIntent活用 | 検証状況 |
-|:--|:--|:--|:--|
-| **iOS / iPadOS** | `Button(intent:)` | ✅ 全アクション | ✅ 検証済み |
-| **macOS** | `Button(intent:)` | ✅ 全アクション | 🔲 未検証 |
-| **watchOS** | `Button(intent:)` | ✅ 全アクション | 🔲 未検証 |
-| **visionOS** | `Button(intent:)` + Spatial UI | ✅ 全アクション | 🔲 未検証 |
+| プラットフォーム | 実行パターン | AppIntent活用 | 公式Doc | 検証状況 |
+|:--|:--|:--|:--|:--|
+| **iOS / iPadOS** | `Button(intent:)` | ✅ 全アクション | ✅ 記載あり | ✅ 検証済み |
+| **macOS** | `Button(intent:)` | ✅ 全アクション | ✅ 記載あり | 🔲 未検証 |
+| **watchOS** | `Button(intent:)` | ✅ 全アクション | ✅ 記載あり | 🔲 未検証 |
+| **visionOS** | `Button(intent:)` + Spatial UI | ✅ 全アクション | ✅ 記載あり | 🔲 未検証 |
 
 ### Extension別
 
-| Extension | 実行パターン | AppIntent活用 | 検証状況 | 備考 |
-|:--|:--|:--|:--|:--|
-| **Home Widget** | `Link(destination:)` | ⚠️ 非使用 | ⚠️ 一部検証 | `Button(intent:)` でアプリが開かずURL scheme に変更 |
-| **Control Center** (ToggleUrgent) | `ControlWidgetButton(action:)` | ✅ `.background` | ✅ 検証済み | 通知フィードバック |
-| **Control Center** (QuickAdd) | `ControlWidgetButton(action:)` | ✅ `.background` | 🔲 未検証 | 通知で案内→アプリで操作 |
-| **Control Center** (TodoCount) | `ControlWidgetButton(action:)` | ✅ `.background` | 🔲 未検証 | 通知でカウント表示 |
-| **Live Activity** | `Button(intent:)` | ✅ `LiveActivityIntent` | 🔲 未検証 | 完了/スヌーズ |
-| **Siri / Shortcuts** | `AppShortcutsProvider` | ✅ 4ショートカット | 🔲 未検証 | Siriフレーズ定義済み |
-| **Spotlight** | `IndexedEntity` | ✅ 検索/列挙 | 🔲 未検証 | iOS/macOSのみ |
-| **Complication** (watchOS) | 表示のみ | ─ | 🔲 未検証 | データ表示用 |
+| Extension | 実行パターン | AppIntent活用 | 公式Doc | 検証状況 | 備考 |
+|:--|:--|:--|:--|:--|:--|
+| **Home Widget** | `Link(destination:)` | ⚠️ 非使用 | ✅ 両方記載 | ⚠️ 一部検証 | `Button(intent:)` はアプリを開く用途には非推奨（公式Doc: Linkを使え）※1 |
+| **Control Center** (ToggleUrgent) | `ControlWidgetButton(action:)` | ✅ `.background` | ✅ 記載あり | ✅ 検証済み | 通知フィードバック |
+| **Control Center** (QuickAdd) | `ControlWidgetButton(action:)` | ✅ `.background` | ✅ 記載あり | 🔲 未検証 | 通知で案内→アプリで操作 |
+| **Control Center** (TodoCount) | `ControlWidgetButton(action:)` | ✅ `.background` | ✅ 記載あり | 🔲 未検証 | 通知でカウント表示 |
+| **Control Center → アプリ起動** | `OpenIntent` | ❌ 未動作 | ✅ 記載あり | ❌ iOS 26で不具合 | 公式Docには `OpenIntent` 用init が存在するが動作しない ※2 |
+| **Live Activity** | `Button(intent:)` | ✅ `LiveActivityIntent` | ✅ 記載あり | 🔲 未検証 | 完了/スヌーズ |
+| **Siri / Shortcuts** | `AppShortcutsProvider` | ✅ 4ショートカット | ✅ 記載あり | 🔲 未検証 | Siriフレーズ定義済み |
+| **Spotlight** | `IndexedEntity` | ✅ 検索/列挙 | ✅ 記載あり | 🔲 未検証 | iOS/macOSのみ |
+| **Complication** (watchOS) | 表示のみ | ─ | ✅ 記載あり | 🔲 未検証 | データ表示用 |
 
 ### 凡例
 
-- ✅ 検証済み: 実機で動作確認完了
+- ✅ 検証済み / 記載あり: 実機で動作確認完了 / Apple公式ドキュメントに記載
 - ⚠️ 一部検証: 動作するが制限あり（ワークアラウンド使用中）
 - 🔲 未検証: 実装済みだが実機検証が未完了
+- ❌ 未動作: 公式ドキュメントに記載があるが iOS 26 で動作しない
 
 ### 既知の制限事項
 
-1. **Home Widget**: `Button(intent:)` でアプリが開かないため、`Link(destination:)` + URLスキームで代替
-2. **Control Center → アプリ起動**: iOS 26 で Control Widget からアプリを開く方法が見つかっておらず、`.background` Intent + 通知フィードバックで代替（詳細は [docs/INSIGHTS.md](docs/INSIGHTS.md) Section 18）
+1. **Home Widget** ※1: 公式ドキュメント「Adding interactivity to widgets and Live Activities」に「An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use Link」と明記されており、アプリ起動目的の `Button(intent:)` は意図的に非サポート。`Link(destination:)` + URLスキームが正規の方法
+2. **Control Center → アプリ起動** ※2: `ControlWidgetButton` に `OpenIntent` 専用イニシャライザ（"Creates a button template for a control that launches an app"）が公式ドキュメントに存在するが、iOS 26 で実際に動作しない。10種類のアプローチを試行済み。`.background` Intent + 通知フィードバックで代替中（詳細は [docs/INSIGHTS.md](docs/INSIGHTS.md) Section 18）
 
 ### 定義済み AppIntent 一覧
 
