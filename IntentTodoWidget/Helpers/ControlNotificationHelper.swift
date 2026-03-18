@@ -3,17 +3,19 @@
 //  IntentTodoWidget
 //
 //  Helper for sending local notifications from Control Center widgets.
+//  Control Widgets use .background mode intents with notification feedback
+//  because opening the app from Control Widgets is unreliable on iOS 26.
+//  See docs/INSIGHTS.md Section 18 for details.
 //
 
 import UserNotifications
 
 /// Helper for sending feedback notifications from Control Center widgets.
 ///
-/// With iOS 26+, `OpenIntent` and `supportedModes` replace the notification-based
-/// workaround for opening apps. This helper now only provides feedback notifications
-/// for actions like completing/uncompleting todos.
+/// Control Widgets run `.background` mode intents and use local notifications
+/// to provide user feedback and optionally guide them to open the app.
 enum ControlNotificationHelper {
-    // MARK: - Notification Types
+    // MARK: - Todo Completion
 
     /// Notification when a todo is completed.
     static func sendCompletedNotification(todoTitle: String) {
@@ -25,7 +27,7 @@ enum ControlNotificationHelper {
         let request = UNNotificationRequest(
             identifier: "todo-completed-\(UUID().uuidString)",
             content: content,
-            trigger: nil  // Deliver immediately
+            trigger: nil
         )
 
         UNUserNotificationCenter.current().add(request)
@@ -40,6 +42,45 @@ enum ControlNotificationHelper {
 
         let request = UNNotificationRequest(
             identifier: "todo-uncompleted-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Quick Add
+
+    /// Notification prompting the user to add a new todo.
+    /// Tapping the notification opens the app via URL scheme.
+    static func sendQuickAddNotification() {
+        let content = UNMutableNotificationContent()
+        content.title = "Add New Todo"
+        content.body = "Tap to open the app and add a new todo."
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "quick-add-\(UUID().uuidString)",
+            content: content,
+            trigger: nil
+        )
+
+        UNUserNotificationCenter.current().add(request)
+    }
+
+    // MARK: - Todo Count
+
+    /// Notification showing the current incomplete todo count.
+    static func sendTodoCountNotification(count: Int) {
+        let content = UNMutableNotificationContent()
+        content.title = "Todo Summary"
+        content.body = count > 0
+            ? "You have \(count) incomplete todo\(count == 1 ? "" : "s"). Tap to view."
+            : "All todos completed! 🎉"
+        content.sound = .default
+
+        let request = UNNotificationRequest(
+            identifier: "todo-count-\(UUID().uuidString)",
             content: content,
             trigger: nil
         )

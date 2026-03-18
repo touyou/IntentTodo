@@ -23,6 +23,7 @@
 15. [Intent から UI へのコミュニケーション](#intent-から-ui-へのコミュニケーション)
 16. [openAppWhenRun から supportedModes/OpenIntent への移行](#openappwhenrun-から-supportedmodesopenintent-への移行)
 17. [Control Widget 用シンプルIntent パターン](#control-widget-用シンプルintent-パターン)
+18. [Control Widget からアプリを開く: iOS 26 トラブルシューティング](#control-widget-からアプリを開く-ios-26-トラブルシューティング)
 
 ---
 
@@ -1861,3 +1862,243 @@ struct TodoCountControl: ControlWidget {
 5. **StaticControlConfiguration使用**: ConfigurationIntentの複雑さを回避
 
 ---
+
+## Control Widget からアプリを開く: iOS 26 トラブルシューティング
+
+### 根本原因: `import TodoAppIntents` が全Control Widgetを壊す
+
+Widget Extension内のIntentファイルで `import TodoAppIntents`（Swift Packageのモジュール）を使用すると、**全てのControl Widget Intentの`perform()`が呼ばれなくなる**。ToggleUrgentTodoControl（正常動作していた）も含めて完全に壊れる。
+
+**確認方法**: Console.appでIntent名を検索 → ログが一切出ない
+
+**原因の推測**: Widget Extensionプロセスでパッケージ内のIntent型が読み込まれる際に、AppIntentsメタデータの解決に失敗している可能性がある。
+
+**対策**: Widget Extension内のIntentファイルでは**絶対に`import TodoAppIntents`しない**。`#if canImport(TodoAppIntents)`で条件分岐し、Widget Extensionビルドでは読み込まないようにする。
+
+---
+
+### 試行した全アプローチと結果一覧
+
+以下はiOS 26（正式版）環境での検証結果。テスト端末で完全再インストール済み。
+
+#### 1. OpenIntent を ControlWidgetButton に直接渡す
+
+```swift
+// ControlOpenAppIntent.swift (Target: BOTH)
+struct ControlOpenAppIntent: OpenIntent {
+    static var title: LocalizedStringResource = "Open Todo App"
+    @Parameter(title: "Target")
+    var target: ControlScreenTarget
+}
+
+// QuickAddTodoControl.swift
+ControlWidgetButton(action: ControlOpenAppIntent(target: .addTodo)) {
+    Label("New Todo", systemImage: "plus.circle.fill")
+}
+```
+
+**結果**: ❌ アプリが開かない
+**Console.appログ**:
+```
+openAppWhenRun: YES, systemProtocols: <LNSystemProtocol: OpenEntityAction>,
+parameters: (target: addTodo)
+```
+- システムはOpenIntentを認識し、`openAppWhenRun: YES`も設定されている
+- しかしアプリは起動しない
+- `perform()`が呼ばれたかどうかは不明（通知テスト未実施の状態）
+
+---
+
+#### 2. .background AppIntent + 通知テスト（perform()呼び出し確認）
+
+```swift
+struct QuickAddTodoButtonIntent: AppIntent {
+    static var title: LocalizedStringResource = "Quick Add Todo"
+    // supportedModesなし → デフォルトは.background
+
+    func perform() async throws -> some IntentResult {
+        // ローカル通知を送信してperform()が呼ばれたことを確認
+        ControlNotificationHelper.sendQuickAddNotification()
+        return .result()
+    }
+}
+```
+
+**結果**: ✅ `perform()`は呼ばれる（通知が届く）、❌ アプリは開かない
+- **重要な発見**: `import TodoAppIntents`がない状態であれば、`.background`モードのAppIntentの`perform()`は確実に呼ばれる
+
+---
+
+#### 3. .background AppIntent + openAppWhenRun = true
+
+```swift
+struct QuickAddTodoButtonIntent: AppIntent {
+    static var title: LocalizedStringResource = "Quick Add Todo"
+    static var openAppWhenRun: Bool { true }
+
+    func perform() async throws -> some IntentResult {
+        return .result()
+    }
+}
+```
+
+**結果**: ❌ アプリが開かない
+**Console.appログ**: `openAppWhenRun: YES` と表示されるが、アプリは起動しない
+- `openAppWhenRun`はiOS 26で非推奨（`supportedModes`に移行）
+
+---
+
+#### 4. .background AppIntent + .result(opensIntent: ControlOpenAppIntent)
+
+```swift
+struct QuickAddTodoButtonIntent: AppIntent {
+    static var title: LocalizedStringResource = "Quick Add Todo"
+
+    func perform() async throws -> some IntentResult & OpensIntent {
+        return .result(opensIntent: ControlOpenAppIntent(target: .addTodo))
+    }
+}
+```
+
+**結果**: ❌ `perform()`は呼ばれるが、チェインされたOpenIntentは無視される
+- `.result(opensIntent:)`のチェインはControl Widgetコンテキストでは機能しない
+
+---
+
+#### 5. supportedModes: [.background, .foreground(.deferred)] + continueInForeground()
+
+```swift
+struct OpenTodoListButtonIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Todo List"
+    static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
+
+    func perform() async throws -> some IntentResult {
+        try await continueInForeground()
+        return .result()
+    }
+}
+```
+
+**結果**: ❌ アプリが開かない
+**Console.appログ**:
+```
+systemProtocols: ForegroundContinuableAction
+openAppWhenRun: YES
+```
+- システムは`ForegroundContinuableAction`を認識するが、フォアグラウンド遷移は起きない
+
+---
+
+#### 6. supportedModes: .foreground(.immediate)
+
+```swift
+struct QuickAddTodoButtonIntent: AppIntent {
+    static var title: LocalizedStringResource = "Quick Add Todo"
+    static var supportedModes: IntentModes { .foreground(.immediate) }
+
+    func perform() async throws -> some IntentResult {
+        return .result()
+    }
+}
+```
+
+**結果**: ❌ `perform()`自体が呼ばれない（Console.appにログなし）
+- `.foreground`のみのモードでは、Control Widgetコンテキストでは実行されない
+
+---
+
+#### 7. ControlConfigurationIntent + OpenURLIntent（外部サンプル準拠）
+
+[tomhamming/ControlCenterOpenApp](https://github.com/tomhamming/ControlCenterOpenApp) の実装を参考にした。
+
+```swift
+struct QuickAddTodoButtonIntent: ControlConfigurationIntent {
+    static let title: LocalizedStringResource = "Quick Add Todo"
+    static let isDiscoverable = false
+    static let openAppWhenRun: Bool = true
+
+    @MainActor
+    func perform() async throws -> some IntentResult & OpensIntent {
+        let url = URL(string: "intenttodo://addTodo")!
+        return .result(opensIntent: OpenURLIntent(url))
+    }
+}
+```
+
+**結果**: ❌ `perform()`が呼ばれない（Console.appにログなし）
+- `ControlConfigurationIntent`をControlWidgetButtonのactionに渡した場合、perform()が呼ばれない
+- iOS 18向けサンプルであり、iOS 26では動作しない可能性がある
+
+---
+
+#### 8. OpenURLIntent を直接使用
+
+```swift
+// perform() 内で試行
+let url = URL(string: "intenttodo://addTodo")!
+return .result(opensIntent: OpenURLIntent(url))
+```
+
+**結果**: ❌ LaunchServicesエラー
+**Console.appログ**:
+```
+Error Domain=NSOSStatusErrorDomain Code=-54
+"process may not map database"
+```
+- Widget Extensionプロセスには LaunchServices データベースへのアクセス権限がない
+
+---
+
+#### 9. UIApplication.value(forKeyPath:) でURL openを試行
+
+```swift
+if let app = (UIApplication.self as AnyObject).value(forKeyPath: "sharedApplication") as? UIApplication {
+    await app.open(url)
+}
+```
+
+**結果**: ❌ Widget Extensionでは`UIApplication`のインスタンスが取得できない（nilが返る）
+
+---
+
+#### 10. EnvironmentValues().openURL(url)
+
+```swift
+@MainActor
+func perform() async throws -> some IntentResult {
+    let url = URL(string: "intenttodo://addTodo")!
+    EnvironmentValues().openURL(url)
+    return .result()
+}
+```
+
+**結果**: ❌ Widget Extensionコンテキストでは効果なし
+
+---
+
+### 現在の状態（未解決）
+
+**iOS 26において、Control Widget（ControlWidgetButton）からアプリを開く方法が見つかっていない。**
+
+| 動作する項目 | 動作しない項目 |
+|------------|-------------|
+| `.background` AppIntentの`perform()`呼び出し | アプリのフォアグラウンド起動 |
+| `ToggleUrgentTodoControl`（バックグラウンドデータ操作） | `openAppWhenRun: YES`によるアプリ起動 |
+| システムによるOpenIntent認識（ログ出力） | `.result(opensIntent:)`チェイン |
+| Control Widget UIのハイライト表示 | `continueInForeground()` |
+| 通知送信（フィードバック） | `OpenURLIntent`（権限エラー） |
+
+### 考えられる原因
+
+1. **iOS 26のバグ**: Control Widgetからのアプリ起動が正式版でも壊れている可能性
+2. **Entitlements/署名の問題**: 特定のentitlementが不足している可能性
+3. **Info.plist設定**: URLスキーム以外に必要な設定がある可能性
+4. **Apple未公開の変更**: WWDC25以降にControl Widget APIに破壊的変更があった可能性
+
+### 次に試すべきこと
+
+1. **Apple Developer Forumsで同様の報告を探す** — iOS 26での`ControlWidgetButton` + `OpenIntent`の問題
+2. **Feedback Assistantでバグレポート** — 再現手順を添えて報告
+3. **Xcode 26.1 beta**での動作確認 — iOS 26.1で修正されている可能性
+4. **最小再現プロジェクト**を作成 — パッケージ構成なしの単純なプロジェクトでOpenIntentが動作するか確認
+5. **Appleの公式サンプルコード**のControl Widget部分を確認 — 実際に動作する実装を見つける

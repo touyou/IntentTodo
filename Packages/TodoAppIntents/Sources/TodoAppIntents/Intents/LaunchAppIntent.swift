@@ -58,8 +58,10 @@ public enum AppScreenTarget: String, AppEnum {
 /// - Action Button: Physical button press on iPhone 15 Pro+
 /// - Shortcuts: Open to specific screen
 ///
-/// Uses `supportedModes: .foreground` to run in foreground and open the app.
-/// The `target` parameter specifies which screen to navigate to after opening.
+/// Used by Shortcuts, Siri, and in-app navigation.
+/// Note: Control Center widgets use separate .background intents with notification
+/// feedback (see ControlIntents.swift) because opening the app from Control Widgets
+/// is unreliable on iOS 26.
 public struct LaunchAppIntent: AppIntent {
     // MARK: - Metadata
 
@@ -78,8 +80,7 @@ public struct LaunchAppIntent: AppIntent {
         )
     }
 
-    /// Runs in foreground mode to open the app.
-    public static var supportedModes: IntentModes { .foreground }
+    public static let openAppWhenRun: Bool = true
 
     // MARK: - Parameters
 
@@ -108,8 +109,6 @@ public struct LaunchAppIntent: AppIntent {
             IntentAppState.shared.requestShowAddTodo()
             logger.info("IntentAppState.shouldShowAddTodo set to true")
         case .todoList, .incompleteTodos, .favoriteTodos:
-            // The app will handle showing the appropriate view based on the target
-            // For now, we just log the target
             logger.info("Opening app to target: \(target.rawValue)")
         }
 

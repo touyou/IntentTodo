@@ -538,7 +538,6 @@
 			children = (
 				2483D6B0974DE44EA52216C2 /* LiveActivityModelContainer.swift */,
 			);
-			name = Helpers;
 			path = Helpers;
 			sourceTree = "<group>";
 		};
@@ -549,7 +548,6 @@
 				3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */,
 				8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */,
 			);
-			name = Complication;
 			path = Complication;
 			sourceTree = "<group>";
 		};

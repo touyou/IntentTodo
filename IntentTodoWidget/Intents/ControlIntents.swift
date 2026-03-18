@@ -2,45 +2,18 @@
 //  ControlIntents.swift
 //  IntentTodoWidget
 //
-//  App Intents for Control Center widgets.
-//  Defined in Widget Extension for reliable Control Center behavior.
+//  Background-mode intents for Control Center widgets.
+//  All Control Widget intents use .background mode with notification feedback
+//  because opening the app from Control Widgets is unreliable on iOS 26.
+//  See docs/INSIGHTS.md Section 18 for details.
 //
 
 import AppIntents
 import Domain
 import SwiftData
+import TodoAppIntents
 import UserNotifications
 import WidgetKit
-
-// MARK: - LocalOpenAddTodoIntent
-
-/// Intent for opening the app to add a todo.
-struct LocalOpenAddTodoIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Add Todo"
-
-    static var supportedModes: IntentModes { .foreground }
-
-    @MainActor
-    func perform() async throws -> some IntentResult {
-        let sharedDefaults = UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier) ?? .standard
-        sharedDefaults.set(true, forKey: "IntentAppState.shouldShowAddTodo")
-        return .result()
-    }
-}
-
-// MARK: - LocalOpenTodoListIntent
-
-/// Intent for opening the app to todo list.
-struct LocalOpenTodoListIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Todo List"
-
-    static var supportedModes: IntentModes { .foreground }
-
-    @MainActor
-    func perform() async throws -> some IntentResult {
-        return .result()
-    }
-}
 
 // MARK: - ToggleUrgentTodoIntent
 
@@ -77,6 +50,44 @@ struct ToggleUrgentTodoIntent: AppIntent {
             ControlNotificationHelper.sendUncompletedNotification(todoTitle: todoTitle)
         }
 
+        return .result()
+    }
+}
+
+// MARK: - QuickAddTodoNotifyIntent
+
+/// Intent for the Quick Add control button.
+/// Sends a notification prompting the user to open the app and add a todo.
+struct QuickAddTodoNotifyIntent: AppIntent {
+    static var title: LocalizedStringResource = "Quick Add Todo"
+
+    static var supportedModes: IntentModes { .background }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        ControlNotificationHelper.sendQuickAddNotification()
+        return .result()
+    }
+}
+
+// MARK: - ShowTodoCountIntent
+
+/// Intent for the Todo Count control button.
+/// Fetches the current incomplete count and sends a summary notification.
+struct ShowTodoCountIntent: AppIntent {
+    static var title: LocalizedStringResource = "Show Todo Count"
+
+    static var supportedModes: IntentModes { .background }
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        let context = sharedWidgetModelContainer.mainContext
+        let descriptor = FetchDescriptor<TodoItem>(
+            predicate: #Predicate { !$0.isCompleted }
+        )
+        let count = (try? context.fetchCount(descriptor)) ?? 0
+
+        ControlNotificationHelper.sendTodoCountNotification(count: count)
         return .result()
     }
 }

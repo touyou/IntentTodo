@@ -51,6 +51,12 @@ public final class IntentAppState {
         }
     }
 
+    // MARK: - Notifications
+
+    /// Posted when an Intent requests the add todo screen.
+    /// Observe this in UI to react immediately when an OpenIntent's perform() runs.
+    public static let showAddTodoNotification = Notification.Name("IntentAppState.showAddTodo")
+
     // MARK: - Convenience Methods
 
     /// Requests the app to show the add todo screen.
@@ -58,6 +64,9 @@ public final class IntentAppState {
     public func requestShowAddTodo() {
         logger.info("requestShowAddTodo() called, setting shouldShowAddTodo = true")
         shouldShowAddTodo = true
+        // Post notification for immediate UI reaction (handles race condition
+        // where didBecomeActive fires before OpenIntent.perform())
+        NotificationCenter.default.post(name: Self.showAddTodoNotification, object: nil)
     }
 
     /// Consumes the add todo request and returns whether it was pending.

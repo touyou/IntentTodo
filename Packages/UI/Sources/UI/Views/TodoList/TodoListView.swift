@@ -73,12 +73,19 @@ public struct TodoListView: View {
         }
         #if os(iOS)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            // Also check when app becomes active (from background)
+            // Check when app becomes active (from background)
             if IntentAppState.shared.consumeShowAddTodoRequest() {
                 navigationViewModel.showAddTodo()
             }
         }
         #endif
+        .onReceive(NotificationCenter.default.publisher(for: IntentAppState.showAddTodoNotification)) { _ in
+            // React immediately when OpenIntent.perform() calls requestShowAddTodo()
+            // This handles the race condition where didBecomeActive fires before perform()
+            if IntentAppState.shared.consumeShowAddTodoRequest() {
+                navigationViewModel.showAddTodo()
+            }
+        }
     }
 
     // MARK: - Subviews
