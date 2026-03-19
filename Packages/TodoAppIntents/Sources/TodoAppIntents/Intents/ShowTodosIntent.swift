@@ -26,7 +26,8 @@ public struct ShowTodosIntent: AppIntent {
         )
     }
 
-    public static var openAppWhenRun: Bool { true }
+    /// Opens the app in foreground when run.
+    public static var supportedModes: IntentModes { .foreground }
 
     // MARK: - Initialization
 
@@ -42,7 +43,7 @@ public struct ShowTodosIntent: AppIntent {
 
         return .result(
             value: entities,
-            opensIntent: OpenTodoListIntent()
+            opensIntent: LaunchAppIntent(target: .todoList)
         )
     }
 }
@@ -64,7 +65,8 @@ public struct ShowIncompleteTodosIntent: AppIntent {
         )
     }
 
-    public static var openAppWhenRun: Bool { true }
+    /// Opens the app in foreground when run.
+    public static var supportedModes: IntentModes { .foreground }
 
     // MARK: - Initialization
 
@@ -80,7 +82,7 @@ public struct ShowIncompleteTodosIntent: AppIntent {
 
         return .result(
             value: entities,
-            opensIntent: OpenTodoListIntent(filter: .incomplete)
+            opensIntent: LaunchAppIntent(target: .incompleteTodos)
         )
     }
 }
@@ -102,7 +104,8 @@ public struct ShowFavoriteTodosIntent: AppIntent {
         )
     }
 
-    public static var openAppWhenRun: Bool { true }
+    /// Opens the app in foreground when run.
+    public static var supportedModes: IntentModes { .foreground }
 
     // MARK: - Initialization
 
@@ -118,41 +121,8 @@ public struct ShowFavoriteTodosIntent: AppIntent {
 
         return .result(
             value: entities,
-            opensIntent: OpenTodoListIntent(filter: .favorites)
+            opensIntent: LaunchAppIntent(target: .favoriteTodos)
         )
-    }
-}
-
-// MARK: - Open App Intent
-
-/// An intent that opens the todo list with an optional filter.
-public struct OpenTodoListIntent: AppIntent {
-    // MARK: - Metadata
-
-    public static var title: LocalizedStringResource {
-        LocalizedStringResource("Open Todo List", comment: "Intent title for opening the todo list")
-    }
-
-    public static var openAppWhenRun: Bool { true }
-
-    // MARK: - Parameters
-
-    @Parameter(title: "Filter")
-    public var filter: TodoFilterType?
-
-    // MARK: - Initialization
-
-    public init() {}
-
-    public init(filter: TodoFilterType?) {
-        self.filter = filter
-    }
-
-    // MARK: - Perform
-
-    public func perform() async throws -> some IntentResult {
-        // This intent just opens the app; the UI will handle the filter
-        return .result()
     }
 }
 

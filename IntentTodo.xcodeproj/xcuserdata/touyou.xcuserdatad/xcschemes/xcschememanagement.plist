@@ -7,7 +7,65 @@
 		<key>IntentTodo.xcscheme_^#shared#^_</key>
 		<dict>
 			<key>orderHint</key>
+			<integer>0</integer>
+		</dict>
+		<key>IntentTodoLiveActivityExtension.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
 			<integer>1</integer>
+		</dict>
+		<key>IntentTodoUITest.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>8</integer>
+		</dict>
+		<key>IntentTodoWatchApp Watch App.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>3</integer>
+		</dict>
+		<key>IntentTodoWatchAppUITest.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>9</integer>
+		</dict>
+		<key>IntentTodoWidgetExtension.xcscheme_^#shared#^_</key>
+		<dict>
+			<key>orderHint</key>
+			<integer>2</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>46AFBC382F2BA68C00444306</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>46AFBEBD2F2CFEA400444306</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>46AFBEDE2F2D6D9C00444306</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>46AFBEFC2F2D6E5A00444306</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>46AFC0F22F34F72800444306</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>46AFC1062F34F75C00444306</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

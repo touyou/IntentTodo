@@ -33,86 +33,13 @@ struct TodoListViewModelTests {
 
     // MARK: - Initial State Tests
 
-    @Test("Initial state has empty todos and default values")
+    @Test("Initial state has default values")
     func initialState() {
         let viewModel = TodoListViewModel()
 
-        #expect(viewModel.todos.isEmpty)
-        #expect(!viewModel.isLoading)
-        #expect(viewModel.errorMessage == nil)
         #expect(viewModel.filter == .all)
         #expect(viewModel.sortOrder == .createdAtDescending)
         #expect(viewModel.searchText.isEmpty)
-    }
-
-    // MARK: - Todo Management Tests
-
-    @Test("addTodo adds entity to todos array")
-    func addTodo() {
-        let viewModel = TodoListViewModel()
-        let todo = makeTodo(title: "New Todo")
-
-        viewModel.addTodo(todo)
-
-        #expect(viewModel.todos.count == 1)
-        #expect(viewModel.todos.first?.title == "New Todo")
-    }
-
-    @Test("updateTodo updates existing entity")
-    func updateTodo() {
-        let viewModel = TodoListViewModel()
-        let id = UUID().uuidString
-        let original = makeTodo(id: id, title: "Original", isCompleted: false)
-        viewModel.addTodo(original)
-
-        let updated = TodoAppEntity(
-            id: id,
-            title: "Updated",
-            isCompleted: true,
-            isFavorite: false
-        )
-        viewModel.updateTodo(updated)
-
-        #expect(viewModel.todos.count == 1)
-        #expect(viewModel.todos.first?.title == "Updated")
-        #expect(viewModel.todos.first?.isCompleted == true)
-    }
-
-    @Test("updateTodo does nothing for non-existent entity")
-    func updateNonExistentTodo() {
-        let viewModel = TodoListViewModel()
-        let todo = makeTodo(title: "Existing")
-        viewModel.addTodo(todo)
-
-        let nonExistent = makeTodo(id: "non-existent", title: "Non-existent")
-        viewModel.updateTodo(nonExistent)
-
-        #expect(viewModel.todos.count == 1)
-        #expect(viewModel.todos.first?.title == "Existing")
-    }
-
-    @Test("removeTodo removes entity from todos array")
-    func removeTodo() {
-        let viewModel = TodoListViewModel()
-        let todo = makeTodo(title: "To Remove")
-        viewModel.addTodo(todo)
-        #expect(viewModel.todos.count == 1)
-
-        viewModel.removeTodo(todo)
-
-        #expect(viewModel.todos.isEmpty)
-    }
-
-    @Test("removeTodo does nothing for non-existent entity")
-    func removeNonExistentTodo() {
-        let viewModel = TodoListViewModel()
-        let todo = makeTodo(title: "Existing")
-        viewModel.addTodo(todo)
-
-        let nonExistent = makeTodo(id: "non-existent", title: "Non-existent")
-        viewModel.removeTodo(nonExistent)
-
-        #expect(viewModel.todos.count == 1)
     }
 
     // MARK: - Filter Tests
@@ -120,49 +47,60 @@ struct TodoListViewModelTests {
     @Test("Filter all shows all todos")
     func filterAll() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(isCompleted: false))
-        viewModel.addTodo(makeTodo(isCompleted: true))
-        viewModel.addTodo(makeTodo(isFavorite: true))
-
         viewModel.filter = .all
 
-        #expect(viewModel.filteredTodos.count == 3)
+        let todos = [
+            makeTodo(isCompleted: false),
+            makeTodo(isCompleted: true),
+            makeTodo(isFavorite: true),
+        ]
+
+        #expect(viewModel.filteredTodos(from: todos).count == 3)
     }
 
     @Test("Filter incomplete shows only incomplete todos")
     func filterIncomplete() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Incomplete", isCompleted: false))
-        viewModel.addTodo(makeTodo(title: "Completed", isCompleted: true))
-
         viewModel.filter = .incomplete
 
-        #expect(viewModel.filteredTodos.count == 1)
-        #expect(viewModel.filteredTodos.first?.title == "Incomplete")
+        let todos = [
+            makeTodo(title: "Incomplete", isCompleted: false),
+            makeTodo(title: "Completed", isCompleted: true),
+        ]
+
+        let filtered = viewModel.filteredTodos(from: todos)
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.title == "Incomplete")
     }
 
     @Test("Filter completed shows only completed todos")
     func filterCompleted() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Incomplete", isCompleted: false))
-        viewModel.addTodo(makeTodo(title: "Completed", isCompleted: true))
-
         viewModel.filter = .completed
 
-        #expect(viewModel.filteredTodos.count == 1)
-        #expect(viewModel.filteredTodos.first?.title == "Completed")
+        let todos = [
+            makeTodo(title: "Incomplete", isCompleted: false),
+            makeTodo(title: "Completed", isCompleted: true),
+        ]
+
+        let filtered = viewModel.filteredTodos(from: todos)
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.title == "Completed")
     }
 
     @Test("Filter favorites shows only favorite todos")
     func filterFavorites() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Regular", isFavorite: false))
-        viewModel.addTodo(makeTodo(title: "Favorite", isFavorite: true))
-
         viewModel.filter = .favorites
 
-        #expect(viewModel.filteredTodos.count == 1)
-        #expect(viewModel.filteredTodos.first?.title == "Favorite")
+        let todos = [
+            makeTodo(title: "Regular", isFavorite: false),
+            makeTodo(title: "Favorite", isFavorite: true),
+        ]
+
+        let filtered = viewModel.filteredTodos(from: todos)
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.title == "Favorite")
     }
 
     // MARK: - Search Tests
@@ -170,50 +108,60 @@ struct TodoListViewModelTests {
     @Test("Search filters todos by title")
     func searchByTitle() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Buy groceries"))
-        viewModel.addTodo(makeTodo(title: "Call mom"))
-        viewModel.addTodo(makeTodo(title: "Buy milk"))
-
         viewModel.searchText = "Buy"
 
-        #expect(viewModel.filteredTodos.count == 2)
+        let todos = [
+            makeTodo(title: "Buy groceries"),
+            makeTodo(title: "Call mom"),
+            makeTodo(title: "Buy milk"),
+        ]
+
+        #expect(viewModel.filteredTodos(from: todos).count == 2)
     }
 
     @Test("Search is case insensitive")
     func searchCaseInsensitive() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Buy GROCERIES"))
-        viewModel.addTodo(makeTodo(title: "Call mom"))
-
         viewModel.searchText = "groceries"
 
-        #expect(viewModel.filteredTodos.count == 1)
-        #expect(viewModel.filteredTodos.first?.title == "Buy GROCERIES")
+        let todos = [
+            makeTodo(title: "Buy GROCERIES"),
+            makeTodo(title: "Call mom"),
+        ]
+
+        let filtered = viewModel.filteredTodos(from: todos)
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.title == "Buy GROCERIES")
     }
 
     @Test("Search combined with filter")
     func searchWithFilter() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Buy groceries", isCompleted: false))
-        viewModel.addTodo(makeTodo(title: "Buy milk", isCompleted: true))
-        viewModel.addTodo(makeTodo(title: "Call mom", isCompleted: false))
-
         viewModel.searchText = "Buy"
         viewModel.filter = .incomplete
 
-        #expect(viewModel.filteredTodos.count == 1)
-        #expect(viewModel.filteredTodos.first?.title == "Buy groceries")
+        let todos = [
+            makeTodo(title: "Buy groceries", isCompleted: false),
+            makeTodo(title: "Buy milk", isCompleted: true),
+            makeTodo(title: "Call mom", isCompleted: false),
+        ]
+
+        let filtered = viewModel.filteredTodos(from: todos)
+        #expect(filtered.count == 1)
+        #expect(filtered.first?.title == "Buy groceries")
     }
 
     @Test("Empty search shows all todos for current filter")
     func emptySearch() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Todo 1"))
-        viewModel.addTodo(makeTodo(title: "Todo 2"))
-
         viewModel.searchText = ""
 
-        #expect(viewModel.filteredTodos.count == 2)
+        let todos = [
+            makeTodo(title: "Todo 1"),
+            makeTodo(title: "Todo 2"),
+        ]
+
+        #expect(viewModel.filteredTodos(from: todos).count == 2)
     }
 
     // MARK: - Sort Tests
@@ -221,93 +169,237 @@ struct TodoListViewModelTests {
     @Test("Sort by created date descending")
     func sortCreatedAtDescending() {
         let viewModel = TodoListViewModel()
+        viewModel.sortOrder = .createdAtDescending
+
         let date1 = Date().addingTimeInterval(-3600)
         let date2 = Date().addingTimeInterval(-1800)
         let date3 = Date()
 
-        viewModel.addTodo(makeTodo(title: "Old", createdAt: date1))
-        viewModel.addTodo(makeTodo(title: "Newest", createdAt: date3))
-        viewModel.addTodo(makeTodo(title: "Middle", createdAt: date2))
+        let todos = [
+            makeTodo(title: "Old", createdAt: date1),
+            makeTodo(title: "Newest", createdAt: date3),
+            makeTodo(title: "Middle", createdAt: date2),
+        ]
 
-        viewModel.sortOrder = .createdAtDescending
-
-        #expect(viewModel.filteredTodos[0].title == "Newest")
-        #expect(viewModel.filteredTodos[1].title == "Middle")
-        #expect(viewModel.filteredTodos[2].title == "Old")
+        let sorted = viewModel.filteredTodos(from: todos)
+        #expect(sorted[0].title == "Newest")
+        #expect(sorted[1].title == "Middle")
+        #expect(sorted[2].title == "Old")
     }
 
     @Test("Sort by created date ascending")
     func sortCreatedAtAscending() {
         let viewModel = TodoListViewModel()
+        viewModel.sortOrder = .createdAtAscending
+
         let date1 = Date().addingTimeInterval(-3600)
         let date2 = Date().addingTimeInterval(-1800)
         let date3 = Date()
 
-        viewModel.addTodo(makeTodo(title: "Old", createdAt: date1))
-        viewModel.addTodo(makeTodo(title: "Newest", createdAt: date3))
-        viewModel.addTodo(makeTodo(title: "Middle", createdAt: date2))
+        let todos = [
+            makeTodo(title: "Old", createdAt: date1),
+            makeTodo(title: "Newest", createdAt: date3),
+            makeTodo(title: "Middle", createdAt: date2),
+        ]
 
-        viewModel.sortOrder = .createdAtAscending
-
-        #expect(viewModel.filteredTodos[0].title == "Old")
-        #expect(viewModel.filteredTodos[1].title == "Middle")
-        #expect(viewModel.filteredTodos[2].title == "Newest")
+        let sorted = viewModel.filteredTodos(from: todos)
+        #expect(sorted[0].title == "Old")
+        #expect(sorted[1].title == "Middle")
+        #expect(sorted[2].title == "Newest")
     }
 
     @Test("Sort by title ascending")
     func sortTitleAscending() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Zebra"))
-        viewModel.addTodo(makeTodo(title: "Apple"))
-        viewModel.addTodo(makeTodo(title: "Mango"))
-
         viewModel.sortOrder = .titleAscending
 
-        #expect(viewModel.filteredTodos[0].title == "Apple")
-        #expect(viewModel.filteredTodos[1].title == "Mango")
-        #expect(viewModel.filteredTodos[2].title == "Zebra")
+        let todos = [
+            makeTodo(title: "Zebra"),
+            makeTodo(title: "Apple"),
+            makeTodo(title: "Mango"),
+        ]
+
+        let sorted = viewModel.filteredTodos(from: todos)
+        #expect(sorted[0].title == "Apple")
+        #expect(sorted[1].title == "Mango")
+        #expect(sorted[2].title == "Zebra")
     }
 
     @Test("Sort by title descending")
     func sortTitleDescending() {
         let viewModel = TodoListViewModel()
-        viewModel.addTodo(makeTodo(title: "Zebra"))
-        viewModel.addTodo(makeTodo(title: "Apple"))
-        viewModel.addTodo(makeTodo(title: "Mango"))
-
         viewModel.sortOrder = .titleDescending
 
-        #expect(viewModel.filteredTodos[0].title == "Zebra")
-        #expect(viewModel.filteredTodos[1].title == "Mango")
-        #expect(viewModel.filteredTodos[2].title == "Apple")
+        let todos = [
+            makeTodo(title: "Zebra"),
+            makeTodo(title: "Apple"),
+            makeTodo(title: "Mango"),
+        ]
+
+        let sorted = viewModel.filteredTodos(from: todos)
+        #expect(sorted[0].title == "Zebra")
+        #expect(sorted[1].title == "Mango")
+        #expect(sorted[2].title == "Apple")
     }
 
-    @Test("Sort by due date with nil dates at end")
+    @Test("Sort by due date ascending with nil dates at end")
     func sortDueDateAscending() {
         let viewModel = TodoListViewModel()
+        viewModel.sortOrder = .dueDateAscending
+
         let tomorrow = Date().addingTimeInterval(86400)
         let nextWeek = Date().addingTimeInterval(604800)
 
-        viewModel.addTodo(makeTodo(title: "No date", dueDate: nil))
-        viewModel.addTodo(makeTodo(title: "Next week", dueDate: nextWeek))
-        viewModel.addTodo(makeTodo(title: "Tomorrow", dueDate: tomorrow))
+        let todos = [
+            makeTodo(title: "No date", dueDate: nil),
+            makeTodo(title: "Next week", dueDate: nextWeek),
+            makeTodo(title: "Tomorrow", dueDate: tomorrow),
+        ]
 
-        viewModel.sortOrder = .dueDateAscending
-
-        #expect(viewModel.filteredTodos[0].title == "Tomorrow")
-        #expect(viewModel.filteredTodos[1].title == "Next week")
-        #expect(viewModel.filteredTodos[2].title == "No date")
+        let sorted = viewModel.filteredTodos(from: todos)
+        #expect(sorted[0].title == "Tomorrow")
+        #expect(sorted[1].title == "Next week")
+        #expect(sorted[2].title == "No date")
     }
 
-    // MARK: - Error Handling Tests
-
-    @Test("clearError sets errorMessage to nil")
-    func clearError() {
+    @Test("Sort by due date descending with nil dates at end")
+    func sortDueDateDescending() {
         let viewModel = TodoListViewModel()
-        viewModel.errorMessage = "Some error"
+        viewModel.sortOrder = .dueDateDescending
 
-        viewModel.clearError()
+        let tomorrow = Date().addingTimeInterval(86400)
+        let nextWeek = Date().addingTimeInterval(604800)
 
-        #expect(viewModel.errorMessage == nil)
+        let todos = [
+            makeTodo(title: "No date", dueDate: nil),
+            makeTodo(title: "Next week", dueDate: nextWeek),
+            makeTodo(title: "Tomorrow", dueDate: tomorrow),
+        ]
+
+        let sorted = viewModel.filteredTodos(from: todos)
+        #expect(sorted[0].title == "Next week")
+        #expect(sorted[1].title == "Tomorrow")
+        #expect(sorted[2].title == "No date")
+    }
+
+    // MARK: - Statistics Tests
+
+    @Test("incompleteCount returns count of incomplete todos")
+    func incompleteCount() {
+        let viewModel = TodoListViewModel()
+
+        let todos = [
+            makeTodo(isCompleted: false),
+            makeTodo(isCompleted: true),
+            makeTodo(isCompleted: false),
+        ]
+
+        #expect(viewModel.incompleteCount(from: todos) == 2)
+    }
+
+    @Test("incompleteCount returns 0 when all completed")
+    func incompleteCountAllCompleted() {
+        let viewModel = TodoListViewModel()
+
+        let todos = [
+            makeTodo(isCompleted: true),
+            makeTodo(isCompleted: true),
+        ]
+
+        #expect(viewModel.incompleteCount(from: todos) == 0)
+    }
+
+    @Test("favoriteCount returns count of favorite todos")
+    func favoriteCount() {
+        let viewModel = TodoListViewModel()
+
+        let todos = [
+            makeTodo(isFavorite: true),
+            makeTodo(isFavorite: false),
+            makeTodo(isFavorite: true),
+        ]
+
+        #expect(viewModel.favoriteCount(from: todos) == 2)
+    }
+
+    @Test("favoriteCount returns 0 when no favorites")
+    func favoriteCountNone() {
+        let viewModel = TodoListViewModel()
+
+        let todos = [
+            makeTodo(isFavorite: false),
+            makeTodo(isFavorite: false),
+        ]
+
+        #expect(viewModel.favoriteCount(from: todos) == 0)
+    }
+
+    @Test("Empty todos returns empty filtered result")
+    func emptyTodos() {
+        let viewModel = TodoListViewModel()
+
+        #expect(viewModel.filteredTodos(from: []).isEmpty)
+        #expect(viewModel.incompleteCount(from: []) == 0)
+        #expect(viewModel.favoriteCount(from: []) == 0)
+    }
+}
+
+// MARK: - TodoFilter Tests
+
+@Suite("TodoFilter Tests")
+struct TodoFilterTests {
+    @Test("All cases are iterable")
+    func allCases() {
+        #expect(TodoFilter.allCases.count == 4)
+    }
+
+    @Test("Each filter has a display name")
+    func displayNames() {
+        #expect(TodoFilter.all.displayName == "All")
+        #expect(TodoFilter.incomplete.displayName == "Incomplete")
+        #expect(TodoFilter.completed.displayName == "Completed")
+        #expect(TodoFilter.favorites.displayName == "Favorites")
+    }
+
+    @Test("Each filter has a system image")
+    func systemImages() {
+        #expect(TodoFilter.all.systemImage == "list.bullet")
+        #expect(TodoFilter.incomplete.systemImage == "circle")
+        #expect(TodoFilter.completed.systemImage == "checkmark.circle")
+        #expect(TodoFilter.favorites.systemImage == "star")
+    }
+
+    @Test("Each filter has unique id based on rawValue")
+    func identifiable() {
+        let ids = TodoFilter.allCases.map(\.id)
+        let uniqueIds = Set(ids)
+        #expect(ids.count == uniqueIds.count)
+    }
+}
+
+// MARK: - TodoSortOrder Tests
+
+@Suite("TodoSortOrder Tests")
+struct TodoSortOrderTests {
+    @Test("All cases are iterable")
+    func allCases() {
+        #expect(TodoSortOrder.allCases.count == 6)
+    }
+
+    @Test("Each sort order has a display name")
+    func displayNames() {
+        #expect(TodoSortOrder.createdAtDescending.displayName == "Newest First")
+        #expect(TodoSortOrder.createdAtAscending.displayName == "Oldest First")
+        #expect(TodoSortOrder.titleAscending.displayName == "Title A-Z")
+        #expect(TodoSortOrder.titleDescending.displayName == "Title Z-A")
+        #expect(TodoSortOrder.dueDateAscending.displayName == "Due Date (Earliest)")
+        #expect(TodoSortOrder.dueDateDescending.displayName == "Due Date (Latest)")
+    }
+
+    @Test("Each sort order has unique id based on rawValue")
+    func identifiable() {
+        let ids = TodoSortOrder.allCases.map(\.id)
+        let uniqueIds = Set(ids)
+        #expect(ids.count == uniqueIds.count)
     }
 }

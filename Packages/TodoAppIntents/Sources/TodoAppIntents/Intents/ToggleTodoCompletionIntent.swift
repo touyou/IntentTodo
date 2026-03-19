@@ -27,7 +27,8 @@ public struct ToggleTodoCompletionIntent: AppIntent {
         )
     }
 
-    public static var openAppWhenRun: Bool { false }
+    /// Runs in background without opening the app.
+    public static var supportedModes: IntentModes { .background }
 
     // MARK: - Parameters
 
@@ -59,6 +60,9 @@ public struct ToggleTodoCompletionIntent: AppIntent {
 
         // Save changes
         try repository.update(todoItem)
+
+        // Reload widgets to reflect the change
+        WidgetReloader.reloadAllWidgets()
 
         // Return updated entity
         let entity = TodoAppEntity(from: todoItem)

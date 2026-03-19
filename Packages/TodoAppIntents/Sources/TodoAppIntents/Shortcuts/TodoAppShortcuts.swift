@@ -1,22 +1,21 @@
 //
 //  TodoAppShortcuts.swift
-//  IntentTodo
+//  TodoAppIntents
 //
-//  Created by 藤井陽介 on 2026/01/30.
+//  Provides App Shortcuts for the Todo app.
 //
 
 import AppIntents
-import TodoAppIntents
 
 /// Provides App Shortcuts for the Todo app.
 ///
 /// App Shortcuts allow users to quickly access app features via Siri,
 /// the Shortcuts app, and Spotlight.
-struct TodoAppShortcuts: AppShortcutsProvider {
+public struct TodoAppShortcuts: AppShortcutsProvider {
     // MARK: - App Shortcuts
 
     /// The shortcuts available for this app.
-    static var appShortcuts: [AppShortcut] {
+    public static var appShortcuts: [AppShortcut] {
         // Add a new todo
         AppShortcut(
             intent: AddTodoIntent(),
@@ -50,7 +49,10 @@ struct TodoAppShortcuts: AppShortcutsProvider {
                 "What do I need to do in \(.applicationName)",
                 "Show unfinished tasks in \(.applicationName)"
             ],
-            shortTitle: LocalizedStringResource("Incomplete Todos", comment: "Incomplete todos shortcut title"),
+            shortTitle: LocalizedStringResource(
+                "Incomplete Todos",
+                comment: "Incomplete todos shortcut title"
+            ),
             systemImageName: "circle"
         )
 
@@ -62,7 +64,10 @@ struct TodoAppShortcuts: AppShortcutsProvider {
                 "Show starred todos in \(.applicationName)",
                 "Important todos in \(.applicationName)"
             ],
-            shortTitle: LocalizedStringResource("Favorite Todos", comment: "Favorite todos shortcut title"),
+            shortTitle: LocalizedStringResource(
+                "Favorite Todos",
+                comment: "Favorite todos shortcut title"
+            ),
             systemImageName: "star"
         )
     }

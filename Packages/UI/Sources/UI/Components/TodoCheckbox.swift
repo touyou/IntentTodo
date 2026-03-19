@@ -36,6 +36,7 @@ public struct TodoCheckbox: View {
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("checkbox_\(todo.id)")
         .accessibilityLabel(todo.isCompleted ? "Mark as incomplete" : "Mark as complete")
     }
 }

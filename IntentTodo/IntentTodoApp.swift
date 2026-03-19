@@ -10,30 +10,22 @@ import SwiftData
 import Domain
 import TodoAppIntents
 import UI
+import UserNotifications
 
 @main
 struct IntentTodoApp: App {
     // MARK: - Properties
+
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     let modelContainer: ModelContainer
 
     // MARK: - Initialization
 
     init() {
-        // Create schema with all domain models
-        let schema = Schema([
-            TodoItem.self,
-            SubTask.self,
-            Category.self
-        ])
-
-        let modelConfiguration = ModelConfiguration(
-            schema: schema,
-            isStoredInMemoryOnly: false
-        )
-
+        // Use SharedModelContainer for data sharing with extensions
         do {
-            let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
+            let container = try SharedModelContainer.createContainer()
             modelContainer = container
 
             // Configure IntentDependencies for App Intents
@@ -50,7 +42,42 @@ struct IntentTodoApp: App {
     var body: some Scene {
         WindowGroup {
             TodoListView()
+                .task {
+                    await requestNotificationPermission()
+                }
+                .onOpenURL { url in
+                    handleURL(url)
+                }
         }
         .modelContainer(modelContainer)
+    }
+
+    // MARK: - URL Handling
+
+    /// Handle deep link URLs from widgets.
+    private func handleURL(_ url: URL) {
+        guard url.scheme == "intenttodo" else { return }
+
+        switch url.host {
+        case "addTodo":
+            IntentAppState.shared.requestShowAddTodo()
+        default:
+            break
+        }
+    }
+
+    // MARK: - Private Methods
+
+    /// Request notification permission for Control Center feedback.
+    private func requestNotificationPermission() async {
+        let center = UNUserNotificationCenter.current()
+        do {
+            let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
+            if granted {
+                print("Notification permission granted")
+            }
+        } catch {
+            print("Notification permission request failed: \(error)")
+        }
     }
 }
