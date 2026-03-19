@@ -10,10 +10,13 @@
 
 import AppIntents
 import Domain
+import os.log
 import SwiftData
 import TodoAppIntents
 import UserNotifications
 import WidgetKit
+
+private let logger = Logger(subsystem: "com.touyou.IntentTodo.Widget", category: "ControlIntents")
 
 // MARK: - ToggleUrgentTodoIntent
 
@@ -34,13 +37,19 @@ struct ToggleUrgentTodoIntent: AppIntent {
         descriptor.fetchLimit = 1
 
         guard let todo = try? context.fetch(descriptor).first else {
+            logger.info("No urgent todo found to toggle")
             return .result()
         }
 
         let todoTitle = todo.title
         todo.isCompleted.toggle()
         let isNowCompleted = todo.isCompleted
-        try? context.save()
+        do {
+            try context.save()
+            logger.info("Toggled urgent todo '\(todoTitle)' to \(isNowCompleted ? "completed" : "incomplete")")
+        } catch {
+            logger.error("Failed to save toggled todo: \(error.localizedDescription)")
+        }
 
         WidgetCenter.shared.reloadAllTimelines()
 

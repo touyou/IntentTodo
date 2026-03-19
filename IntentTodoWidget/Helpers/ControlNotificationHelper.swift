@@ -52,12 +52,15 @@ enum ControlNotificationHelper {
     // MARK: - Quick Add
 
     /// Notification prompting the user to add a new todo.
-    /// Tapping the notification opens the app via URL scheme.
+    /// Tapping the notification triggers the add todo flow via AppDelegate's
+    /// `didReceive response:` handler which checks for `userInfo["action"] == "addTodo"`.
     static func sendQuickAddNotification() {
         let content = UNMutableNotificationContent()
         content.title = "Add New Todo"
         content.body = "Tap to open the app and add a new todo."
         content.sound = .default
+        content.categoryIdentifier = "ADD_TODO_CATEGORY"
+        content.userInfo = ["action": "addTodo"]
 
         let request = UNNotificationRequest(
             identifier: "quick-add-\(UUID().uuidString)",

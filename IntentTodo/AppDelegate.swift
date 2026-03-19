@@ -62,14 +62,21 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     }
 
     /// Handle notification tap.
+    ///
+    /// Dispatches based on `userInfo["action"]` set by `ControlNotificationHelper`.
+    /// Also checks `categoryIdentifier` as a fallback.
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
-        let userInfo = response.notification.request.content.userInfo
+        let content = response.notification.request.content
+        let userInfo = content.userInfo
 
-        // Check if this is an Add Todo action
-        if let action = userInfo["action"] as? String, action == "addTodo" {
+        // Check if this is an Add Todo action (via userInfo or category)
+        let isAddTodoAction = (userInfo["action"] as? String) == "addTodo"
+            || content.categoryIdentifier == "ADD_TODO_CATEGORY"
+
+        if isAddTodoAction {
             await MainActor.run {
                 IntentAppState.shared.requestShowAddTodo()
             }
