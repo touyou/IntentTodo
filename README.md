@@ -51,7 +51,7 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 ### 既知の制限事項
 
 1. **Home Widget** ※1: 公式ドキュメント「Adding interactivity to widgets and Live Activities」に「An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use Link」と明記されており、アプリ起動目的の `Button(intent:)` は意図的に非サポート。`Link(destination:)` + URLスキームが正規の方法
-2. **Control Center → アプリ起動** ※2: `ControlWidgetButton` に `OpenIntent` 専用イニシャライザ（"Creates a button template for a control that launches an app"）が公式ドキュメントに存在するが、iOS 26 で実際に動作しない。10種類のアプローチを試行済み。`.background` Intent + 通知フィードバックで代替中（詳細は [docs/INSIGHTS.md](docs/INSIGHTS.md) Section 18）
+2. **Control Center → アプリ起動** ※2: `ControlWidgetButton` に `OpenIntent` 専用イニシャライザ（"Creates a button template for a control that launches an app"）が公式ドキュメントに存在するが、iOS 26 で実際に動作しない。10種類のアプローチを試行済み。`.background` Intent + 通知フィードバックで代替中（詳細は [docs/insights/06-control-widget-ios26.md](docs/insights/06-control-widget-ios26.md)）
 
 ### 定義済み AppIntent 一覧
 
@@ -184,8 +184,9 @@ cd Packages/TodoAppIntents && swift test
 ## ドキュメント
 
 - [docs/AGENTS.md](docs/AGENTS.md) - App Intents 中心設計ガイド
-- [docs/INSIGHTS.md](docs/INSIGHTS.md) - 開発中に得られた技術的インサイト
+- [docs/INSIGHTS.md](docs/INSIGHTS.md) - 開発中に得られた技術的インサイト（目次→7トピック別ファイル）
 - [docs/PLAN.md](docs/PLAN.md) - 開発計画
+- [docs/APP_INTENT_DRIVEN_DESIGN.md](docs/APP_INTENT_DRIVEN_DESIGN.md) - 関連概念の整理と比較
 
 ## ライセンス
 

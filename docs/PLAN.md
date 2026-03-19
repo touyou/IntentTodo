@@ -83,9 +83,11 @@ Action-Centered Designの指針に従い、アクション/情報の特性に応
 - **終了**: 完了時または期限15分経過後
 
 #### コントロールセンター (iOS 18+)
-- **クイック追加**: アプリを開いて追加画面へ
-- **Todo数表示**: 未完了数をタップでアプリ起動
-- **緊急Todo切り替え**: 最も期限が近いTodoの完了切り替え
+- **クイック追加**: `.background` Intentでローカル通知を送信→アプリ操作を案内
+- **Todo数表示**: `.background` Intentで未完了数をローカル通知で表示
+- **緊急Todo切り替え**: 最も期限が近いTodoの完了切り替え（`.background`データ操作）
+
+> **Note**: iOS 26ではControl WidgetからのOpenIntent/foregroundモードによるアプリ起動が動作しない（Apple側のバグの可能性）。詳細は [insights/06-control-widget-ios26.md](insights/06-control-widget-ios26.md)
 
 #### Action Button対応
 - 物理ボタンでクイックTodo追加
@@ -150,12 +152,12 @@ func suggestEmoji(for todoTitle: String) async throws -> String {
 
 ### Intent Modes強化
 
-現状の`openAppWhenRun`から、より細かい制御へ：
+iOS 26で`openAppWhenRun`は非推奨となり、`supportedModes`に移行済み。さらに高度な活用へ：
 
 ```swift
 struct SmartAddTodoIntent: AppIntent {
     // バックグラウンドで実行、必要時のみフォアグラウンド
-    static let supportedModes: IntentModes = [.background, .foreground(.dynamic)]
+    static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
 
     func perform() async throws -> some IntentResult {
         if needsUserInput {
@@ -165,6 +167,8 @@ struct SmartAddTodoIntent: AppIntent {
     }
 }
 ```
+
+> **Note**: `continueInForeground()` はControl Widgetコンテキストでは動作しないことが確認済み。通常のShortcuts/Siri経由での使用を想定。
 
 ### Interactive Snippets
 
