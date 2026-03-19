@@ -276,7 +276,8 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/PLAN.md` - 開発計画
 - `docs/AGENTS.md` - App Intents中心設計の詳細ガイド
 - `docs/APP_INTENT_DRIVEN_DESIGN.md` - 関連概念の整理と比較
-- `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト
+- `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト（目次）
+- `docs/insights/` - インサイト個別ファイル（7トピック）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
 
 ## 設計思想の背景
