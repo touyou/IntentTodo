@@ -170,6 +170,28 @@ struct SmartAddTodoIntent: AppIntent {
 
 > **Note**: `continueInForeground()` はControl Widgetコンテキストでは動作しないことが確認済み。通常のShortcuts/Siri経由での使用を想定。
 
+### onAppIntentExecution による宣言的 Intent → UI 連携
+
+iOS 26 で追加された `onAppIntentExecution(_:perform:)` を活用し、現在の `IntentAppState` パターンを補完/置き換え:
+
+```swift
+// TargetContentProvidingIntent でシーンターゲティング
+struct ShowTodoDetailIntent: AppIntent, TargetContentProvidingIntent {
+    @Parameter(title: "Todo")
+    var todo: TodoAppEntity
+    func perform() async throws -> some IntentResult { .result() }
+}
+
+// View modifier で宣言的にハンドリング
+NavigationStack { TodoListView() }
+    .onAppIntentExecution(ShowTodoDetailIntent.self) { intent in
+        navigationPath.append(intent.todo)
+    }
+```
+
+- `IntentAppState` はExtension間通信に残し、アプリ内のIntent→UI連携は `onAppIntentExecution` へ段階的に移行
+- `AppIntentSceneDelegate` でシーンレベルのハンドリングも可能
+
 ### Interactive Snippets
 
 Siri応答にインタラクティブなボタンを追加：

@@ -35,6 +35,54 @@ Button(intent: DeleteTodoIntent(todo: entity)) {
 
 ---
 
+## onAppIntentExecution（iOS 26+ / Intent → UI 連携）
+
+iOS 26 で追加された `onAppIntentExecution(_:perform:)` View modifier により、特定の AppIntent が実行された際にシーン側で直接 UI を更新できる。
+
+### 仕組み
+
+`TargetContentProvidingIntent` を実装した Intent が実行されると、`onAppIntentExecution` を設定した View のクロージャが呼ばれる。
+
+```swift
+struct ShowTodoDetailIntent: AppIntent, TargetContentProvidingIntent {
+    @Parameter(title: "Todo")
+    var todo: TodoAppEntity
+
+    func perform() async throws -> some IntentResult {
+        return .result()
+    }
+}
+
+// View側
+NavigationStack {
+    TodoListView()
+}
+.onAppIntentExecution(ShowTodoDetailIntent.self) { intent in
+    navigationPath.append(intent.todo)
+}
+```
+
+### 実行順序
+
+公式ドキュメントによると:
+> "If the app intent implements a perform() method, it will be called after the action closure."
+
+つまり `onAppIntentExecution` のクロージャが**先**に実行され、その後に Intent の `perform()` が呼ばれる。
+
+### 関連API
+
+- **`AppIntentSceneDelegate`**: シーンレベルで Intent をハンドリングするプロトコル。`scene(_:willPerformAppIntent:)` メソッドで受信。
+- **`UISceneAppIntent`**: `TargetContentProvidingIntent` を継承し、特定のシーンをターゲットにする Intent。
+
+### IntentAppState との使い分け
+
+| 方式 | 用途 | 特徴 |
+|------|------|------|
+| `onAppIntentExecution` | シーン固有のUI更新 | 宣言的、View modifier で完結 |
+| `IntentAppState` (共有状態) | Extension → アプリ間の通信 | Control Widget 等、Extension からの状態伝達向き |
+
+---
+
 ## @Observable + @MainActor
 
 Observation frameworkを使用する際は、必ず `@MainActor` を付与する。

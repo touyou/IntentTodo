@@ -45,7 +45,10 @@ IntentTodoWatchApp/
 
 ### LiveActivityIntent vs AppIntent
 
-Live Activity からアクションを実行する場合は `LiveActivityIntent` を使用する。
+Live Activity からアクションを実行する場合は `LiveActivityIntent` を使用する（公式Doc: "make sure it inherits from LiveActivityIntent"）。
+
+**重要**: `LiveActivityIntent` を採用することで、アプリがフォアグラウンドにない状態でも Live Activity を開始可能。公式ドキュメントには以下の記載がある:
+> "you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a LiveActivityIntent"
 
 ```swift
 struct CompleteTodoFromActivityIntent: LiveActivityIntent {

@@ -84,9 +84,13 @@ IntentTodoWatchApp/         # watchOS アプリ
 - **macOS**: Catalyst対応
 - **watchOS**: アプリ + コンプリケーション（Circular/Corner/Rectangular/Inline）
 - **visionOS**: 空間UI（NavigationSplitView、Ornament、ホバーエフェクト）
-- **ウィジェット**: Small/Medium/Large サイズ対応（Todo一覧表示）
-- **ライブアクティビティ**: Dynamic Island + ロック画面（期限1時間以内で自動表示）
-- **コントロールセンター**: クイック追加、Todo数表示、緊急Todo切り替え
+- **ウィジェット**: Small/Medium/Large サイズ対応（Todo一覧表示、アプリ起動は `Link(destination:)` を使用）
+
+> **Widget でのアプリ起動**: Apple公式ドキュメント「Adding interactivity to widgets and Live Activities」に "If you want to offer an interaction that opens the app, use Link" と明記。`Button(intent:)` はアプリを開くだけの用途には非推奨。
+- **ライブアクティビティ**: Dynamic Island + ロック画面（期限1時間以内で自動表示、`LiveActivityIntent` 使用）
+- **コントロールセンター**: クイック追加、Todo数表示、緊急Todo切り替え（`.background` + 通知パターン）
+
+> **⚠️ iOS 26 既知の問題**: `ControlWidgetButton` に `OpenIntent` 専用 initializer（公式Doc: "Creates a button template for a control that launches an app"）が存在するが、iOS 26 では動作しない。`.background` Intent + ローカル通知で代替中。詳細は [docs/insights/06-control-widget-ios26.md](docs/insights/06-control-widget-ios26.md)
 
 #### 設計プロセス
 
@@ -153,7 +157,8 @@ IntentTodoWatchApp/         # watchOS アプリ
 - `AnyView`は必要最小限に
 
 #### SwiftData（CloudKit使用時）
-- `@Attribute(.unique)`は使用禁止
+- `@Attribute(.unique)`は使用禁止（CloudKitは一意制約をサポートしない）
+- **`#Unique<T>` マクロ（iOS 26+）**: SwiftData に新しいユニーク制約マクロが追加されたが、CloudKit使用時は同様に使用不可
 - プロパティはデフォルト値を持つかoptionalにする
 - リレーションシップは全てoptional
 
@@ -186,6 +191,88 @@ struct AppIntentsPackage: AppIntentsPackage {
     }
 }
 ```
+
+### Intent Modes（iOS 26+）
+
+iOS 26で`openAppWhenRun`は非推奨となり、`supportedModes`に移行。
+
+```swift
+struct MyIntent: AppIntent {
+    // バックグラウンドで実行
+    static var supportedModes: IntentModes { .background }
+
+    // フォアグラウンドで実行（アプリを開く）
+    // static var supportedModes: IntentModes { .foreground }
+
+    // 動的切り替え（必要時のみフォアグラウンド）
+    // static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
+}
+```
+
+| モード | 用途 |
+|--------|------|
+| `.background` | アプリを開かずにバックグラウンド実行 |
+| `.foreground` | アプリを開いてフォアグラウンド実行 |
+| `.foreground(.immediate)` | 即座にフォアグラウンド |
+| `.foreground(.deferred)` | `continueInForeground()` で動的にフォアグラウンドへ遷移 |
+| `.foreground(.dynamic)` | `ForegroundContinuableIntent`（非推奨）の後継 |
+
+### onAppIntentExecution（iOS 26+ / Intent → UI連携）
+
+`onAppIntentExecution(_:perform:)` は iOS 26 で追加された View modifier で、特定のシーンに対して AppIntent の実行をハンドリングする。`TargetContentProvidingIntent` を実装した Intent が実行されたとき、対応するシーンでクロージャが呼ばれる。
+
+```swift
+// Intentの定義
+struct ShowTodoDetailIntent: AppIntent, TargetContentProvidingIntent {
+    @Parameter(title: "Todo")
+    var todo: TodoAppEntity
+
+    func perform() async throws -> some IntentResult {
+        return .result()
+    }
+}
+
+// Viewでのハンドリング
+NavigationStack {
+    TodoListView()
+}
+.onAppIntentExecution(ShowTodoDetailIntent.self) { intent in
+    // Intent実行時にUIを更新（例: 該当Todoの詳細画面へ遷移）
+    navigationPath.append(intent.todo)
+}
+```
+
+**ポイント**:
+- `perform()` が定義されている場合、アクションクロージャの**後に** `perform()` が呼ばれる
+- `supportedModes` の `.background` と組み合わせることで、UIハンドリングと`.background`処理を両立可能
+- `AppIntentSceneDelegate` プロトコルでシーンレベルのハンドリングも可能
+
+### LiveActivityIntent（Live Activity専用）
+
+Live Activity からアクションを実行する場合は `LiveActivityIntent` を使用する（公式Doc: "make sure it inherits from LiveActivityIntent"）。通常の `AppIntent` ではなく `LiveActivityIntent` を使うことで、Activity の状態操作が可能になる。
+
+```swift
+struct CompleteTodoFromActivityIntent: LiveActivityIntent {
+    static var title: LocalizedStringResource = "Complete Todo"
+
+    @Parameter(title: "Todo ID")
+    var todoId: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        // Todo完了処理 + Live Activity を終了
+        return .result()
+    }
+}
+```
+
+**公式Docより**: `LiveActivityIntent` を採用することで、アプリがフォアグラウンドにない状態でも Live Activity を開始可能（"you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a LiveActivityIntent"）。
+
+| Intent種別 | 用途 | 特徴 |
+|-----------|------|------|
+| `AppIntent` | Siri/Shortcuts/UI | 汎用的なアクション |
+| `LiveActivityIntent` | Dynamic Island/ロック画面 | Activity状態の操作が可能 |
+| `ControlConfigurationIntent` | コントロールセンター | Extension配置必須 |
 
 ### IndexedEntity（Spotlight連携）
 ```swift
