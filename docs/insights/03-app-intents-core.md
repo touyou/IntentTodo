@@ -185,6 +185,63 @@ String型パラメータを使いたい場合は、Siriがユーザーに後か�
 
 ---
 
+## supportedModes（iOS 26+ / openAppWhenRun 後継）
+
+### 基本モード
+
+| モード | 動作 | 旧API相当 |
+|--------|------|-----------|
+| `.background` | バックグラウンド実行 | `openAppWhenRun = false` |
+| `.foreground` / `.foreground(.immediate)` | 即座にフォアグラウンド | `openAppWhenRun = true` |
+| `.foreground(.dynamic)` | 実行中に動的判断 | `ForegroundContinuableIntent` |
+| `.foreground(.deferred)` | perform()内で明示的にフォアグラウンド遷移 | - |
+
+### 複合モード
+
+```swift
+// バックグラウンド + 条件付きフォアグラウンド
+public static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
+```
+
+`[.background, .foreground(.deferred)]` の動作:
+- デフォルトはバックグラウンド実行
+- `perform()` 内で `continueInForeground()` を呼ぶとアプリがフォアグラウンドに遷移
+- `continueInForeground()` を呼ばなくても、`perform()` 終了前にシステムがフォアグラウンド化を保証
+
+### continueInForeground()
+
+```swift
+// AppIntentのインスタンスメソッドとして利用可能
+func perform() async throws -> some IntentResult {
+    // バックグラウンドでTodo作成
+    try repository.create(todoItem)
+
+    // 必要な場合のみアプリを開く
+    if openInApp {
+        try await continueInForeground()
+    }
+
+    return .result(value: entity)
+}
+```
+
+### systemContext.currentMode
+
+実行時のモードを確認する:
+
+```swift
+func perform() async throws -> some IntentResult {
+    if systemContext.currentMode.canContinueInForeground {
+        try await continueInForeground()
+    }
+    return .result()
+}
+```
+
+> **Note**: `continueInForeground()` はControl Widgetコンテキストでは動作しない。Shortcuts/Siri経由での使用を想定。
+
+---
+
 ## Intent 統合のベストプラクティス
 
 ### 重複Intentの検出と統合

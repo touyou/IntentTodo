@@ -80,7 +80,8 @@ public struct LaunchAppIntent: AppIntent {
         )
     }
 
-    public static let openAppWhenRun: Bool = true
+    /// Runs in foreground to open the app.
+    public static var supportedModes: IntentModes { .foreground }
 
     // MARK: - Parameters
 
@@ -140,3 +141,11 @@ public extension LaunchAppIntent {
         LaunchAppIntent(target: .favoriteTodos)
     }
 }
+
+// MARK: - TargetContentProvidingIntent Conformance (iOS/macOS/visionOS only)
+// TargetContentProvidingIntent is not available on watchOS.
+// This conformance enables onAppIntentExecution(_:perform:) in SwiftUI views.
+
+#if os(iOS) || os(macOS) || os(visionOS)
+extension LaunchAppIntent: TargetContentProvidingIntent {}
+#endif

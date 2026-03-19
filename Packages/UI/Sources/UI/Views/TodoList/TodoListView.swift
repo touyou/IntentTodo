@@ -65,23 +65,42 @@ public struct TodoListView: View {
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
+        // MARK: - onAppIntentExecution (iOS 26+ / macOS 26+ / visionOS 26+)
+        // Primary mechanism for handling navigation intents declaratively.
+        // The closure fires before the intent's perform() method.
+        // Not available on watchOS (TargetContentProvidingIntent is unavailable).
+        #if !os(watchOS)
+        .onAppIntentExecution(LaunchAppIntent.self) { intent in
+            switch intent.target {
+            case .addTodo:
+                navigationViewModel.showAddTodo()
+            case .todoList, .incompleteTodos, .favoriteTodos:
+                break // Already on the list screen
+            }
+        }
+        .onAppIntentExecution(OpenAddTodoIntent.self) { _ in
+            navigationViewModel.showAddTodo()
+        }
+        .onAppIntentExecution(OpenTodoListIntent.self) { _ in
+            // Already on the list screen, no action needed
+        }
+        #endif
+        // MARK: - IntentAppState fallback (Extension → App communication)
+        // Retained for cross-process communication from Control Widgets and
+        // notification tap actions, which cannot use onAppIntentExecution.
         .onAppear {
-            // Check if an Intent requested to show add todo
             if IntentAppState.shared.consumeShowAddTodoRequest() {
                 navigationViewModel.showAddTodo()
             }
         }
         #if os(iOS)
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            // Check when app becomes active (from background)
             if IntentAppState.shared.consumeShowAddTodoRequest() {
                 navigationViewModel.showAddTodo()
             }
         }
         #endif
         .onReceive(NotificationCenter.default.publisher(for: IntentAppState.showAddTodoNotification)) { _ in
-            // React immediately when OpenIntent.perform() calls requestShowAddTodo()
-            // This handles the race condition where didBecomeActive fires before perform()
             if IntentAppState.shared.consumeShowAddTodoRequest() {
                 navigationViewModel.showAddTodo()
             }

@@ -148,6 +148,51 @@ Button(intent: OpenAddTodoIntent()) {
 
 ---
 
+## Spotlight 検索属性（IndexedEntity）
+
+### attributeSet の実装
+
+`IndexedEntity` に準拠し `attributeSet` プロパティを実装することで、Spotlight検索でTodoが見つかるようになる。
+
+```swift
+#if os(iOS) || os(macOS)
+extension TodoAppEntity: IndexedEntity {
+    public var attributeSet: CSSearchableItemAttributeSet {
+        let attributes = CSSearchableItemAttributeSet()
+        attributes.displayName = title
+        attributes.contentDescription = isCompleted ? "Completed" : "Incomplete"
+        if let dueDate {
+            attributes.dueDate = dueDate
+        }
+        attributes.keywords = buildKeywords()
+        return attributes
+    }
+
+    private func buildKeywords() -> [String] {
+        var keywords = ["todo", title]
+        if isFavorite {
+            keywords.append(contentsOf: ["favorite", "starred", "important"])
+        }
+        if isCompleted {
+            keywords.append("completed")
+        } else {
+            keywords.append(contentsOf: ["incomplete", "pending"])
+        }
+        return keywords
+    }
+}
+#endif
+```
+
+### 注意点
+
+- `CoreSpotlight` は `#if canImport(CoreSpotlight)` でガード（watchOSでは利用不可）
+- `IndexedEntity` 本体はプラットフォーム制限なし（`attributeSet`のみ条件付き）
+- キーワードはコンテキスト別に動的生成（favorite/completed/incomplete等）
+- `dueDate` を設定することで期限ベースのSpotlight検索が可能
+
+---
+
 ## ファイル分割の一般的パターン
 
 1ファイルが200行を超えたら分割を検討。

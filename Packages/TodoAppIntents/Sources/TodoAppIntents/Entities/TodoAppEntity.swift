@@ -4,6 +4,9 @@
 //
 
 import AppIntents
+#if canImport(CoreSpotlight)
+import CoreSpotlight
+#endif
 import Repository
 
 /// An App Intents entity representing a todo item.
@@ -107,7 +110,31 @@ public struct TodoAppEntity: AppEntity, Hashable {
 
 #if os(iOS) || os(macOS)
 /// Spotlight integration for todo items.
-/// Allows users to search for todos via Spotlight.
-/// Uses default implementation which indexes based on DisplayRepresentation.
-extension TodoAppEntity: IndexedEntity {}
+/// Allows users to search for todos via Spotlight with enhanced attributes.
+extension TodoAppEntity: IndexedEntity {
+    public var attributeSet: CSSearchableItemAttributeSet {
+        let attributes = CSSearchableItemAttributeSet()
+        attributes.displayName = title
+        attributes.contentDescription = isCompleted ? "Completed" : "Incomplete"
+        if let dueDate {
+            attributes.dueDate = dueDate
+        }
+        attributes.keywords = buildKeywords()
+        return attributes
+    }
+
+    /// Builds keyword list for Spotlight search.
+    private func buildKeywords() -> [String] {
+        var keywords = ["todo", title]
+        if isFavorite {
+            keywords.append(contentsOf: ["favorite", "starred", "important"])
+        }
+        if isCompleted {
+            keywords.append("completed")
+        } else {
+            keywords.append(contentsOf: ["incomplete", "pending"])
+        }
+        return keywords
+    }
+}
 #endif

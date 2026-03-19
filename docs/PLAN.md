@@ -150,47 +150,60 @@ func suggestEmoji(for todoTitle: String) async throws -> String {
 }
 ```
 
-### Intent Modes強化
+### Intent Modes強化 ✅ 実装済み
 
-iOS 26で`openAppWhenRun`は非推奨となり、`supportedModes`に移行済み。さらに高度な活用へ：
+iOS 26で`openAppWhenRun`は非推奨となり、`supportedModes`に移行済み。`AddTodoIntent`では`[.background, .foreground(.deferred)]`を採用し、通常はバックグラウンドで即座にTodo作成、`openInApp`パラメータ指定時のみ`continueInForeground()`でアプリを開く：
 
 ```swift
-struct SmartAddTodoIntent: AppIntent {
-    // バックグラウンドで実行、必要時のみフォアグラウンド
+public struct AddTodoIntent: AppIntent {
     static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
 
-    func perform() async throws -> some IntentResult {
-        if needsUserInput {
+    @Parameter(title: "Open in App", default: false)
+    var openInApp: Bool
+
+    func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
+        // ... Todo作成 ...
+        if openInApp {
             try await continueInForeground()
         }
-        // ...
+        return .result(value: entity)
     }
 }
 ```
+
+その他のNavigationIntents（`LaunchAppIntent`, `OpenAddTodoIntent`, `OpenTodoListIntent`）は`.foreground`モードを使用。
 
 > **Note**: `continueInForeground()` はControl Widgetコンテキストでは動作しないことが確認済み。通常のShortcuts/Siri経由での使用を想定。
 
-### onAppIntentExecution による宣言的 Intent → UI 連携
+### onAppIntentExecution による宣言的 Intent → UI 連携 ✅ 実装済み
 
-iOS 26 で追加された `onAppIntentExecution(_:perform:)` を活用し、現在の `IntentAppState` パターンを補完/置き換え:
+iOS 26 で追加された `onAppIntentExecution(_:perform:)` を活用し、`IntentAppState` パターンを補完：
 
 ```swift
-// TargetContentProvidingIntent でシーンターゲティング
-struct ShowTodoDetailIntent: AppIntent, TargetContentProvidingIntent {
-    @Parameter(title: "Todo")
-    var todo: TodoAppEntity
-    func perform() async throws -> some IntentResult { .result() }
-}
+// NavigationIntentsに TargetContentProvidingIntent を追加
+public struct OpenAddTodoIntent: AppIntent, TargetContentProvidingIntent { ... }
+public struct OpenTodoListIntent: AppIntent, TargetContentProvidingIntent { ... }
+public struct LaunchAppIntent: AppIntent, TargetContentProvidingIntent { ... }
 
-// View modifier で宣言的にハンドリング
-NavigationStack { TodoListView() }
-    .onAppIntentExecution(ShowTodoDetailIntent.self) { intent in
-        navigationPath.append(intent.todo)
+// TodoListView で宣言的にハンドリング
+NavigationStack { ... }
+    .onAppIntentExecution(LaunchAppIntent.self) { intent in
+        switch intent.target {
+        case .addTodo: navigationViewModel.showAddTodo()
+        default: break
+        }
+    }
+    .onAppIntentExecution(OpenAddTodoIntent.self) { _ in
+        navigationViewModel.showAddTodo()
+    }
+    .onAppIntentExecution(OpenTodoListIntent.self) { _ in
+        // Already on list screen
     }
 ```
 
-- `IntentAppState` はExtension間通信に残し、アプリ内のIntent→UI連携は `onAppIntentExecution` へ段階的に移行
-- `AppIntentSceneDelegate` でシーンレベルのハンドリングも可能
+- `IntentAppState` はExtension→アプリ間の通信（Control Widget等）に残し、アプリ内Intent→UI連携は `onAppIntentExecution` を主軸に
+- `TargetContentProvidingIntent` はwatchOSでは利用不可。条件付きextension（`#if os(iOS) || os(macOS) || os(visionOS)`）で準拠
+- `SceneDelegate`（UIWindowSceneDelegate）を基盤として設置済み。`UISceneAppIntent` はSwift Package内のIntentでは利用不可のため、将来のマルチウィンドウ対応時に拡張予定
 
 ### Interactive Snippets
 
@@ -210,32 +223,28 @@ struct TodoSnippetIntent: SnippetIntent {
 }
 ```
 
-### Entity強化
+### Entity強化（部分実装済み）
+
+Spotlight検索属性（`attributeSet`）は実装済み。`@ComputedProperty`/`@DeferredProperty`は将来フェーズ：
 
 ```swift
-struct TodoAppEntity: IndexedEntity {
-    // 動的プロパティ（キャッシュなし、常に最新）
-    @ComputedProperty
-    var isFavorite: Bool {
-        UserDefaults.standard.favorites.contains(id)
-    }
-
-    // 遅延ロード（明示的に要求されたときのみ取得）
-    @DeferredProperty
-    var subtaskCount: Int {
-        get async throws {
-            try await repository.fetchSubtasks(for: id).count
-        }
-    }
-
-    // Spotlight詳細検索
-    var searchableAttributes: CSSearchableItemAttributeSet {
-        let attrs = CSSearchableItemAttributeSet()
-        attrs.keywords = [category?.name, "todo", title].compactMap { $0 }
-        attrs.dueDate = dueDate
-        return attrs
+// ✅ 実装済み: Spotlight検索属性
+#if os(iOS) || os(macOS)
+extension TodoAppEntity: IndexedEntity {
+    public var attributeSet: CSSearchableItemAttributeSet {
+        let attributes = CSSearchableItemAttributeSet()
+        attributes.displayName = title
+        attributes.contentDescription = isCompleted ? "Completed" : "Incomplete"
+        if let dueDate { attributes.dueDate = dueDate }
+        attributes.keywords = buildKeywords()  // favorite, completed等のコンテキスト別キーワード
+        return attributes
     }
 }
+#endif
+
+// 🔜 将来: 動的プロパティ
+@ComputedProperty var isFavorite: Bool { ... }
+@DeferredProperty var subtaskCount: Int { ... }
 ```
 
 ### Liquid Glass対応強化

@@ -74,12 +74,60 @@ NavigationStack {
 - **`AppIntentSceneDelegate`**: シーンレベルで Intent をハンドリングするプロトコル。`scene(_:willPerformAppIntent:)` メソッドで受信。
 - **`UISceneAppIntent`**: `TargetContentProvidingIntent` を継承し、特定のシーンをターゲットにする Intent。
 
+### 実装パターン: デュアルIntent→UI連携
+
+本プロジェクトでは `onAppIntentExecution` と `IntentAppState` を併用する「デュアルパターン」を採用している。
+
+```swift
+// 主軸: onAppIntentExecution（アプリ内Intent実行時）
+.onAppIntentExecution(LaunchAppIntent.self) { intent in
+    switch intent.target {
+    case .addTodo: navigationViewModel.showAddTodo()
+    default: break
+    }
+}
+.onAppIntentExecution(OpenAddTodoIntent.self) { _ in
+    navigationViewModel.showAddTodo()
+}
+
+// フォールバック: IntentAppState（Extension→アプリ間通信）
+.onAppear {
+    if IntentAppState.shared.consumeShowAddTodoRequest() {
+        navigationViewModel.showAddTodo()
+    }
+}
+```
+
 ### IntentAppState との使い分け
 
 | 方式 | 用途 | 特徴 |
 |------|------|------|
-| `onAppIntentExecution` | シーン固有のUI更新 | 宣言的、View modifier で完結 |
-| `IntentAppState` (共有状態) | Extension → アプリ間の通信 | Control Widget 等、Extension からの状態伝達向き |
+| `onAppIntentExecution` | アプリ内のIntent→UI連携（主軸） | 宣言的、View modifier で完結 |
+| `IntentAppState` (共有状態) | Extension → アプリ間の通信（フォールバック） | Control Widget 等、Extension からの状態伝達向き |
+
+### TargetContentProvidingIntent
+
+`onAppIntentExecution` を使用するためには、対象Intentが `TargetContentProvidingIntent` に準拠している必要がある。
+
+**重要**: `TargetContentProvidingIntent` はwatchOSでは利用不可。Swift Packageで定義する場合は条件付きextensionで準拠する:
+
+```swift
+// Intent本体は全プラットフォーム共通
+public struct OpenAddTodoIntent: AppIntent { ... }
+
+// TargetContentProvidingIntent は watchOS 以外のみ
+#if os(iOS) || os(macOS) || os(visionOS)
+extension OpenAddTodoIntent: TargetContentProvidingIntent {}
+extension OpenTodoListIntent: TargetContentProvidingIntent {}
+extension LaunchAppIntent: TargetContentProvidingIntent {}
+#endif
+```
+
+同様に、View側の `onAppIntentExecution` も `#if !os(watchOS)` で囲む必要がある。
+
+### UISceneAppIntent の制限
+
+`UISceneAppIntent` はSwift Package内で定義されたIntentには利用できない（`UISceneAppIntent`はUIKit依存のため、Packageスコープで参照不可）。マルチウィンドウでのシーン固有ルーティングが必要な場合は、メインアプリターゲット内でIntentを定義するか、`SceneDelegate`で`connectionOptions`を活用する。
 
 ---
 

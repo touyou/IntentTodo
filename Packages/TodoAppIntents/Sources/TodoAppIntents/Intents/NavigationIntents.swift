@@ -94,3 +94,12 @@ public struct OpenTodoListIntent: AppIntent {
         return .result()
     }
 }
+// MARK: - TargetContentProvidingIntent Conformance (iOS/macOS/visionOS only)
+// TargetContentProvidingIntent is not available on watchOS.
+// This conformance enables onAppIntentExecution(_:perform:) in SwiftUI views.
+
+#if os(iOS) || os(macOS) || os(visionOS)
+extension OpenAddTodoIntent: TargetContentProvidingIntent {}
+extension OpenTodoListIntent: TargetContentProvidingIntent {}
+#endif
+

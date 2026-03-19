@@ -59,6 +59,7 @@
 		46AFC1232F33048100444306 /* TodoCountControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1222F33048100444306 /* TodoCountControl.swift */; };
 		46AFC1252F33048100444306 /* ToggleUrgentTodoControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */; };
 		46AFC1272F33048100444306 /* ControlIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1262F33048100444306 /* ControlIntents.swift */; };
+		46D8865E2F6B857A0029BF80 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */; };
 		5DD240B26272C51FC4546B1C /* LiveActivityModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2483D6B0974DE44EA52216C2 /* LiveActivityModelContainer.swift */; };
 		C3297BD09C01F2A85932C98B /* SnoozeTodoIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D655987C44E2EA859DECDDE /* SnoozeTodoIntent.swift */; };
 		CDC173DEB3E94D8EDD4ECAEC /* TodoComplicationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */; };
@@ -220,6 +221,7 @@
 		46D8865A2F6B804C0029BF80 /* 05-extensions-and-data-sharing.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "05-extensions-and-data-sharing.md"; sourceTree = "<group>"; };
 		46D8865B2F6B804D0029BF80 /* 06-control-widget-ios26.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "06-control-widget-ios26.md"; sourceTree = "<group>"; };
 		46D8865C2F6B804E0029BF80 /* 07-platform-specific.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "07-platform-specific.md"; sourceTree = "<group>"; };
+		46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationEntry.swift; sourceTree = "<group>"; };
 		8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -505,6 +507,7 @@
 				46AFC03F2F33048000444306 /* Info.plist */,
 				46AFC0402F33048000444306 /* IntentTodo.entitlements */,
 				46AFC0412F33048000444306 /* IntentTodoApp.swift */,
+				46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */,
 			);
 			path = IntentTodo;
 			sourceTree = "<group>";
@@ -818,6 +821,7 @@
 				46AFC0432F33048000444306 /* AppDelegate.swift in Sources */,
 				46AFC0442F33048000444306 /* AppIntentsExtension.swift in Sources */,
 				46AFC0452F33048000444306 /* IntentTodoApp.swift in Sources */,
+				46D8865E2F6B857A0029BF80 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
