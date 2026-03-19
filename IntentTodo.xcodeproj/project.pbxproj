@@ -212,6 +212,14 @@
 		46AFC1222F33048100444306 /* TodoCountControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCountControl.swift; sourceTree = "<group>"; };
 		46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleUrgentTodoControl.swift; sourceTree = "<group>"; };
 		46AFC1262F33048100444306 /* ControlIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlIntents.swift; sourceTree = "<group>"; };
+		46D886522F6B7E500029BF80 /* APP_INTENT_DRIVEN_DESIGN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = APP_INTENT_DRIVEN_DESIGN.md; sourceTree = "<group>"; };
+		46D886562F6B804A0029BF80 /* 01-swift-package-design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "01-swift-package-design.md"; sourceTree = "<group>"; };
+		46D886572F6B804A0029BF80 /* 02-swiftdata-concurrency.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "02-swiftdata-concurrency.md"; sourceTree = "<group>"; };
+		46D886582F6B804B0029BF80 /* 03-app-intents-core.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "03-app-intents-core.md"; sourceTree = "<group>"; };
+		46D886592F6B804B0029BF80 /* 04-ui-integration.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "04-ui-integration.md"; sourceTree = "<group>"; };
+		46D8865A2F6B804C0029BF80 /* 05-extensions-and-data-sharing.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "05-extensions-and-data-sharing.md"; sourceTree = "<group>"; };
+		46D8865B2F6B804D0029BF80 /* 06-control-widget-ios26.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "06-control-widget-ios26.md"; sourceTree = "<group>"; };
+		46D8865C2F6B804E0029BF80 /* 07-platform-specific.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "07-platform-specific.md"; sourceTree = "<group>"; };
 		7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationEntry.swift; sourceTree = "<group>"; };
 		8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -364,6 +372,8 @@
 				46AFBEAB2F2C241700444306 /* AGENTS.md */,
 				46AFBEAC2F2C241700444306 /* INSIGHTS.md */,
 				46AFBEAD2F2C241700444306 /* PLAN.md */,
+				46D886522F6B7E500029BF80 /* APP_INTENT_DRIVEN_DESIGN.md */,
+				46D886552F6B7F680029BF80 /* insights */,
 			);
 			path = docs;
 			sourceTree = "<group>";
@@ -531,6 +541,20 @@
 				46AFC1262F33048100444306 /* ControlIntents.swift */,
 			);
 			path = Intents;
+			sourceTree = "<group>";
+		};
+		46D886552F6B7F680029BF80 /* insights */ = {
+			isa = PBXGroup;
+			children = (
+				46D886562F6B804A0029BF80 /* 01-swift-package-design.md */,
+				46D886572F6B804A0029BF80 /* 02-swiftdata-concurrency.md */,
+				46D886582F6B804B0029BF80 /* 03-app-intents-core.md */,
+				46D886592F6B804B0029BF80 /* 04-ui-integration.md */,
+				46D8865A2F6B804C0029BF80 /* 05-extensions-and-data-sharing.md */,
+				46D8865B2F6B804D0029BF80 /* 06-control-widget-ios26.md */,
+				46D8865C2F6B804E0029BF80 /* 07-platform-specific.md */,
+			);
+			path = insights;
 			sourceTree = "<group>";
 		};
 		62C686075FAE312B74A1CAC1 /* Helpers */ = {
