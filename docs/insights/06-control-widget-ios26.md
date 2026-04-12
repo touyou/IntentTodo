@@ -101,11 +101,83 @@ Widget Extension内で定義した`ControlConfigurationIntent`は、アプリ本
 
 ## iOS 26 トラブルシューティング: Control Widget からアプリを開く
 
-### 最終結論（2026年現在）
+### 結論（2026-04-12 更新）
 
-**iOS 26において、Control Widget（ControlWidgetButton）からアプリを開く方法は確立されていない。**
+**`ControlWidgetButton` + foreground Intent でアプリを開くことは可能。ただし `kind` の設定が正しいことが前提条件。**
 
-Apple公式ドキュメントには `ControlWidgetButton` に `OpenIntent` 専用の initializer が存在するが、iOS 26正式版で動作しない。Apple側のバグの可能性が高い。
+ワークショップ（01/Mood）で `ControlWidgetButton(action: OpenMoodCreatorIntent())` による起動に成功。2026-03 時点の「全パターン失敗」という記録は、**`kind` が Extension の Bundle ID 形式と一致していなかったことが原因の可能性が高い**。
+
+#### 正しい `kind` の設定
+
+公式ドキュメントは `kind` を "A string that uniquely identifies the type of control." とのみ説明しており、形式の要件は明記されていない。ただし**公式サンプルコードは全て reverse-domain 形式**を使用している：
+
+```swift
+// Apple公式ドキュメントのサンプル
+static let kind: String = "com.example.MyApp.TimerToggle"
+static let kind: String = "com.yourcompany.GarageDoorOpener"
+```
+
+IntentTodo での正しい設定：
+
+```swift
+// ❌ 前回の設定（short name — 公式サンプルと異なる形式）
+static let kind = "QuickAddTodoControl"
+
+// ✅ 正しい設定（reverse-domain 形式）
+static let kind = "dev.touyou.IntentTodo.IntentTodoWidget.QuickAddTodoControl"
+```
+
+#### `ControlWidgetButton` + `OpenIntent` は公式サポート
+
+Apple公式ドキュメント（"Adding refinements and configuration to controls"）に明示的なサンプルがある：
+
+```swift
+// Hint Text: "Hold to Open MyApp"
+struct MyAppLauncher: ControlWidget {
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(...) {
+            ControlWidgetButton(
+                action: OpenMyAppIntent(),
+                ...
+            )
+        }
+        .displayName("MyApp")
+    }
+}
+```
+
+Apple はこの組み合わせを最初から想定して設計していた。2026-03 の時点で動作しなかったのは `kind` の形式が原因だった可能性が高い。
+
+#### 採用すべき実装（`.foreground(.immediate)` + `ControlWidgetButton`）
+
+```swift
+// Intent 側
+struct OpenAddTodoControlIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Add Todo"
+    static var supportedModes: IntentModes { .foreground(.immediate) }
+
+    func perform() async throws -> some IntentResult {
+        return .result()
+    }
+}
+
+// Control Widget 側
+struct QuickAddTodoControl: ControlWidget {
+    static let kind = "dev.touyou.IntentTodo.IntentTodoWidget.QuickAddTodoControl"
+
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: Self.kind) {
+            ControlWidgetButton(action: OpenAddTodoControlIntent()) {
+                Label("New Todo", systemImage: "plus.circle.fill")
+            }
+        }
+    }
+}
+```
+
+#### `.background` + 通知パターンについて
+
+現在の IntentTodo はこのパターンで実装されているが、`kind` を修正して foreground Intent に切り替えることで、より直接的な UX が実現できる。通知を挟む必要がなくなる。
 
 ### 採用した解決策: `.background` + 通知パターン
 

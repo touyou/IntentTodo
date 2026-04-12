@@ -407,7 +407,7 @@ struct AddTodoView: View {
 
     // ✅ Computed Propertyで動的にIntent生成
     private var addTodoIntent: AddTodoIntent {
-        AddTodoIntent(title: title, dueDate: dueDate)
+        AddTodoIntent(todoTitle: title, dueDate: dueDate)
     }
 
     var body: some View {

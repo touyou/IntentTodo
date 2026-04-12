@@ -10,6 +10,7 @@
 		1C705389FC37403269D452E2 /* TodoComplicationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */; };
 		20DA4B561B89965F7ECA1085 /* CompleteTodoFromActivityIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2535F428150C14304E30756D /* CompleteTodoFromActivityIntent.swift */; };
 		44BCFCE39B70EFAA7541F776 /* TodoComplicationEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */; };
+		46016DDD2F8BB2DF0025BB59 /* DebugNavigationIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46016DDC2F8BB2DF0025BB59 /* DebugNavigationIntent.swift */; };
 		46AFBE922F2C1C7200444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBE912F2C1C7200444306 /* UI */; };
 		46AFBEC02F2CFEA400444306 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEBF2F2CFEA400444306 /* WidgetKit.framework */; };
 		46AFBEC22F2CFEA400444306 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEC12F2CFEA400444306 /* SwiftUI.framework */; };
@@ -134,6 +135,7 @@
 		2535F428150C14304E30756D /* CompleteTodoFromActivityIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CompleteTodoFromActivityIntent.swift; sourceTree = "<group>"; };
 		3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationProvider.swift; sourceTree = "<group>"; };
 		3D655987C44E2EA859DECDDE /* SnoozeTodoIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnoozeTodoIntent.swift; sourceTree = "<group>"; };
+		46016DDC2F8BB2DF0025BB59 /* DebugNavigationIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugNavigationIntent.swift; sourceTree = "<group>"; };
 		46AFBC392F2BA68C00444306 /* IntentTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFBE8B2F2C1C3B00444306 /* Domain */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Domain; sourceTree = "<group>"; };
 		46AFBE8C2F2C1C3B00444306 /* Repository */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Repository; sourceTree = "<group>"; };
@@ -508,6 +510,7 @@
 				46AFC0402F33048000444306 /* IntentTodo.entitlements */,
 				46AFC0412F33048000444306 /* IntentTodoApp.swift */,
 				46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */,
+				46016DDC2F8BB2DF0025BB59 /* DebugNavigationIntent.swift */,
 			);
 			path = IntentTodo;
 			sourceTree = "<group>";
@@ -821,6 +824,7 @@
 				46AFC0432F33048000444306 /* AppDelegate.swift in Sources */,
 				46AFC0442F33048000444306 /* AppIntentsExtension.swift in Sources */,
 				46AFC0452F33048000444306 /* IntentTodoApp.swift in Sources */,
+				46016DDD2F8BB2DF0025BB59 /* DebugNavigationIntent.swift in Sources */,
 				46D8865E2F6B857A0029BF80 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

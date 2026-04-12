@@ -48,12 +48,13 @@
 
 - `openAppWhenRun` → `supportedModes` / `OpenIntent` への移行
 - Control Widget の制約（SetValueIntent非互換、ConfigurationIntentフィードバック制限）
-- **iOS 26 トラブルシューティング: Control Widget からアプリを開く問題**
-  - 10パターンの検証結果と全て失敗の記録
+- **Control Widget からアプリを開く問題（2026-04-12 解決）**
+  - **`kind` を Bundle ID 形式にすることが必須**（短い名前では foreground 遷移が機能しない）
+  - 正しい設定: `"dev.touyou.IntentTodo.IntentTodoWidget.ControlName"` 形式
+  - ワークショップ（01/Mood）で `ControlWidgetButton(action: foregroundIntent)` の動作を確認
+  - 2026-03 の「全パターン失敗」は `kind` 設定ミスが原因だった可能性が高い
   - `import TodoAppIntents` の影響範囲（`.background`は正常、foregroundのみ不可）
-  - 採用した解決策: `.background` + 通知パターン
   - Home Widget `Link(destination:)` はApple公式推奨パターン
-  - `ControlWidgetButton` の OpenIntent 用 initializer が公式ドキュメントに存在するがiOS 26で動作しない
 
 ### [07. プラットフォーム固有の知見](insights/07-platform-specific.md)
 

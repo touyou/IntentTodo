@@ -1,93 +1,62 @@
-//
-//  AddTodoIntent.swift
-//  IntentTodo
-//
-
 import AppIntents
+import Domain
+import os.log
 import Repository
+import SwiftData
 
-/// An intent that creates a new todo item.
-///
-/// This intent can be triggered via:
-/// - Siri: "Add a todo called 'Buy groceries' in IntentTodo"
-/// - Shortcuts: Add Todo action
-/// - UI: `Button(intent: AddTodoIntent(title: "..."))`
-///
-/// ## Execution Modes
-///
-/// Supports both background and deferred foreground modes:
-/// - **Background**: Creates the todo immediately without opening the app (default).
-/// - **Foreground (deferred)**: Creates the todo, then opens the app for detail editing
-///   when `openInApp` is `true`.
+private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "AddTodoIntent")
+
 public struct AddTodoIntent: AppIntent {
-    // MARK: - Metadata
+    public static let title: LocalizedStringResource = "Add Todo"
+    public static let description = IntentDescription("Creates a new todo item")
+    public static let supportedModes: IntentModes = .foreground
 
-    public static var title: LocalizedStringResource {
-        "Add Todo"
+    public static var parameterSummary: some ParameterSummary {
+        Summary("Add todo titled \(\.$todoTitle)")
     }
 
-    public static var description: IntentDescription {
-        IntentDescription(
-            "Creates a new todo item",
-            categoryName: "Todos",
-            searchKeywords: ["create", "new", "add", "task", "todo"]
-        )
-    }
+    @Dependency
+    private var modelContainer: ModelContainer
 
-    /// Supports background execution by default, with optional deferred foreground
-    /// for cases where the user wants to edit details after creation.
-    public static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
+    @Parameter(title: "Title")
+    public var todoTitle: String
 
-    // MARK: - Parameters
-
-    @Parameter(title: "Title", description: "The title of the new todo")
-    public var title: String
-
-    @Parameter(title: "Description", description: "Optional description for the todo")
+    @Parameter(title: "Description")
     public var todoDescription: String?
 
-    @Parameter(title: "Due Date", description: "Optional due date for the todo")
+    @Parameter(title: "Due Date")
     public var dueDate: Date?
 
-    @Parameter(title: "Mark as Favorite", description: "Whether to mark as favorite", default: false)
+    @Parameter(title: "Mark as Favorite", default: false)
     public var isFavorite: Bool
 
-    @Parameter(title: "Open in App", description: "Whether to open the app after creation", default: false)
-    public var openInApp: Bool
-
-    // MARK: - Initialization
-
     public init() {}
-
-    /// Creates an intent with the specified parameters.
+    
     public init(
-        title: String,
+        todoTitle: String,
         todoDescription: String? = nil,
         dueDate: Date? = nil,
-        isFavorite: Bool = false,
-        openInApp: Bool = false
+        isFavorite: Bool = false
     ) {
-        self.title = title
+        self.todoTitle = todoTitle
         self.todoDescription = todoDescription
         self.dueDate = dueDate
         self.isFavorite = isFavorite
-        self.openInApp = openInApp
     }
-
-    // MARK: - Perform
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        // Validate title is not empty
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        logger.info("[1] perform() entered, todoTitle='\(todoTitle)'")
+
+        let trimmedTitle = todoTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else {
             throw IntentError.validation("Todo title cannot be empty")
         }
+        logger.info("[2] title validated")
 
-        // Get repository
-        let repository = try IntentDependencies.shared.createRepository()
+        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        logger.info("[3] Repository created from @Dependency modelContainer")
 
-        // Create the todo item
         let todoItem = TodoItem(
             title: trimmedTitle,
             todoDescription: todoDescription,
@@ -95,20 +64,12 @@ public struct AddTodoIntent: AppIntent {
             dueDate: dueDate
         )
 
-        // Save to repository
         try repository.create(todoItem)
+        logger.info("[4] TodoItem saved")
 
-        // Reload widgets to show the new todo
         WidgetReloader.reloadAllWidgets()
+        logger.info("[5] Returning result")
 
-        // If user wants to open the app for detail editing, request foreground
-        if openInApp {
-            try await continueInForeground()
-        }
-
-        // Return the created entity
-        let entity = TodoAppEntity(from: todoItem)
-        return .result(value: entity)
+        return .result(value: TodoAppEntity(from: todoItem))
     }
 }
-

@@ -15,7 +15,7 @@ import WidgetKit
 /// Uses .background intent because opening the app directly from
 /// Control Widgets is unreliable on iOS 26.
 struct TodoCountControl: ControlWidget {
-    static let kind = "TodoCountControl"
+    static let kind = "dev.touyou.IntentTodo.IntentTodoWidget.TodoCountControl"
 
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: Self.kind) {

@@ -222,8 +222,8 @@ struct MyIntent: AppIntent {
 `onAppIntentExecution(_:perform:)` は iOS 26 で追加された View modifier で、特定のシーンに対して AppIntent の実行をハンドリングする。`TargetContentProvidingIntent` を実装した Intent が実行されたとき、対応するシーンでクロージャが呼ばれる。
 
 ```swift
-// Intentの定義
-struct ShowTodoDetailIntent: AppIntent, TargetContentProvidingIntent {
+// Intentの定義（TargetContentProvidingIntent は AppIntent を継承するため AppIntent の明示は不要）
+struct ShowTodoDetailIntent: TargetContentProvidingIntent {
     @Parameter(title: "Todo")
     var todo: TodoAppEntity
 
@@ -243,9 +243,13 @@ NavigationStack {
 ```
 
 **ポイント**:
-- `perform()` が定義されている場合、アクションクロージャの**後に** `perform()` が呼ばれる
+- `perform()` が定義されている場合、アクションクロージャの**後に** `perform()` が呼ばれる（二重実行に注意、どちらか一方にナビゲーションを集約する）
 - `supportedModes` の `.background` と組み合わせることで、UIハンドリングと`.background`処理を両立可能
 - `AppIntentSceneDelegate` プロトコルでシーンレベルのハンドリングも可能
+
+**iOS バージョンによる動作差**
+- **iOS 26.4 以降**: cold start でも正常動作（ワークショップPDF "In iOS 26.4 and above this works as before"）
+- **初期 iOS 26（〜26.3）**: cold start 時タイムアウトでナビゲーション失敗の可能性あり。その場合は `AppDependencyManager` + `@Dependency` + `perform()` パターンが安定（詳細は `docs/insights/04-ui-integration.md` 参照）
 
 ### LiveActivityIntent（Live Activity専用）
 

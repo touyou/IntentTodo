@@ -129,7 +129,7 @@ Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
 
 // フォーム入力が必要な場合は Computed Property で動的生成
 private var addTodoIntent: AddTodoIntent {
-    AddTodoIntent(title: title, dueDate: dueDate)
+    AddTodoIntent(todoTitle: title, dueDate: dueDate)
 }
 
 Button(intent: addTodoIntent) {

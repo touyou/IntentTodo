@@ -15,9 +15,8 @@ import AppIntents
 ///   - `ToggleTodoCompletionIntent`: Toggles completion status
 ///   - `DeleteTodoIntent`: Deletes a todo item
 ///   - `ToggleFavoriteIntent`: Toggles favorite status
-///   - `ShowTodosIntent`: Shows all/filtered todos
-///   - `OpenTodoListIntent`: Opens the todo list
-///   - `OpenAddTodoIntent`: Opens the add todo screen (also used for Action Button)
+///   - `ShowTodosIntent`: Shows todos with optional filter (all/incomplete/favorites)
+///   - `LaunchAppIntent`: Opens the app to a specific screen (addTodo/todoList/etc.)
 /// - **Entity**:
 ///   - `TodoAppEntity`: App Intents entity for todos
 /// - **Query**:

@@ -10,17 +10,15 @@ import TodoAppIntents
 
 /// The main todo list view.
 ///
-/// This view displays all todos with filtering, sorting, and search capabilities.
-/// - **Data**: SwiftData's `@Query` provides automatic updates
+/// - **Data**: `@Query` for automatic SwiftData updates
 /// - **Actions**: `Button(intent:)` executes App Intents directly
-/// - **UI State**: `TodoListViewModel` manages filter, sort, and search
-/// - **Navigation**: `NavigationViewModel` manages navigation state
+/// - **Navigation**: `NavigationModel` from environment — written by Intents via @Dependency
 public struct TodoListView: View {
     // MARK: - Properties
 
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
-    @State private var navigationViewModel = NavigationViewModel()
+    @Environment(NavigationModel.self) private var navigationModel
 
     // MARK: - Computed Properties
 
@@ -39,7 +37,8 @@ public struct TodoListView: View {
     // MARK: - Body
 
     public var body: some View {
-        NavigationStack(path: $navigationViewModel.path) {
+        @Bindable var navigationModel = navigationModel
+        NavigationStack(path: $navigationModel.path) {
             Group {
                 if filteredTodos.isEmpty {
                     emptyView
@@ -58,53 +57,13 @@ public struct TodoListView: View {
                 toolbarContent
             }
             .searchable(text: $viewModel.searchText, prompt: "Search todos")
-            .sheet(isPresented: $navigationViewModel.showingAddTodo) {
+            .sheet(isPresented: $navigationModel.showingAddTodo) {
                 addTodoSheet
             }
         }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
-        // MARK: - onAppIntentExecution (iOS 26+ / macOS 26+ / visionOS 26+)
-        // Primary mechanism for handling navigation intents declaratively.
-        // The closure fires before the intent's perform() method.
-        // Not available on watchOS (TargetContentProvidingIntent is unavailable).
-        #if !os(watchOS)
-        .onAppIntentExecution(LaunchAppIntent.self) { intent in
-            switch intent.target {
-            case .addTodo:
-                navigationViewModel.showAddTodo()
-            case .todoList, .incompleteTodos, .favoriteTodos:
-                break // Already on the list screen
-            }
-        }
-        .onAppIntentExecution(OpenAddTodoIntent.self) { _ in
-            navigationViewModel.showAddTodo()
-        }
-        .onAppIntentExecution(OpenTodoListIntent.self) { _ in
-            // Already on the list screen, no action needed
-        }
-        #endif
-        // MARK: - IntentAppState fallback (Extension → App communication)
-        // Retained for cross-process communication from Control Widgets and
-        // notification tap actions, which cannot use onAppIntentExecution.
-        .onAppear {
-            if IntentAppState.shared.consumeShowAddTodoRequest() {
-                navigationViewModel.showAddTodo()
-            }
-        }
-        #if os(iOS)
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            if IntentAppState.shared.consumeShowAddTodoRequest() {
-                navigationViewModel.showAddTodo()
-            }
-        }
-        #endif
-        .onReceive(NotificationCenter.default.publisher(for: IntentAppState.showAddTodoNotification)) { _ in
-            if IntentAppState.shared.consumeShowAddTodoRequest() {
-                navigationViewModel.showAddTodo()
-            }
-        }
     }
 
     // MARK: - Subviews
@@ -118,7 +77,7 @@ public struct TodoListView: View {
         } actions: {
             if viewModel.filter == .all && viewModel.searchText.isEmpty {
                 Button("Add Todo") {
-                    navigationViewModel.showAddTodo()
+                    navigationModel.showAddTodo()
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -145,7 +104,7 @@ public struct TodoListView: View {
         List {
             ForEach(filteredTodos, id: \.id) { todo in
                 Button {
-                    navigationViewModel.showDetail(for: todo)
+                    navigationModel.showDetail(for: todo)
                 } label: {
                     TodoRowView(todo: todo)
                 }
@@ -163,7 +122,7 @@ public struct TodoListView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button {
-                navigationViewModel.showAddTodo()
+                navigationModel.showAddTodo()
             } label: {
                 Image(systemName: "plus")
             }
@@ -205,9 +164,8 @@ public struct TodoListView: View {
         }
         .presentationDetents([.medium])
         .onChange(of: todoItems.count) { oldCount, newCount in
-            // Close sheet when a new todo is added
             if newCount > oldCount {
-                navigationViewModel.dismissAddTodo()
+                navigationModel.dismissAddTodo()
             }
         }
     }
@@ -217,4 +175,5 @@ public struct TodoListView: View {
 
 #Preview {
     TodoListView()
+        .environment(NavigationModel())
 }

@@ -3,9 +3,9 @@
 //  IntentTodoWidget
 //
 //  Background-mode intents for Control Center widgets.
-//  All Control Widget intents use .background mode with notification feedback
-//  because opening the app from Control Widgets is unreliable on iOS 26.
-//  See docs/INSIGHTS.md Section 18 for details.
+//  ToggleUrgentTodoIntent and ShowTodoCountIntent use .background mode with notification
+//  feedback because they do not need to open the app.
+//  QuickAddTodoControl uses OpenAddTodoIntent (.foreground(.immediate)) from TodoAppIntents.
 //
 
 import AppIntents
@@ -59,22 +59,6 @@ struct ToggleUrgentTodoIntent: AppIntent {
             ControlNotificationHelper.sendUncompletedNotification(todoTitle: todoTitle)
         }
 
-        return .result()
-    }
-}
-
-// MARK: - QuickAddTodoNotifyIntent
-
-/// Intent for the Quick Add control button.
-/// Sends a notification prompting the user to open the app and add a todo.
-struct QuickAddTodoNotifyIntent: AppIntent {
-    static var title: LocalizedStringResource = "Quick Add Todo"
-
-    static var supportedModes: IntentModes { .background }
-
-    @MainActor
-    func perform() async throws -> some IntentResult {
-        ControlNotificationHelper.sendQuickAddNotification()
         return .result()
     }
 }

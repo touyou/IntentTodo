@@ -1,16 +1,15 @@
 //
-//  NavigationViewModelTests.swift
+//  NavigationModelTests.swift
 //  IntentTodo
 //
 
 import Foundation
 import Testing
 import TodoAppIntents
-@testable import UI
 
 @MainActor
-@Suite("NavigationViewModel Tests")
-struct NavigationViewModelTests {
+@Suite("NavigationModel Tests")
+struct NavigationModelTests {
     // MARK: - Helpers
 
     private func makeTodoEntity(
@@ -24,23 +23,23 @@ struct NavigationViewModelTests {
 
     @Test("Initial state has empty path and addTodo hidden")
     func initialState() {
-        let viewModel = NavigationViewModel()
+        let model = NavigationModel()
 
-        #expect(viewModel.path.isEmpty)
-        #expect(!viewModel.showingAddTodo)
+        #expect(model.path.isEmpty)
+        #expect(!model.showingAddTodo)
     }
 
     // MARK: - showDetail Tests
 
     @Test("showDetail appends destination to path")
     func showDetail() {
-        let viewModel = NavigationViewModel()
+        let model = NavigationModel()
         let entity = makeTodoEntity(title: "Detail Todo")
 
-        viewModel.showDetail(for: entity)
+        model.showDetail(for: entity)
 
-        #expect(viewModel.path.count == 1)
-        if case .todoDetail(let todo) = viewModel.path.first {
+        #expect(model.path.count == 1)
+        if case .todoDetail(let todo) = model.path.first {
             #expect(todo.title == "Detail Todo")
         } else {
             Issue.record("Expected todoDetail destination")
@@ -49,49 +48,65 @@ struct NavigationViewModelTests {
 
     @Test("showDetail can push multiple destinations")
     func showDetailMultiple() {
-        let viewModel = NavigationViewModel()
+        let model = NavigationModel()
 
-        viewModel.showDetail(for: makeTodoEntity(title: "First"))
-        viewModel.showDetail(for: makeTodoEntity(title: "Second"))
+        model.showDetail(for: makeTodoEntity(title: "First"))
+        model.showDetail(for: makeTodoEntity(title: "Second"))
 
-        #expect(viewModel.path.count == 2)
+        #expect(model.path.count == 2)
     }
 
     // MARK: - popToRoot Tests
 
     @Test("popToRoot clears entire path")
     func popToRoot() {
-        let viewModel = NavigationViewModel()
-        viewModel.showDetail(for: makeTodoEntity(title: "First"))
-        viewModel.showDetail(for: makeTodoEntity(title: "Second"))
-        #expect(viewModel.path.count == 2)
+        let model = NavigationModel()
+        model.showDetail(for: makeTodoEntity(title: "First"))
+        model.showDetail(for: makeTodoEntity(title: "Second"))
+        #expect(model.path.count == 2)
 
-        viewModel.popToRoot()
+        model.popToRoot()
 
-        #expect(viewModel.path.isEmpty)
+        #expect(model.path.isEmpty)
     }
 
     @Test("popToRoot on empty path does nothing")
     func popToRootEmpty() {
-        let viewModel = NavigationViewModel()
+        let model = NavigationModel()
 
-        viewModel.popToRoot()
+        model.popToRoot()
 
-        #expect(viewModel.path.isEmpty)
+        #expect(model.path.isEmpty)
+    }
+
+    // MARK: - navigateToRoot Tests
+
+    @Test("navigateToRoot clears path and dismisses add todo")
+    func navigateToRoot() {
+        let model = NavigationModel()
+        model.showDetail(for: makeTodoEntity(title: "Some Todo"))
+        model.showAddTodo()
+        #expect(model.path.count == 1)
+        #expect(model.showingAddTodo)
+
+        model.navigateToRoot()
+
+        #expect(model.path.isEmpty)
+        #expect(!model.showingAddTodo)
     }
 
     // MARK: - pop Tests
 
     @Test("pop removes last destination from path")
     func pop() {
-        let viewModel = NavigationViewModel()
-        viewModel.showDetail(for: makeTodoEntity(title: "First"))
-        viewModel.showDetail(for: makeTodoEntity(title: "Second"))
+        let model = NavigationModel()
+        model.showDetail(for: makeTodoEntity(title: "First"))
+        model.showDetail(for: makeTodoEntity(title: "Second"))
 
-        viewModel.pop()
+        model.pop()
 
-        #expect(viewModel.path.count == 1)
-        if case .todoDetail(let todo) = viewModel.path.first {
+        #expect(model.path.count == 1)
+        if case .todoDetail(let todo) = model.path.first {
             #expect(todo.title == "First")
         } else {
             Issue.record("Expected first detail to remain")
@@ -100,42 +115,42 @@ struct NavigationViewModelTests {
 
     @Test("pop on empty path does nothing")
     func popEmpty() {
-        let viewModel = NavigationViewModel()
+        let model = NavigationModel()
 
-        viewModel.pop()
+        model.pop()
 
-        #expect(viewModel.path.isEmpty)
+        #expect(model.path.isEmpty)
     }
 
     // MARK: - showAddTodo / dismissAddTodo Tests
 
     @Test("showAddTodo sets flag to true")
     func showAddTodo() {
-        let viewModel = NavigationViewModel()
+        let model = NavigationModel()
 
-        viewModel.showAddTodo()
+        model.showAddTodo()
 
-        #expect(viewModel.showingAddTodo)
+        #expect(model.showingAddTodo)
     }
 
     @Test("dismissAddTodo sets flag to false")
     func dismissAddTodo() {
-        let viewModel = NavigationViewModel()
-        viewModel.showAddTodo()
-        #expect(viewModel.showingAddTodo)
+        let model = NavigationModel()
+        model.showAddTodo()
+        #expect(model.showingAddTodo)
 
-        viewModel.dismissAddTodo()
+        model.dismissAddTodo()
 
-        #expect(!viewModel.showingAddTodo)
+        #expect(!model.showingAddTodo)
     }
 
     @Test("dismissAddTodo on already dismissed state is safe")
     func dismissAddTodoWhenAlreadyDismissed() {
-        let viewModel = NavigationViewModel()
+        let model = NavigationModel()
 
-        viewModel.dismissAddTodo()
+        model.dismissAddTodo()
 
-        #expect(!viewModel.showingAddTodo)
+        #expect(!model.showingAddTodo)
     }
 }
 
