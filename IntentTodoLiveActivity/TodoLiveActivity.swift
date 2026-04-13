@@ -10,6 +10,7 @@ import ActivityKit
 import AppIntents
 import Domain
 import SwiftUI
+import TodoAppIntents
 import WidgetKit
 
 // Note: TodoDeadlineActivityAttributes is defined in Domain package
@@ -44,14 +45,20 @@ struct TodoDeadlineLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
+                    let entity = TodoAppEntity(
+                        id: context.attributes.todoId,
+                        title: context.state.title,
+                        isCompleted: context.state.isCompleted,
+                        dueDate: context.state.dueDate
+                    )
                     HStack(spacing: 16) {
-                        Button(intent: CompleteTodoFromActivityIntent(todoId: context.attributes.todoId)) {
+                        Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
                             Label("Complete", systemImage: "checkmark.circle.fill")
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
 
-                        Button(intent: SnoozeTodoIntent(todoId: context.attributes.todoId)) {
+                        Button(intent: SnoozeTodoIntent(todo: entity)) {
                             Label("Snooze", systemImage: "clock.arrow.circlepath")
                         }
                         .buttonStyle(.bordered)

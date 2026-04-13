@@ -8,6 +8,7 @@
 import Domain
 import SwiftData
 import SwiftUI
+import TodoAppIntents
 import WidgetKit
 
 /// Control widget showing incomplete todo count.

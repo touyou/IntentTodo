@@ -163,8 +163,10 @@ struct LargeTodoWidgetView: View {
 
             Spacer()
 
-            // Quick Add Link - opens app to Add Todo screen
-            Link(destination: URL(string: "intenttodo://addTodo")!) {
+            // [検証] Button(intent:) で LaunchAppIntent.addTodo() を実行。
+            // Widget Extension から foreground(.immediate) Intent を発火した場合、
+            // 実際にどのプロセスで perform() が走り @Dependency が解決されるか確認する。
+            Button(intent: LaunchAppIntent.addTodo()) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                     Text("Add Todo")
@@ -175,6 +177,7 @@ struct LargeTodoWidgetView: View {
                 .padding(.vertical, 8)
                 .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
             }
+            .buttonStyle(.plain)
         }
         .containerBackground(.fill.tertiary, for: .widget)
     }

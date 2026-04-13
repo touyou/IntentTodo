@@ -8,6 +8,7 @@
 import Domain
 import SwiftData
 import SwiftUI
+import TodoAppIntents
 import WidgetKit
 
 /// Control widget for toggling the most urgent todo.

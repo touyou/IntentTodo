@@ -7,6 +7,10 @@
 //
 
 import AppIntents
+import Foundation
+import os.log
+
+private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "LaunchAppIntent")
 
 // MARK: - App Screen Enum
 
@@ -56,6 +60,7 @@ public struct LaunchAppIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
+        logger.info("LaunchAppIntent.perform() pid=\(ProcessInfo.processInfo.processIdentifier) processName=\(ProcessInfo.processInfo.processName) target=\(target.rawValue)")
         navigationModel.navigateToRoot()
         switch target {
         case .addTodo:

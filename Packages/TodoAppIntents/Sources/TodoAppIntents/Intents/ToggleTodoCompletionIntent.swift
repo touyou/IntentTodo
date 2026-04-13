@@ -3,11 +3,19 @@
 //  IntentTodo
 //
 
+#if os(iOS)
+import ActivityKit
+#endif
 import AppIntents
+import Domain
 import Repository
 import SwiftData
 
 /// Toggles the completion status of a todo item.
+///
+/// Conforms to `LiveActivityIntent` on iOS so the same intent can be triggered
+/// from Dynamic Island / lock screen buttons. When a todo becomes completed,
+/// any active Live Activity for that todo is ended automatically.
 public struct ToggleTodoCompletionIntent: AppIntent {
     public static var title: LocalizedStringResource { "Toggle Todo Completion" }
 
@@ -50,6 +58,27 @@ public struct ToggleTodoCompletionIntent: AppIntent {
         try repository.update(todoItem)
         WidgetReloader.reloadAllWidgets()
 
+        // If the todo is now completed, end any matching Live Activity.
+        #if os(iOS)
+        if todoItem.isCompleted {
+            await endMatchingLiveActivity(for: todo.id)
+        }
+        #endif
+
         return .result(value: TodoAppEntity(from: todoItem))
     }
+
+    #if os(iOS)
+    @MainActor
+    private func endMatchingLiveActivity(for todoId: String) async {
+        for activity in Activity<TodoDeadlineActivityAttributes>.activities
+        where activity.attributes.todoId == todoId {
+            await activity.end(dismissalPolicy: .immediate)
+        }
+    }
+    #endif
 }
+
+#if os(iOS)
+extension ToggleTodoCompletionIntent: LiveActivityIntent {}
+#endif
