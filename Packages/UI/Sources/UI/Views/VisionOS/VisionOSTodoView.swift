@@ -25,7 +25,7 @@ import TodoAppIntents
 public struct VisionOSTodoListView: View {
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
-    @State private var navigationViewModel = NavigationViewModel()
+    @Environment(NavigationModel.self) private var navigationModel
     @State private var selectedTodo: TodoAppEntity?
 
     private var allTodos: [TodoAppEntity] {
@@ -39,6 +39,7 @@ public struct VisionOSTodoListView: View {
     public init() {}
 
     public var body: some View {
+        @Bindable var navigationModel = navigationModel
         NavigationSplitView {
             sidebarContent
                 .navigationTitle("Todos")
@@ -48,7 +49,7 @@ public struct VisionOSTodoListView: View {
         .ornament(attachmentAnchor: .scene(.bottom)) {
             bottomOrnament
         }
-        .sheet(isPresented: $navigationViewModel.showingAddTodo) {
+        .sheet(isPresented: $navigationModel.showingAddTodo) {
             addTodoSheet
         }
     }
@@ -76,7 +77,7 @@ public struct VisionOSTodoListView: View {
             Text("Tap the + button to add your first todo.")
         } actions: {
             Button("Add Todo") {
-                navigationViewModel.showAddTodo()
+                navigationModel.showAddTodo()
             }
             .buttonStyle(.borderedProminent)
         }
@@ -143,7 +144,7 @@ public struct VisionOSTodoListView: View {
 
             // Add button
             Button {
-                navigationViewModel.showAddTodo()
+                navigationModel.showAddTodo()
             } label: {
                 Label("Add Todo", systemImage: "plus.circle.fill")
             }
@@ -160,7 +161,7 @@ public struct VisionOSTodoListView: View {
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button {
-                navigationViewModel.showAddTodo()
+                navigationModel.showAddTodo()
             } label: {
                 Image(systemName: "plus")
             }
@@ -174,7 +175,7 @@ public struct VisionOSTodoListView: View {
         .frame(minWidth: 400, minHeight: 300)
         .onChange(of: todoItems.count) { oldCount, newCount in
             if newCount > oldCount {
-                navigationViewModel.dismissAddTodo()
+                navigationModel.dismissAddTodo()
             }
         }
     }
@@ -442,5 +443,6 @@ struct VisionOSTodoDetailView: View {
 
 #Preview {
     VisionOSTodoListView()
+        .environment(NavigationModel())
 }
 #endif

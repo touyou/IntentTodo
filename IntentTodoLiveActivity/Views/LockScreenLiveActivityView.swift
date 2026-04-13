@@ -9,6 +9,7 @@ import ActivityKit
 import AppIntents
 import Domain
 import SwiftUI
+import TodoAppIntents
 import WidgetKit
 
 // MARK: - Lock Screen View
@@ -16,6 +17,15 @@ import WidgetKit
 /// Lock screen view showing the approaching deadline todo.
 struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<TodoDeadlineActivityAttributes>
+
+    private var entity: TodoAppEntity {
+        TodoAppEntity(
+            id: context.attributes.todoId,
+            title: context.state.title,
+            isCompleted: context.state.isCompleted,
+            dueDate: context.state.dueDate
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -38,14 +48,14 @@ struct LockScreenLiveActivityView: View {
                 .lineLimit(2)
 
             HStack(spacing: 16) {
-                Button(intent: CompleteTodoFromActivityIntent(todoId: context.attributes.todoId)) {
+                Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
                     Label("Mark Complete", systemImage: "checkmark.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
 
-                Button(intent: SnoozeTodoIntent(todoId: context.attributes.todoId)) {
+                Button(intent: SnoozeTodoIntent(todo: entity)) {
                     Label("Snooze 30m", systemImage: "clock.arrow.circlepath")
                         .frame(maxWidth: .infinity)
                 }

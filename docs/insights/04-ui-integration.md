@@ -44,10 +44,12 @@ iOS 26 で追加された `onAppIntentExecution(_:perform:)` View modifier に�
 `TargetContentProvidingIntent` を実装した Intent が実行されると、`onAppIntentExecution` を設定した View のクロージャが呼ばれる。
 
 ```swift
-struct ShowTodoDetailIntent: AppIntent, TargetContentProvidingIntent {
+// TargetContentProvidingIntent は AppIntent を継承しているため、AppIntent の明示は不要
+struct ShowTodoDetailIntent: TargetContentProvidingIntent {
     @Parameter(title: "Todo")
     var todo: TodoAppEntity
 
+    // perform() は省略可能。ナビゲーションは onAppIntentExecution 側で完結させることが多い
     func perform() async throws -> some IntentResult {
         return .result()
     }
@@ -62,48 +64,35 @@ NavigationStack {
 }
 ```
 
+### 「知識の方向」—— どちらのパターンを選ぶか
+
+| パターン | 知識の向き | 特徴 |
+|---------|-----------|------|
+| `@Dependency` + `perform()` | Intent がアプリ状態を知っている | Intent 側にナビゲーションロジックが集約 |
+| `onAppIntentExecution` | App（View）が Intent を知っている | ナビゲーションロジックが View 側に集約、宣言的 |
+
+どちらも正しい。プロジェクトの規模や好みで選択する。macOS では `onAppIntentExecution` が使えないため `@Dependency` パターンが必須。
+
 ### 実行順序
 
 公式ドキュメントによると:
 > "If the app intent implements a perform() method, it will be called after the action closure."
 
-つまり `onAppIntentExecution` のクロージャが**先**に実行され、その後に Intent の `perform()` が呼ばれる。
+つまり `onAppIntentExecution` のクロージャが**先**に実行され、その後に Intent の `perform()` が呼ばれる。両方でナビゲーションを行うと二重実行になるため、どちらか一方に統一することを推奨。
+
+### ⚠️ iOS バージョンによる動作差
+
+アプリが kill されている状態（cold start）での動作は iOS バージョンによって異なる：
+
+- **初期 iOS 26（〜26.3）**: cold start 時、Intentのシステムタイムアウト内にViewが準備できずナビゲーションが失敗する場合がある
+- **iOS 26.4 以降**: "works as before"（ワークショップPDF記載）—— cold start でも正常に動作する模様
+
+iOS 26.4 未満をサポートする場合や、安定性を優先する場合は `@Dependency` + `perform()` パターンを検討する（詳細は本ドキュメントの「AppDependencyManager + perform()」セクション参照）。
 
 ### 関連API
 
 - **`AppIntentSceneDelegate`**: シーンレベルで Intent をハンドリングするプロトコル。`scene(_:willPerformAppIntent:)` メソッドで受信。
 - **`UISceneAppIntent`**: `TargetContentProvidingIntent` を継承し、特定のシーンをターゲットにする Intent。
-
-### 実装パターン: デュアルIntent→UI連携
-
-本プロジェクトでは `onAppIntentExecution` と `IntentAppState` を併用する「デュアルパターン」を採用している。
-
-```swift
-// 主軸: onAppIntentExecution（アプリ内Intent実行時）
-.onAppIntentExecution(LaunchAppIntent.self) { intent in
-    switch intent.target {
-    case .addTodo: navigationViewModel.showAddTodo()
-    default: break
-    }
-}
-.onAppIntentExecution(OpenAddTodoIntent.self) { _ in
-    navigationViewModel.showAddTodo()
-}
-
-// フォールバック: IntentAppState（Extension→アプリ間通信）
-.onAppear {
-    if IntentAppState.shared.consumeShowAddTodoRequest() {
-        navigationViewModel.showAddTodo()
-    }
-}
-```
-
-### IntentAppState との使い分け
-
-| 方式 | 用途 | 特徴 |
-|------|------|------|
-| `onAppIntentExecution` | アプリ内のIntent→UI連携（主軸） | 宣言的、View modifier で完結 |
-| `IntentAppState` (共有状態) | Extension → アプリ間の通信（フォールバック） | Control Widget 等、Extension からの状態伝達向き |
 
 ### TargetContentProvidingIntent
 
@@ -112,10 +101,13 @@ NavigationStack {
 **重要**: `TargetContentProvidingIntent` はwatchOSでは利用不可。Swift Packageで定義する場合は条件付きextensionで準拠する:
 
 ```swift
-// Intent本体は全プラットフォーム共通
+// Intent本体は全プラットフォーム共通（AppIntent として定義）
 public struct OpenAddTodoIntent: AppIntent { ... }
 
-// TargetContentProvidingIntent は watchOS 以外のみ
+// TargetContentProvidingIntent は watchOS 以外のみ追加準拠
+// ※ TargetContentProvidingIntent は AppIntent を継承しているため、
+//    単独で宣言する場合は AppIntent を並べる必要はないが、
+//    後から extension で追加する場合はこのパターンが必要
 #if os(iOS) || os(macOS) || os(visionOS)
 extension OpenAddTodoIntent: TargetContentProvidingIntent {}
 extension OpenTodoListIntent: TargetContentProvidingIntent {}
@@ -124,6 +116,71 @@ extension LaunchAppIntent: TargetContentProvidingIntent {}
 ```
 
 同様に、View側の `onAppIntentExecution` も `#if !os(watchOS)` で囲む必要がある。
+
+---
+
+## AppDependencyManager + perform() による安定したナビゲーション
+
+ナビゲーション状態を `AppDependencyManager` に同期登録し、Intent の `perform()` で書き込む。`perform()` は Intent 実行コンテキストで呼ばれるため、SwiftUI シーンの準備完了を待たずに書き込める。シーンが表示されたときに `@Observable` の変化を受けて自動反映される。
+
+```swift
+// ナビゲーション状態
+@MainActor
+@Observable
+public final class NavigationModel {
+    public var showingAddTodo: Bool = false
+    public init() {}
+}
+
+// App.init で同期登録
+@main
+struct IntentTodoApp: App {
+    @State private var navigation: NavigationModel
+
+    init() {
+        let navigation = NavigationModel()
+        self.navigation = navigation
+        AppDependencyManager.shared.add(dependency: navigation)
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            TodoListView().environment(navigation)
+        }
+    }
+}
+
+// Intent は @Dependency で取得
+struct LaunchAppIntent: AppIntent {
+    static let supportedModes: IntentModes = [.foreground(.immediate)]
+
+    @Dependency
+    var navigationModel: NavigationModel
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        navigationModel.showingAddTodo = true
+        return .result()
+    }
+}
+```
+
+### supportedModes の選択
+
+ナビゲーション目的の Intent には `.foreground(.immediate)` が適切。アプリを即座にフォアグラウンドに持ってきてから `perform()` が実行される。
+
+```swift
+static let supportedModes: IntentModes = [.foreground(.immediate)]
+```
+
+### `onAppIntentExecution` との使い分け
+
+| 方式 | 特徴 |
+|------|------|
+| `onAppIntentExecution` | 宣言的・View modifier に集約。`TargetContentProvidingIntent` 準拠 Intent が対象。初期 iOS 26 では cold start 時に失敗する可能性 |
+| `AppDependencyManager` + `@Dependency` + `perform()` | Intent 側に集約。cold start でも安定。実行プロセスごとに依存登録が必要（`App.init()` だけでなく、Widget 経由の `.background` Intent を使うなら `WidgetBundle.init()` にも登録が必要）|
+
+---
 
 ### UISceneAppIntent の制限
 

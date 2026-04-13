@@ -5,6 +5,7 @@
 //  Created by 藤井陽介 on 2026/01/29.
 //
 
+import AppIntents
 import SwiftUI
 import SwiftData
 import Domain
@@ -20,21 +21,27 @@ struct IntentTodoApp: App {
 
     let modelContainer: ModelContainer
 
+    // Same instance stored in @State AND registered with AppDependencyManager.
+    // Intents access it via @Dependency; views observe it via .environment().
+    @State private var navigationModel: NavigationModel
+
     // MARK: - Initialization
 
     init() {
-        // Use SharedModelContainer for data sharing with extensions
         do {
             let container = try SharedModelContainer.createContainer()
             modelContainer = container
-
-            // Configure IntentDependencies for App Intents
-            Task { @MainActor in
-                IntentDependencies.shared.configure(modelContainer: container)
-            }
+            // Register the ModelContainer so intents can access SwiftData via @Dependency.
+            AppDependencyManager.shared.add(dependency: container)
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
+
+        // Same NavigationModel instance is stored in @State AND registered with
+        // AppDependencyManager so intents can write navigation state via @Dependency.
+        let navigation = NavigationModel()
+        self.navigationModel = navigation
+        AppDependencyManager.shared.add(dependency: navigation)
     }
 
     // MARK: - Body
@@ -42,6 +49,7 @@ struct IntentTodoApp: App {
     var body: some Scene {
         WindowGroup {
             TodoListView()
+                .environment(navigationModel)
                 .task {
                     await requestNotificationPermission()
                 }
@@ -54,13 +62,14 @@ struct IntentTodoApp: App {
 
     // MARK: - URL Handling
 
-    /// Handle deep link URLs from widgets.
+    /// Handle deep link URLs from widgets (e.g. intenttodo://addTodo from Home Widgets).
     private func handleURL(_ url: URL) {
         guard url.scheme == "intenttodo" else { return }
 
         switch url.host {
         case "addTodo":
-            IntentAppState.shared.requestShowAddTodo()
+            navigationModel.navigateToRoot()
+            navigationModel.showAddTodo()
         default:
             break
         }
@@ -68,7 +77,6 @@ struct IntentTodoApp: App {
 
     // MARK: - Private Methods
 
-    /// Request notification permission for Control Center feedback.
     private func requestNotificationPermission() async {
         let center = UNUserNotificationCenter.current()
         do {

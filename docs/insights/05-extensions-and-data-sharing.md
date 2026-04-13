@@ -98,59 +98,35 @@ sharedDefaults.bool(forKey: "someKey")
 
 ## Intent から UI へのコミュニケーション
 
-### 問題
+### 基本パターン: @Dependency + NavigationModel
 
-`OpenAddTodoIntent`のようにアプリを開いて特定のUI状態を設定したい場合、IntentからSwiftUIのViewに直接アクセスできない。
-
-### 解決策: SharedState + UserDefaults
+メインアプリプロセスで動作する Intent（SPM 配置で `.foreground` 系のもの）は、`AppDependencyManager` 経由で共有される `NavigationModel` に書き込む。詳細は `04-ui-integration.md` 参照。
 
 ```swift
-@MainActor
-public final class IntentAppState {
-    public static let shared = IntentAppState()
+// Intent 側
+struct LaunchAppIntent: AppIntent {
+    static let supportedModes: IntentModes = [.foreground(.immediate)]
 
-    private var sharedDefaults: UserDefaults {
-        UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier) ?? .standard
-    }
+    @Dependency var navigationModel: NavigationModel
 
-    public var shouldShowAddTodo: Bool {
-        get { sharedDefaults.bool(forKey: Keys.shouldShowAddTodo) }
-        set { sharedDefaults.set(newValue, forKey: Keys.shouldShowAddTodo) }
-    }
-
-    /// Intent側: 表示をリクエスト
-    public func requestShowAddTodo() {
-        shouldShowAddTodo = true
-    }
-
-    /// UI側: リクエストを消費（一度だけ処理）
-    public func consumeShowAddTodoRequest() -> Bool {
-        guard shouldShowAddTodo else { return false }
-        shouldShowAddTodo = false
-        return true
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        navigationModel.showAddTodo()
+        return .result()
     }
 }
 ```
 
-### View での使用
+### Widget / Extension 側から Intent 経由でアプリを操作する場合
 
-```swift
-public var body: some View {
-    NavigationStack { /* ... */ }
-        .onAppear {
-            if IntentAppState.shared.consumeShowAddTodoRequest() {
-                navigationViewModel.showAddTodo()
-            }
-        }
-        #if os(iOS)
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            if IntentAppState.shared.consumeShowAddTodoRequest() {
-                navigationViewModel.showAddTodo()
-            }
-        }
-        #endif
-}
-```
+Widget Extension の `Button(intent:)` や `ControlWidgetButton(action:)` から SPM 配置の Intent を呼んだ場合、どこで実行されるかはモード次第で挙動が異なる可能性がある。現状の本プロジェクトでは：
+
+- Shortcuts から SPM の Intent 呼び出し → 正常動作（`AppDependencyManager` 経由で main プロセスの依存にアクセス可能）
+- Widget の `Button(intent:)` 経由 → Apple 公式は「アプリを開くだけなら `Link(destination:)` を使え」と明記。データ操作は動作検証が必要
+
+アプリ起動が目的の場合は `Link(destination:)` を優先する。
+
+> "If you want to offer an interaction that opens the app, use Link" — Apple 公式ドキュメント「Adding interactivity to widgets and Live Activities」
 
 ---
 

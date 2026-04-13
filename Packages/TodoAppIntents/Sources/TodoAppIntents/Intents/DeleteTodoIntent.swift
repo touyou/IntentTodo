@@ -5,19 +5,11 @@
 
 import AppIntents
 import Repository
+import SwiftData
 
-/// An intent that deletes a todo item.
-///
-/// This intent can be triggered via:
-/// - Siri: "Delete 'Buy groceries' from IntentTodo"
-/// - Shortcuts: Delete Todo action
-/// - UI: `Button(intent: DeleteTodoIntent(todo: entity))`
+/// Deletes a todo item.
 public struct DeleteTodoIntent: AppIntent {
-    // MARK: - Metadata
-
-    public static var title: LocalizedStringResource {
-        "Delete Todo"
-    }
+    public static var title: LocalizedStringResource { "Delete Todo" }
 
     public static var description: IntentDescription {
         IntentDescription(
@@ -27,37 +19,33 @@ public struct DeleteTodoIntent: AppIntent {
         )
     }
 
-    /// Runs in background without opening the app.
     public static var supportedModes: IntentModes { .background }
 
-    // MARK: - Parameters
+    public static var parameterSummary: some ParameterSummary {
+        Summary("Delete \(\.$todo)")
+    }
 
     @Parameter(title: "Todo", description: "The todo to delete")
     public var todo: TodoAppEntity
 
-    // MARK: - Initialization
+    @Dependency
+    var modelContainer: ModelContainer
 
     public init() {}
 
-    /// Creates an intent to delete the specified todo.
     public init(todo: TodoAppEntity) {
         self.todo = todo
     }
 
-    // MARK: - Perform
-
     @MainActor
     public func perform() async throws -> some IntentResult {
-        let repository = try IntentDependencies.shared.createRepository()
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
 
         guard let uuid = UUID(uuidString: todo.id) else {
             throw IntentError.validation("Invalid todo ID")
         }
 
-        // Delete the todo
         try repository.delete(by: uuid)
-
-        // Reload widgets to reflect the change
         WidgetReloader.reloadAllWidgets()
 
         return .result()

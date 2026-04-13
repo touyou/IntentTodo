@@ -116,17 +116,21 @@ public struct AddTodoIntent: AppIntent {
         self.dueDate = dueDate
     }
 
+    // MARK: - Dependencies
+    @Dependency
+    var modelContainer: ModelContainer
+
     // MARK: - 実行
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        // 1. Repository取得
-        let repository = try IntentDependencies.shared.createRepository()
-
-        // 2. バリデーション（ビジネスロジック）
+        // 1. バリデーション
         let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else {
             throw IntentError.validation("Todo title cannot be empty")
         }
+
+        // 2. Repository 生成（@Dependency で取得した ModelContainer から）
+        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
 
         // 3. 実行
         let todoItem = TodoItem(title: trimmedTitle, dueDate: dueDate)
@@ -158,62 +162,69 @@ public enum IntentError: LocalizedError {
 
 ---
 
-## DI パターン（SwiftData対応）
+## DI パターン（@Dependency + AppDependencyManager）
 
-### 課題
+### 基本方針
 
-App Intents の `@Dependency` は `Sendable` 型のみサポート。SwiftData Repository は `Sendable` にできない。
-
-### 解決策: 共有 ModelContainer パターン
-
-```swift
-// IntentDependencies.swift
-@MainActor
-public final class IntentDependencies {
-    public static let shared = IntentDependencies()
-    public private(set) var modelContainer: ModelContainer?
-
-    private init() {}
-
-    public func configure(modelContainer: ModelContainer) {
-        self.modelContainer = modelContainer
-    }
-
-    public func createRepository() throws -> SwiftDataTodoRepository {
-        guard let container = modelContainer else {
-            throw IntentDependenciesError.notConfigured
-        }
-        return SwiftDataTodoRepository(modelContext: container.mainContext)
-    }
-}
-```
-
-### アプリ起動時の設定
+`ModelContainer` や `@Observable @MainActor` クラスは `Sendable` 要件を満たすため、`AppDependencyManager` 経由で Intent と共有できる。アプリ起動時に `AppDependencyManager.shared.add(dependency:)` で**同期登録**し、Intent 側で `@Dependency` で取得する。
 
 ```swift
 // ProjectNameApp.swift
 @main
 struct IntentTodoApp: App {
     let modelContainer: ModelContainer
+    @State private var navigation: NavigationModel
 
     init() {
-        let schema = Schema([TodoItem.self, SubTask.self, Category.self])
-        let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-        let container = try! ModelContainer(for: schema, configurations: [config])
-        modelContainer = container
+        // ModelContainer を同期登録
+        let container = try! SharedModelContainer.createContainer()
+        self.modelContainer = container
+        AppDependencyManager.shared.add(dependency: container)
 
-        // Intent用に設定
-        Task { @MainActor in
-            IntentDependencies.shared.configure(modelContainer: container)
-        }
+        // NavigationModel を同期登録（同じインスタンスを @State にも保持）
+        let navigation = NavigationModel()
+        self.navigation = navigation
+        AppDependencyManager.shared.add(dependency: navigation)
     }
 
     var body: some Scene {
-        WindowGroup { ContentView() }
+        WindowGroup {
+            TodoListView()
+                .environment(navigation)
+        }
         .modelContainer(modelContainer)
     }
 }
 ```
+
+### Intent 側
+
+```swift
+struct AddTodoIntent: AppIntent {
+    @Dependency var modelContainer: ModelContainer
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
+        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        // ...
+    }
+}
+
+struct LaunchAppIntent: AppIntent {
+    @Dependency var navigationModel: NavigationModel
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        navigationModel.showAddTodo()
+        return .result()
+    }
+}
+```
+
+### 注意点
+
+- **`AppDependencyManager` 用の `AppIntentsPackage` を主ターゲットに重複宣言しないこと**。SPM 側で `AppIntentsPackage` を宣言している場合、main target に `includedPackages: [TodoIntentsPackage.self]` を含む `AppIntentsPackage` を追加するとシステム上で二重扱いになり、Shortcuts のルーティングが壊れる。main target には `AppIntentsPackage` を一切宣言しなくてよい。
+- 登録は `App.init()` で同期的に行うこと（`Task { ... }` にすると Intent の `perform()` 実行時にまだ登録されていない可能性がある）。
 
 ---
 
@@ -257,10 +268,17 @@ public struct TodoAppEntity: AppEntity, IndexedEntity {
 
 ```swift
 public struct TodoEntityQuery: EntityQuery, EntityStringQuery {
-    // ID検索
+    @Dependency
+    var modelContainer: ModelContainer
+
+    @MainActor
+    private func makeRepository() -> SwiftDataTodoRepository {
+        SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+    }
+
     @MainActor
     public func entities(for identifiers: [String]) async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
+        let repository = makeRepository()
         return try identifiers.compactMap { id in
             guard let uuid = UUID(uuidString: id),
                   let todo = try repository.fetch(by: uuid) else { return nil }
@@ -268,18 +286,14 @@ public struct TodoEntityQuery: EntityQuery, EntityStringQuery {
         }
     }
 
-    // 候補提案
     @MainActor
     public func suggestedEntities() async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        return try repository.fetchIncomplete().map { TodoAppEntity(from: $0) }
+        try makeRepository().fetchIncomplete().map { TodoAppEntity(from: $0) }
     }
 
-    // テキスト検索
     @MainActor
     public func entities(matching string: String) async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        return try repository.fetchAll()
+        try makeRepository().fetchAll()
             .filter { $0.title.localizedCaseInsensitiveContains(string) }
             .map { TodoAppEntity(from: $0) }
     }
@@ -490,41 +504,30 @@ struct TodoListView: View {
 
 ## テスト戦略
 
-### MockRepository でIntent単体テスト
+### メタデータと Repository 層のテスト
+
+`@Dependency` は `AppDependencyManager` 経由で解決されるため、SPM テスト（ホストアプリなし）では `perform()` の実行テストは難しい。以下の方針でカバーする：
+
+- **Repository 層**: 通常のモック注入 + ユニットテストで網羅
+- **Intent メタデータ**: `title` / `supportedModes` / `parameterSummary` 等の静的プロパティをテスト
+- **ビジネスロジック**: 可能な限り `perform()` から分離し、静的メソッド/Repository 側でテスト
+- **E2E**: 実機 Shortcuts / Siri での動作確認で補完
 
 ```swift
 import Testing
 @testable import TodoAppIntents
 
-@Suite("AddTodoIntent Tests")
+@Suite("AddTodoIntent Metadata Tests")
 struct AddTodoIntentTests {
-    @Test("Valid title creates todo")
-    @MainActor
-    func validTitle() async throws {
-        // Arrange
-        let mockRepo = MockTodoRepository()
-        IntentDependencies.shared.configureForTesting(repository: mockRepo)
-
-        var intent = AddTodoIntent()
-        intent.title = "Buy groceries"
-
-        // Act
-        let result = try await intent.perform()
-
-        // Assert
-        #expect(result.value?.title == "Buy groceries")
-        #expect(mockRepo.todos.count == 1)
+    @Test("supportedModes includes background")
+    func supportedModes() {
+        #expect(AddTodoIntent.supportedModes.contains(.background))
     }
 
-    @Test("Empty title throws validation error")
-    @MainActor
-    func emptyTitle() async throws {
-        var intent = AddTodoIntent()
-        intent.title = "   "
-
-        await #expect(throws: IntentError.self) {
-            _ = try await intent.perform()
-        }
+    @Test("Init assigns parameters correctly")
+    func initialization() {
+        let intent = AddTodoIntent(title: "Buy groceries")
+        #expect(intent.title == "Buy groceries")
     }
 }
 ```
@@ -661,25 +664,23 @@ struct CompleteTodoFromActivityIntent: AppIntent, LiveActivityIntent {
 }
 ```
 
-### エクステンション専用 ModelContainer
+### Extension 内 Intent の ModelContainer アクセス
 
-各エクステンションターゲットは**独自のModelContainer**を持つ必要があります。メインアプリの `IntentDependencies.shared` は利用できません。
+Extension ターゲット側で独自に Intent を定義している場合（例: `ToggleUrgentTodoIntent` を Widget Extension に配置）、安全策として `SharedModelContainer.createContainer()` から直接 ModelContainer を取得する。これは App Group 経由で共有 DB にアクセスでき、どのプロセスで実行されても動作する。
 
 ```swift
-// IntentTodoLiveActivity/Intents/LiveActivityIntents.swift
-
-/// エクステンション専用のModelContainer
-@MainActor
-let liveActivityModelContainer: ModelContainer = {
-    let schema = Schema([TodoItem.self, SubTask.self, Category.self])
-    let config = ModelConfiguration(
-        schema: schema,
-        isStoredInMemoryOnly: false,
-        cloudKitDatabase: .private("iCloud.com.example.IntentTodo")
-    )
-    return try! ModelContainer(for: schema, configurations: [config])
-}()
+// IntentTodoWidget/Intents/ControlIntents.swift
+struct ToggleUrgentTodoIntent: AppIntent {
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        let container = try SharedModelContainer.createContainer()
+        let context = container.mainContext
+        // ...
+    }
+}
 ```
+
+SPM パッケージに配置した Intent（`AddTodoIntent` 等）は `@Dependency var modelContainer` で解決できる。
 
 ### watchOS での Button(intent:) 制約
 

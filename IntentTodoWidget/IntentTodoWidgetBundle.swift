@@ -2,14 +2,21 @@
 //  IntentTodoWidgetBundle.swift
 //  IntentTodoWidget
 //
-//  Created by 藤井陽介 on 2026/01/30.
-//
 
+import AppIntents
 import SwiftUI
 import WidgetKit
 
 @main
 struct IntentTodoWidgetBundle: WidgetBundle {
+    init() {
+        // Widget Extension プロセスで .background Intent が実行される場合、
+        // メインアプリの AppDependencyManager 登録は引き継がれないので、
+        // この Extension プロセス側でも ModelContainer を登録する。
+        // sharedWidgetModelContainer は WidgetModelContainer.swift で初期化済み。
+        AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
+    }
+
     var body: some Widget {
         // Home screen widgets
         IntentTodoWidget()

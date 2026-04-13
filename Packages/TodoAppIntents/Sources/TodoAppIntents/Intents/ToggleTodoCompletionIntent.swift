@@ -3,21 +3,21 @@
 //  IntentTodo
 //
 
+#if os(iOS)
+import ActivityKit
+#endif
 import AppIntents
+import Domain
 import Repository
+import SwiftData
 
-/// An intent that toggles the completion status of a todo item.
+/// Toggles the completion status of a todo item.
 ///
-/// This intent can be triggered via:
-/// - Siri: "Mark 'Buy groceries' as done in IntentTodo"
-/// - Shortcuts: Toggle Todo Completion action
-/// - UI: `Button(intent: ToggleTodoCompletionIntent(todo: entity))`
+/// Conforms to `LiveActivityIntent` on iOS so the same intent can be triggered
+/// from Dynamic Island / lock screen buttons. When a todo becomes completed,
+/// any active Live Activity for that todo is ended automatically.
 public struct ToggleTodoCompletionIntent: AppIntent {
-    // MARK: - Metadata
-
-    public static var title: LocalizedStringResource {
-        "Toggle Todo Completion"
-    }
+    public static var title: LocalizedStringResource { "Toggle Todo Completion" }
 
     public static var description: IntentDescription {
         IntentDescription(
@@ -27,45 +27,58 @@ public struct ToggleTodoCompletionIntent: AppIntent {
         )
     }
 
-    /// Runs in background without opening the app.
     public static var supportedModes: IntentModes { .background }
 
-    // MARK: - Parameters
+    public static var parameterSummary: some ParameterSummary {
+        Summary("Toggle completion of \(\.$todo)")
+    }
 
     @Parameter(title: "Todo", description: "The todo to toggle")
     public var todo: TodoAppEntity
 
-    // MARK: - Initialization
+    @Dependency
+    var modelContainer: ModelContainer
 
     public init() {}
 
-    /// Creates an intent to toggle the specified todo.
     public init(todo: TodoAppEntity) {
         self.todo = todo
     }
 
-    // MARK: - Perform
-
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = try IntentDependencies.shared.createRepository()
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
 
         guard let uuid = UUID(uuidString: todo.id),
               let todoItem = try repository.fetch(by: uuid) else {
             throw IntentError.notFound("Todo not found")
         }
 
-        // Toggle completion status
         todoItem.isCompleted.toggle()
-
-        // Save changes
         try repository.update(todoItem)
-
-        // Reload widgets to reflect the change
         WidgetReloader.reloadAllWidgets()
 
-        // Return updated entity
-        let entity = TodoAppEntity(from: todoItem)
-        return .result(value: entity)
+        // If the todo is now completed, end any matching Live Activity.
+        #if os(iOS)
+        if todoItem.isCompleted {
+            await endMatchingLiveActivity(for: todo.id)
+        }
+        #endif
+
+        return .result(value: TodoAppEntity(from: todoItem))
     }
+
+    #if os(iOS)
+    @MainActor
+    private func endMatchingLiveActivity(for todoId: String) async {
+        for activity in Activity<TodoDeadlineActivityAttributes>.activities
+        where activity.attributes.todoId == todoId {
+            await activity.end(dismissalPolicy: .immediate)
+        }
+    }
+    #endif
 }
+
+#if os(iOS)
+extension ToggleTodoCompletionIntent: LiveActivityIntent {}
+#endif

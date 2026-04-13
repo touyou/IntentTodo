@@ -43,7 +43,7 @@ public struct TodoAppShortcuts: AppShortcutsProvider {
 
         // Show incomplete todos
         AppShortcut(
-            intent: ShowIncompleteTodosIntent(),
+            intent: ShowTodosIntent(filter: .incomplete),
             phrases: [
                 "Show incomplete todos in \(.applicationName)",
                 "What do I need to do in \(.applicationName)",
@@ -58,7 +58,7 @@ public struct TodoAppShortcuts: AppShortcutsProvider {
 
         // Show favorite todos
         AppShortcut(
-            intent: ShowFavoriteTodosIntent(),
+            intent: ShowTodosIntent(filter: .favorites),
             phrases: [
                 "Show favorite todos in \(.applicationName)",
                 "Show starred todos in \(.applicationName)",

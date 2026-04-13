@@ -8,6 +8,7 @@
 import Domain
 import SwiftData
 import SwiftUI
+import TodoAppIntents
 import WidgetKit
 
 /// Control widget for toggling the most urgent todo.
@@ -15,7 +16,7 @@ import WidgetKit
 /// Displays the most urgent (earliest due date) incomplete todo.
 /// Tap to toggle its completion status.
 struct ToggleUrgentTodoControl: ControlWidget {
-    static let kind = "ToggleUrgentTodoControl"
+    static let kind = "dev.touyou.IntentTodo.IntentTodoWidget.ToggleUrgentTodoControl"
 
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: Self.kind) {
