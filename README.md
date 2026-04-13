@@ -31,60 +31,61 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 | Extension | 実行パターン | 備考 |
 |:--|:--|:--|
-| **Home Widget** | `Link(destination:)` | アプリ起動目的は Apple 公式推奨で `Link` |
-| **Control Center** | `ControlWidgetButton(action:)` | `.foreground(.immediate)` / `.background` どちらも使用可能（`kind` は reverse-domain 形式） |
-| **Live Activity** | `Button(intent:)` | `LiveActivityIntent` プロトコル準拠 |
+| **Home Widget** | `Button(intent:)` / `Link(destination:)` | Large Widget の Add Todo は `Button(intent: LaunchAppIntent.addTodo())` で動作確認済み。Apple 公式は単純なアプリ起動なら `Link` を推奨 |
+| **Control Center** | `ControlWidgetButton(action:)` | `.foreground(.immediate)` で `LaunchAppIntent`、`.background` で `ToggleUrgentTodoIntent` / `ShowTodoCountIntent` を呼出（`kind` は reverse-domain 形式必須） |
+| **Live Activity** | `Button(intent:)` | `ToggleTodoCompletionIntent` / `SnoozeTodoIntent` が `LiveActivityIntent` 条件付き準拠 |
 | **Siri / Shortcuts** | `AppShortcutsProvider` | Siri フレーズ定義済み |
 | **Spotlight** | `IndexedEntity` | iOS / macOS |
 | **Complication** (watchOS) | 表示のみ | データ表示用 |
 
 ### 定義済み AppIntent 一覧
 
-#### コア Intent（TodoAppIntents パッケージ）
+すべての Intent を `TodoAppIntents` SPM パッケージに集約。Extension からも `import TodoAppIntents` で参照する。
 
-| Intent | 種別 | Mode | 用途 |
+| Intent | プロトコル | Mode | 用途 |
 |:--|:--|:--|:--|
-| `AddTodoIntent` | Action | `[.background, .foreground(.deferred)]` | Todo 追加 |
-| `ToggleTodoCompletionIntent` | Action | `.background` | 完了/未完了切替 |
-| `DeleteTodoIntent` | Action | `.background` | Todo 削除 |
-| `ToggleFavoriteIntent` | Action | `.background` | お気に入り切替 |
-| `ShowTodosIntent` | Query | `.foreground` | Todo 表示（filter で絞り込み） |
-| `LaunchAppIntent` | Navigation | `.foreground(.immediate)` | 画面指定でアプリ起動（target で遷移先指定） |
-
-#### Widget Extension 専用 Intent
-
-| Intent | Mode | 用途 |
-|:--|:--|:--|
-| `ToggleUrgentTodoIntent` | `.background` | 緊急 Todo の完了切替 |
-| `ShowTodoCountIntent` | `.background` | 未完了数を通知で表示 |
-
-#### Live Activity専用Intent
-
-| Intent | 用途 |
-|:--|:--|
-| `CompleteTodoFromActivityIntent` | アクティビティからTodo完了 |
-| `SnoozeTodoIntent` | 期限を30分延長 |
+| `AddTodoIntent` | `AppIntent` | `[.background, .foreground(.deferred)]` | Todo 追加 |
+| `ToggleTodoCompletionIntent` | `AppIntent` + `LiveActivityIntent` (iOS) | `.background` | 完了/未完了切替（完了時に対応する Live Activity を終了） |
+| `DeleteTodoIntent` | `AppIntent` | `.background` | Todo 削除 |
+| `ToggleFavoriteIntent` | `AppIntent` | `.background` | お気に入り切替 |
+| `ShowTodosIntent` | `AppIntent` | `.foreground` | Todo 表示（filter で絞り込み） |
+| `LaunchAppIntent` | `AppIntent` + `TargetContentProvidingIntent` (iOS/visionOS) | `.foreground(.immediate)` | 画面指定でアプリ起動（target で遷移先指定） |
+| `SnoozeTodoIntent` | `AppIntent` + `LiveActivityIntent` (iOS) | `.background` | 期限を 30 分延長（Live Activity も更新） |
+| `ToggleUrgentTodoIntent` | `AppIntent` | `.background` | 最緊急 Todo の完了切替 + 通知（Control Center 用） |
+| `ShowTodoCountIntent` | `AppIntent` | `.background` | 未完了数を通知で表示（Control Center 用） |
 
 ## アーキテクチャ
 
 ```
 IntentTodo/
-├── IntentTodo/                  # アプリターゲット
-├── IntentTodoWidget/            # Widget + Control Center
+├── IntentTodo/                  # アプリターゲット (App.init で AppDependencyManager 登録)
+├── IntentTodoWidget/            # Widget + Control Center (WidgetBundle.init でも登録)
 ├── IntentTodoLiveActivity/      # Live Activity
 ├── IntentTodoWatchApp/          # watchOS
 └── Packages/
-    ├── Domain/                  # データモデル（SwiftData @Model）
+    ├── Domain/                  # データモデル（SwiftData @Model）, ActivityAttributes
     ├── Repository/              # データアクセス層
-    ├── TodoAppIntents/          # ★コア：Intent + ビジネスロジック
-    └── UI/                      # Views, ViewModels
+    ├── TodoAppIntents/          # ★コア：全 Intent + AppShortcuts + 通知ヘルパー
+    └── UI/                      # Views, ViewModels, LiveActivityMonitor
 ```
 
 ### 依存関係
 
 ```
 Domain ← Repository ← TodoAppIntents ← UI ← App
+                              ↑
+              Extensions (Widget / LiveActivity / WatchApp)
 ```
+
+### DI パターン
+
+`@Dependency var modelContainer: ModelContainer` / `@Dependency var navigationModel: NavigationModel` で Intent から共有状態にアクセス。`AppDependencyManager.shared.add(dependency:)` を **`App.init()` と `WidgetBundle.init()` で同期登録**することで、各プロセスで `@Dependency` が解決される。
+
+| 呼出元 / モード | 実行プロセス | 登録場所 |
+|----------------|------------|---------|
+| Siri / Shortcuts / UI | メインアプリ | `App.init()` |
+| Widget `Button(intent:)` + `.foreground(.immediate)` | メインアプリ | `App.init()` |
+| Widget `ControlWidgetButton` + `.background` | Widget Extension | `WidgetBundle.init()` |
 
 ### 設計思想
 
