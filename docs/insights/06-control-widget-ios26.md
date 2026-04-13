@@ -67,31 +67,50 @@ Widget Extension 内で定義した `ControlConfigurationIntent` は、アプリ
 
 ## バックグラウンドアクションパターン
 
-Control Widget でアプリを開かずに処理だけ行いたい場合は、`.background` モードの Intent を使う。
+Control Widget でアプリを開かずに処理だけ行いたい場合は `.background` モードの Intent を使う。**このとき `perform()` は Widget Extension プロセスで実行される** ので、Widget Extension 側でも `AppDependencyManager` に依存を登録する必要がある。
 
 ```swift
-// IntentTodoWidget/Intents/ControlIntents.swift
-struct ToggleUrgentTodoIntent: AppIntent {
-    static let title: LocalizedStringResource = "Toggle Urgent Todo"
-    static let supportedModes: IntentModes = [.background]
+// IntentTodoWidget/IntentTodoWidgetBundle.swift
+@main
+struct IntentTodoWidgetBundle: WidgetBundle {
+    init() {
+        // Widget Extension プロセスで @Dependency を解決するため、
+        // Extension 側にも ModelContainer を登録する。
+        AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
+    }
+
+    var body: some Widget { /* ... */ }
+}
+
+// TodoAppIntents (SPM) 側の Intent
+public struct ToggleUrgentTodoIntent: AppIntent {
+    public static let title: LocalizedStringResource = "Toggle Urgent Todo"
+    public static let supportedModes: IntentModes = [.background]
+
+    @Dependency
+    var modelContainer: ModelContainer
 
     @MainActor
-    func perform() async throws -> some IntentResult {
-        // 安全策として SharedModelContainer から直接コンテナを取得。
-        // Extension 内定義の Intent の実行プロセスは未検証のため、
-        // どのプロセスから呼ばれても動作する App Group 経由を使用。
-        let container = try SharedModelContainer.createContainer()
-        let context = container.mainContext
+    public func perform() async throws -> some IntentResult {
+        let context = modelContainer.mainContext
         // ... データ操作
         return .result()
     }
 }
 ```
 
+### プロセス別登録ルール
+
+| 呼出元 / モード | 実行プロセス | 登録場所 |
+|----------------|------------|---------|
+| Shortcuts / UI | メインアプリ | `App.init()` |
+| Widget `Button(intent:)` + `.foreground(.immediate)` | メインアプリ | `App.init()` |
+| Widget `ControlWidgetButton(action:)` + `.background` | **Widget Extension** | `WidgetBundle.init()` |
+
 ### フィードバックはローカル通知で
 
-ユーザーへの結果表示はローカル通知で行う（`ControlConfigurationIntent` では dialog が使えないため）。
+`ControlConfigurationIntent` では `dialog` が使えないため、ユーザーへの結果表示はローカル通知で行う。
 
 ```swift
-ControlNotificationHelper.sendCompletedNotification(todoTitle: todo.title)
+ControlNotificationHelper.sendToggledNotification(todoTitle: todo.title, isCompleted: ...)
 ```

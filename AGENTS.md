@@ -217,13 +217,39 @@ struct AddTodoIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
         // ...
     }
 }
 ```
 
-`ModelContainer` も `@Observable @MainActor` クラスも `Sendable` 要件を満たすため、`@Dependency` で問題なく共有できる。
+`ModelContainer` も `@Observable @MainActor` クラスも `Sendable` 要件を満たすため、`@Dependency` で問題なく共有できる。SwiftData アクセスは `modelContainer.mainContext` を使う（`ModelContext(modelContainer)` で毎回新規生成しない）。
+
+### 実行プロセスと登録先
+
+`supportedModes` によって `perform()` がどのプロセスで実行されるかが決まり、`@Dependency` はそのプロセス内の `AppDependencyManager` からのみ解決される。
+
+| 呼出元 | モード | 実行プロセス | 必要な登録 |
+|-------|------|------------|-----------|
+| Siri / Shortcuts | 全モード | メインアプリ | `App.init()` |
+| UI の `Button(intent:)` | 全モード | メインアプリ | `App.init()` |
+| Widget `Button(intent:)` | `.foreground(.immediate)` | **メインアプリ** | `App.init()` |
+| Widget `Button(intent:)` / ControlWidget | `.background` | **Widget Extension** | `WidgetBundle.init()` |
+| Live Activity ボタン | `LiveActivityIntent` | Live Activity Extension | Extension 側 |
+
+```swift
+// Widget Extension 側でも同様に同期登録
+@main
+struct IntentTodoWidgetBundle: WidgetBundle {
+    init() {
+        AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
+    }
+
+    var body: some Widget { /* ... */ }
+}
+```
+
+プロセスごとに `AppDependencyManager.shared` は独立インスタンスなので、そのプロセスで `@Dependency` を使う Intent がある場合は、そのプロセスの起点（`App.init()` / `WidgetBundle.init()` 等）で登録する必要がある。
 
 ### Intent Modes（iOS 26+）
 

@@ -178,7 +178,7 @@ static let supportedModes: IntentModes = [.foreground(.immediate)]
 | 方式 | 特徴 |
 |------|------|
 | `onAppIntentExecution` | 宣言的・View modifier に集約。`TargetContentProvidingIntent` 準拠 Intent が対象。初期 iOS 26 では cold start 時に失敗する可能性 |
-| `AppDependencyManager` + `@Dependency` + `perform()` | Intent 側に集約。cold start でも安定（main target プロセスで実行される場合）|
+| `AppDependencyManager` + `@Dependency` + `perform()` | Intent 側に集約。cold start でも安定。実行プロセスごとに依存登録が必要（`App.init()` だけでなく、Widget 経由の `.background` Intent を使うなら `WidgetBundle.init()` にも登録が必要）|
 
 ---
 

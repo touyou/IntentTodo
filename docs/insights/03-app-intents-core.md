@@ -70,10 +70,33 @@ public struct AddTodoIntent: AppIntent {
 }
 ```
 
-### 注意
+### 実行プロセスごとに登録が必要
 
-- 登録は `App.init()` で**同期**的に。`Task { @MainActor in ... }` に入れると `perform()` より後になる可能性がある。
-- Extension ターゲット内に定義した Intent（例: Widget Extension 内の `ControlIntents.swift`）について、`AppDependencyManager` 経由で共有できるか未検証。実行プロセスによっては `SharedModelContainer.createContainer()` を直接呼ぶ必要があるかもしれない。
+`AppDependencyManager.shared` は**プロセスごとに独立したインスタンス**。`supportedModes` によって `perform()` がどのプロセスで実行されるかが決まる。
+
+| モード/呼出元 | 実行プロセス | 登録が必要な場所 |
+|--------------|-------------|----------------|
+| `.foreground(.immediate)` | メインアプリ（開かれる） | `App.init()` |
+| `.foreground` | メインアプリ | `App.init()` |
+| `.background` / Siri / Shortcuts | メインアプリ | `App.init()` |
+| `.background` / Widget ControlWidgetButton | Widget Extension | `WidgetBundle.init()` |
+| `LiveActivityIntent` | Live Activity Extension | Extension 側 |
+
+Widget Extension 側での登録例:
+
+```swift
+@main
+struct IntentTodoWidgetBundle: WidgetBundle {
+    init() {
+        AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
+    }
+    var body: some Widget { /* ... */ }
+}
+```
+
+### 登録のタイミング
+
+`App.init()` / `WidgetBundle.init()` で**同期**的に。`Task { @MainActor in ... }` に入れると `perform()` が Task 完了を待たずに走る可能性があり、`@Dependency` 解決失敗になる。
 
 ---
 
