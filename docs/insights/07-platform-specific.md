@@ -45,34 +45,26 @@ IntentTodoWatchApp/
 
 ### LiveActivityIntent vs AppIntent
 
-Live Activity からアクションを実行する場合は `LiveActivityIntent` を使用する（公式Doc: "make sure it inherits from LiveActivityIntent"）。
+Live Activity から Activity の開始/更新/終了を伴うアクションを実行する場合は `LiveActivityIntent` を使用する（[Displaying live data with Live Activities](https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities#Start-and-stop-Live-Activities-from-App-Intents) より "When you implement your app intent that starts the Live Activity, make sure it inherits from `LiveActivityIntent`."）。
 
-**重要**: `LiveActivityIntent` を採用することで、アプリがフォアグラウンドにない状態でも Live Activity を開始可能。公式ドキュメントには以下の記載がある:
-> "you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a LiveActivityIntent"
+**重要な挙動差**（[ActivityKit / Activity](https://developer.apple.com/documentation/activitykit/activity) および [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) より）:
 
-```swift
-struct CompleteTodoFromActivityIntent: LiveActivityIntent {
-    static var title: LocalizedStringResource = "Complete Todo"
+- Live Activity の**開始**はアプリがフォアグラウンドにある時のみ可能。ただし `LiveActivityIntent` を使えばバックグラウンドからも可能:
+  > "You can update or end a Live Activity while your app is in the background, but you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a `LiveActivityIntent`."
+- `LiveActivityIntent` の `perform()` は**アプリプロセス**で実行される:
+  > "If you adopt the `LiveActivityIntent` or `AudioPlaybackIntent` protocol, the system runs the app intent in the app's process."
+- 対して通常の `AppIntent` を Widget/Live Activity から呼ぶ場合は **Widget Extension プロセス**で実行される:
+  > "If you adopt the `AppIntent` protocol, add your custom app intent to your widget extension target and your app target."
 
-    @Parameter(title: "Todo ID")
-    var todoId: String
-
-    @MainActor
-    func perform() async throws -> some IntentResult {
-        // Todo完了処理 + Live Activity を終了
-        await endLiveActivity(for: todoId)
-        return .result()
-    }
-}
-```
+本プロジェクトでは `ToggleTodoCompletionIntent` と `SnoozeTodoIntent` を `#if os(iOS)` で `LiveActivityIntent` に条件付き準拠させ、Live Activity のボタン経由でアプリプロセス側で実行されるようにしている。
 
 ### Intent種別の使い分け
 
-| Intent種別 | 用途 | 特徴 |
-|-----------|------|------|
-| `AppIntent` | Siri/Shortcuts/UI | 汎用的なアクション |
-| `LiveActivityIntent` | Dynamic Island/ロック画面 | Activity状態の操作が可能 |
-| `ControlConfigurationIntent` | コントロールセンター | Extension配置必須 |
+| Intent種別 | 用途 | 実行プロセス |
+|-----------|------|------------|
+| `AppIntent` | Siri/Shortcuts/UI/Widget | Siri/Shortcuts はアプリ、Widget は Widget Extension |
+| `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | アプリプロセス（公式保証） |
+| `ControlConfigurationIntent` | コントロールセンター設定値 | Extension 配置必須 |
 
 ---
 
@@ -143,8 +135,8 @@ Button(intent: OpenAddTodoIntent()) {
 ### 注意点
 
 - `AppIntents`モジュールのimportが必要
-- Intentは`openAppWhenRun = true`でアプリを開くか、バックグラウンド実行
-- **アプリを開くだけの場合は`Link(destination:)`が公式推奨** （Apple Docs: "If you want to offer an interaction that opens the app, use Link"）
+- Intent の実行モード（`supportedModes`）で挙動が決まる（`.background` / `.foreground(.immediate)` 等）
+- **アプリを開くだけが目的の場合は `Link(destination:)` が公式推奨**（[Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) より "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`"）
 
 ---
 

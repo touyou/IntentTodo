@@ -23,7 +23,7 @@
 
 ### ControlWidgetButton + foreground Intent
 
-Control Widget からアプリを開く場合、`ControlWidgetButton(action:)` に `.foreground(.immediate)` の Intent を渡す。**`kind` は Extension Bundle ID 形式（reverse-domain）で書く**のが重要。
+Control Widget からアプリを開く場合、`ControlWidgetButton(action:)` に `.foreground(.immediate)` の Intent を渡す。
 
 ```swift
 struct QuickAddTodoControl: ControlWidget {
@@ -41,15 +41,13 @@ struct QuickAddTodoControl: ControlWidget {
 }
 ```
 
-Apple 公式サンプル（"Adding refinements and configuration to controls"）も reverse-domain 形式：
+**`kind` は reverse-domain 形式を推奨**。Apple 公式の全サンプル（[Creating controls to perform actions across the system](https://developer.apple.com/documentation/widgetkit/creating-controls-to-perform-actions-across-the-system)）が `com.example.MyApp.TimerToggle` / `com.example.myApp.performActionButton` / `com.yourcompany.GarageDoorOpener` 等の reverse-domain 形式を使用：
 
 ```swift
 static let kind: String = "com.example.MyApp.TimerToggle"
 ```
 
-### 短い kind の失敗
-
-`static let kind = "QuickAddTodoControl"` のような**短い名前は機能しない**（少なくとも iOS 26 初期）。`ControlWidgetButton` の foreground 遷移が起動しない。
+本プロジェクトで過去に `"QuickAddTodoControl"` のような短い名前にしていた時期は foreground 遷移が機能しなかった（経験則）。公式は形式を明示していないが、サンプルに合わせて reverse-domain 形式にしておくのが無難。
 
 ### ControlConfigurationIntent と SetValueIntent
 

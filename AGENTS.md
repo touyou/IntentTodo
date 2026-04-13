@@ -86,7 +86,7 @@ IntentTodoWatchApp/         # watchOS アプリ
 - **visionOS**: 空間UI（NavigationSplitView、Ornament、ホバーエフェクト）
 - **ウィジェット**: Small/Medium/Large サイズ対応（Todo一覧表示、アプリ起動は `Link(destination:)` を使用）
 
-> **Widget でのアプリ起動**: Apple公式ドキュメント「Adding interactivity to widgets and Live Activities」に "If you want to offer an interaction that opens the app, use Link" と明記。`Button(intent:)` はアプリを開くだけの用途には非推奨。
+> **Widget でのアプリ起動**: [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) に "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`" と明記。アプリを開くだけの用途には `Button(intent:)` より `Link` が公式推奨。
 - **ライブアクティビティ**: Dynamic Island + ロック画面（期限1時間以内で自動表示、`LiveActivityIntent` 使用）
 - **コントロールセンター**: `ControlWidgetButton(action:)` で `LaunchAppIntent` / `.background` Intent を直接呼ぶ
 
@@ -312,7 +312,7 @@ NavigationStack {
 
 ### LiveActivityIntent（Live Activity専用）
 
-Live Activity からアクションを実行する場合は `LiveActivityIntent` を使用する（公式Doc: "make sure it inherits from LiveActivityIntent"）。通常の `AppIntent` ではなく `LiveActivityIntent` を使うことで、Activity の状態操作が可能になる。
+Live Activity からアクションを実行する場合は `LiveActivityIntent` を使用する（[Displaying live data with Live Activities](https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities#Start-and-stop-Live-Activities-from-App-Intents) より "make sure it inherits from `LiveActivityIntent`"）。通常の `AppIntent` ではなく `LiveActivityIntent` を使うことで、Activity の状態操作が可能になる。
 
 ```swift
 struct CompleteTodoFromActivityIntent: LiveActivityIntent {
@@ -329,7 +329,12 @@ struct CompleteTodoFromActivityIntent: LiveActivityIntent {
 }
 ```
 
-**公式Docより**: `LiveActivityIntent` を採用することで、アプリがフォアグラウンドにない状態でも Live Activity を開始可能（"you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a LiveActivityIntent"）。
+[ActivityKit / Activity](https://developer.apple.com/documentation/activitykit/activity) より: "You can update or end a Live Activity while your app is in the background, but you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a `LiveActivityIntent`."
+
+さらに [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) が明記する実行プロセスの差：
+> "If you adopt the `LiveActivityIntent` or `AudioPlaybackIntent` protocol, the system runs the app intent in the app's process. [...] If you adopt the `AppIntent` protocol, add your custom app intent to your widget extension target and your app target."
+
+つまり `LiveActivityIntent` はアプリプロセスで実行、通常の `AppIntent` を Widget 経由で呼ぶ場合は Widget Extension プロセスで実行される。
 
 | Intent種別 | 用途 | 特徴 |
 |-----------|------|------|

@@ -126,7 +126,8 @@ Widget Extension の `Button(intent:)` や `ControlWidgetButton(action:)` から
 
 アプリ起動が目的の場合は `Link(destination:)` を優先する。
 
-> "If you want to offer an interaction that opens the app, use Link" — Apple 公式ドキュメント「Adding interactivity to widgets and Live Activities」
+> "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`"
+> — [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities)
 
 ---
 

@@ -75,7 +75,7 @@ NavigationStack {
 
 ### 実行順序
 
-公式ドキュメントによると:
+[onAppIntentExecution 公式ドキュメント](https://developer.apple.com/documentation/SwiftUI/View/onAppIntentExecution(_:perform:)) の挙動記述によると:
 > "If the app intent implements a perform() method, it will be called after the action closure."
 
 つまり `onAppIntentExecution` のクロージャが**先**に実行され、その後に Intent の `perform()` が呼ばれる。両方でナビゲーションを行うと二重実行になるため、どちらか一方に統一することを推奨。

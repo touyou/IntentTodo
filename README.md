@@ -31,7 +31,7 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 | Extension | 実行パターン | 備考 |
 |:--|:--|:--|
-| **Home Widget** | `Button(intent:)` / `Link(destination:)` | Large Widget の Add Todo は `Button(intent: LaunchAppIntent.addTodo())` で動作確認済み。Apple 公式は単純なアプリ起動なら `Link` を推奨 |
+| **Home Widget** | `Button(intent:)` / `Link(destination:)` | Large Widget の Add Todo は `Button(intent: LaunchAppIntent.addTodo())` で動作確認済み。単純なアプリ起動は `Link` 推奨（[公式ドキュメント](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities)）|
 | **Control Center** | `ControlWidgetButton(action:)` | `.foreground(.immediate)` で `LaunchAppIntent`、`.background` で `ToggleUrgentTodoIntent` / `ShowTodoCountIntent` を呼出（`kind` は reverse-domain 形式必須） |
 | **Live Activity** | `Button(intent:)` | `ToggleTodoCompletionIntent` / `SnoozeTodoIntent` が `LiveActivityIntent` 条件付き準拠 |
 | **Siri / Shortcuts** | `AppShortcutsProvider` | Siri フレーズ定義済み |
