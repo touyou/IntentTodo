@@ -32,44 +32,48 @@ public struct AddTodoIntent: AppIntent {
 
 ---
 
-## DI の制約と解決策
+## DI パターン（@Dependency + AppDependencyManager）
 
-### 問題
+### 基本
 
-App Intentsの `@Dependency` は `Sendable` 型のみをサポートする。SwiftDataを扱うRepositoryは `Sendable` にできない。
+`ModelContainer` は `Sendable` を満たすため、`@Dependency` でそのまま共有できる。`App.init()` で `AppDependencyManager.shared.add(dependency:)` に**同期登録**し、Intent 側で `@Dependency` で取得、`perform()` 内で `ModelContext(modelContainer)` から Repository を生成する。
 
-### 解決策: 共有ModelContainerパターン
+`@Observable @MainActor` クラス（`NavigationModel` 等）も同様に共有可能。
+
+### アプリ側の同期登録
 
 ```swift
-@MainActor
-public final class IntentDependencies {
-    public static let shared = IntentDependencies()
-    public private(set) var modelContainer: ModelContainer?
+@main
+struct IntentTodoApp: App {
+    let modelContainer: ModelContainer
 
-    public func configure(modelContainer: ModelContainer) {
-        self.modelContainer = modelContainer
-    }
-
-    public func createRepository() throws -> SwiftDataTodoRepository {
-        guard let container = modelContainer else {
-            throw IntentDependenciesError.notConfigured
-        }
-        return SwiftDataTodoRepository(modelContext: container.mainContext)
+    init() {
+        let container = try! SharedModelContainer.createContainer()
+        self.modelContainer = container
+        AppDependencyManager.shared.add(dependency: container)
     }
 }
 ```
 
-### Intent内での使用
+### Intent 側
 
 ```swift
 public struct AddTodoIntent: AppIntent {
+    @Dependency
+    var modelContainer: ModelContainer
+
     @MainActor
     public func perform() async throws -> some IntentResult {
-        let repository = try IntentDependencies.shared.createRepository()
-        // repositoryを使用...
+        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        // ...
     }
 }
 ```
+
+### 注意
+
+- 登録は `App.init()` で**同期**的に。`Task { @MainActor in ... }` に入れると `perform()` より後になる可能性がある。
+- Extension ターゲット内に定義した Intent（例: Widget Extension 内の `ControlIntents.swift`）について、`AppDependencyManager` 経由で共有できるか未検証。実行プロセスによっては `SharedModelContainer.createContainer()` を直接呼ぶ必要があるかもしれない。
 
 ---
 
@@ -106,26 +110,29 @@ public struct TodoAppEntity: AppEntity {
 
 ```swift
 public struct TodoEntityQuery: EntityQuery {
+    @Dependency
+    var modelContainer: ModelContainer
+
+    @MainActor
+    private func makeRepository() -> SwiftDataTodoRepository {
+        SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+    }
+
     @MainActor
     public func entities(for identifiers: [String]) async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        // ID で検索...
+        // ID で検索（makeRepository() を使用）
     }
 
     @MainActor
     public func suggestedEntities() async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        let todos = try repository.fetchIncomplete()
-        return todos.map { TodoAppEntity(from: $0) }
+        try makeRepository().fetchIncomplete().map { TodoAppEntity(from: $0) }
     }
 }
 
 extension TodoEntityQuery: EntityStringQuery {
     @MainActor
     public func entities(matching string: String) async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        let allTodos = try repository.fetchAll()
-        return allTodos
+        try makeRepository().fetchAll()
             .filter { $0.title.lowercased().contains(string.lowercased()) }
             .map { TodoAppEntity(from: $0) }
     }
@@ -154,18 +161,18 @@ public struct TodoAppShortcuts: AppShortcutsProvider {
 }
 ```
 
-### iOS 26+: パッケージ内でも定義可能
+### パッケージ内での定義
 
-iOS 26以降では、`AppShortcutsProvider`をSwift Package内で定義し、`AppIntentsPackage`経由で統合できる。
+`AppShortcutsProvider` も Swift Package 内に配置可能。パッケージ側に `AppIntentsPackage` を1つ宣言するだけで、そこに含まれる Intent と AppShortcutsProvider がアプリ全体で認識される。
 
 ```swift
-// メインアプリでAppIntentsPackageとして統合
-struct IntentTodoAppIntentsPackage: AppIntentsPackage {
-    static var includedPackages: [any AppIntentsPackage.Type] {
-        [TodoIntentsPackage.self]  // パッケージ内のAppShortcutsProviderも含まれる
-    }
+// Packages/TodoAppIntents/Sources/TodoAppIntents/TodoAppIntents.swift
+public struct TodoIntentsPackage: AppIntentsPackage {
+    public init() {}
 }
 ```
+
+**重要**: メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を**重複宣言しない**こと。システム上 `AppIntentsPackage` はアプリあたり1つまでで、SPM 側の自動発見と二重登録になると Shortcuts のルーティングが壊れる。
 
 **注意**: アプリ内に `AppShortcutsProvider` が複数存在するとビルドエラーになる。
 
@@ -246,22 +253,21 @@ func perform() async throws -> some IntentResult {
 
 ### 重複Intentの検出と統合
 
-似た機能を持つIntentは統合を検討する。
+「同じアクションは同じ Intent」を原則として、似た機能を持つ Intent は統合を検討する。パラメータ（`AppEnum` や `AppEntity`）で分岐させれば1つの Intent で複数バリエーションをカバーできる。
 
 ```swift
-// ❌ 重複: 両方とも「アプリを開いてTodo追加画面を表示」
-struct OpenAddTodoIntent: AppIntent { ... }
-struct ActionButtonAddTodoIntent: AppIntent { ... }
+// ✅ filter: TodoFilterType で統合
+public struct ShowTodosIntent: AppIntent {
+    @Parameter(title: "Filter", default: .all)
+    public var filter: TodoFilterType
+    // ...
+}
 
-// ✅ 統合: searchKeywordsでユースケースをカバー
-public struct OpenAddTodoIntent: AppIntent {
-    public static var description: IntentDescription {
-        IntentDescription(
-            LocalizedStringResource("Opens the app to add a new todo"),
-            categoryName: "Todos",
-            searchKeywords: ["add", "create", "new", "quick", "action button"]
-        )
-    }
+// ✅ target: AppScreenTarget で統合
+public struct LaunchAppIntent: AppIntent {
+    @Parameter(title: "Target")
+    public var target: AppScreenTarget
+    // ...
 }
 ```
 
@@ -269,8 +275,8 @@ public struct OpenAddTodoIntent: AppIntent {
 
 | Intent組み合わせ | 統合しない理由 |
 |-----------------|---------------|
-| `ShowTodosIntent` / `ShowIncompleteTodosIntent` | Siriフレーズが異なりUX的に別 |
-| `CompleteTodoFromActivityIntent` / `ToggleTodoCompletionIntent` | LiveActivity固有の終了処理が必要 |
+| `CompleteTodoFromActivityIntent` / `ToggleTodoCompletionIntent` | LiveActivity固有の終了処理が必要（`LiveActivityIntent` プロトコル準拠が別） |
+| Widget Extension 内の独自 Intent（`ToggleUrgentTodoIntent` 等） | Extension プロセスで動作するため SPM の Intent と分離する必要がある |
 
 ### AppEnum
 

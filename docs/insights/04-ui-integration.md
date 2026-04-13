@@ -94,38 +94,6 @@ iOS 26.4 未満をサポートする場合や、安定性を優先する場合�
 - **`AppIntentSceneDelegate`**: シーンレベルで Intent をハンドリングするプロトコル。`scene(_:willPerformAppIntent:)` メソッドで受信。
 - **`UISceneAppIntent`**: `TargetContentProvidingIntent` を継承し、特定のシーンをターゲットにする Intent。
 
-### 実装パターン: デュアルIntent→UI連携
-
-本プロジェクトでは `onAppIntentExecution` と `IntentAppState` を併用する「デュアルパターン」を採用している。
-
-```swift
-// 主軸: onAppIntentExecution（アプリ内Intent実行時）
-.onAppIntentExecution(LaunchAppIntent.self) { intent in
-    switch intent.target {
-    case .addTodo: navigationViewModel.showAddTodo()
-    default: break
-    }
-}
-.onAppIntentExecution(OpenAddTodoIntent.self) { _ in
-    navigationViewModel.showAddTodo()
-}
-
-// フォールバック: IntentAppState（Extension→アプリ間通信）
-.onAppear {
-    if IntentAppState.shared.consumeShowAddTodoRequest() {
-        navigationViewModel.showAddTodo()
-    }
-}
-```
-
-### IntentAppState との使い分け
-
-| 方式 | 用途 | 特徴 |
-|------|------|------|
-| `onAppIntentExecution` | アプリ起動中のIntent→UI連携 | 宣言的、View modifier で完結。kill時は不安定 |
-| `AppDependencyManager` + `perform()` | kill状態からも安定したナビゲーション | perform() 内で操作するため View の準備を待たない（後述） |
-| `IntentAppState` (共有状態) | Extension → アプリ間の通信（フォールバック） | Control Widget 等、Extension からの状態伝達向き |
-
 ### TargetContentProvidingIntent
 
 `onAppIntentExecution` を使用するためには、対象Intentが `TargetContentProvidingIntent` に準拠している必要がある。
@@ -151,80 +119,66 @@ extension LaunchAppIntent: TargetContentProvidingIntent {}
 
 ---
 
-## AppDependencyManager + perform() による安定したナビゲーション（iOS 26+）
+## AppDependencyManager + perform() による安定したナビゲーション
 
-`onAppIntentExecution` のkill時タイムアウト問題を回避する、より安定したパターン。ナビゲーション状態を `AppDependencyManager` に登録し、Intent の `perform()` 内で直接操作する。
-
-### 仕組み
-
-1. ナビゲーション状態（`@Observable` クラス等）を `AppDependencyManager.shared.add()` で登録
-2. Intent 側で `@Dependency` プロパティラッパーで取得
-3. `perform()` 内でナビゲーションを操作
-
-`perform()` は Intent の実行コンテキストで呼ばれるため、SwiftUI シーンの準備完了を待たずにナビゲーション状態を書き込める。シーンが表示されたとき、`@Observable` の変化を受けて自動的に反映される。
+ナビゲーション状態を `AppDependencyManager` に同期登録し、Intent の `perform()` で書き込む。`perform()` は Intent 実行コンテキストで呼ばれるため、SwiftUI シーンの準備完了を待たずに書き込める。シーンが表示されたときに `@Observable` の変化を受けて自動反映される。
 
 ```swift
-// ナビゲーション状態（App Intents DI で共有）
+// ナビゲーション状態
 @MainActor
 @Observable
 public final class NavigationModel {
-    public var showMoodCreator: Bool = false
+    public var showingAddTodo: Bool = false
     public init() {}
 }
 
-// App.init でDI登録
+// App.init で同期登録
 @main
-struct MyApp: App {
+struct IntentTodoApp: App {
+    @State private var navigation: NavigationModel
+
     init() {
-        AppDependencyManager.shared.add { NavigationModel() }
+        let navigation = NavigationModel()
+        self.navigation = navigation
+        AppDependencyManager.shared.add(dependency: navigation)
     }
-    // ...
+
+    var body: some Scene {
+        WindowGroup {
+            TodoListView().environment(navigation)
+        }
+    }
 }
 
-// Intent 側で @Dependency で取得して perform() 内で操作
-struct OpenMoodCreatorIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Mood Creator"
-    static var supportedModes: IntentModes { .foreground(.immediate) }
+// Intent は @Dependency で取得
+struct LaunchAppIntent: AppIntent {
+    static let supportedModes: IntentModes = [.foreground(.immediate)]
 
     @Dependency
     var navigationModel: NavigationModel
 
     @MainActor
     func perform() async throws -> some IntentResult {
-        navigationModel.showMoodCreator = true
+        navigationModel.showingAddTodo = true
         return .result()
     }
 }
-
-// View 側は @Observable の変化を受けるだけ
-@main
-struct MyApp: App {
-    @Dependency var navigationModel: NavigationModel
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
-                .sheet(isPresented: $navigationModel.showMoodCreator) {
-                    MoodCreatorView()
-                }
-        }
-    }
-}
 ```
-
-### `onAppIntentExecution` との比較
-
-| 方式 | kill時の安定性 | 記述スタイル | 注意点 |
-|------|--------------|------------|--------|
-| `onAppIntentExecution` | ❌ タイムアウトの可能性 | 宣言的・View modifier | TargetContentProvidingIntent 必須 |
-| `AppDependencyManager` + `perform()` | ✅ 安定 | 命令的・Intent 側に集約 | `@MainActor` の整合性に注意 |
 
 ### supportedModes の選択
 
-ナビゲーション目的のIntentには `foreground(.immediate)` が適切。アプリを即座にフォアグラウンドに持ってきてから `perform()` が実行される。
+ナビゲーション目的の Intent には `.foreground(.immediate)` が適切。アプリを即座にフォアグラウンドに持ってきてから `perform()` が実行される。
 
 ```swift
-static var supportedModes: IntentModes { .foreground(.immediate) }
+static let supportedModes: IntentModes = [.foreground(.immediate)]
 ```
+
+### `onAppIntentExecution` との使い分け
+
+| 方式 | 特徴 |
+|------|------|
+| `onAppIntentExecution` | 宣言的・View modifier に集約。`TargetContentProvidingIntent` 準拠 Intent が対象。初期 iOS 26 では cold start 時に失敗する可能性 |
+| `AppDependencyManager` + `@Dependency` + `perform()` | Intent 側に集約。cold start でも安定（main target プロセスで実行される場合）|
 
 ---
 

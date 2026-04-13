@@ -88,9 +88,7 @@ IntentTodoWatchApp/         # watchOS アプリ
 
 > **Widget でのアプリ起動**: Apple公式ドキュメント「Adding interactivity to widgets and Live Activities」に "If you want to offer an interaction that opens the app, use Link" と明記。`Button(intent:)` はアプリを開くだけの用途には非推奨。
 - **ライブアクティビティ**: Dynamic Island + ロック画面（期限1時間以内で自動表示、`LiveActivityIntent` 使用）
-- **コントロールセンター**: クイック追加、Todo数表示、緊急Todo切り替え（`.background` + 通知パターン）
-
-> **⚠️ iOS 26 既知の問題**: `ControlWidgetButton` に `OpenIntent` 専用 initializer（公式Doc: "Creates a button template for a control that launches an app"）が存在するが、iOS 26 では動作しない。`.background` Intent + ローカル通知で代替中。詳細は [docs/insights/06-control-widget-ios26.md](docs/insights/06-control-widget-ios26.md)
+- **コントロールセンター**: `ControlWidgetButton(action:)` で `LaunchAppIntent` / `.background` Intent を直接呼ぶ
 
 #### 設計プロセス
 
@@ -180,17 +178,52 @@ struct AddTodoIntent: AppIntent {
 ```
 
 ### Swift Package内でのAppIntents
-```swift
-// パッケージ内で定義
-public struct TodoIntentsPackage: AppIntentsPackage { }
 
-// アプリターゲットで統合
-struct AppIntentsPackage: AppIntentsPackage {
-    static var includedPackages: [any AppIntentsPackage.Type] {
-        [TodoIntentsPackage.self]
+Swift Package 内で Intent を定義する場合は、パッケージに `AppIntentsPackage` を1つ宣言するだけで良い。**メインアプリターゲットに `includedPackages` を含む `AppIntentsPackage` を重複宣言してはいけない**（システム上ではアプリ全体で1つまでに制限されており、SPM 側の宣言が二重扱いになると Shortcuts のルーティングが壊れる）。
+
+```swift
+// パッケージ内でのみ宣言
+public struct TodoIntentsPackage: AppIntentsPackage { }
+```
+
+メインアプリ側には何も宣言しなくてよい。パッケージの Intent は自動的にアプリの Intent として登録される。
+
+### @Dependency + AppDependencyManager パターン
+
+Intent がアプリの共有状態（`ModelContainer`、`NavigationModel` 等）にアクセスする場合、`AppDependencyManager` に同期登録し Intent 側で `@Dependency` で取得する。
+
+```swift
+// App.init() で同期登録
+@main
+struct MyApp: App {
+    let modelContainer: ModelContainer
+    @State private var navigation: NavigationModel
+
+    init() {
+        let container = try! SharedModelContainer.createContainer()
+        self.modelContainer = container
+        AppDependencyManager.shared.add(dependency: container)
+
+        let navigation = NavigationModel()
+        self.navigation = navigation
+        AppDependencyManager.shared.add(dependency: navigation)
+    }
+}
+
+// Intent で @Dependency から取得
+struct AddTodoIntent: AppIntent {
+    @Dependency var modelContainer: ModelContainer
+    @Parameter(title: "Title") var title: String
+
+    @MainActor
+    func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
+        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        // ...
     }
 }
 ```
+
+`ModelContainer` も `@Observable @MainActor` クラスも `Sendable` 要件を満たすため、`@Dependency` で問題なく共有できる。
 
 ### Intent Modes（iOS 26+）
 
@@ -249,7 +282,7 @@ NavigationStack {
 
 **iOS バージョンによる動作差**
 - **iOS 26.4 以降**: cold start でも正常動作（ワークショップPDF "In iOS 26.4 and above this works as before"）
-- **初期 iOS 26（〜26.3）**: cold start 時タイムアウトでナビゲーション失敗の可能性あり。その場合は `AppDependencyManager` + `@Dependency` + `perform()` パターンが安定（詳細は `docs/insights/04-ui-integration.md` 参照）
+- **初期 iOS 26（〜26.3）**: cold start 時タイムアウトでナビゲーション失敗の可能性あり。その場合は `AppDependencyManager` + `@Dependency var navigationModel` + `perform()` でナビゲーション状態を書き込むパターンに切り替える（詳細は `docs/insights/04-ui-integration.md` 参照）
 
 ### LiveActivityIntent（Live Activity専用）
 

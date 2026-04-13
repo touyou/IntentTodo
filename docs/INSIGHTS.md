@@ -23,38 +23,33 @@
 ### [03. App Intents コア設計](insights/03-app-intents-core.md)
 
 - Intent = 「アプリの動詞」としての設計
-- DI制約と共有ModelContainerパターン
+- DI パターン（`@Dependency` + `AppDependencyManager`）
 - AppEntity / IndexedEntity / EntityQuery
 - App Shortcuts（`AppShortcutsProvider`、フレーズのパラメータ型制限）
-- Intent統合のベストプラクティス（重複Intentの検出と統合）
+- Intent統合のベストプラクティス
 - AppEnum
 
 ### [04. UI層とIntent統合](insights/04-ui-integration.md)
 
 - `Button(intent:)` の使用とプラットフォーム対応
+- `onAppIntentExecution` と `AppDependencyManager + @Dependency + perform()` の使い分け
 - `@Observable` + `@MainActor`パターン
 - App Intents vs ViewModelの役割分担
-- コード簡素化パターン
 
 ### [05. Extension とデータ共有](insights/05-extensions-and-data-sharing.md)
 
 - WidgetBundle の明示的登録
 - App Groups によるデータ共有（SharedModelContainer）
 - UserDefaults の App Group 対応
-- Intent → UI へのコミュニケーション（IntentAppState）
+- Intent → UI コミュニケーション（主経路: `@Dependency` + NavigationModel）
 - WidgetKit 更新パターン（WidgetReloader）
 
 ### [06. Control Widget と iOS 26](insights/06-control-widget-ios26.md)
 
-- `openAppWhenRun` → `supportedModes` / `OpenIntent` への移行
-- Control Widget の制約（SetValueIntent非互換、ConfigurationIntentフィードバック制限）
-- **Control Widget からアプリを開く問題（2026-04-12 解決）**
-  - **`kind` を Bundle ID 形式にすることが必須**（短い名前では foreground 遷移が機能しない）
-  - 正しい設定: `"dev.touyou.IntentTodo.IntentTodoWidget.ControlName"` 形式
-  - ワークショップ（01/Mood）で `ControlWidgetButton(action: foregroundIntent)` の動作を確認
-  - 2026-03 の「全パターン失敗」は `kind` 設定ミスが原因だった可能性が高い
-  - `import TodoAppIntents` の影響範囲（`.background`は正常、foregroundのみ不可）
-  - Home Widget `Link(destination:)` はApple公式推奨パターン
+- `openAppWhenRun` → `supportedModes` への移行
+- `ControlWidgetButton(action:)` + `.foreground(.immediate)` パターン（kind は reverse-domain 形式必須）
+- `ControlConfigurationIntent` の制約
+- `.background` モードによるバックグラウンドアクションとローカル通知フィードバック
 
 ### [07. プラットフォーム固有の知見](insights/07-platform-specific.md)
 
@@ -74,8 +69,5 @@
 
 ## 更新履歴
 
+- 2026-04-13: Shortcuts Intent ルーティング問題の根本原因（`IntentTodoAppIntentsPackage` のメインターゲット重複宣言）が判明。誤った知見（`.background + 通知ワークアラウンド`、`IntentAppState` フォールバック、`IntentDependencies.shared` パターン）を削除し、`@Dependency + AppDependencyManager` パターンを標準として記述更新。
 - 2026-03-19: 18セクションを7ファイルに分割・整理
-  - 重複の統合（App Groups、Extension制約、IntentAppState関連）
-  - 矛盾の修正（`import TodoAppIntents`の影響は`.background`では問題なし）
-  - 古い情報の更新（セクション18の「未解決」→ 通知パターンで解決済み）
-  - 最新の発見を反映（Home Widget `Link`は公式推奨、OpenIntent initializerの存在）

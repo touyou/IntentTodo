@@ -29,53 +29,33 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 ### Extension別
 
-| Extension | 実行パターン | AppIntent活用 | 公式Doc | 検証状況 | 備考 |
-|:--|:--|:--|:--|:--|:--|
-| **Home Widget** | `Link(destination:)` | ⚠️ 非使用 | ✅ 両方記載 | ⚠️ 一部検証 | `Button(intent:)` はアプリを開く用途には非推奨（公式Doc: Linkを使え）※1 |
-| **Control Center** (ToggleUrgent) | `ControlWidgetButton(action:)` | ✅ `.background` | ✅ 記載あり | ✅ 検証済み | 通知フィードバック |
-| **Control Center** (QuickAdd) | `ControlWidgetButton(action:)` | ✅ `.background` | ✅ 記載あり | 🔲 未検証 | 通知で案内→アプリで操作 |
-| **Control Center** (TodoCount) | `ControlWidgetButton(action:)` | ✅ `.background` | ✅ 記載あり | 🔲 未検証 | 通知でカウント表示 |
-| **Control Center → アプリ起動** | `OpenIntent` | ❌ 未動作 | ✅ 記載あり | ❌ iOS 26で不具合 | 公式Docには `OpenIntent` 用init が存在するが動作しない ※2 |
-| **Live Activity** | `Button(intent:)` | ✅ `LiveActivityIntent` | ✅ 記載あり | 🔲 未検証 | 完了/スヌーズ |
-| **Siri / Shortcuts** | `AppShortcutsProvider` | ✅ 4ショートカット | ✅ 記載あり | 🔲 未検証 | Siriフレーズ定義済み |
-| **Spotlight** | `IndexedEntity` | ✅ 検索/列挙 | ✅ 記載あり | 🔲 未検証 | iOS/macOSのみ |
-| **Complication** (watchOS) | 表示のみ | ─ | ✅ 記載あり | 🔲 未検証 | データ表示用 |
-
-### 凡例
-
-- ✅ 検証済み / 記載あり: 実機で動作確認完了 / Apple公式ドキュメントに記載
-- ⚠️ 一部検証: 動作するが制限あり（ワークアラウンド使用中）
-- 🔲 未検証: 実装済みだが実機検証が未完了
-- ❌ 未動作: 公式ドキュメントに記載があるが iOS 26 で動作しない
-
-### 既知の制限事項
-
-1. **Home Widget** ※1: 公式ドキュメント「Adding interactivity to widgets and Live Activities」に「An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use Link」と明記されており、アプリ起動目的の `Button(intent:)` は意図的に非サポート。`Link(destination:)` + URLスキームが正規の方法
-2. **Control Center → アプリ起動** ※2: `ControlWidgetButton` に `OpenIntent` 専用イニシャライザ（"Creates a button template for a control that launches an app"）が公式ドキュメントに存在するが、iOS 26 で実際に動作しない。10種類のアプローチを試行済み。`.background` Intent + 通知フィードバックで代替中（詳細は [docs/insights/06-control-widget-ios26.md](docs/insights/06-control-widget-ios26.md)）
+| Extension | 実行パターン | 備考 |
+|:--|:--|:--|
+| **Home Widget** | `Link(destination:)` | アプリ起動目的は Apple 公式推奨で `Link` |
+| **Control Center** | `ControlWidgetButton(action:)` | `.foreground(.immediate)` / `.background` どちらも使用可能（`kind` は reverse-domain 形式） |
+| **Live Activity** | `Button(intent:)` | `LiveActivityIntent` プロトコル準拠 |
+| **Siri / Shortcuts** | `AppShortcutsProvider` | Siri フレーズ定義済み |
+| **Spotlight** | `IndexedEntity` | iOS / macOS |
+| **Complication** (watchOS) | 表示のみ | データ表示用 |
 
 ### 定義済み AppIntent 一覧
 
-#### コアIntent（TodoAppIntents パッケージ）
+#### コア Intent（TodoAppIntents パッケージ）
 
 | Intent | 種別 | Mode | 用途 |
 |:--|:--|:--|:--|
-| `AddTodoIntent` | Action | `.background` | Todo追加 |
+| `AddTodoIntent` | Action | `[.background, .foreground(.deferred)]` | Todo 追加 |
 | `ToggleTodoCompletionIntent` | Action | `.background` | 完了/未完了切替 |
-| `DeleteTodoIntent` | Action | `.background` | Todo削除 |
+| `DeleteTodoIntent` | Action | `.background` | Todo 削除 |
 | `ToggleFavoriteIntent` | Action | `.background` | お気に入り切替 |
-| `ShowTodosIntent` | Query | `.foreground` | 全Todo表示 |
-| `ShowIncompleteTodosIntent` | Query | `.foreground` | 未完了Todo表示 |
-| `ShowFavoriteTodosIntent` | Query | `.foreground` | お気に入りTodo表示 |
-| `LaunchAppIntent` | Navigation | `.foreground` | 画面指定でアプリ起動 |
-| `OpenAddTodoIntent` | Navigation | `.foreground` | 追加画面を開く |
-| `OpenTodoListIntent` | Navigation | `.foreground` | 一覧画面を開く |
+| `ShowTodosIntent` | Query | `.foreground` | Todo 表示（filter で絞り込み） |
+| `LaunchAppIntent` | Navigation | `.foreground(.immediate)` | 画面指定でアプリ起動（target で遷移先指定） |
 
-#### Widget Extension専用Intent
+#### Widget Extension 専用 Intent
 
 | Intent | Mode | 用途 |
 |:--|:--|:--|
-| `ToggleUrgentTodoIntent` | `.background` | 緊急Todoの完了切替 |
-| `QuickAddTodoNotifyIntent` | `.background` | Todo追加を通知で案内 |
+| `ToggleUrgentTodoIntent` | `.background` | 緊急 Todo の完了切替 |
 | `ShowTodoCountIntent` | `.background` | 未完了数を通知で表示 |
 
 #### Live Activity専用Intent
@@ -129,7 +109,7 @@ Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
 
 // フォーム入力が必要な場合は Computed Property で動的生成
 private var addTodoIntent: AddTodoIntent {
-    AddTodoIntent(todoTitle: title, dueDate: dueDate)
+    AddTodoIntent(title: title, dueDate: dueDate)
 }
 
 Button(intent: addTodoIntent) {

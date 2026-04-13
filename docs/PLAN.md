@@ -171,39 +171,40 @@ public struct AddTodoIntent: AppIntent {
 }
 ```
 
-その他のNavigationIntents（`LaunchAppIntent`, `OpenAddTodoIntent`, `OpenTodoListIntent`）は`.foreground`モードを使用。
+その他のNavigationIntents（統合された `LaunchAppIntent`）は`.foreground(.immediate)`モードを使用。
 
 > **Note**: `continueInForeground()` はControl Widgetコンテキストでは動作しないことが確認済み。通常のShortcuts/Siri経由での使用を想定。
 
-### onAppIntentExecution による宣言的 Intent → UI 連携 ✅ 実装済み
+### AppDependencyManager + @Dependency + perform() による Intent → UI 連携 ✅ 実装済み
 
-iOS 26 で追加された `onAppIntentExecution(_:perform:)` を活用し、`IntentAppState` パターンを補完：
+`AppDependencyManager` に同期登録した `NavigationModel` を `@Dependency` で受け取り、`perform()` 内でナビゲーション状態を書き込む。View は `@Observable` の変化を受けて反映する。
 
 ```swift
-// NavigationIntentsに TargetContentProvidingIntent を追加
-public struct OpenAddTodoIntent: AppIntent, TargetContentProvidingIntent { ... }
-public struct OpenTodoListIntent: AppIntent, TargetContentProvidingIntent { ... }
-public struct LaunchAppIntent: AppIntent, TargetContentProvidingIntent { ... }
+public struct LaunchAppIntent: AppIntent {
+    public static let supportedModes: IntentModes = [.foreground(.immediate)]
 
-// TodoListView で宣言的にハンドリング
-NavigationStack { ... }
-    .onAppIntentExecution(LaunchAppIntent.self) { intent in
-        switch intent.target {
-        case .addTodo: navigationViewModel.showAddTodo()
-        default: break
+    @Parameter(title: "Target")
+    public var target: AppScreenTarget
+
+    @Dependency
+    var navigationModel: NavigationModel
+
+    @MainActor
+    public func perform() async throws -> some IntentResult {
+        navigationModel.navigateToRoot()
+        switch target {
+        case .addTodo:
+            navigationModel.showAddTodo()
+        case .todoList, .incompleteTodos, .favoriteTodos:
+            break
         }
+        return .result()
     }
-    .onAppIntentExecution(OpenAddTodoIntent.self) { _ in
-        navigationViewModel.showAddTodo()
-    }
-    .onAppIntentExecution(OpenTodoListIntent.self) { _ in
-        // Already on list screen
-    }
+}
 ```
 
-- `IntentAppState` はExtension→アプリ間の通信（Control Widget等）に残し、アプリ内Intent→UI連携は `onAppIntentExecution` を主軸に
-- `TargetContentProvidingIntent` はwatchOSでは利用不可。条件付きextension（`#if os(iOS) || os(macOS) || os(visionOS)`）で準拠
-- `SceneDelegate`（UIWindowSceneDelegate）を基盤として設置済み。`UISceneAppIntent` はSwift Package内のIntentでは利用不可のため、将来のマルチウィンドウ対応時に拡張予定
+- `TargetContentProvidingIntent` はwatchOSでは利用不可。条件付きextension（`#if os(iOS) || os(visionOS)`）で準拠。
+- `SceneDelegate`（UIWindowSceneDelegate）を基盤として設置済み。`UISceneAppIntent` はSwift Package内のIntentでは利用不可のため、将来のマルチウィンドウ対応時に拡張予定。
 
 ### Interactive Snippets
 
