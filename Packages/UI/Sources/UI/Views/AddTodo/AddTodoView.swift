@@ -27,7 +27,7 @@ public struct AddTodoView: View {
     /// Dynamically generated intent based on current form state.
     private var addTodoIntent: AddTodoIntent {
         AddTodoIntent(
-            todoTitle: title,
+            title: title,
             todoDescription: todoDescription.isEmpty ? nil : todoDescription,
             dueDate: hasDueDate ? dueDate : nil,
             isFavorite: isFavorite

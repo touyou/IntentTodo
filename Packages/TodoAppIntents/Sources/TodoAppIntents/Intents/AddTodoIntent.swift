@@ -1,61 +1,85 @@
+//
+//  AddTodoIntent.swift
+//  IntentTodo
+//
+
 import AppIntents
-import Domain
-import os.log
 import Repository
 import SwiftData
 
-private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "AddTodoIntent")
-
+/// An intent that creates a new todo item.
+///
+/// This intent can be triggered via:
+/// - Siri: "Add a todo called 'Buy groceries' in IntentTodo"
+/// - Shortcuts: Add Todo action
+/// - UI: `Button(intent: AddTodoIntent(title: "..."))`
 public struct AddTodoIntent: AppIntent {
-    public static let title: LocalizedStringResource = "Add Todo"
-    public static let description = IntentDescription("Creates a new todo item")
-    public static let supportedModes: IntentModes = .foreground
+    // MARK: - Metadata
 
-    public static var parameterSummary: some ParameterSummary {
-        Summary("Add todo titled \(\.$todoTitle)")
+    public static var title: LocalizedStringResource {
+        "Add Todo"
     }
 
-    @Dependency
-    private var modelContainer: ModelContainer
+    public static var description: IntentDescription {
+        IntentDescription(
+            "Creates a new todo item",
+            categoryName: "Todos",
+            searchKeywords: ["create", "new", "add", "task", "todo"]
+        )
+    }
 
-    @Parameter(title: "Title")
-    public var todoTitle: String
+    public static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
 
-    @Parameter(title: "Description")
+    public static var parameterSummary: some ParameterSummary {
+        Summary("Add todo titled \(\.$title)")
+    }
+
+    // MARK: - Parameters
+
+    @Parameter(title: "Title", description: "The title of the new todo")
+    public var title: String
+
+    @Parameter(title: "Description", description: "Optional description for the todo")
     public var todoDescription: String?
 
-    @Parameter(title: "Due Date")
+    @Parameter(title: "Due Date", description: "Optional due date for the todo")
     public var dueDate: Date?
 
-    @Parameter(title: "Mark as Favorite", default: false)
+    @Parameter(title: "Mark as Favorite", description: "Whether to mark as favorite", default: false)
     public var isFavorite: Bool
 
+    // MARK: - Dependencies
+
+    @Dependency
+    var modelContainer: ModelContainer
+
+    // MARK: - Initialization
+
     public init() {}
-    
+
+    /// Creates an intent with the specified parameters.
     public init(
-        todoTitle: String,
+        title: String,
         todoDescription: String? = nil,
         dueDate: Date? = nil,
         isFavorite: Bool = false
     ) {
-        self.todoTitle = todoTitle
+        self.title = title
         self.todoDescription = todoDescription
         self.dueDate = dueDate
         self.isFavorite = isFavorite
     }
 
+    // MARK: - Perform
+
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        logger.info("[1] perform() entered, todoTitle='\(todoTitle)'")
-
-        let trimmedTitle = todoTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedTitle.isEmpty else {
             throw IntentError.validation("Todo title cannot be empty")
         }
-        logger.info("[2] title validated")
 
         let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
-        logger.info("[3] Repository created from @Dependency modelContainer")
 
         let todoItem = TodoItem(
             title: trimmedTitle,
@@ -65,10 +89,7 @@ public struct AddTodoIntent: AppIntent {
         )
 
         try repository.create(todoItem)
-        logger.info("[4] TodoItem saved")
-
         WidgetReloader.reloadAllWidgets()
-        logger.info("[5] Returning result")
 
         return .result(value: TodoAppEntity(from: todoItem))
     }

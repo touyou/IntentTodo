@@ -21,7 +21,7 @@ struct AddTodoIntentTests {
 
     @Test("AddTodoIntent creates todo with valid title")
     func createWithValidTitle() async throws {
-        let intent = AddTodoIntent(todoTitle: "Buy groceries")
+        let intent = AddTodoIntent(title: "Buy groceries")
 
         let result = try await intent.perform()
 
@@ -53,7 +53,7 @@ struct AddTodoIntentTests {
 
     @Test("AddTodoIntent trims whitespace from title")
     func trimsWhitespace() async throws {
-        let intent = AddTodoIntent(todoTitle: "  Buy groceries  ")
+        let intent = AddTodoIntent(title: "  Buy groceries  ")
 
         let result = try await intent.perform()
 
@@ -65,7 +65,7 @@ struct AddTodoIntentTests {
         let repository = MockTodoRepository()
         IntentDependencies.shared.testRepository = repository
 
-        let intent = AddTodoIntent(todoTitle: "Test todo")
+        let intent = AddTodoIntent(title: "Test todo")
         _ = try await intent.perform()
 
         let todos = try repository.fetchAll()
@@ -77,7 +77,7 @@ struct AddTodoIntentTests {
 
     @Test("AddTodoIntent throws error for empty title")
     func errorForEmptyTitle() async throws {
-        let intent = AddTodoIntent(todoTitle: "")
+        let intent = AddTodoIntent(title: "")
 
         await #expect(throws: IntentError.self) {
             _ = try await intent.perform()
@@ -86,7 +86,7 @@ struct AddTodoIntentTests {
 
     @Test("AddTodoIntent throws error for whitespace-only title")
     func errorForWhitespaceTitle() async throws {
-        let intent = AddTodoIntent(todoTitle: "   ")
+        let intent = AddTodoIntent(title: "   ")
 
         await #expect(throws: IntentError.self) {
             _ = try await intent.perform()

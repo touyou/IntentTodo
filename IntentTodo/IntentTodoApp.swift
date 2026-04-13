@@ -31,20 +31,14 @@ struct IntentTodoApp: App {
         do {
             let container = try SharedModelContainer.createContainer()
             modelContainer = container
-
-            // Register synchronously so intents running in any mode (.background,
-            // .foreground(.immediate)) can resolve via @Dependency.
+            // Register the ModelContainer so intents can access SwiftData via @Dependency.
             AppDependencyManager.shared.add(dependency: container)
-
-            Task { @MainActor in
-                IntentDependencies.shared.configure(modelContainer: container)
-            }
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
 
-        // Create NavigationModel once, assign to @State, then register the SAME
-        // instance with AppDependencyManager — matching the 01/Mood pattern.
+        // Same NavigationModel instance is stored in @State AND registered with
+        // AppDependencyManager so intents can write navigation state via @Dependency.
         let navigation = NavigationModel()
         self.navigationModel = navigation
         AppDependencyManager.shared.add(dependency: navigation)

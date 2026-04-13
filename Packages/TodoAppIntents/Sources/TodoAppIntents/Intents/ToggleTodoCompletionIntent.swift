@@ -5,19 +5,11 @@
 
 import AppIntents
 import Repository
+import SwiftData
 
-/// An intent that toggles the completion status of a todo item.
-///
-/// This intent can be triggered via:
-/// - Siri: "Mark 'Buy groceries' as done in IntentTodo"
-/// - Shortcuts: Toggle Todo Completion action
-/// - UI: `Button(intent: ToggleTodoCompletionIntent(todo: entity))`
+/// Toggles the completion status of a todo item.
 public struct ToggleTodoCompletionIntent: AppIntent {
-    // MARK: - Metadata
-
-    public static var title: LocalizedStringResource {
-        "Toggle Todo Completion"
-    }
+    public static var title: LocalizedStringResource { "Toggle Todo Completion" }
 
     public static var description: IntentDescription {
         IntentDescription(
@@ -27,45 +19,37 @@ public struct ToggleTodoCompletionIntent: AppIntent {
         )
     }
 
-    /// Runs in background without opening the app.
     public static var supportedModes: IntentModes { .background }
 
-    // MARK: - Parameters
+    public static var parameterSummary: some ParameterSummary {
+        Summary("Toggle completion of \(\.$todo)")
+    }
 
     @Parameter(title: "Todo", description: "The todo to toggle")
     public var todo: TodoAppEntity
 
-    // MARK: - Initialization
+    @Dependency
+    var modelContainer: ModelContainer
 
     public init() {}
 
-    /// Creates an intent to toggle the specified todo.
     public init(todo: TodoAppEntity) {
         self.todo = todo
     }
 
-    // MARK: - Perform
-
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = try IntentDependencies.shared.createRepository()
+        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
 
         guard let uuid = UUID(uuidString: todo.id),
               let todoItem = try repository.fetch(by: uuid) else {
             throw IntentError.notFound("Todo not found")
         }
 
-        // Toggle completion status
         todoItem.isCompleted.toggle()
-
-        // Save changes
         try repository.update(todoItem)
-
-        // Reload widgets to reflect the change
         WidgetReloader.reloadAllWidgets()
 
-        // Return updated entity
-        let entity = TodoAppEntity(from: todoItem)
-        return .result(value: entity)
+        return .result(value: TodoAppEntity(from: todoItem))
     }
 }

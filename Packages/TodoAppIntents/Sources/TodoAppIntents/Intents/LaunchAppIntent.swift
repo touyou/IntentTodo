@@ -1,7 +1,14 @@
-import AppIntents
-import os.log
+//
+//  LaunchAppIntent.swift
+//  TodoAppIntents
+//
+//  Unified intent for launching the app to specific screens.
+//  Used by Widgets, Shortcuts, and Action Button.
+//
 
-private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "LaunchAppIntent")
+import AppIntents
+
+// MARK: - App Screen Enum
 
 public enum AppScreenTarget: String, AppEnum {
     case addTodo
@@ -19,6 +26,11 @@ public enum AppScreenTarget: String, AppEnum {
     ]
 }
 
+// MARK: - Launch App Intent
+
+/// Opens the app to a specific screen.
+///
+/// Navigation is written to `NavigationModel` via `@Dependency` in `perform()`.
 public struct LaunchAppIntent: AppIntent {
     public static let title: LocalizedStringResource = "Open Todo App"
     public static let description = IntentDescription("Opens the Todo app to a specific screen")
@@ -44,15 +56,12 @@ public struct LaunchAppIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        logger.info("[1] perform() entered, target=\(target.rawValue)")
         navigationModel.navigateToRoot()
-        logger.info("[2] navigateToRoot done")
         switch target {
         case .addTodo:
             navigationModel.showAddTodo()
-            logger.info("[3] showAddTodo done")
         case .todoList, .incompleteTodos, .favoriteTodos:
-            logger.info("[3] no-op for \(target.rawValue)")
+            break
         }
         return .result()
     }
@@ -61,6 +70,8 @@ public struct LaunchAppIntent: AppIntent {
 #if os(iOS) || os(visionOS)
 extension LaunchAppIntent: TargetContentProvidingIntent {}
 #endif
+
+// MARK: - Convenience Factory Methods
 
 public extension LaunchAppIntent {
     static func addTodo() -> LaunchAppIntent { LaunchAppIntent(target: .addTodo) }

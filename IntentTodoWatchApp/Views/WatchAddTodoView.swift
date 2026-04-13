@@ -15,7 +15,7 @@ struct WatchAddTodoView: View {
     @State private var title = ""
 
     private var addIntent: AddTodoIntent {
-        AddTodoIntent(todoTitle: title)
+        AddTodoIntent(title: title)
     }
 
     var body: some View {

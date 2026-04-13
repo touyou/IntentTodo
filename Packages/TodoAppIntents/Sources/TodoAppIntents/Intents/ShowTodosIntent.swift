@@ -5,36 +5,23 @@
 
 import AppIntents
 import Repository
+import SwiftData
 
-/// An intent that shows todos, optionally filtered.
-///
-/// One intent handles all filtering — `filter` defaults to `.all`.
-/// Used by Siri and Shortcuts to display todos and open the matching screen.
+/// Shows todos, optionally filtered.
 public struct ShowTodosIntent: AppIntent {
-    // MARK: - Metadata
-
-    public static var title: LocalizedStringResource {
-        LocalizedStringResource("Show Todos", comment: "Intent title for showing todos")
-    }
-
-    public static var description: IntentDescription {
-        IntentDescription(
-            LocalizedStringResource(
-                "Shows your todo items",
-                comment: "Intent description for showing todos"
-            )
-        )
-    }
-
-    /// Opens the app in foreground when run.
+    public static var title: LocalizedStringResource { "Show Todos" }
+    public static let description = IntentDescription("Shows your todo items")
     public static var supportedModes: IntentModes { .foreground }
 
-    // MARK: - Parameters
+    public static var parameterSummary: some ParameterSummary {
+        Summary("Show \(\.$filter) todos")
+    }
 
     @Parameter(title: "Filter", default: .all)
     public var filter: TodoFilterType
 
-    // MARK: - Initialization
+    @Dependency
+    var modelContainer: ModelContainer
 
     public init() {
         self.filter = .all
@@ -44,11 +31,9 @@ public struct ShowTodosIntent: AppIntent {
         self.filter = filter
     }
 
-    // MARK: - Perform
-
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & OpensIntent {
-        let repository = try IntentDependencies.shared.createRepository()
+        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
         let todos: [TodoItem]
         let screenTarget: AppScreenTarget
 
@@ -74,37 +59,18 @@ public struct ShowTodosIntent: AppIntent {
 
 // MARK: - Filter Type for Intents
 
-/// Filter type for use in App Intents.
 public enum TodoFilterType: String, AppEnum {
     case all
     case incomplete
     case completed
     case favorites
 
-    public static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        TypeDisplayRepresentation(
-            name: LocalizedStringResource("Filter", comment: "Filter type name")
-        )
-    }
+    public static let typeDisplayRepresentation: TypeDisplayRepresentation = "Filter"
 
-    public static var caseDisplayRepresentations: [TodoFilterType: DisplayRepresentation] {
-        [
-            .all: DisplayRepresentation(
-                title: LocalizedStringResource("All", comment: "All filter"),
-                image: .init(systemName: "list.bullet")
-            ),
-            .incomplete: DisplayRepresentation(
-                title: LocalizedStringResource("Incomplete", comment: "Incomplete filter"),
-                image: .init(systemName: "circle")
-            ),
-            .completed: DisplayRepresentation(
-                title: LocalizedStringResource("Completed", comment: "Completed filter"),
-                image: .init(systemName: "checkmark.circle")
-            ),
-            .favorites: DisplayRepresentation(
-                title: LocalizedStringResource("Favorites", comment: "Favorites filter"),
-                image: .init(systemName: "star")
-            )
-        ]
-    }
+    public static let caseDisplayRepresentations: [TodoFilterType: DisplayRepresentation] = [
+        .all: "All",
+        .incomplete: "Incomplete",
+        .completed: "Completed",
+        .favorites: "Favorites"
+    ]
 }
