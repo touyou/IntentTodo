@@ -3,7 +3,7 @@
 //  TodoAppIntents
 //
 //  Sends a local notification with the current incomplete todo count.
-//  Used by Control Center buttons where UI display is not possible.
+//  Designed for Control Center buttons.
 //
 
 import AppIntents
@@ -23,7 +23,7 @@ public struct ShowTodoCountIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         let descriptor = FetchDescriptor<TodoItem>(
             predicate: #Predicate { !$0.isCompleted }
         )

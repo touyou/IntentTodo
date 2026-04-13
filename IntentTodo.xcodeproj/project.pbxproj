@@ -399,7 +399,6 @@
 				46AFBFFB2F33047800444306 /* Configuration */,
 				46AFC1282F33048100444306 /* Controls */,
 				46AFBFFE2F33047800444306 /* Helpers */,
-				46AFC1292F33048100444306 /* Intents */,
 				46AFC0012F33047800444306 /* Views */,
 				46AFC0022F33047800444306 /* Assets.xcassets */,
 				46AFC0032F33047800444306 /* Info.plist */,
@@ -408,13 +407,6 @@
 				46AFC0062F33047800444306 /* IntentTodoWidgetExtension.entitlements */,
 			);
 			path = IntentTodoWidget;
-			sourceTree = "<group>";
-		};
-		46AFC0142F33047B00444306 /* Intents */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Intents;
 			sourceTree = "<group>";
 		};
 		46AFC0162F33047B00444306 /* Manager */ = {
@@ -437,7 +429,6 @@
 		46AFC01F2F33047B00444306 /* IntentTodoLiveActivity */ = {
 			isa = PBXGroup;
 			children = (
-				46AFC0142F33047B00444306 /* Intents */,
 				46AFC0162F33047B00444306 /* Manager */,
 				46AFC0192F33047B00444306 /* Views */,
 				46AFC01A2F33047B00444306 /* Assets.xcassets */,
@@ -520,13 +511,6 @@
 				46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */,
 			);
 			path = Controls;
-			sourceTree = "<group>";
-		};
-		46AFC1292F33048100444306 /* Intents */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Intents;
 			sourceTree = "<group>";
 		};
 		46D886552F6B7F680029BF80 /* insights */ = {

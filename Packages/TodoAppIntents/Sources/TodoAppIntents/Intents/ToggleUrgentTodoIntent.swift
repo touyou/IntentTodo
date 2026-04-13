@@ -3,9 +3,8 @@
 //  TodoAppIntents
 //
 //  Toggles completion of the most urgent (earliest-due) incomplete todo.
-//  Semantically different from ToggleTodoCompletionIntent (which takes a specific todo):
-//  this one auto-selects the target, making it suitable for Control Center buttons
-//  that don't have room for parameter pickers.
+//  Designed for Control Center buttons where no user input is available
+//  (the target is auto-selected).
 //
 
 import AppIntents
@@ -25,7 +24,7 @@ public struct ToggleUrgentTodoIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        let context = ModelContext(modelContainer)
+        let context = modelContainer.mainContext
         var descriptor = FetchDescriptor<TodoItem>(
             predicate: #Predicate { !$0.isCompleted && $0.dueDate != nil },
             sortBy: [SortDescriptor(\TodoItem.dueDate, order: .forward)]

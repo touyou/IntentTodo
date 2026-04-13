@@ -47,7 +47,7 @@ public struct ToggleTodoCompletionIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
 
         guard let uuid = UUID(uuidString: todo.id),
               let todoItem = try repository.fetch(by: uuid) else {

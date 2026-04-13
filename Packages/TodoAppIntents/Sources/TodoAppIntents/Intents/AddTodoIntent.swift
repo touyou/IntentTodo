@@ -79,7 +79,7 @@ public struct AddTodoIntent: AppIntent {
             throw IntentError.validation("Todo title cannot be empty")
         }
 
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
 
         let todoItem = TodoItem(
             title: trimmedTitle,
