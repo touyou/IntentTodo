@@ -637,7 +637,7 @@ struct ToggleUrgentTodoIntent: AppIntent, ControlConfigurationIntent {
 
 ### LiveActivityIntent の違い
 
-ライブアクティビティからのボタン操作には `LiveActivityIntent` プロトコルが必要です（通常の `AppIntent` では動作しない）。
+ライブアクティビティからのボタン操作には `LiveActivityIntent` プロトコルが必要（[Displaying live data with Live Activities](https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities#Start-and-stop-Live-Activities-from-App-Intents) より "make sure it inherits from `LiveActivityIntent`"）。さらに [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) によれば `LiveActivityIntent` の `perform()` は**アプリプロセス**で実行される（"the system runs the app intent in the app's process"）。
 
 ```swift
 // ❌ 通常のAppIntentはLiveActivityで動作しない
