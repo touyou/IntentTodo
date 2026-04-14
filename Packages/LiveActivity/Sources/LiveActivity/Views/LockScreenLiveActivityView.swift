@@ -1,10 +1,11 @@
 //
 //  LockScreenLiveActivityView.swift
-//  IntentTodoLiveActivity
+//  LiveActivity
 //
 //  Lock screen view for Live Activity.
 //
 
+#if os(iOS)
 import ActivityKit
 import AppIntents
 import Domain
@@ -12,13 +13,15 @@ import SwiftUI
 import TodoAppIntents
 import WidgetKit
 
-// MARK: - Lock Screen View
-
 /// Lock screen view showing the approaching deadline todo.
-struct LockScreenLiveActivityView: View {
+public struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<TodoDeadlineActivityAttributes>
 
-    var body: some View {
+    public init(context: ActivityViewContext<TodoDeadlineActivityAttributes>) {
+        self.context = context
+    }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Image(systemName: "clock.badge.exclamationmark.fill")
@@ -57,3 +60,4 @@ struct LockScreenLiveActivityView: View {
         .padding()
     }
 }
+#endif

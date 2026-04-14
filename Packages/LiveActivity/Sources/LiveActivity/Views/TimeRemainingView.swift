@@ -1,34 +1,34 @@
 //
 //  TimeRemainingView.swift
-//  IntentTodoLiveActivity
+//  LiveActivity
 //
 //  Reusable view for displaying time remaining.
 //
 
+#if os(iOS)
 import SwiftUI
 
-// MARK: - Time Remaining View
-
 /// View component for displaying remaining time with various styles.
-struct TimeRemainingView: View {
-    let dueDate: Date
-    let style: Style
-
-    enum Style {
+public struct TimeRemainingView: View {
+    public enum Style {
         case minimal
         case compact
         case full
     }
 
-    private var timeRemaining: TimeInterval {
-        dueDate.timeIntervalSinceNow
+    let dueDate: Date
+    let style: Style
+
+    public init(dueDate: Date, style: Style) {
+        self.dueDate = dueDate
+        self.style = style
     }
 
     private var isOverdue: Bool {
-        timeRemaining <= 0
+        dueDate.timeIntervalSinceNow <= 0
     }
 
-    var body: some View {
+    public var body: some View {
         switch style {
         case .minimal:
             Text(timerInterval: Date()...dueDate, countsDown: true)
@@ -59,3 +59,4 @@ struct TimeRemainingView: View {
         }
     }
 }
+#endif
