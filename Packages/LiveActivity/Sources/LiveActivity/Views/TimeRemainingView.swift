@@ -31,31 +31,47 @@ public struct TimeRemainingView: View {
     public var body: some View {
         switch style {
         case .minimal:
-            Text(timerInterval: Date()...dueDate, countsDown: true)
-                .monospacedDigit()
-                .font(.caption2)
-                .foregroundStyle(isOverdue ? .red : .orange)
+            if isOverdue {
+                Text("Overdue")
+                    .font(.caption2)
+                    .foregroundStyle(.red)
+            } else {
+                Text(timerInterval: Date()...dueDate, countsDown: true)
+                    .monospacedDigit()
+                    .font(.caption2)
+                    .foregroundStyle(.orange)
+            }
 
         case .compact:
             VStack(alignment: .trailing) {
-                Text(timerInterval: Date()...dueDate, countsDown: true)
-                    .monospacedDigit()
-                    .font(.caption.bold())
-                Text(isOverdue ? "overdue" : "remaining")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                if isOverdue {
+                    Text("Overdue")
+                        .font(.caption.bold())
+                        .foregroundStyle(.red)
+                } else {
+                    Text(timerInterval: Date()...dueDate, countsDown: true)
+                        .monospacedDigit()
+                        .font(.caption.bold())
+                    Text("remaining")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .foregroundStyle(isOverdue ? .red : .primary)
 
         case .full:
             HStack(spacing: 4) {
                 Image(systemName: isOverdue ? "exclamationmark.triangle.fill" : "timer")
                     .foregroundStyle(isOverdue ? .red : .orange)
-                Text(timerInterval: Date()...dueDate, countsDown: true)
-                    .monospacedDigit()
-                    .font(.subheadline.bold())
+                if isOverdue {
+                    Text("Overdue")
+                        .font(.subheadline.bold())
+                        .foregroundStyle(.red)
+                } else {
+                    Text(timerInterval: Date()...dueDate, countsDown: true)
+                        .monospacedDigit()
+                        .font(.subheadline.bold())
+                }
             }
-            .foregroundStyle(isOverdue ? .red : .primary)
         }
     }
 }

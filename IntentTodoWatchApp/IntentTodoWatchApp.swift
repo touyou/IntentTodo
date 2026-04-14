@@ -6,6 +6,7 @@
 //  Provides quick todo management from the wrist.
 //
 
+import AppIntents
 import Domain
 import SwiftData
 import SwiftUI
@@ -17,15 +18,13 @@ struct IntentTodoWatchApp: App {
     let modelContainer: ModelContainer
 
     init() {
-        // Use SharedModelContainer for data sharing
-        // Note: watchOS uses a separate data store (no App Group sharing with iOS)
         // swiftlint:disable:next force_try
         let container = try! SharedModelContainer.createContainer()
         modelContainer = container
 
-        Task { @MainActor in
-            IntentDependencies.shared.configure(modelContainer: container)
-        }
+        // @Dependency var modelContainer を解決するために AppDependencyManager に同期登録。
+        // Task {} で遅延するとアプリ起動直後の Intent 実行で resolve 漏れが起きる。
+        AppDependencyManager.shared.add(dependency: container)
     }
 
     var body: some Scene {
