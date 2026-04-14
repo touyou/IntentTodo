@@ -4,6 +4,7 @@
 //
 
 import AppIntents
+import Domain
 import Repository
 import SwiftData
 
@@ -40,14 +41,8 @@ public struct DeleteTodoIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult {
         let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-
-        guard let uuid = UUID(uuidString: todo.id) else {
-            throw IntentError.validation("Invalid todo ID")
-        }
-
-        try repository.delete(by: uuid)
+        try TodoActions.delete(todoId: todo.id, using: repository)
         WidgetReloader.reloadAllWidgets()
-
         return .result()
     }
 }

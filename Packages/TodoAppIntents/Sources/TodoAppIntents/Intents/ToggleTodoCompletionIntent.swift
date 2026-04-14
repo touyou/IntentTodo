@@ -1,21 +1,16 @@
 //
 //  ToggleTodoCompletionIntent.swift
-//  IntentTodo
+//  TodoAppIntents
+//
+//  Primary variant: runs in the main app process via @Dependency.
+//  For widget / Live Activity contexts, use ToggleTodoCompletionFromExtensionIntent.
 //
 
-#if os(iOS)
-import ActivityKit
-#endif
 import AppIntents
 import Domain
 import Repository
 import SwiftData
 
-/// Toggles the completion status of a todo item.
-///
-/// Conforms to `LiveActivityIntent` on iOS so the same intent can be triggered
-/// from Dynamic Island / lock screen buttons. When a todo becomes completed,
-/// any active Live Activity for that todo is ended automatically.
 public struct ToggleTodoCompletionIntent: AppIntent {
     public static var title: LocalizedStringResource { "Toggle Todo Completion" }
 
@@ -48,37 +43,8 @@ public struct ToggleTodoCompletionIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
         let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-
-        guard let uuid = UUID(uuidString: todo.id),
-              let todoItem = try repository.fetch(by: uuid) else {
-            throw IntentError.notFound("Todo not found")
-        }
-
-        todoItem.isCompleted.toggle()
-        try repository.update(todoItem)
+        let result = try TodoActions.toggleCompletion(todoId: todo.id, using: repository)
         WidgetReloader.reloadAllWidgets()
-
-        // If the todo is now completed, end any matching Live Activity.
-        #if os(iOS)
-        if todoItem.isCompleted {
-            await endMatchingLiveActivity(for: todo.id)
-        }
-        #endif
-
-        return .result(value: TodoAppEntity(from: todoItem))
+        return .result(value: result.entity)
     }
-
-    #if os(iOS)
-    @MainActor
-    private func endMatchingLiveActivity(for todoId: String) async {
-        for activity in Activity<TodoDeadlineActivityAttributes>.activities
-        where activity.attributes.todoId == todoId {
-            await activity.end(dismissalPolicy: .immediate)
-        }
-    }
-    #endif
 }
-
-#if os(iOS)
-extension ToggleTodoCompletionIntent: LiveActivityIntent {}
-#endif
