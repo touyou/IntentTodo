@@ -1,14 +1,10 @@
 //
 //  TodoComplicationViews.swift
-//  IntentTodoWatchApp
-//
-//  View components for todo complications.
+//  WatchUI
 //
 
 import SwiftUI
 import WidgetKit
-
-// MARK: - Circular Complication
 
 /// Circular complication showing incomplete count.
 struct CircularComplicationView: View {
@@ -17,11 +13,9 @@ struct CircularComplicationView: View {
     var body: some View {
         ZStack {
             AccessoryWidgetBackground()
-
             VStack(spacing: 0) {
                 Text("\(entry.incompleteCount)")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-
                 Text("todo")
                     .font(.system(size: 8))
                     .foregroundStyle(.secondary)
@@ -30,9 +24,6 @@ struct CircularComplicationView: View {
     }
 }
 
-// MARK: - Corner Complication
-
-/// Corner complication with gauge.
 struct CornerComplicationView: View {
     let entry: TodoComplicationEntry
 
@@ -56,9 +47,6 @@ struct CornerComplicationView: View {
     }
 }
 
-// MARK: - Rectangular Complication
-
-/// Rectangular complication with next due todo.
 struct RectangularComplicationView: View {
     let entry: TodoComplicationEntry
 
@@ -72,16 +60,13 @@ struct RectangularComplicationView: View {
 
             if let title = entry.nextDueTitle, let dueDate = entry.nextDueDate {
                 Divider()
-
                 HStack {
                     Image(systemName: dueDateIcon(for: dueDate))
                         .foregroundStyle(dueDateColor(for: dueDate))
-
                     VStack(alignment: .leading) {
                         Text(title)
                             .font(.caption)
                             .lineLimit(1)
-
                         Text(dueDate, style: .relative)
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -104,9 +89,6 @@ struct RectangularComplicationView: View {
     }
 }
 
-// MARK: - Inline Complication
-
-/// Inline complication for text-only displays.
 struct InlineComplicationView: View {
     let entry: TodoComplicationEntry
 
@@ -123,14 +105,16 @@ struct InlineComplicationView: View {
     }
 }
 
-// MARK: - Entry View Dispatcher
-
 /// Entry view that adapts to complication family.
-struct TodoComplicationEntryView: View {
+public struct TodoComplicationEntryView: View {
     @Environment(\.widgetFamily) var family
     let entry: TodoComplicationEntry
 
-    var body: some View {
+    public init(entry: TodoComplicationEntry) {
+        self.entry = entry
+    }
+
+    public var body: some View {
         switch family {
         case .accessoryCircular:
             CircularComplicationView(entry: entry)

@@ -1,8 +1,6 @@
 //
 //  WatchTodoRow.swift
-//  IntentTodoWatchApp
-//
-//  Row component for displaying a todo item on watchOS.
+//  WatchUI
 //
 
 import AppIntents
@@ -11,14 +9,18 @@ import SwiftUI
 import TodoAppIntents
 
 /// Row component for displaying a todo item on watchOS.
-struct WatchTodoRow: View {
+public struct WatchTodoRow: View {
     let todo: TodoItem
+
+    public init(todo: TodoItem) {
+        self.todo = todo
+    }
 
     private var entity: TodoAppEntity {
         TodoAppEntity(from: todo)
     }
 
-    var body: some View {
+    public var body: some View {
         Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
             HStack {
                 Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")

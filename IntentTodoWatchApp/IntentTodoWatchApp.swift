@@ -10,6 +10,7 @@ import Domain
 import SwiftData
 import SwiftUI
 import TodoAppIntents
+import WatchUI
 
 @main
 struct IntentTodoWatchApp: App {

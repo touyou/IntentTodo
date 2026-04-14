@@ -1,21 +1,19 @@
 //
 //  WatchDueDateLabel.swift
-//  IntentTodoWatchApp
-//
-//  Component for displaying due date with appropriate styling.
+//  WatchUI
 //
 
 import SwiftUI
 
-/// Component for displaying due date with appropriate styling.
-///
-/// Shows different icons and colors based on:
-/// - Overdue (red, exclamation icon)
-/// - Due soon (orange, clock icon)
-/// - Normal (secondary, calendar icon)
-struct WatchDueDateLabel: View {
+/// Component for displaying due date with appropriate styling on watchOS.
+public struct WatchDueDateLabel: View {
     let date: Date
     let isCompleted: Bool
+
+    public init(date: Date, isCompleted: Bool) {
+        self.date = date
+        self.isCompleted = isCompleted
+    }
 
     private var isOverdue: Bool {
         !isCompleted && date < Date()
@@ -25,7 +23,7 @@ struct WatchDueDateLabel: View {
         !isCompleted && date.timeIntervalSinceNow <= 3600 && date.timeIntervalSinceNow > 0
     }
 
-    var body: some View {
+    public var body: some View {
         HStack(spacing: 2) {
             Image(systemName: iconName)
                 .font(.caption2)
@@ -34,8 +32,6 @@ struct WatchDueDateLabel: View {
         }
         .foregroundStyle(color)
     }
-
-    // MARK: - Private Helpers
 
     private var iconName: String {
         if isOverdue { return "exclamationmark.circle.fill" }

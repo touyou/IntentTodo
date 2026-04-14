@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1C705389FC37403269D452E2 /* TodoComplicationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */; };
-		44BCFCE39B70EFAA7541F776 /* TodoComplicationEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */; };
 		46AFBE922F2C1C7200444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBE912F2C1C7200444306 /* UI */; };
 		46AFBEC02F2CFEA400444306 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEBF2F2CFEA400444306 /* WidgetKit.framework */; };
 		46AFBEC22F2CFEA400444306 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEC12F2CFEA400444306 /* SwiftUI.framework */; };
@@ -34,11 +32,6 @@
 		46AFC0202F33047B00444306 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46AFC01A2F33047B00444306 /* Assets.xcassets */; };
 		46AFC0262F33047B00444306 /* IntentTodoLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC01C2F33047B00444306 /* IntentTodoLiveActivityBundle.swift */; };
 		46AFC0272F33047B00444306 /* TodoLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC01E2F33047B00444306 /* TodoLiveActivity.swift */; };
-		46AFC0342F33047D00444306 /* WatchDueDateLabel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0282F33047D00444306 /* WatchDueDateLabel.swift */; };
-		46AFC0352F33047D00444306 /* WatchTodoRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0292F33047D00444306 /* WatchTodoRow.swift */; };
-		46AFC0362F33047D00444306 /* WatchAddTodoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC02B2F33047D00444306 /* WatchAddTodoView.swift */; };
-		46AFC0372F33047D00444306 /* WatchTodoDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC02C2F33047D00444306 /* WatchTodoDetailView.swift */; };
-		46AFC0382F33047D00444306 /* WatchTodoListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC02D2F33047D00444306 /* WatchTodoListView.swift */; };
 		46AFC0392F33047D00444306 /* IntentTodoWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0312F33047D00444306 /* IntentTodoWatchApp.swift */; };
 		46AFC03A2F33047D00444306 /* TodoComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0322F33047D00444306 /* TodoComplication.swift */; };
 		46AFC03B2F33047D00444306 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46AFC02F2F33047D00444306 /* Assets.xcassets */; };
@@ -55,7 +48,7 @@
 		46F0000C000000000000FAC1 /* NotificationHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F0000B000000000000FAC1 /* NotificationHandler.swift */; };
 		46F00300000000000000FAC1 /* LiveActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00400000000000000FAC1 /* LiveActivity */; };
 		46F00600000000000000FAC1 /* WidgetUI in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00700000000000000FAC1 /* WidgetUI */; };
-		CDC173DEB3E94D8EDD4ECAEC /* TodoComplicationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */; };
+		46F00900000000000000FAC1 /* WatchUI in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00A00000000000000FAC1 /* WatchUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -123,7 +116,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationProvider.swift; sourceTree = "<group>"; };
 		46AFBC392F2BA68C00444306 /* IntentTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFBE8B2F2C1C3B00444306 /* Domain */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Domain; sourceTree = "<group>"; };
 		46AFBE8C2F2C1C3B00444306 /* Repository */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Repository; sourceTree = "<group>"; };
@@ -131,6 +123,7 @@
 		46AFBE8E2F2C1C3B00444306 /* UI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = UI; sourceTree = "<group>"; };
 		46F00100000000000000FAC1 /* LiveActivity */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = LiveActivity; sourceTree = "<group>"; };
 		46F00500000000000000FAC1 /* WidgetUI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WidgetUI; sourceTree = "<group>"; };
+		46F00800000000000000FAC1 /* WatchUI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WatchUI; sourceTree = "<group>"; };
 		46AFBE932F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		46AFBE942F2C241700444306 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		46AFBE952F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
@@ -176,11 +169,6 @@
 		46AFC01C2F33047B00444306 /* IntentTodoLiveActivityBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoLiveActivityBundle.swift; sourceTree = "<group>"; };
 		46AFC01D2F33047B00444306 /* IntentTodoLiveActivityExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IntentTodoLiveActivityExtension.entitlements; sourceTree = "<group>"; };
 		46AFC01E2F33047B00444306 /* TodoLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoLiveActivity.swift; sourceTree = "<group>"; };
-		46AFC0282F33047D00444306 /* WatchDueDateLabel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchDueDateLabel.swift; sourceTree = "<group>"; };
-		46AFC0292F33047D00444306 /* WatchTodoRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchTodoRow.swift; sourceTree = "<group>"; };
-		46AFC02B2F33047D00444306 /* WatchAddTodoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAddTodoView.swift; sourceTree = "<group>"; };
-		46AFC02C2F33047D00444306 /* WatchTodoDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchTodoDetailView.swift; sourceTree = "<group>"; };
-		46AFC02D2F33047D00444306 /* WatchTodoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchTodoListView.swift; sourceTree = "<group>"; };
 		46AFC02F2F33047D00444306 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		46AFC0302F33047D00444306 /* IntentTodoWatchApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IntentTodoWatchApp.entitlements; sourceTree = "<group>"; };
 		46AFC0312F33047D00444306 /* IntentTodoWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWatchApp.swift; sourceTree = "<group>"; };
@@ -208,8 +196,6 @@
 		46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		46F00009000000000000FAC1 /* MacAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAppDelegate.swift; sourceTree = "<group>"; };
 		46F0000B000000000000FAC1 /* NotificationHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationHandler.swift; sourceTree = "<group>"; };
-		7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationEntry.swift; sourceTree = "<group>"; };
-		8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TodoComplicationViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -254,6 +240,7 @@
 			files = (
 				46AFBFAB2F2D731900444306 /* TodoAppIntents in Frameworks */,
 				46AFBFAA2F2D731900444306 /* Domain in Frameworks */,
+				46F00900000000000000FAC1 /* WatchUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -316,6 +303,7 @@
 				46AFBE8D2F2C1C3B00444306 /* TodoAppIntents */,
 				46AFBE8E2F2C1C3B00444306 /* UI */,
 				46F00500000000000000FAC1 /* WidgetUI */,
+				46F00800000000000000FAC1 /* WatchUI */,
 			);
 			path = Packages;
 			sourceTree = "<group>";
@@ -413,35 +401,13 @@
 			path = IntentTodoLiveActivity;
 			sourceTree = "<group>";
 		};
-		46AFC02A2F33047D00444306 /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				46AFC0282F33047D00444306 /* WatchDueDateLabel.swift */,
-				46AFC0292F33047D00444306 /* WatchTodoRow.swift */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		46AFC02E2F33047D00444306 /* Views */ = {
-			isa = PBXGroup;
-			children = (
-				46AFC02B2F33047D00444306 /* WatchAddTodoView.swift */,
-				46AFC02C2F33047D00444306 /* WatchTodoDetailView.swift */,
-				46AFC02D2F33047D00444306 /* WatchTodoListView.swift */,
-			);
-			path = Views;
-			sourceTree = "<group>";
-		};
 		46AFC0332F33047D00444306 /* IntentTodoWatchApp */ = {
 			isa = PBXGroup;
 			children = (
-				46AFC02A2F33047D00444306 /* Components */,
-				46AFC02E2F33047D00444306 /* Views */,
 				46AFC02F2F33047D00444306 /* Assets.xcassets */,
 				46AFC0302F33047D00444306 /* IntentTodoWatchApp.entitlements */,
 				46AFC0312F33047D00444306 /* IntentTodoWatchApp.swift */,
 				46AFC0322F33047D00444306 /* TodoComplication.swift */,
-				AFA9219572A43F00C464036E /* Complication */,
 			);
 			path = IntentTodoWatchApp;
 			sourceTree = "<group>";
@@ -499,16 +465,6 @@
 				46D8865C2F6B804E0029BF80 /* 07-platform-specific.md */,
 			);
 			path = insights;
-			sourceTree = "<group>";
-		};
-		AFA9219572A43F00C464036E /* Complication */ = {
-			isa = PBXGroup;
-			children = (
-				7C567896A6F41A52DE65AB58 /* TodoComplicationEntry.swift */,
-				3BE9B369EDE7E3A3553C9FF0 /* TodoComplicationProvider.swift */,
-				8F975E33243EEF6D2CEA2568 /* TodoComplicationViews.swift */,
-			);
-			path = Complication;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -602,6 +558,7 @@
 			packageProductDependencies = (
 				46AFBEDF2F2D6E6A00444306 /* Domain */,
 				46AFBEE02F2D6E6A00444306 /* TodoAppIntents */,
+				46F00A00000000000000FAC1 /* WatchUI */,
 			);
 			productName = "IntentTodoWatchApp Watch App";
 			productReference = 46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp.app */;
@@ -788,16 +745,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC0342F33047D00444306 /* WatchDueDateLabel.swift in Sources */,
-				46AFC0352F33047D00444306 /* WatchTodoRow.swift in Sources */,
-				46AFC0362F33047D00444306 /* WatchAddTodoView.swift in Sources */,
-				46AFC0372F33047D00444306 /* WatchTodoDetailView.swift in Sources */,
-				46AFC0382F33047D00444306 /* WatchTodoListView.swift in Sources */,
 				46AFC0392F33047D00444306 /* IntentTodoWatchApp.swift in Sources */,
 				46AFC03A2F33047D00444306 /* TodoComplication.swift in Sources */,
-				44BCFCE39B70EFAA7541F776 /* TodoComplicationEntry.swift in Sources */,
-				CDC173DEB3E94D8EDD4ECAEC /* TodoComplicationProvider.swift in Sources */,
-				1C705389FC37403269D452E2 /* TodoComplicationViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1493,6 +1442,10 @@
 		46F00700000000000000FAC1 /* WidgetUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = WidgetUI;
+		};
+		46F00A00000000000000FAC1 /* WatchUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = WatchUI;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

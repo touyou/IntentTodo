@@ -1,8 +1,6 @@
 //
 //  WatchTodoDetailView.swift
-//  IntentTodoWatchApp
-//
-//  Detail view for a todo item on watchOS.
+//  WatchUI
 //
 
 import AppIntents
@@ -12,7 +10,7 @@ import SwiftUI
 import TodoAppIntents
 
 /// Detail view for a todo item on watchOS.
-struct WatchTodoDetailView: View {
+public struct WatchTodoDetailView: View {
     private let todoId: UUID
     @Query private var todoItems: [TodoItem]
     @Environment(\.dismiss) private var dismiss
@@ -25,12 +23,12 @@ struct WatchTodoDetailView: View {
         todo.map { TodoAppEntity(from: $0) }
     }
 
-    init(todo: TodoItem) {
+    public init(todo: TodoItem) {
         self.todoId = todo.id
         _todoItems = Query()
     }
 
-    var body: some View {
+    public var body: some View {
         Group {
             if let todo, let entity {
                 detailContent(todo: todo, entity: entity)
@@ -50,7 +48,6 @@ struct WatchTodoDetailView: View {
 
     private func detailContent(todo: TodoItem, entity: TodoAppEntity) -> some View {
         List {
-            // Title section
             Section {
                 HStack {
                     Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
@@ -64,7 +61,6 @@ struct WatchTodoDetailView: View {
                 }
             }
 
-            // Due date section
             if let dueDate = todo.dueDate {
                 Section("Due Date") {
                     VStack(alignment: .leading, spacing: 4) {
@@ -75,7 +71,6 @@ struct WatchTodoDetailView: View {
                 }
             }
 
-            // Description section
             if let description = todo.todoDescription, !description.isEmpty {
                 Section("Description") {
                     Text(description)
@@ -83,7 +78,6 @@ struct WatchTodoDetailView: View {
                 }
             }
 
-            // Actions section
             Section {
                 Button(intent: ToggleFavoriteIntent(todo: entity)) {
                     Label(

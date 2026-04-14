@@ -1,8 +1,6 @@
 //
 //  WatchTodoListView.swift
-//  IntentTodoWatchApp
-//
-//  Main list view for watchOS showing incomplete todos.
+//  WatchUI
 //
 
 import Domain
@@ -10,7 +8,7 @@ import SwiftData
 import SwiftUI
 
 /// Main list view showing incomplete todos on watchOS.
-struct WatchTodoListView: View {
+public struct WatchTodoListView: View {
     @Query(
         filter: #Predicate<TodoItem> { !$0.isCompleted },
         sort: [
@@ -20,9 +18,9 @@ struct WatchTodoListView: View {
     )
     private var incompleteTodos: [TodoItem]
 
-    @State private var showingAllTodos = false
+    public init() {}
 
-    var body: some View {
+    public var body: some View {
         NavigationStack {
             Group {
                 if incompleteTodos.isEmpty {
@@ -43,8 +41,6 @@ struct WatchTodoListView: View {
         }
     }
 
-    // MARK: - Empty View
-
     private var emptyView: some View {
         VStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
@@ -60,11 +56,8 @@ struct WatchTodoListView: View {
         }
     }
 
-    // MARK: - Todo List
-
     private var todoList: some View {
         List {
-            // Due soon section
             let dueSoon = incompleteTodos.filter { isDueSoon($0) }
             if !dueSoon.isEmpty {
                 Section("Due Soon") {
@@ -74,7 +67,6 @@ struct WatchTodoListView: View {
                 }
             }
 
-            // Other todos
             let others = incompleteTodos.filter { !isDueSoon($0) }
             if !others.isEmpty {
                 Section("Upcoming") {
@@ -86,16 +78,8 @@ struct WatchTodoListView: View {
         }
     }
 
-    // MARK: - Helpers
-
     private func isDueSoon(_ todo: TodoItem) -> Bool {
         guard let dueDate = todo.dueDate else { return false }
         return dueDate.timeIntervalSinceNow <= 3600 && dueDate.timeIntervalSinceNow > 0
     }
-}
-
-// MARK: - Previews
-
-#Preview {
-    WatchTodoListView()
 }

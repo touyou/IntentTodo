@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WatchUI
 import WidgetKit
 
 // MARK: - Complication Widget

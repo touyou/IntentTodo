@@ -1,8 +1,6 @@
 //
 //  TodoComplicationProvider.swift
-//  IntentTodoWatchApp
-//
-//  Timeline provider for todo complications.
+//  WatchUI
 //
 
 import Domain
@@ -10,69 +8,53 @@ import SwiftData
 import WidgetKit
 
 /// Timeline provider that fetches todo data for complications.
-struct TodoComplicationProvider: TimelineProvider {
+public struct TodoComplicationProvider: TimelineProvider {
     private let modelContainer: ModelContainer
 
-    init() {
+    public init() {
         // swiftlint:disable:next force_try
         self.modelContainer = try! SharedModelContainer.createContainer()
     }
 
-    func placeholder(in context: Context) -> TodoComplicationEntry {
+    public func placeholder(in context: Context) -> TodoComplicationEntry {
         .placeholder
     }
 
-    func getSnapshot(in context: Context, completion: @escaping (TodoComplicationEntry) -> Void) {
-        let entry = makeEntry()
-        completion(entry)
+    public func getSnapshot(in context: Context, completion: @escaping @Sendable (TodoComplicationEntry) -> Void) {
+        let container = modelContainer
+        Task { @MainActor in
+            completion(Self.makeEntry(using: container))
+        }
     }
 
-    func getTimeline(in context: Context, completion: @escaping (Timeline<TodoComplicationEntry>) -> Void) {
-        let entry = makeEntry()
-
-        // Update every 15 minutes
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
-        completion(timeline)
+    public func getTimeline(in context: Context, completion: @escaping @Sendable (Timeline<TodoComplicationEntry>) -> Void) {
+        let container = modelContainer
+        Task { @MainActor in
+            let entry = Self.makeEntry(using: container)
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+            completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
+        }
     }
 
     @MainActor
-    private func makeEntry() -> TodoComplicationEntry {
+    private static func makeEntry(using modelContainer: ModelContainer) -> TodoComplicationEntry {
         let context = modelContainer.mainContext
 
-        // Fetch incomplete todos
         let incompleteDescriptor = FetchDescriptor<TodoItem>(
             predicate: #Predicate { !$0.isCompleted },
             sortBy: [SortDescriptor(\.dueDate)]
         )
-
-        let incompleteTodos: [TodoItem]
-        do {
-            incompleteTodos = try context.fetch(incompleteDescriptor)
-        } catch {
-            incompleteTodos = []
-        }
-
-        // Find next due todo
+        let incompleteTodos = (try? context.fetch(incompleteDescriptor)) ?? []
         let nextDueTodo = incompleteTodos.first { $0.dueDate != nil }
 
-        // Today's stats
         let startOfDay = Calendar.current.startOfDay(for: Date())
         let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
-
         let todayDescriptor = FetchDescriptor<TodoItem>(
             predicate: #Predicate { item in
                 item.createdAt >= startOfDay && item.createdAt < endOfDay
             }
         )
-
-        let todayTodos: [TodoItem]
-        do {
-            todayTodos = try context.fetch(todayDescriptor)
-        } catch {
-            todayTodos = []
-        }
-
+        let todayTodos = (try? context.fetch(todayDescriptor)) ?? []
         let completedToday = todayTodos.filter { $0.isCompleted }.count
 
         return TodoComplicationEntry(

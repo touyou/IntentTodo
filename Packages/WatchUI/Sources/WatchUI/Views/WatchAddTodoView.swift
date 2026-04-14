@@ -1,24 +1,23 @@
 //
 //  WatchAddTodoView.swift
-//  IntentTodoWatchApp
-//
-//  View for adding a new todo on watchOS.
+//  WatchUI
 //
 
 import SwiftUI
 import TodoAppIntents
 
 /// View for adding a new todo on watchOS.
-struct WatchAddTodoView: View {
+public struct WatchAddTodoView: View {
     @Environment(\.dismiss) private var dismiss
-
     @State private var title = ""
+
+    public init() {}
 
     private var addIntent: AddTodoIntent {
         AddTodoIntent(title: title)
     }
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: 16) {
             TextField("Todo title", text: $title)
                 .textContentType(.none)
@@ -37,13 +36,5 @@ struct WatchAddTodoView: View {
             .accessibilityIdentifier("addButton")
         }
         .navigationTitle("New Todo")
-    }
-}
-
-// MARK: - Previews
-
-#Preview {
-    NavigationStack {
-        WatchAddTodoView()
     }
 }
