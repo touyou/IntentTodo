@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		46AFBE922F2C1C7200444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBE912F2C1C7200444306 /* UI */; };
+		46F00B00000000000000FAC1 /* LiveActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00C00000000000000FAC1 /* LiveActivity */; platformFilter = ios; };
 		46AFBEC02F2CFEA400444306 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEBF2F2CFEA400444306 /* WidgetKit.framework */; };
 		46AFBEC22F2CFEA400444306 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEC12F2CFEA400444306 /* SwiftUI.framework */; };
 		46AFBECF2F2CFEA500444306 /* IntentTodoWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 46AFBEBE2F2CFEA400444306 /* IntentTodoWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -205,6 +206,7 @@
 			files = (
 				46AFBFF72F32BC5000444306 /* TodoAppIntents in Frameworks */,
 				46AFBE922F2C1C7200444306 /* UI in Frameworks */,
+				46F00B00000000000000FAC1 /* LiveActivity in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,6 +493,7 @@
 			packageProductDependencies = (
 				46AFBE912F2C1C7200444306 /* UI */,
 				46AFBFF62F32BC5000444306 /* TodoAppIntents */,
+				46F00C00000000000000FAC1 /* LiveActivity */,
 			);
 			productName = IntentTodo;
 			productReference = 46AFBC392F2BA68C00444306 /* IntentTodo.app */;
@@ -1446,6 +1449,10 @@
 		46F00A00000000000000FAC1 /* WatchUI */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = WatchUI;
+		};
+		46F00C00000000000000FAC1 /* LiveActivity */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LiveActivity;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
