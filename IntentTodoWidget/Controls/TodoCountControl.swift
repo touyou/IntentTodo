@@ -1,4 +1,4 @@
-#if os(iOS)
+#if !os(visionOS)
 //
 //  TodoCountControl.swift
 //  IntentTodoWidget

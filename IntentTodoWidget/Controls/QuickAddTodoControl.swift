@@ -1,4 +1,4 @@
-#if os(iOS)
+#if !os(visionOS)
 import AppIntents
 import SwiftUI
 import TodoAppIntents

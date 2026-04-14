@@ -21,8 +21,8 @@ struct IntentTodoWidgetBundle: WidgetBundle {
         // Home screen widgets
         IntentTodoWidget()
 
-        // Control Center widgets (iOS only — ControlWidget は visionOS 非対応)
-        #if os(iOS)
+        // Control Center widgets (visionOS 以外で利用可能。公式表で iOS/iPadOS/macOS/watchOS 対応)
+        #if !os(visionOS)
         QuickAddTodoControl()
         TodoCountControl()
         ToggleUrgentTodoControl()
