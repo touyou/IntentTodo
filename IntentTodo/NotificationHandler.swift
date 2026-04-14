@@ -37,6 +37,7 @@ final class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
         [.banner, .sound]
     }
 
+    @MainActor
     func userNotificationCenter(
         _ center: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
@@ -47,9 +48,7 @@ final class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
             || content.categoryIdentifier == "ADD_TODO_CATEGORY"
 
         if isAddTodoAction {
-            await MainActor.run {
-                IntentAppState.shared.requestShowAddTodo()
-            }
+            IntentAppState.shared.requestShowAddTodo()
         }
     }
 }

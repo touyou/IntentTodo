@@ -250,16 +250,14 @@ struct VisionOSTodoDetailView: View {
 
     @Query private var todoItems: [TodoItem]
 
-    private var todoItem: TodoItem? {
-        guard let uuid = UUID(uuidString: todo.id) else { return nil }
-        return todoItems.first { $0.id == uuid }
-    }
+    private var todoItem: TodoItem? { todoItems.first }
 
     init(todo: TodoAppEntity) {
         self.todo = todo
-        // SwiftData Query の #Predicate は Optional UUID を直接比較できないため、
-        // 全件取得して todoItem computed property で id をフィルタする。
-        _todoItems = Query()
+        // TodoAppEntity.id (String) → UUID のパースに失敗したら一致不能な
+        // ランダム UUID でフィルタ (ContentUnavailableView に落ちる)。
+        let targetId = UUID(uuidString: todo.id) ?? UUID()
+        _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
     }
 
     var body: some View {
@@ -366,18 +364,41 @@ struct VisionOSTodoDetailView: View {
     }
 
     private func timeRemainingIndicator(for date: Date) -> some View {
-        let interval = date.timeIntervalSinceNow
-        let isOverdue = interval <= 0
-        let isDueSoon = interval > 0 && interval <= 3600
+        // TimelineView で毎分再評価し、overdue / dueSoon / normal の切替が追従するようにする。
+        TimelineView(.periodic(from: .now, by: 60)) { context in
+            let status = DueDateStatus.evaluate(date: date, isCompleted: false, now: context.date)
+            VStack {
+                Image(systemName: statusIcon(for: status))
+                    .font(.largeTitle)
+                    .foregroundStyle(statusColor(for: status))
+                Text(statusLabel(for: status))
+                    .font(.caption)
+                    .foregroundStyle(statusColor(for: status))
+            }
+        }
+    }
 
-        return VStack {
-            Image(systemName: isOverdue ? "exclamationmark.triangle.fill" : (isDueSoon ? "clock.badge.exclamationmark.fill" : "clock"))
-                .font(.largeTitle)
-                .foregroundStyle(isOverdue ? .red : (isDueSoon ? .orange : .secondary))
+    private func statusIcon(for status: DueDateStatus) -> String {
+        switch status {
+        case .overdue: return "exclamationmark.triangle.fill"
+        case .dueSoon: return "clock.badge.exclamationmark.fill"
+        case .normal: return "clock"
+        }
+    }
 
-            Text(isOverdue ? "Overdue" : (isDueSoon ? "Due Soon" : "Upcoming"))
-                .font(.caption)
-                .foregroundStyle(isOverdue ? .red : (isDueSoon ? .orange : .secondary))
+    private func statusColor(for status: DueDateStatus) -> Color {
+        switch status {
+        case .overdue: return .red
+        case .dueSoon: return .orange
+        case .normal: return .secondary
+        }
+    }
+
+    private func statusLabel(for status: DueDateStatus) -> String {
+        switch status {
+        case .overdue: return "Overdue"
+        case .dueSoon: return "Due Soon"
+        case .normal: return "Upcoming"
         }
     }
 

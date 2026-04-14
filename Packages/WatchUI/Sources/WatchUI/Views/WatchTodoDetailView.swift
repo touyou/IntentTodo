@@ -11,21 +11,15 @@ import TodoAppIntents
 
 /// Detail view for a todo item on watchOS.
 public struct WatchTodoDetailView: View {
-    private let todoId: UUID
     @Query private var todoItems: [TodoItem]
     @Environment(\.dismiss) private var dismiss
 
-    private var todo: TodoItem? {
-        todoItems.first { $0.id == todoId }
-    }
-
-    private var entity: TodoAppEntity? {
-        todo.map { TodoAppEntity(from: $0) }
-    }
+    private var todo: TodoItem? { todoItems.first }
+    private var entity: TodoAppEntity? { todo.map { TodoAppEntity(from: $0) } }
 
     public init(todo: TodoItem) {
-        self.todoId = todo.id
-        _todoItems = Query()
+        let targetId = todo.id
+        _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
     }
 
     public var body: some View {

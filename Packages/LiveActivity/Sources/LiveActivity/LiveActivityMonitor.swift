@@ -15,15 +15,11 @@ struct LiveActivityMonitorModifier: ViewModifier {
     let todos: [TodoItem]
 
     func body(content: Content) -> some View {
-        content
-            .task {
-                await checkAndReconcileActivities()
-            }
-            .onChange(of: todos.map(\.id)) { _, _ in
-                Task {
-                    await checkAndReconcileActivities()
-                }
-            }
+        // .task(id:) は id 変化のたびに自動でキャンセル＆再起動するので、
+        // onChange + unstructured Task の組み合わせより安全でシリアル実行が保証される。
+        content.task(id: todos.map(\.id)) {
+            await checkAndReconcileActivities()
+        }
     }
 
     @MainActor

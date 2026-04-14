@@ -6,7 +6,6 @@
 //  the owning Extension target does not need to expose its TimelineEntry type.
 //
 
-import AppIntents
 import SwiftUI
 import TodoAppIntents
 import WidgetKit
@@ -160,7 +159,9 @@ struct LargeTodoWidgetView: View {
 
             Spacer()
 
-            Button(intent: LaunchAppIntent.addTodo()) {
+            // アプリを開くだけのインタラクションは Apple 公式推奨に従い Link を使う
+            // (Button(intent:) は開く以上の副作用がある場合に限定する)
+            Link(destination: URL(string: "intenttodo://addTodo")!) {
                 HStack {
                     Image(systemName: "plus.circle.fill")
                     Text("Add Todo")
@@ -171,7 +172,6 @@ struct LargeTodoWidgetView: View {
                 .padding(.vertical, 8)
                 .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
             }
-            .buttonStyle(.plain)
         }
         .containerBackground(.fill.tertiary, for: .widget)
     }

@@ -10,7 +10,7 @@ import WidgetKit
 /// 型自体は `TodoComplicationProvider` と `TodoComplicationEntryView` が
 /// public に露出するため public だが、内部状態 (count 等) は同一パッケージ
 /// からのみアクセスされるので internal に留める。
-public struct TodoComplicationEntry: TimelineEntry {
+public struct TodoComplicationEntry: TimelineEntry, Sendable {
     public let date: Date
     let incompleteCount: Int
     let nextDueDate: Date?

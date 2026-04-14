@@ -21,25 +21,20 @@ import TodoAppIntents
 public struct TodoDetailView: View {
     // MARK: - Properties
 
-    private let todoId: String
-
     @Query private var todoItems: [TodoItem]
     @Environment(\.dismiss) private var dismiss
 
-    private var todo: TodoItem? {
-        guard let uuid = UUID(uuidString: todoId) else { return nil }
-        return todoItems.first { $0.id == uuid }
-    }
+    private var todo: TodoItem? { todoItems.first }
 
     // MARK: - Initialization
 
     /// Creates a detail view for the specified todo.
     /// - Parameter todo: The todo entity to display.
     public init(todo: TodoAppEntity) {
-        self.todoId = todo.id
-        // Note: SwiftData Query with predicate requires non-optional comparison
-        // We filter by id in the computed property instead
-        _todoItems = Query()
+        // TodoAppEntity.id (String) → UUID 変換に失敗したら何もマッチしないように
+        // ランダム UUID でフィルタする (ContentUnavailableView に落ちる)。
+        let targetId = UUID(uuidString: todo.id) ?? UUID()
+        _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
     }
 
     // MARK: - Body
