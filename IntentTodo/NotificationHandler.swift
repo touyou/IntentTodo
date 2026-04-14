@@ -11,8 +11,14 @@ import TodoAppIntents
 import UserNotifications
 
 /// Shared cross-platform notification delegate.
+///
+/// 通知タップ時の「Add Todo 画面を開く」導線は、IntentTodoApp 起動時に注入される
+/// `NavigationModel` に直接書き込むことで実現する（旧 `IntentAppState` 経路は削除）。
 final class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationHandler()
+
+    /// 起動時に `IntentTodoApp.init()` から注入される。通知タップ時にここへ書き込む。
+    @MainActor var navigationModel: NavigationModel?
 
     private override init() {}
 
@@ -48,7 +54,7 @@ final class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
             || content.categoryIdentifier == "ADD_TODO_CATEGORY"
 
         if isAddTodoAction {
-            IntentAppState.shared.requestShowAddTodo()
+            navigationModel?.showAddTodo()
         }
     }
 }

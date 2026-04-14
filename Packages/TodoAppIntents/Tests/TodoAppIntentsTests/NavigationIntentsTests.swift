@@ -8,67 +8,40 @@ import Foundation
 import Testing
 @testable import TodoAppIntents
 
-// MARK: - IntentAppState Tests
+// MARK: - NavigationModel Tests
 
-@Suite("IntentAppState Tests")
+@Suite("NavigationModel Tests")
 @MainActor
-struct IntentAppStateTests {
-    init() {
-        // Reset state before each test
-        IntentAppState.shared.shouldShowAddTodo = false
-    }
-
-    @Test("Initial shouldShowAddTodo is false after reset")
+struct NavigationModelTests {
+    @Test("Initial state: showingAddTodo is false and path is empty")
     func initialState() {
-        #expect(IntentAppState.shared.shouldShowAddTodo == false)
+        let navigation = NavigationModel()
+        #expect(navigation.showingAddTodo == false)
+        #expect(navigation.path.isEmpty)
     }
 
-    @Test("requestShowAddTodo sets shouldShowAddTodo to true")
-    func requestShowAddTodo() {
-        IntentAppState.shared.requestShowAddTodo()
-
-        #expect(IntentAppState.shared.shouldShowAddTodo == true)
-
-        // Cleanup
-        IntentAppState.shared.shouldShowAddTodo = false
+    @Test("showAddTodo flips the flag")
+    func showAddTodoFlipsFlag() {
+        let navigation = NavigationModel()
+        navigation.showAddTodo()
+        #expect(navigation.showingAddTodo == true)
     }
 
-    @Test("consumeShowAddTodoRequest returns true and resets when pending")
-    func consumeWhenPending() {
-        IntentAppState.shared.requestShowAddTodo()
-
-        let wasPending = IntentAppState.shared.consumeShowAddTodoRequest()
-
-        #expect(wasPending == true)
-        #expect(IntentAppState.shared.shouldShowAddTodo == false)
+    @Test("dismissAddTodo resets the flag")
+    func dismissAddTodoResetsFlag() {
+        let navigation = NavigationModel()
+        navigation.showAddTodo()
+        navigation.dismissAddTodo()
+        #expect(navigation.showingAddTodo == false)
     }
 
-    @Test("consumeShowAddTodoRequest returns false when not pending")
-    func consumeWhenNotPending() {
-        let wasPending = IntentAppState.shared.consumeShowAddTodoRequest()
-
-        #expect(wasPending == false)
-        #expect(IntentAppState.shared.shouldShowAddTodo == false)
-    }
-
-    @Test("Multiple requests, single consume")
-    func multipleRequestsSingleConsume() {
-        IntentAppState.shared.requestShowAddTodo()
-        IntentAppState.shared.requestShowAddTodo()
-
-        let firstConsume = IntentAppState.shared.consumeShowAddTodoRequest()
-        let secondConsume = IntentAppState.shared.consumeShowAddTodoRequest()
-
-        #expect(firstConsume == true)
-        #expect(secondConsume == false)
-    }
-
-    @Test("shouldShowAddTodo can be directly set and read")
-    func directSetAndRead() {
-        IntentAppState.shared.shouldShowAddTodo = true
-        #expect(IntentAppState.shared.shouldShowAddTodo == true)
-
-        IntentAppState.shared.shouldShowAddTodo = false
-        #expect(IntentAppState.shared.shouldShowAddTodo == false)
+    @Test("navigateToRoot clears the navigation path")
+    func navigateToRootClearsPath() {
+        let navigation = NavigationModel()
+        let entity = TodoAppEntity(id: UUID().uuidString, title: "sample", isCompleted: false)
+        navigation.showDetail(for: entity)
+        #expect(navigation.path.isEmpty == false)
+        navigation.navigateToRoot()
+        #expect(navigation.path.isEmpty)
     }
 }

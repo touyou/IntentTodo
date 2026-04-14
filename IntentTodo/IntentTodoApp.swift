@@ -49,6 +49,13 @@ struct IntentTodoApp: App {
         let navigation = NavigationModel()
         self.navigationModel = navigation
         AppDependencyManager.shared.add(dependency: navigation)
+
+        // 通知タップ時のナビゲーションも同じ NavigationModel を使う。
+        #if os(iOS) || os(visionOS) || os(macOS)
+        MainActor.assumeIsolated {
+            NotificationHandler.shared.navigationModel = navigation
+        }
+        #endif
     }
 
     // MARK: - Body

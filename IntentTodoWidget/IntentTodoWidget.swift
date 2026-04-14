@@ -100,7 +100,7 @@ struct TodoWidgetEntry: TimelineEntry {
 // MARK: - Widget Definition
 
 struct IntentTodoWidget: Widget {
-    let kind: String = "IntentTodoWidget"
+    let kind: String = "dev.touyou.IntentTodo.IntentTodoWidget"
 
     var body: some WidgetConfiguration {
         AppIntentConfiguration(
