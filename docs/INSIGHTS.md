@@ -53,10 +53,12 @@
 
 ### [07. プラットフォーム固有の知見](insights/07-platform-specific.md)
 
-- watchOS: `Button(intent:role:)` の API差異、ファイル分割指針
-- LiveActivity: `LiveActivityIntent` vs `AppIntent`、自動管理View Modifier
+- watchOS: `Button(intent:role:)` の API差異、`WatchUI` パッケージ分離方針
+- LiveActivity: `LiveActivityIntent` vs `AppIntent`、`.task(id:)` を使った監視 Modifier
 - Widget: `Button(intent:)` 統合と `Link(destination:)` 公式推奨
-- ファイル分割の一般的パターン
+- プラットフォームガード指針 (`#if os(iOS) \|\| os(visionOS)` / `#if !os(visionOS)` / `#if os(macOS)` の使い分け)
+- `#Predicate` の Optional 比較回避
+- `Button(intent:role:)` の引数順 (`role:` が先)
 
 ---
 
@@ -69,5 +71,6 @@
 
 ## 更新履歴
 
+- 2026-04-15: Extension 内の View を 3 パッケージ（`LiveActivity` / `WidgetUI` / `WatchUI`）に分離し、Extension はターゲット固有のスキャフォルドのみに絞る構成に移行。macOS native ビルド対応（`AppDelegate` / `MacAppDelegate` を `#if os(...)` で分離し `NotificationHandler` を共通化）。visionOS ビルド修復（`#Predicate` の Optional UUID 回避、`Button(intent:role:)` 引数順、ControlWidget の `#if !os(visionOS)` ガード）。`Domain.DueDateStatus` を導入して overdue/dueSoon 判定の重複を解消。
 - 2026-04-13: Shortcuts Intent ルーティング問題の根本原因（`IntentTodoAppIntentsPackage` のメインターゲット重複宣言）が判明。誤った知見（`.background + 通知ワークアラウンド`、`IntentAppState` フォールバック、`IntentDependencies.shared` パターン）を削除し、`@Dependency + AppDependencyManager` パターンを標準として記述更新。
 - 2026-03-19: 18セクションを7ファイルに分割・整理

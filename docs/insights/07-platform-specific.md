@@ -22,22 +22,22 @@ Button {
 }
 ```
 
-### watchOS向けファイル分割
+### watchOS 向けのパッケージ分離（現行構成）
 
-watchOSアプリは単一ファイルが肥大化しやすいため、早期に分割する。
+watchOS の View・Components・Complication 一式は `Packages/WatchUI` に集約し、Extension ターゲットには `@main` と `TodoComplicationWidget` 宣言だけ残す。これによりプレビュー高速化・再利用・単体テスト可能化が得られる。
 
 ```
-IntentTodoWatchApp/
-├── IntentTodoWatchApp.swift      # Appエントリーのみ
-├── Views/
-│   ├── WatchTodoListView.swift   # メインリスト
-│   ├── WatchAddTodoView.swift    # 追加画面
-│   └── WatchTodoDetailView.swift # 詳細画面
-├── Components/
-│   ├── WatchTodoRow.swift        # 行コンポーネント
-│   └── WatchDueDateLabel.swift   # 期限ラベル
-└── TodoComplication.swift        # コンプリケーション
+Packages/WatchUI/Sources/WatchUI/
+├── Views/      (WatchTodoListView / WatchTodoDetailView / WatchAddTodoView)
+├── Components/ (WatchTodoRow / WatchDueDateLabel)
+└── Complication/ (TodoComplicationEntry / Provider / Views)
+
+IntentTodoWatchApp/                # watchOS Extension
+├── IntentTodoWatchApp.swift       # @main（WatchUI を import）
+└── TodoComplication.swift         # Widget 宣言
 ```
+
+`WatchUI` は `Package.swift` で `.watchOS(.v26)` のみを宣言することで、iOS/macOS/visionOS 側ターゲットから誤って import された場合にコンパイル時に弾ける。
 
 ---
 
@@ -100,6 +100,8 @@ Primary 系（Shortcuts / UI で呼ぶもの）は従来通り `@Parameter var t
 
 Live Activityの自動開始/終了は、View modifierとして実装することで既存UIに非侵入的に追加できる。
 
+View 変化への追従には `.task(id:)` を使うと `id` 変化のたびにタスクが自動キャンセル＆再起動され、structured cancellation とシリアル実行が保証される（`.onChange` + unstructured `Task {}` ペアより安全）。
+
 ```swift
 #if os(iOS)
 @available(iOS 16.1, *)
@@ -107,11 +109,9 @@ struct LiveActivityMonitorModifier: ViewModifier {
     let todos: [TodoItem]
 
     func body(content: Content) -> some View {
-        content
-            .task { await checkAndStartActivities() }
-            .onChange(of: todos.map(\.id)) { _, _ in
-                Task { await checkAndStartActivities() }
-            }
+        content.task(id: todos.map(\.id)) {
+            await checkAndReconcileActivities()
+        }
     }
 
     @MainActor
@@ -163,6 +163,42 @@ Button(intent: OpenAddTodoIntent()) {
 - `AppIntents`モジュールのimportが必要
 - Intent の実行モード（`supportedModes`）で挙動が決まる（`.background` / `.foreground(.immediate)` 等）
 - **アプリを開くだけが目的の場合は `Link(destination:)` が公式推奨**（[Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) より "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`"）
+
+---
+
+## プラットフォームガードの指針
+
+プロジェクト全体で一貫した `#if` 条件を使い分ける指針（2026-04-15 確立）。
+
+| 条件 | 用途 | 代表例 |
+|------|------|--------|
+| `#if os(iOS) \|\| os(visionOS)` | UIKit 依存コード | `@UIApplicationDelegateAdaptor`、`UISceneConfiguration`、`.navigationBarTitleDisplayMode`、`.topBarTrailing` (iOS/iPadOS/visionOS のみ) |
+| `#if os(macOS)` | AppKit 依存コード | `@NSApplicationDelegateAdaptor`、`NSApplicationDelegate` |
+| `#if os(iOS)` | ActivityKit など iOS だけの API | `Activity<...>.request`、LiveActivity 関連の全て |
+| `#if !os(visionOS)` | visionOS 非対応の API | `ControlWidget`、`ControlWidgetButton`、`StaticControlConfiguration` |
+| `#if os(watchOS)` | watchOS 専用 | Complication 関連（`AccessoryWidgetBackground` 等） |
+
+**根拠**:
+- `@UIApplicationDelegateAdaptor` と `@NSApplicationDelegateAdaptor` は別プロトコル依存のため完全共通化は不可。プロジェクトでは `NotificationHandler` を cross-platform 実体として共通化し、Adaptor 宣言と AppDelegate 実装だけを `#if` 分岐する（Paul Hudson / Swift by Sundell の定番パターン）。
+- `ControlWidget` は Apple 公式 "Developing a WidgetKit strategy" の対応表で iPhone / iPad / Apple Watch / Mac 対応、visionOS のみ非対応と明記されているため、正しいガードは `#if !os(visionOS)`（以前の `#if os(iOS)` は macOS / watchOS で Control が消えてしまう誤り）。
+- `if #available(iOS 18.0, *)` は実行時版チェックでありコンパイル時の型解決は止められない。プラットフォーム非対応 API には条件付きコンパイル（`#if`）が必須。
+
+## `#Predicate` の Optional 比較回避
+
+`#Predicate<TodoItem> { $0.id == optionalUUID }` のように Optional を直接比較する式は visionOS 等でコンパイルが通らないことがある。回避策は:
+
+1. 非 Optional な定数を capture してから比較する（推奨）
+   ```swift
+   let targetId = UUID(uuidString: entity.id) ?? UUID()  // 失敗時はマッチしない値
+   _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
+   ```
+2. どうしても難しい場合は `Query()` 全件取得 + computed property で in-memory filter
+
+`TodoItem.id` が非 Optional `UUID` である限り、上記 1 で SwiftData の store 側フィルタを効かせられる（全件フェッチよりも効率的）。
+
+## `Button(intent:role:)` の引数順
+
+Swift 6 以降、`Button(role:intent:)` の順が正（`role` が先）。`Button(intent:, role:)` の形だと別の `init` に解決されて `"extraneous argument label 'intent:'"` エラーになることがある。UI レビューで引数順の混在を見つけたら `role:` が先になっているかを確認する。
 
 ---
 

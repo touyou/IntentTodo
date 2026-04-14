@@ -35,34 +35,41 @@ UIクローム（装飾）が透明化し背景に溶け込む時代において
 ### パッケージ構成（App Intents中心設計）
 ```
 Packages/
-├── Domain/           # SwiftDataモデル、共通Entity、ActivityAttributes
+├── Domain/           # SwiftData モデル、共通 Entity、DueDateStatus、ActivityAttributes
 ├── Repository/       # データアクセス層（Protocol + 実装）
-├── TodoAppIntents/   # ★コア：Intent定義 + ビジネスロジック + Shortcuts
-└── UI/               # SwiftUI Views, ViewModels（表示のみ）
+├── TodoAppIntents/   # ★コア：Intent 定義 + ビジネスロジック + Shortcuts
+├── UI/               # メインアプリ SwiftUI Views/ViewModels（iOS/iPadOS/macOS/visionOS）
+├── LiveActivity/     # ActivityKit 管理 + ロック画面 View（iOS 限定）
+├── WidgetUI/         # ホームウィジェット View（TodoWidgetEntryView / TodoWidgetRow）
+└── WatchUI/          # watchOS View + Components + Complication（watchOS 限定）
 ```
 
 ### Extension ターゲット構成
+
+各 Extension は「App/Bundle/Widget 宣言 + Info.plist + entitlements」のみに薄く保ち、View・状態管理・データ取得ロジックはすべて SPM パッケージに置く方針。
+
 ```
-IntentTodoWidget/           # ホーム画面ウィジェット + コントロールセンター
-├── Configuration/          # WidgetConfigurationIntent
-├── Views/                  # Small/Medium/Large ウィジェットView
-└── IntentTodoWidgetBundle.swift  # 全Widget/Controlをバンドル
+IntentTodoWidget/                   # ホーム画面ウィジェット + コントロールセンター
+├── IntentTodoWidget.swift          # Provider + Widget 宣言（WidgetUI を import）
+├── IntentTodoWidgetBundle.swift    # 全 Widget / Control をバンドル
+├── Configuration/                  # WidgetConfigurationIntent
+├── Controls/                       # ControlWidget 3 種（#if !os(visionOS)）
+└── Helpers/WidgetModelContainer.swift
 
-IntentTodoLiveActivity/     # ライブアクティビティ
-├── Views/                  # ロック画面・Dynamic Island View
-├── Intents/                # LiveActivityIntent（完了/スヌーズ）
-└── Manager/                # TodoLiveActivityManager
+IntentTodoLiveActivity/             # ライブアクティビティ
+├── IntentTodoLiveActivityBundle.swift
+└── TodoLiveActivity.swift          # ActivityConfiguration（LiveActivity を import）
 
-IntentTodoWatchApp/         # watchOS アプリ
-├── Views/                  # リスト・詳細・追加View
-├── Components/             # 再利用可能コンポーネント
-└── TodoComplication.swift  # コンプリケーション定義
+IntentTodoWatchApp/                 # watchOS アプリ
+├── IntentTodoWatchApp.swift        # @main（WatchUI を import）
+└── TodoComplication.swift          # コンプリケーション Widget 宣言
 ```
 
 **ポイント**:
-- UseCase層は廃止 → AppIntentsがロジックを担う
-- UIはIntent実行トリガーと結果表示のみ
-- Repository ProtocolによりMock可能、テスタビリティ確保
+- UseCase 層は廃止 → AppIntents がロジックを担う
+- UI は Intent 実行トリガーと結果表示のみ
+- Extension はターゲット固有のスキャフォルドのみ、View は SPM に移送してプレビュー再利用・テスト可能化
+- Repository Protocol により Mock 可能、テスタビリティ確保
 
 ### マルチプラットフォーム展開指針（Action-Centered Design）
 
@@ -81,7 +88,7 @@ IntentTodoWatchApp/         # watchOS アプリ
 #### 実装済みプラットフォーム
 
 - **iOS/iPadOS**: メインアプリ（リスト、詳細、追加）
-- **macOS**: Catalyst対応
+- **macOS**: ネイティブビルド対応（`AppDelegate` (iOS/visionOS) と `MacAppDelegate` (macOS) を `#if os(...)` で分離、`NotificationHandler` を cross-platform 実体として共通化）
 - **watchOS**: アプリ + コンプリケーション（Circular/Corner/Rectangular/Inline）
 - **visionOS**: 空間UI（NavigationSplitView、Ornament、ホバーエフェクト）
 - **ウィジェット**: Small/Medium/Large サイズ対応（Todo一覧表示、アプリ起動は `Link(destination:)` を使用）
