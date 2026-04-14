@@ -32,7 +32,7 @@ public struct ShowTodosIntent: AppIntent {
     }
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & OpensIntent {
+    public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog & OpensIntent {
         let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
         let todos: [TodoItem]
         let screenTarget: AppScreenTarget
@@ -52,8 +52,31 @@ public struct ShowTodosIntent: AppIntent {
         let entities = todos.map { TodoAppEntity(from: $0) }
         return .result(
             value: entities,
-            opensIntent: LaunchAppIntent(target: screenTarget)
+            opensIntent: LaunchAppIntent(target: screenTarget),
+            dialog: dialog(for: entities)
         )
+    }
+
+    // MARK: - Dialog
+
+    /// Siri/Shortcuts の結果表示 / 読み上げ用メッセージ。
+    /// Control Center からの呼出では表示されないが、データ更新が無いためフィードバック不要。
+    private func dialog(for entities: [TodoAppEntity]) -> IntentDialog {
+        let count = entities.count
+        let categoryLabel: String = {
+            switch filter {
+            case .all: return "todo"
+            case .incomplete: return "incomplete todo"
+            case .completed: return "completed todo"
+            case .favorites: return "favorite todo"
+            }
+        }()
+
+        if count == 0 {
+            return IntentDialog("No \(categoryLabel)s.")
+        }
+        let plural = count == 1 ? categoryLabel : "\(categoryLabel)s"
+        return IntentDialog("You have \(count) \(plural).")
     }
 }
 

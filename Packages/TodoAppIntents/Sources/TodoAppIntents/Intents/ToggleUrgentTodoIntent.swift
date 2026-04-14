@@ -40,6 +40,8 @@ public struct ToggleUrgentTodoIntent: AppIntent {
         try context.save()
 
         WidgetReloader.reloadAllWidgets()
+        // Control Center では Dialog が表示されない (2026-04-14 検証済み) ため、
+        // 通知でフィードバックを返す。
         ControlNotificationHelper.sendToggledNotification(
             todoTitle: todoTitle,
             isCompleted: isNowCompleted

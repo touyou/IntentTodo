@@ -223,6 +223,23 @@ extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
 
 ビジネスロジックは両者で共通のため `Actions/TodoActions.swift` に切り出し、両方から呼ぶ。
 
+### Dialog vs 通知の使い分け
+
+Intent の実行結果をユーザーに伝える方法は呼出元で見え方が異なる:
+
+| 呼出元 | `.result(dialog:)` | ローカル通知 |
+|-------|------------------|------------|
+| Siri | 読み上げ ✅ | 表示 ✅ |
+| Shortcuts | 結果欄に表示 ✅ | 表示 ✅ |
+| UI (`Button(intent:)`) | 表示なし | 表示 ✅ |
+| Widget `Button(intent:)` | 表示なし | 表示 ✅ |
+| **Control Widget (`ControlWidgetButton`)** | **表示なし** (2026-04-14 実機検証) | 表示 ✅ |
+
+使い分けルール:
+- **Control Center から呼ばれる Intent** (`ToggleUrgentTodoIntent`, `ShowTodoCountIntent`): **ローカル通知**でフィードバック (Dialog が表示されないため)
+- **Siri / Shortcuts 前提の Intent** (`ShowTodosIntent` 等): **Dialog** で結果を音声読み上げ / テキスト表示
+- **UI Button 経由が中心の Intent** (Add/Toggle/Delete 等): Dialog も通知も不要 (UI が即座に反映するため)
+
 ### データ更新 Intent は必ず `WidgetReloader.reloadAllWidgets()` を呼ぶ
 
 データ変更があった Intent は、UI / Widget 反映のため末尾で `WidgetReloader.reloadAllWidgets()` を呼ぶ。
