@@ -13,27 +13,16 @@ import SwiftData
 import SwiftUI
 import TodoAppIntents
 
-// MARK: - visionOS Main View
+// MARK: - Main Split View
 
-/// Main todo view optimized for visionOS.
-///
-/// Uses spatial design patterns:
-/// - Glass material backgrounds
-/// - Ornaments for secondary controls
-/// - Hover effects for eye tracking
-/// - Comfortable spacing for hand gestures
 public struct VisionOSTodoListView: View {
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
     @Environment(NavigationModel.self) private var navigationModel
     @State private var selectedTodo: TodoAppEntity?
 
-    private var allTodos: [TodoAppEntity] {
-        todoItems.map { TodoAppEntity(from: $0) }
-    }
-
     private var filteredTodos: [TodoAppEntity] {
-        viewModel.filteredTodos(from: allTodos)
+        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
     }
 
     public init() {}
@@ -41,60 +30,78 @@ public struct VisionOSTodoListView: View {
     public var body: some View {
         @Bindable var navigationModel = navigationModel
         NavigationSplitView {
-            sidebarContent
-                .navigationTitle("Todos")
+            VisionOSSidebar(
+                todos: filteredTodos,
+                viewModel: $viewModel,
+                selectedTodo: $selectedTodo
+            )
+            .navigationTitle("Todos")
         } detail: {
-            detailContent
+            VisionOSDetailPane(selectedTodo: selectedTodo)
         }
         .ornament(attachmentAnchor: .scene(.bottom)) {
-            bottomOrnament
+            VisionOSBottomOrnament(viewModel: $viewModel)
         }
         .sheet(isPresented: $navigationModel.showingAddTodo) {
-            addTodoSheet
+            VisionOSAddTodoSheet(todoCount: todoItems.count)
         }
     }
+}
 
-    // MARK: - Sidebar
+// MARK: - Sidebar
 
-    private var sidebarContent: some View {
+private struct VisionOSSidebar: View {
+    let todos: [TodoAppEntity]
+    @Binding var viewModel: TodoListViewModel
+    @Binding var selectedTodo: TodoAppEntity?
+    @Environment(NavigationModel.self) private var navigationModel
+
+    var body: some View {
         Group {
-            if filteredTodos.isEmpty {
-                emptyView
+            if todos.isEmpty {
+                VisionOSEmptyView()
             } else {
-                todoList
+                List(todos, id: \.id, selection: $selectedTodo) { todo in
+                    VisionOSTodoRow(todo: todo, isSelected: selectedTodo?.id == todo.id)
+                        .tag(todo)
+                }
+                .listStyle(.sidebar)
             }
         }
         .toolbar {
-            toolbarContent
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    navigationModel.showAddTodo()
+                } label: {
+                    Image(systemName: "plus")
+                }
+            }
         }
         .searchable(text: $viewModel.searchText, prompt: "Search todos")
     }
+}
 
-    private var emptyView: some View {
+private struct VisionOSEmptyView: View {
+    @Environment(NavigationModel.self) private var navigationModel
+
+    var body: some View {
         ContentUnavailableView {
             Label("No Todos", systemImage: "checklist")
         } description: {
             Text("Tap the + button to add your first todo.")
         } actions: {
-            Button("Add Todo") {
-                navigationModel.showAddTodo()
-            }
-            .buttonStyle(.borderedProminent)
+            Button("Add Todo") { navigationModel.showAddTodo() }
+                .buttonStyle(.borderedProminent)
         }
     }
+}
 
-    private var todoList: some View {
-        List(filteredTodos, id: \.id, selection: $selectedTodo) { todo in
-            VisionOSTodoRow(todo: todo, isSelected: selectedTodo?.id == todo.id)
-                .tag(todo)
-        }
-        .listStyle(.sidebar)
-    }
+// MARK: - Detail Pane
 
-    // MARK: - Detail
+private struct VisionOSDetailPane: View {
+    let selectedTodo: TodoAppEntity?
 
-    @ViewBuilder
-    private var detailContent: some View {
+    var body: some View {
         if let todo = selectedTodo {
             VisionOSTodoDetailView(todo: todo)
         } else {
@@ -105,12 +112,16 @@ public struct VisionOSTodoListView: View {
             )
         }
     }
+}
 
-    // MARK: - Ornament
+// MARK: - Bottom Ornament
 
-    private var bottomOrnament: some View {
+private struct VisionOSBottomOrnament: View {
+    @Binding var viewModel: TodoListViewModel
+    @Environment(NavigationModel.self) private var navigationModel
+
+    var body: some View {
         HStack(spacing: 24) {
-            // Filter menu
             Menu {
                 Picker("Filter", selection: $viewModel.filter) {
                     ForEach(TodoFilter.allCases) { filterOption in
@@ -123,15 +134,12 @@ public struct VisionOSTodoListView: View {
             }
             .buttonStyle(.borderless)
 
-            Divider()
-                .frame(height: 24)
+            Divider().frame(height: 24)
 
-            // Sort menu
             Menu {
                 Picker("Sort", selection: $viewModel.sortOrder) {
                     ForEach(TodoSortOrder.allCases) { order in
-                        Text(order.displayName)
-                            .tag(order)
+                        Text(order.displayName).tag(order)
                     }
                 }
             } label: {
@@ -139,10 +147,8 @@ public struct VisionOSTodoListView: View {
             }
             .buttonStyle(.borderless)
 
-            Divider()
-                .frame(height: 24)
+            Divider().frame(height: 24)
 
-            // Add button
             Button {
                 navigationModel.showAddTodo()
             } label: {
@@ -154,48 +160,48 @@ public struct VisionOSTodoListView: View {
         .padding(.vertical, 12)
         .glassBackgroundEffect()
     }
+}
 
-    // MARK: - Toolbar
+// MARK: - Add Sheet
 
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                navigationModel.showAddTodo()
-            } label: {
-                Image(systemName: "plus")
-            }
-        }
-    }
+private struct VisionOSAddTodoSheet: View {
+    let todoCount: Int
+    @Environment(NavigationModel.self) private var navigationModel
+    @State private var baselineCount: Int?
 
-    private var addTodoSheet: some View {
+    var body: some View {
         NavigationStack {
             AddTodoView()
         }
         .frame(minWidth: 400, minHeight: 300)
-        .onChange(of: todoItems.count) { oldCount, newCount in
-            if newCount > oldCount {
+        .task { baselineCount = todoCount }
+        .onChange(of: todoCount) { _, newValue in
+            if let baseline = baselineCount, newValue > baseline {
                 navigationModel.dismissAddTodo()
             }
         }
     }
 }
 
-// MARK: - visionOS Todo Row
+// MARK: - Todo Row
 
-/// Todo row optimized for visionOS interaction.
 struct VisionOSTodoRow: View {
     let todo: TodoAppEntity
     let isSelected: Bool
 
+    private var status: DueDateStatus {
+        if let dueDate = todo.dueDate {
+            return DueDateStatus.evaluate(date: dueDate, isCompleted: todo.isCompleted)
+        }
+        return .normal
+    }
+
     var body: some View {
         HStack(spacing: 16) {
-            // Checkbox with hover effect
             TodoCheckbox(todo: todo)
                 .contentShape(.hoverEffect, .rect(cornerRadius: 8))
                 .hoverEffect(.highlight)
 
-            // Content
             VStack(alignment: .leading, spacing: 6) {
                 Text(todo.title)
                     .font(.title3)
@@ -204,18 +210,15 @@ struct VisionOSTodoRow: View {
 
                 if let dueDate = todo.dueDate {
                     HStack(spacing: 4) {
-                        Image(systemName: dueDateIcon(for: dueDate))
-                            .font(.caption)
-                        Text(dueDate.formatted(date: .abbreviated, time: .shortened))
-                            .font(.caption)
+                        Image(systemName: icon).font(.caption)
+                        Text(dueDate.formatted(date: .abbreviated, time: .shortened)).font(.caption)
                     }
-                    .foregroundStyle(dueDateColor(for: dueDate))
+                    .foregroundStyle(color)
                 }
             }
 
             Spacer()
 
-            // Favorite button with hover effect
             FavoriteButton(todo: todo)
                 .contentShape(.hoverEffect, .rect(cornerRadius: 8))
                 .hoverEffect(.highlight)
@@ -225,16 +228,16 @@ struct VisionOSTodoRow: View {
         .hoverEffect(.lift)
     }
 
-    private func dueDateIcon(for date: Date) -> String {
-        switch DueDateStatus.evaluate(date: date, isCompleted: todo.isCompleted) {
+    private var icon: String {
+        switch status {
         case .overdue: return "exclamationmark.circle.fill"
         case .dueSoon: return "clock.badge.exclamationmark"
         case .normal: return "calendar"
         }
     }
 
-    private func dueDateColor(for date: Date) -> Color {
-        switch DueDateStatus.evaluate(date: date, isCompleted: todo.isCompleted) {
+    private var color: Color {
+        switch status {
         case .overdue: return .red
         case .dueSoon: return .orange
         case .normal: return .secondary
@@ -242,20 +245,15 @@ struct VisionOSTodoRow: View {
     }
 }
 
-// MARK: - visionOS Todo Detail
+// MARK: - Detail View
 
-/// Detail view optimized for visionOS spatial design.
 struct VisionOSTodoDetailView: View {
     let todo: TodoAppEntity
-
     @Query private var todoItems: [TodoItem]
-
     private var todoItem: TodoItem? { todoItems.first }
 
     init(todo: TodoAppEntity) {
         self.todo = todo
-        // TodoAppEntity.id (String) → UUID のパースに失敗したら一致不能な
-        // ランダム UUID でフィルタ (ContentUnavailableView に落ちる)。
         let targetId = UUID(uuidString: todo.id) ?? UUID()
         _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
     }
@@ -264,26 +262,17 @@ struct VisionOSTodoDetailView: View {
         ScrollView {
             if let item = todoItem {
                 VStack(alignment: .leading, spacing: 32) {
-                    // Header
-                    headerSection(item)
-
-                    // Due date
+                    VisionOSHeaderSection(item: item)
                     if let dueDate = item.dueDate {
-                        dueDateSection(dueDate, isCompleted: item.isCompleted)
+                        VisionOSDueDateSection(dueDate: dueDate, isCompleted: item.isCompleted)
                     }
-
-                    // Description
                     if let description = item.todoDescription, !description.isEmpty {
-                        descriptionSection(description)
+                        VisionOSDescriptionSection(description: description)
                     }
-
-                    // Subtasks
                     if !item.subTasks.isEmpty {
-                        subtasksSection(item.subTasks)
+                        VisionOSSubtasksSection(subtasks: item.subTasks)
                     }
-
-                    // Actions
-                    actionsSection(TodoAppEntity(from: item))
+                    VisionOSActionsSection(entity: TodoAppEntity(from: item))
                 }
                 .padding(40)
             } else {
@@ -296,8 +285,14 @@ struct VisionOSTodoDetailView: View {
         }
         .navigationTitle("Details")
     }
+}
 
-    private func headerSection(_ item: TodoItem) -> some View {
+// MARK: - Sections
+
+private struct VisionOSHeaderSection: View {
+    let item: TodoItem
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 20) {
                 TodoCheckbox(todo: TodoAppEntity(from: item))
@@ -312,13 +307,12 @@ struct VisionOSTodoDetailView: View {
                     .foregroundStyle(item.isCompleted ? .secondary : .primary)
             }
 
-            // Status badges
             HStack(spacing: 12) {
                 if item.isCompleted {
-                    statusBadge(title: "Completed", icon: "checkmark.circle.fill", color: .green)
+                    VisionOSStatusBadge(title: "Completed", icon: "checkmark.circle.fill", color: .green)
                 }
                 if item.isFavorite {
-                    statusBadge(title: "Favorite", icon: "star.fill", color: .yellow)
+                    VisionOSStatusBadge(title: "Favorite", icon: "star.fill", color: .yellow)
                 }
             }
         }
@@ -326,8 +320,14 @@ struct VisionOSTodoDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassBackgroundEffect()
     }
+}
 
-    private func statusBadge(title: String, icon: String, color: Color) -> some View {
+private struct VisionOSStatusBadge: View {
+    let title: String
+    let icon: String
+    let color: Color
+
+    var body: some View {
         Label(title, systemImage: icon)
             .font(.subheadline)
             .foregroundStyle(color)
@@ -335,8 +335,13 @@ struct VisionOSTodoDetailView: View {
             .padding(.vertical, 6)
             .background(color.opacity(0.15), in: Capsule())
     }
+}
 
-    private func dueDateSection(_ dueDate: Date, isCompleted: Bool) -> some View {
+private struct VisionOSDueDateSection: View {
+    let dueDate: Date
+    let isCompleted: Bool
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Due Date")
                 .font(.headline)
@@ -344,8 +349,7 @@ struct VisionOSTodoDetailView: View {
 
             HStack(spacing: 20) {
                 VStack(alignment: .leading) {
-                    Text(dueDate.formatted(date: .complete, time: .omitted))
-                        .font(.title2)
+                    Text(dueDate.formatted(date: .complete, time: .omitted)).font(.title2)
                     Text(dueDate.formatted(date: .omitted, time: .shortened))
                         .font(.title3)
                         .foregroundStyle(.secondary)
@@ -354,7 +358,7 @@ struct VisionOSTodoDetailView: View {
                 Spacer()
 
                 if !isCompleted {
-                    timeRemainingIndicator(for: dueDate)
+                    VisionOSTimeRemainingIndicator(date: dueDate)
                 }
             }
         }
@@ -362,23 +366,27 @@ struct VisionOSTodoDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassBackgroundEffect()
     }
+}
 
-    private func timeRemainingIndicator(for date: Date) -> some View {
-        // TimelineView で毎分再評価し、overdue / dueSoon / normal の切替が追従するようにする。
+private struct VisionOSTimeRemainingIndicator: View {
+    let date: Date
+
+    var body: some View {
+        // 毎分再評価して overdue / dueSoon / normal の切替に追従。
         TimelineView(.periodic(from: .now, by: 60)) { context in
             let status = DueDateStatus.evaluate(date: date, isCompleted: false, now: context.date)
             VStack {
-                Image(systemName: statusIcon(for: status))
+                Image(systemName: Self.icon(for: status))
                     .font(.largeTitle)
-                    .foregroundStyle(statusColor(for: status))
-                Text(statusLabel(for: status))
+                    .foregroundStyle(Self.color(for: status))
+                Text(Self.label(for: status))
                     .font(.caption)
-                    .foregroundStyle(statusColor(for: status))
+                    .foregroundStyle(Self.color(for: status))
             }
         }
     }
 
-    private func statusIcon(for status: DueDateStatus) -> String {
+    private static func icon(for status: DueDateStatus) -> String {
         switch status {
         case .overdue: return "exclamationmark.triangle.fill"
         case .dueSoon: return "clock.badge.exclamationmark.fill"
@@ -386,7 +394,7 @@ struct VisionOSTodoDetailView: View {
         }
     }
 
-    private func statusColor(for status: DueDateStatus) -> Color {
+    private static func color(for status: DueDateStatus) -> Color {
         switch status {
         case .overdue: return .red
         case .dueSoon: return .orange
@@ -394,40 +402,40 @@ struct VisionOSTodoDetailView: View {
         }
     }
 
-    private func statusLabel(for status: DueDateStatus) -> String {
+    private static func label(for status: DueDateStatus) -> String {
         switch status {
         case .overdue: return "Overdue"
         case .dueSoon: return "Due Soon"
         case .normal: return "Upcoming"
         }
     }
+}
 
-    private func descriptionSection(_ description: String) -> some View {
+private struct VisionOSDescriptionSection: View {
+    let description: String
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Description")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
-            Text(description)
-                .font(.body)
+            Text("Description").font(.headline).foregroundStyle(.secondary)
+            Text(description).font(.body)
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassBackgroundEffect()
     }
+}
 
-    private func subtasksSection(_ subtasks: [SubTask]) -> some View {
+private struct VisionOSSubtasksSection: View {
+    let subtasks: [SubTask]
+
+    var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Subtasks")
-                .font(.headline)
-                .foregroundStyle(.secondary)
-
+            Text("Subtasks").font(.headline).foregroundStyle(.secondary)
             ForEach(subtasks.sorted { $0.orderIndex < $1.orderIndex }, id: \.id) { subtask in
                 HStack {
                     Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
                         .foregroundStyle(subtask.isCompleted ? .green : .secondary)
-                    Text(subtask.title)
-                        .strikethrough(subtask.isCompleted)
+                    Text(subtask.title).strikethrough(subtask.isCompleted)
                 }
                 .padding(.vertical, 4)
             }
@@ -436,8 +444,12 @@ struct VisionOSTodoDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassBackgroundEffect()
     }
+}
 
-    private func actionsSection(_ entity: TodoAppEntity) -> some View {
+private struct VisionOSActionsSection: View {
+    let entity: TodoAppEntity
+
+    var body: some View {
         HStack(spacing: 20) {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
                 Label(
