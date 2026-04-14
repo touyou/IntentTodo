@@ -15,34 +15,27 @@ public final class TodoItem {
     public var id: UUID
 
     /// The title of the todo item.
-    public var title: String {
-        didSet { modifiedAt = Date() }
-    }
+    public var title: String
 
     /// Optional detailed description of the todo item.
-    public var todoDescription: String? {
-        didSet { modifiedAt = Date() }
-    }
+    public var todoDescription: String?
 
     /// Whether the todo item has been completed.
-    public var isCompleted: Bool {
-        didSet { modifiedAt = Date() }
-    }
+    public var isCompleted: Bool
 
     /// Whether the todo item is marked as favorite.
-    public var isFavorite: Bool {
-        didSet { modifiedAt = Date() }
-    }
+    public var isFavorite: Bool
 
     /// Optional due date for the todo item.
-    public var dueDate: Date? {
-        didSet { modifiedAt = Date() }
-    }
+    public var dueDate: Date?
 
     /// The date when the todo item was created.
     public var createdAt: Date
 
     /// The date when the todo item was last modified.
+    ///
+    /// `@Model` プロパティで `didSet` を使うと CloudKit マージ時や KVC 経由の
+    /// 更新で発火しないため、更新側 (TodoActions 等) で明示的に触る方針。
     public var modifiedAt: Date
 
     /// The category this todo belongs to (optional for CloudKit compatibility).

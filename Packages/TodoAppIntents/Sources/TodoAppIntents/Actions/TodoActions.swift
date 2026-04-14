@@ -44,6 +44,7 @@ public enum TodoActions {
             throw IntentError.notFound("Todo not found")
         }
         item.isCompleted.toggle()
+        item.modifiedAt = Date()
         try repository.update(item)
         return TodoToggleResult(entity: TodoAppEntity(from: item), isNowCompleted: item.isCompleted)
     }
@@ -59,6 +60,7 @@ public enum TodoActions {
             throw IntentError.notFound("Todo not found")
         }
         item.isFavorite.toggle()
+        item.modifiedAt = Date()
         try repository.update(item)
         return TodoAppEntity(from: item)
     }
@@ -89,6 +91,7 @@ public enum TodoActions {
         }
         let newDueDate = currentDueDate.addingTimeInterval(interval)
         item.dueDate = newDueDate
+        item.modifiedAt = Date()
         try repository.update(item)
         return TodoSnoozeResult(
             entity: TodoAppEntity(from: item),
