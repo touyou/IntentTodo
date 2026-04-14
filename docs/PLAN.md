@@ -164,7 +164,7 @@ func suggestEmoji(for todoTitle: String) async throws -> String {
 - `LaunchAppIntent`: `[.foreground(.immediate)]` — 起点から即時フォアグラウンド
 - `ToggleTodoCompletionIntent` / `DeleteTodoIntent` / `ToggleFavoriteIntent` / `ToggleUrgentTodoIntent` / `ShowTodoCountIntent`: `.background`
 
-> **経験則 (実機検証)**: Control Widget コンテキストで `continueInForeground()` を呼んでもアプリが開かない。Shortcuts / Siri 経由では動作する。Apple 公式には明示的な記述は確認できていない。
+> **未検証**: Control Widget からの `continueInForeground()` 呼び出しは現状未検証。かつて失敗していた記録があるが、それは `IntentTodoAppIntentsPackage` 重複 Bug 下での話で、fix 後は再検証していない。
 
 ### AppDependencyManager + @Dependency + perform() による Intent → UI 連携 ✅ 実装済み
 
