@@ -2,9 +2,8 @@
 //  ToggleUrgentTodoIntent.swift
 //  TodoAppIntents
 //
-//  Toggles completion of the most urgent (earliest-due) incomplete todo.
-//  Designed for Control Center buttons where no user input is available
-//  (the target is auto-selected).
+//  Auto-selects the most urgent (earliest-due) incomplete todo and toggles it.
+//  Designed for Control Center (no parameter picking available there).
 //
 
 import AppIntents

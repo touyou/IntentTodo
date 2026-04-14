@@ -2,10 +2,13 @@
 //  ToggleTodoCompletionFromExtensionIntent.swift
 //  TodoAppIntents
 //
-//  Variant for Live Activity / Widget Extension contexts. Does not use @Dependency
-//  because AppDependencyManager registrations may differ per process.
-//  Uses SharedModelContainer (App Group) directly so it works regardless of process.
-//  Also conforms to LiveActivityIntent on iOS so it can drive Dynamic Island / lock screen buttons.
+//  FromExtension variant: parameter is `todoId: String` (not TodoAppEntity).
+//
+//  App Intents が TodoAppEntity パラメータを持つ Intent を実行するとき、
+//  perform() 前に TodoEntityQuery.entities(for:) を呼んで entity を解決しようとする。
+//  Live Activity Extension のプロセスで解決されると SwiftData が内部 assertion で
+//  trap することがあるため、呼び出し元（LA）が todoId を知っているケースでは
+//  entity resolution を経由しない String パラメータ版を用意する。
 //
 
 #if os(iOS)
@@ -20,34 +23,36 @@ public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
     public static var title: LocalizedStringResource { "Toggle Todo Completion" }
     public static let description = IntentDescription("Internal variant used by Live Activity / Widget buttons.")
 
-    /// Marked as not discoverable so Shortcuts users only see the Primary `ToggleTodoCompletionIntent`.
+    /// Shortcuts には露出させない (FromExtension はユーザーに直接選ばせる Intent ではないため)。
     public static let isDiscoverable = false
 
     public static var supportedModes: IntentModes { .background }
 
     public static var parameterSummary: some ParameterSummary {
-        Summary("Toggle completion of \(\.$todo)")
+        Summary("Toggle completion of todo \(\.$todoId)")
     }
 
-    @Parameter(title: "Todo")
-    public var todo: TodoAppEntity
+    @Parameter(title: "Todo ID")
+    public var todoId: String
+
+    @Dependency
+    var modelContainer: ModelContainer
 
     public init() {}
 
-    public init(todo: TodoAppEntity) {
-        self.todo = todo
+    public init(todoId: String) {
+        self.todoId = todoId
     }
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let container = try SharedModelContainer.createContainer()
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(container))
-        let result = try TodoActions.toggleCompletion(todoId: todo.id, using: repository)
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
+        let result = try TodoActions.toggleCompletion(todoId: todoId, using: repository)
         WidgetReloader.reloadAllWidgets()
 
         #if os(iOS)
         if result.isNowCompleted {
-            await endMatchingLiveActivity(for: todo.id)
+            await endMatchingLiveActivity(for: todoId)
         }
         #endif
 

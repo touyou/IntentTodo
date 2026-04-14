@@ -45,20 +45,14 @@ struct TodoDeadlineLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    let entity = TodoAppEntity(
-                        id: context.attributes.todoId,
-                        title: context.state.title,
-                        isCompleted: context.state.isCompleted,
-                        dueDate: context.state.dueDate
-                    )
                     HStack(spacing: 16) {
-                        Button(intent: ToggleTodoCompletionFromExtensionIntent(todo: entity)) {
+                        Button(intent: ToggleTodoCompletionFromExtensionIntent(todoId: context.attributes.todoId)) {
                             Label("Complete", systemImage: "checkmark.circle.fill")
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
 
-                        Button(intent: SnoozeTodoFromExtensionIntent(todo: entity)) {
+                        Button(intent: SnoozeTodoFromExtensionIntent(todoId: context.attributes.todoId)) {
                             Label("Snooze", systemImage: "clock.arrow.circlepath")
                         }
                         .buttonStyle(.bordered)
