@@ -118,6 +118,15 @@ public struct TodoListView: View {
         .animation(.default, value: filteredTodos.map(\.id))
     }
 
+    /// Filter/Sort メニューのツールバー配置先。`.topBarTrailing` は macOS で利用不可のため分岐。
+    private var filterSortPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+        .automatic
+        #else
+        .topBarTrailing
+        #endif
+    }
+
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
@@ -130,7 +139,7 @@ public struct TodoListView: View {
             .accessibilityLabel("Add todo")
         }
 
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: filterSortPlacement) {
             Menu {
                 Picker("Filter", selection: $viewModel.filter) {
                     ForEach(TodoFilter.allCases) { filterOption in

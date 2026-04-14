@@ -57,7 +57,7 @@ public struct TodoDetailView: View {
             }
         }
         .navigationTitle("Details")
-        #if !os(watchOS)
+        #if os(iOS) || os(visionOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onChange(of: todo) { _, newValue in

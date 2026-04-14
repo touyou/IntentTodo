@@ -17,7 +17,14 @@ import UserNotifications
 struct IntentTodoApp: App {
     // MARK: - Properties
 
+    // UIApplicationDelegate と NSApplicationDelegate は別プロトコルのため、
+    // プラットフォームごとに Adaptor を分岐（デファクトパターン）。
+    // 通知ハンドラ本体は NotificationHandler に集約し、両 Delegate から共通に利用する。
+    #if os(iOS) || os(visionOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #elseif os(macOS)
+    @NSApplicationDelegateAdaptor(MacAppDelegate.self) var appDelegate
+    #endif
 
     let modelContainer: ModelContainer
 
