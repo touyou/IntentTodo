@@ -4,6 +4,9 @@
 //
 
 import Domain
+#if os(iOS)
+import LiveActivity
+#endif
 import SwiftData
 import SwiftUI
 import TodoAppIntents

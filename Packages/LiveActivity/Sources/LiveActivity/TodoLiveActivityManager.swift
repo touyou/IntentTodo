@@ -1,15 +1,15 @@
 //
 //  TodoLiveActivityManager.swift
-//  IntentTodoLiveActivity
+//  LiveActivity
 //
-//  Manager for starting and controlling Live Activities.
+//  ActivityKit ラッパー。Live Activity の start / update / end を集約。
+//  ActivityKit は iOS 限定のため全体を #if os(iOS) でガード。
 //
 
+#if os(iOS)
 import ActivityKit
 import Domain
 import Foundation
-
-// MARK: - Live Activity Manager
 
 /// Manager for starting and updating Live Activities.
 @MainActor
@@ -18,7 +18,7 @@ public final class TodoLiveActivityManager {
 
     private init() {}
 
-    /// Starts a Live Activity for a todo that's due soon.
+    /// Starts a Live Activity for a todo that's due soon. No-op if an activity for the same todo already exists.
     /// - Parameters:
     ///   - todoId: The todo's unique identifier.
     ///   - title: The todo's title.
@@ -26,7 +26,6 @@ public final class TodoLiveActivityManager {
     public func startActivity(todoId: String, title: String, dueDate: Date) async throws {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
-        // Check if activity already exists
         let existingActivity = Activity<TodoDeadlineActivityAttributes>.activities.first {
             $0.attributes.todoId == todoId
         }
@@ -37,32 +36,28 @@ public final class TodoLiveActivityManager {
             title: title,
             dueDate: dueDate
         )
-
-        // Calculate when to dismiss (at due date or after some time)
-        let dismissalDate = dueDate.addingTimeInterval(15 * 60) // 15 min after due
+        let staleDate = dueDate.addingTimeInterval(15 * 60)
 
         _ = try Activity.request(
             attributes: attributes,
-            content: .init(state: contentState, staleDate: dismissalDate),
+            content: .init(state: contentState, staleDate: staleDate),
             pushType: nil
         )
     }
 
-    /// Updates all activities for deadline changes.
+    /// Ends all activities whose ContentState reports completion.
     public func updateActivities() async {
-        for activity in Activity<TodoDeadlineActivityAttributes>.activities {
-            if activity.content.state.isCompleted {
-                await activity.end(dismissalPolicy: .immediate)
-            }
+        for activity in Activity<TodoDeadlineActivityAttributes>.activities
+            where activity.content.state.isCompleted {
+            await activity.end(dismissalPolicy: .immediate)
         }
     }
 
     /// Ends a specific activity.
     public func endActivity(for todoId: String) async {
-        for activity in Activity<TodoDeadlineActivityAttributes>.activities {
-            if activity.attributes.todoId == todoId {
-                await activity.end(dismissalPolicy: .immediate)
-            }
+        for activity in Activity<TodoDeadlineActivityAttributes>.activities
+            where activity.attributes.todoId == todoId {
+            await activity.end(dismissalPolicy: .immediate)
         }
     }
 
@@ -73,3 +68,4 @@ public final class TodoLiveActivityManager {
         }
     }
 }
+#endif

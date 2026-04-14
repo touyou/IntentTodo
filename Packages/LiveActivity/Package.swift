@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "UI",
+    name: "LiveActivity",
     platforms: [
         .iOS(.v26),
         .macOS(.v26),
@@ -11,30 +11,22 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "UI",
-            targets: ["UI"]
+            name: "LiveActivity",
+            targets: ["LiveActivity"]
         ),
     ],
     dependencies: [
-        .package(path: "../TodoAppIntents"),
         .package(path: "../Domain"),
-        .package(path: "../LiveActivity"),
     ],
     targets: [
         .target(
-            name: "UI",
+            name: "LiveActivity",
             dependencies: [
-                .product(name: "TodoAppIntents", package: "TodoAppIntents"),
                 .product(name: "Domain", package: "Domain"),
-                .product(name: "LiveActivity", package: "LiveActivity"),
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
-        ),
-        .testTarget(
-            name: "UITests",
-            dependencies: ["UI", "TodoAppIntents"]
         ),
     ]
 )
