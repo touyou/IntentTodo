@@ -1,21 +1,24 @@
 //
-//  WidgetComponents.swift
-//  IntentTodoWidget
+//  TodoWidgetRow.swift
+//  WidgetUI
 //
-//  Reusable components for widget views.
+//  Row component for displaying a todo item in widgets.
 //
 
 import SwiftUI
 import TodoAppIntents
 
-// MARK: - Todo Widget Row
-
 /// Row component for displaying a todo item in widgets.
-struct TodoWidgetRow: View {
+public struct TodoWidgetRow: View {
     let todo: TodoAppEntity
     let compact: Bool
 
-    var body: some View {
+    public init(todo: TodoAppEntity, compact: Bool) {
+        self.todo = todo
+        self.compact = compact
+    }
+
+    public var body: some View {
         HStack(spacing: 8) {
             Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(todo.isCompleted ? .green : .secondary)
@@ -35,8 +38,6 @@ struct TodoWidgetRow: View {
         }
     }
 }
-
-// MARK: - Due Date Badge
 
 /// Badge component for displaying due date with appropriate styling.
 struct DueDateBadge: View {

@@ -1,8 +1,9 @@
 //
-//  WidgetViews.swift
-//  IntentTodoWidget
+//  TodoWidgetEntryView.swift
+//  WidgetUI
 //
-//  Views for different widget sizes.
+//  Views for different widget sizes. Takes plain value parameters so that
+//  the owning Extension target does not need to expose its TimelineEntry type.
 //
 
 import AppIntents
@@ -10,31 +11,31 @@ import SwiftUI
 import TodoAppIntents
 import WidgetKit
 
-// MARK: - Entry View
-
 /// Main entry view that switches based on widget family.
-struct TodoWidgetEntryView: View {
+public struct TodoWidgetEntryView: View {
     @Environment(\.widgetFamily) private var family
-    let entry: TodoWidgetEntry
+    let todos: [TodoAppEntity]
 
-    var body: some View {
+    public init(todos: [TodoAppEntity]) {
+        self.todos = todos
+    }
+
+    public var body: some View {
         switch family {
         case .systemSmall:
-            SmallTodoWidgetView(entry: entry)
+            SmallTodoWidgetView(todos: todos)
         case .systemMedium:
-            MediumTodoWidgetView(entry: entry)
+            MediumTodoWidgetView(todos: todos)
         case .systemLarge:
-            LargeTodoWidgetView(entry: entry)
+            LargeTodoWidgetView(todos: todos)
         default:
-            SmallTodoWidgetView(entry: entry)
+            SmallTodoWidgetView(todos: todos)
         }
     }
 }
 
-// MARK: - Small Widget View
-
 struct SmallTodoWidgetView: View {
-    let entry: TodoWidgetEntry
+    let todos: [TodoAppEntity]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -44,12 +45,12 @@ struct SmallTodoWidgetView: View {
                 Text("Todos")
                     .font(.headline)
                 Spacer()
-                Text("\(entry.todos.filter { !$0.isCompleted }.count)")
+                Text("\(todos.filter { !$0.isCompleted }.count)")
                     .font(.title2.bold())
                     .foregroundStyle(.orange)
             }
 
-            if entry.todos.isEmpty {
+            if todos.isEmpty {
                 Spacer()
                 HStack {
                     Spacer()
@@ -65,7 +66,7 @@ struct SmallTodoWidgetView: View {
                 }
                 Spacer()
             } else {
-                ForEach(entry.todos.prefix(3)) { todo in
+                ForEach(todos.prefix(3)) { todo in
                     TodoWidgetRow(todo: todo, compact: true)
                 }
                 Spacer()
@@ -75,10 +76,8 @@ struct SmallTodoWidgetView: View {
     }
 }
 
-// MARK: - Medium Widget View
-
 struct MediumTodoWidgetView: View {
-    let entry: TodoWidgetEntry
+    let todos: [TodoAppEntity]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -88,12 +87,12 @@ struct MediumTodoWidgetView: View {
                 Text("Todos")
                     .font(.headline)
                 Spacer()
-                Text("\(entry.todos.filter { !$0.isCompleted }.count) remaining")
+                Text("\(todos.filter { !$0.isCompleted }.count) remaining")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
-            if entry.todos.isEmpty {
+            if todos.isEmpty {
                 HStack {
                     Spacer()
                     VStack(spacing: 4) {
@@ -107,7 +106,7 @@ struct MediumTodoWidgetView: View {
                     Spacer()
                 }
             } else {
-                ForEach(entry.todos.prefix(4)) { todo in
+                ForEach(todos.prefix(4)) { todo in
                     TodoWidgetRow(todo: todo, compact: false)
                 }
             }
@@ -117,10 +116,8 @@ struct MediumTodoWidgetView: View {
     }
 }
 
-// MARK: - Large Widget View
-
 struct LargeTodoWidgetView: View {
-    let entry: TodoWidgetEntry
+    let todos: [TodoAppEntity]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -131,14 +128,14 @@ struct LargeTodoWidgetView: View {
                 Text("Todos")
                     .font(.headline)
                 Spacer()
-                Text("\(entry.todos.filter { !$0.isCompleted }.count) remaining")
+                Text("\(todos.filter { !$0.isCompleted }.count) remaining")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
             Divider()
 
-            if entry.todos.isEmpty {
+            if todos.isEmpty {
                 Spacer()
                 HStack {
                     Spacer()
@@ -156,16 +153,13 @@ struct LargeTodoWidgetView: View {
                 }
                 Spacer()
             } else {
-                ForEach(entry.todos.prefix(5)) { todo in
+                ForEach(todos.prefix(5)) { todo in
                     TodoWidgetRow(todo: todo, compact: false)
                 }
             }
 
             Spacer()
 
-            // [検証] Button(intent:) で LaunchAppIntent.addTodo() を実行。
-            // Widget Extension から foreground(.immediate) Intent を発火した場合、
-            // 実際にどのプロセスで perform() が走り @Dependency が解決されるか確認する。
             Button(intent: LaunchAppIntent.addTodo()) {
                 HStack {
                     Image(systemName: "plus.circle.fill")

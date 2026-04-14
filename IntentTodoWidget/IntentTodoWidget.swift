@@ -12,6 +12,7 @@ import SwiftData
 import SwiftUI
 import TodoAppIntents
 import WidgetKit
+import WidgetUI
 
 // MARK: - Timeline Provider
 
@@ -107,7 +108,7 @@ struct IntentTodoWidget: Widget {
             intent: TodoWidgetConfigurationIntent.self,
             provider: TodoWidgetProvider()
         ) { entry in
-            TodoWidgetEntryView(entry: entry)
+            TodoWidgetEntryView(todos: entry.todos)
         }
         .configurationDisplayName("Todo List")
         .description("View your todos at a glance.")
