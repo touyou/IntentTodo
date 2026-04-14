@@ -436,7 +436,6 @@
 				46AFC01C2F33047B00444306 /* IntentTodoLiveActivityBundle.swift */,
 				46AFC01D2F33047B00444306 /* IntentTodoLiveActivityExtension.entitlements */,
 				46AFC01E2F33047B00444306 /* TodoLiveActivity.swift */,
-				62C686075FAE312B74A1CAC1 /* Helpers */,
 			);
 			path = IntentTodoLiveActivity;
 			sourceTree = "<group>";
@@ -525,13 +524,6 @@
 				46D8865C2F6B804E0029BF80 /* 07-platform-specific.md */,
 			);
 			path = insights;
-			sourceTree = "<group>";
-		};
-		62C686075FAE312B74A1CAC1 /* Helpers */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = Helpers;
 			sourceTree = "<group>";
 		};
 		AFA9219572A43F00C464036E /* Complication */ = {
@@ -897,6 +889,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IntentTodo/Info.plist;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -943,6 +936,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IntentTodo/Info.plist;
+				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;

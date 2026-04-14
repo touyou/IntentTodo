@@ -215,16 +215,20 @@ String型パラメータを使いたい場合は、Siriがユーザーに後か�
 
 ---
 
-## supportedModes（iOS 26+ / openAppWhenRun 後継）
+## supportedModes
+
+[Apple 公式 `supportedModes`](https://developer.apple.com/documentation/appintents/appintent/supportedmodes) より:
 
 ### 基本モード
 
-| モード | 動作 | 旧API相当 |
-|--------|------|-----------|
-| `.background` | バックグラウンド実行 | `openAppWhenRun = false` |
-| `.foreground` / `.foreground(.immediate)` | 即座にフォアグラウンド | `openAppWhenRun = true` |
-| `.foreground(.dynamic)` | 実行中に動的判断 | `ForegroundContinuableIntent` |
-| `.foreground(.deferred)` | perform()内で明示的にフォアグラウンド遷移 | - |
+| モード | 動作 | 旧 API との対応 |
+|--------|------|----------------|
+| `.background` | バックグラウンド実行 | `openAppWhenRun = false` と同じ挙動 |
+| `.foreground` / `.foreground(.immediate)` | 即座にフォアグラウンド | `openAppWhenRun = true` と同じ挙動 |
+| `.foreground(.dynamic)` | 実行中に動的判断 | **`ForegroundContinuableIntent` の後継**（下記注参照）|
+| `.foreground(.deferred)` | 初期バックグラウンド → `perform()` 内か返却時に自動 foreground 化 | 新 API |
+
+> **`ForegroundContinuableIntent` は deprecated**: [公式ドキュメント](https://developer.apple.com/documentation/appintents/foregroundcontinuableintent) が明記 — "This protocol is deprecated, please include `.foreground(.dynamic)` in the `supportedModes` of your app intent instead."
 
 ### 複合モード
 

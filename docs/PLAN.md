@@ -150,30 +150,21 @@ func suggestEmoji(for todoTitle: String) async throws -> String {
 }
 ```
 
-### Intent Modes強化 ✅ 実装済み
+### Intent Modes ✅ 実装済み
 
-iOS 26で`openAppWhenRun`は非推奨となり、`supportedModes`に移行済み。`AddTodoIntent`では`[.background, .foreground(.deferred)]`を採用し、通常はバックグラウンドで即座にTodo作成、`openInApp`パラメータ指定時のみ`continueInForeground()`でアプリを開く：
+`supportedModes` で Intent の実行挙動を宣言。[Apple 公式 supportedModes ドキュメント](https://developer.apple.com/documentation/appintents/appintent/supportedmodes)より:
 
-```swift
-public struct AddTodoIntent: AppIntent {
-    static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
+- `.background` — 完全にバックグラウンド実行（`openAppWhenRun = false` と同等の挙動）
+- `.foreground(.immediate)` — パラメータ解決後すぐフォアグラウンド（`openAppWhenRun = true` と同等の挙動）
+- `.foreground(.dynamic)` — `perform()` 内で動的に判断（`ForegroundContinuableIntent` の後継）
+- `.foreground(.deferred)` — 初期バックグラウンド → `perform()` 内 or 返却時に自動フォアグラウンド化
 
-    @Parameter(title: "Open in App", default: false)
-    var openInApp: Bool
+本プロジェクトでの実装:
+- `AddTodoIntent`: `[.background, .foreground(.deferred)]` — 通常はバックグラウンド、必要に応じて foreground
+- `LaunchAppIntent`: `[.foreground(.immediate)]` — 起点から即時フォアグラウンド
+- `ToggleTodoCompletionIntent` / `DeleteTodoIntent` / `ToggleFavoriteIntent` / `ToggleUrgentTodoIntent` / `ShowTodoCountIntent`: `.background`
 
-    func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        // ... Todo作成 ...
-        if openInApp {
-            try await continueInForeground()
-        }
-        return .result(value: entity)
-    }
-}
-```
-
-その他のNavigationIntents（統合された `LaunchAppIntent`）は`.foreground(.immediate)`モードを使用。
-
-> **Note**: `continueInForeground()` はControl Widgetコンテキストでは動作しないことが確認済み。通常のShortcuts/Siri経由での使用を想定。
+> **経験則 (実機検証)**: Control Widget コンテキストで `continueInForeground()` を呼んでもアプリが開かない。Shortcuts / Siri 経由では動作する。Apple 公式には明示的な記述は確認できていない。
 
 ### AppDependencyManager + @Dependency + perform() による Intent → UI 連携 ✅ 実装済み
 
