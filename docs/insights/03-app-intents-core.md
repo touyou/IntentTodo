@@ -272,7 +272,7 @@ func perform() async throws -> some IntentResult {
 }
 ```
 
-> **Note**: `continueInForeground()` はControl Widgetコンテキストでは動作しない。Shortcuts/Siri経由での使用を想定。
+> **Note**: Control Widget からの `continueInForeground()` 呼び出しは現時点で未検証（かつて動作しないと記録していたが、当時の失敗は `IntentTodoAppIntentsPackage` 重複 Bug によるもので、fix 後は未検証）。
 
 ---
 
