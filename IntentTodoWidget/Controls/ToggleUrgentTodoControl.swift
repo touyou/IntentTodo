@@ -1,4 +1,3 @@
-#if !os(visionOS)
 //
 //  ToggleUrgentTodoControl.swift
 //  IntentTodoWidget
@@ -6,6 +5,7 @@
 //  Control Center widget for toggling the most urgent todo.
 //
 
+#if !os(visionOS)
 import Domain
 import SwiftData
 import SwiftUI

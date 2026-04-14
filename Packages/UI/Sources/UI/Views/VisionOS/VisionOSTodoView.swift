@@ -226,16 +226,19 @@ struct VisionOSTodoRow: View {
     }
 
     private func dueDateIcon(for date: Date) -> String {
-        if date < Date() { return "exclamationmark.circle.fill" }
-        if date.timeIntervalSinceNow <= 3600 { return "clock.badge.exclamationmark" }
-        return "calendar"
+        switch DueDateStatus.evaluate(date: date, isCompleted: todo.isCompleted) {
+        case .overdue: return "exclamationmark.circle.fill"
+        case .dueSoon: return "clock.badge.exclamationmark"
+        case .normal: return "calendar"
+        }
     }
 
     private func dueDateColor(for date: Date) -> Color {
-        if todo.isCompleted { return .secondary }
-        if date < Date() { return .red }
-        if date.timeIntervalSinceNow <= 3600 { return .orange }
-        return .secondary
+        switch DueDateStatus.evaluate(date: date, isCompleted: todo.isCompleted) {
+        case .overdue: return .red
+        case .dueSoon: return .orange
+        case .normal: return .secondary
+        }
     }
 }
 

@@ -1,4 +1,3 @@
-#if !os(visionOS)
 //
 //  TodoCountControl.swift
 //  IntentTodoWidget
@@ -6,6 +5,7 @@
 //  Control Center widget showing incomplete todo count.
 //
 
+#if !os(visionOS)
 import Domain
 import SwiftData
 import SwiftUI

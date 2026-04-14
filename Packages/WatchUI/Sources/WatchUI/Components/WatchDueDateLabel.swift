@@ -3,6 +3,7 @@
 //  WatchUI
 //
 
+import Domain
 import SwiftUI
 
 /// Component for displaying due date with appropriate styling on watchOS.
@@ -15,12 +16,8 @@ public struct WatchDueDateLabel: View {
         self.isCompleted = isCompleted
     }
 
-    private var isOverdue: Bool {
-        !isCompleted && date < Date()
-    }
-
-    private var isDueSoon: Bool {
-        !isCompleted && date.timeIntervalSinceNow <= 3600 && date.timeIntervalSinceNow > 0
+    private var status: DueDateStatus {
+        .evaluate(date: date, isCompleted: isCompleted)
     }
 
     public var body: some View {
@@ -34,15 +31,19 @@ public struct WatchDueDateLabel: View {
     }
 
     private var iconName: String {
-        if isOverdue { return "exclamationmark.circle.fill" }
-        if isDueSoon { return "clock.badge.exclamationmark" }
-        return "calendar"
+        switch status {
+        case .overdue: return "exclamationmark.circle.fill"
+        case .dueSoon: return "clock.badge.exclamationmark"
+        case .normal: return "calendar"
+        }
     }
 
     private var color: Color {
-        if isOverdue { return .red }
-        if isDueSoon { return .orange }
-        return .secondary
+        switch status {
+        case .overdue: return .red
+        case .dueSoon: return .orange
+        case .normal: return .secondary
+        }
     }
 
     private var formattedDate: String {

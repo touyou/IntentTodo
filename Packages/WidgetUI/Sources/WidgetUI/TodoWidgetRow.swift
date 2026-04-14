@@ -5,20 +5,16 @@
 //  Row component for displaying a todo item in widgets.
 //
 
+import Domain
 import SwiftUI
 import TodoAppIntents
 
 /// Row component for displaying a todo item in widgets.
-public struct TodoWidgetRow: View {
+struct TodoWidgetRow: View {
     let todo: TodoAppEntity
     let compact: Bool
 
-    public init(todo: TodoAppEntity, compact: Bool) {
-        self.todo = todo
-        self.compact = compact
-    }
-
-    public var body: some View {
+    var body: some View {
         HStack(spacing: 8) {
             Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(todo.isCompleted ? .green : .secondary)
@@ -40,12 +36,15 @@ public struct TodoWidgetRow: View {
 }
 
 /// Badge component for displaying due date with appropriate styling.
+///
+/// Widget は「今日期限」を示す必要があるため `DueDateStatus` とは別に
+/// `isDueToday` 判定を併用している（overdue / today / それ以外）。
 struct DueDateBadge: View {
     let date: Date
     let isCompleted: Bool
 
     private var isOverdue: Bool {
-        !isCompleted && date < Date()
+        DueDateStatus.evaluate(date: date, isCompleted: isCompleted) == .overdue
     }
 
     private var isDueToday: Bool {
@@ -57,18 +56,12 @@ struct DueDateBadge: View {
             .font(.caption2)
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(backgroundColor.opacity(0.2))
-            .foregroundStyle(foregroundColor)
+            .background(color.opacity(0.2))
+            .foregroundStyle(color)
             .clipShape(Capsule())
     }
 
-    private var backgroundColor: Color {
-        if isOverdue { return .red }
-        if isDueToday { return .orange }
-        return .secondary
-    }
-
-    private var foregroundColor: Color {
+    private var color: Color {
         if isOverdue { return .red }
         if isDueToday { return .orange }
         return .secondary

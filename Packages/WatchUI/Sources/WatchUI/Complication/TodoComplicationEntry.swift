@@ -6,15 +6,19 @@
 import WidgetKit
 
 /// Timeline entry containing todo data for complications.
+///
+/// 型自体は `TodoComplicationProvider` と `TodoComplicationEntryView` が
+/// public に露出するため public だが、内部状態 (count 等) は同一パッケージ
+/// からのみアクセスされるので internal に留める。
 public struct TodoComplicationEntry: TimelineEntry {
     public let date: Date
-    public let incompleteCount: Int
-    public let nextDueDate: Date?
-    public let nextDueTitle: String?
-    public let completedToday: Int
-    public let totalToday: Int
+    let incompleteCount: Int
+    let nextDueDate: Date?
+    let nextDueTitle: String?
+    let completedToday: Int
+    let totalToday: Int
 
-    public init(
+    init(
         date: Date,
         incompleteCount: Int,
         nextDueDate: Date?,

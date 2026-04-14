@@ -11,13 +11,11 @@ import TodoAppIntents
 /// Row component for displaying a todo item on watchOS.
 public struct WatchTodoRow: View {
     let todo: TodoItem
+    private let entity: TodoAppEntity
 
     public init(todo: TodoItem) {
         self.todo = todo
-    }
-
-    private var entity: TodoAppEntity {
-        TodoAppEntity(from: todo)
+        self.entity = TodoAppEntity(from: todo)
     }
 
     public var body: some View {

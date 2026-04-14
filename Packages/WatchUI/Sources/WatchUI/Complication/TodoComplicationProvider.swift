@@ -38,24 +38,20 @@ public struct TodoComplicationProvider: TimelineProvider {
 
     @MainActor
     private static func makeEntry(using modelContainer: ModelContainer) -> TodoComplicationEntry {
+        // 1 fetch で全 Todo を取り、集計は in-memory で行う (watchOS での典型件数で
+        // クエリを 2 回投げるより安い + 集計ロジックが1箇所にまとまる)。
         let context = modelContainer.mainContext
+        let allTodos = (try? context.fetch(FetchDescriptor<TodoItem>())) ?? []
 
-        let incompleteDescriptor = FetchDescriptor<TodoItem>(
-            predicate: #Predicate { !$0.isCompleted },
-            sortBy: [SortDescriptor(\.dueDate)]
-        )
-        let incompleteTodos = (try? context.fetch(incompleteDescriptor)) ?? []
+        let incompleteTodos = allTodos
+            .filter { !$0.isCompleted }
+            .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
         let nextDueTodo = incompleteTodos.first { $0.dueDate != nil }
 
         let startOfDay = Calendar.current.startOfDay(for: Date())
         let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
-        let todayDescriptor = FetchDescriptor<TodoItem>(
-            predicate: #Predicate { item in
-                item.createdAt >= startOfDay && item.createdAt < endOfDay
-            }
-        )
-        let todayTodos = (try? context.fetch(todayDescriptor)) ?? []
-        let completedToday = todayTodos.filter { $0.isCompleted }.count
+        let todayTodos = allTodos.filter { $0.createdAt >= startOfDay && $0.createdAt < endOfDay }
+        let completedToday = todayTodos.filter(\.isCompleted).count
 
         return TodoComplicationEntry(
             date: Date(),
