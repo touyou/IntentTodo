@@ -190,6 +190,50 @@ public struct TodoIntentsPackage: AppIntentsPackage { }
 
 メインアプリ側には何も宣言しなくてよい。パッケージの Intent は自動的にアプリの Intent として登録される。
 
+### Primary / FromExtension 分離パターン
+
+同じアクションでも「**ユーザーがパラメータを直接選ぶか**」で Intent を 2 系統に分ける。
+
+| 区分 | 呼出元 | パラメータ型 | `isDiscoverable` | AppShortcuts 登録 |
+|------|-------|------------|------------------|--------------------|
+| **Primary** | Siri / Shortcuts / UI | `TodoAppEntity`（`@Parameter`） | `true` (default) | ✅ |
+| **FromExtension** | Live Activity / Widget（todoId を既に持っている） | `String`（UUID 文字列） | `false` | ❌ |
+
+**なぜ分けるか**: App Intents は `@Parameter var todo: TodoAppEntity` を持つ Intent を実行する前に `TodoEntityQuery.entities(for:)` を呼んで entity を解決する。Live Activity Extension プロセスで解決されると SwiftData が内部 assertion で trap することがあるため、呼出元が todoId を既に持っているケースでは entity 解決を経由しない `String` パラメータ版を用意する。
+
+```swift
+// Primary
+public struct ToggleTodoCompletionIntent: AppIntent {
+    @Parameter(title: "Todo") public var todo: TodoAppEntity
+    @Dependency var modelContainer: ModelContainer
+    // ...
+}
+
+// FromExtension (LA ボタン用)
+public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
+    public static let isDiscoverable = false
+    @Parameter(title: "Todo ID") public var todoId: String
+    @Dependency var modelContainer: ModelContainer
+    // ...
+}
+#if os(iOS)
+extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
+#endif
+```
+
+ビジネスロジックは両者で共通のため `Actions/TodoActions.swift` に切り出し、両方から呼ぶ。
+
+### データ更新 Intent は必ず `WidgetReloader.reloadAllWidgets()` を呼ぶ
+
+データ変更があった Intent は、UI / Widget 反映のため末尾で `WidgetReloader.reloadAllWidgets()` を呼ぶ。
+
+```swift
+try repository.update(item)
+WidgetReloader.reloadAllWidgets()
+```
+
+対象: `AddTodoIntent`, `DeleteTodoIntent`, `ToggleTodoCompletionIntent`, `ToggleFavoriteIntent`, `SnoozeTodoIntent`, `ToggleUrgentTodoIntent` と FromExtension 系。
+
 ### @Dependency + AppDependencyManager パターン
 
 Intent がアプリの共有状態（`ModelContainer`、`NavigationModel` 等）にアクセスする場合、`AppDependencyManager` に同期登録し Intent 側で `@Dependency` で取得する。

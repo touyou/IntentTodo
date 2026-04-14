@@ -66,6 +66,32 @@ Live Activity から Activity の開始/更新/終了を伴うアクションを
 | `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | アプリプロセス（公式保証） |
 | `ControlConfigurationIntent` | コントロールセンター設定値 | Extension 配置必須 |
 
+### Live Activity Intent のパラメータは String ID にする（Entity を取らない）
+
+Live Activity ボタンから呼ぶ Intent は `@Parameter var todo: TodoAppEntity` ではなく `@Parameter var todoId: String` を使う。
+
+**理由**: App Intents は `AppEntity` パラメータを持つ Intent を実行する前に `TodoEntityQuery.entities(for:)` を呼んで entity を解決する。Live Activity Extension プロセスで解決処理が走ると SwiftData の内部 assertion に引っかかり `EXC_BREAKPOINT` で crash する（2026-04-14 の実機検証で判明）。呼出元の LA ボタンはすでに `context.attributes.todoId` を持っているため、Entity 解決は不要。
+
+```swift
+public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
+    public static let isDiscoverable = false  // Shortcuts 非表示
+    @Parameter(title: "Todo ID") public var todoId: String
+    // ...
+}
+#if os(iOS)
+extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
+#endif
+
+// Live Activity View 側
+Button(intent: ToggleTodoCompletionFromExtensionIntent(
+    todoId: context.attributes.todoId
+)) {
+    Label("Complete", systemImage: "checkmark.circle.fill")
+}
+```
+
+Primary 系（Shortcuts / UI で呼ぶもの）は従来通り `@Parameter var todo: TodoAppEntity` のままで良い（そちらは entity 解決が正常に動く文脈で使われる）。詳細は `03-app-intents-core.md` の「Primary / FromExtension 分離パターン」参照。
+
 ---
 
 ## Live Activity の自動管理
