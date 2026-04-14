@@ -254,12 +254,9 @@ struct VisionOSTodoDetailView: View {
 
     init(todo: TodoAppEntity) {
         self.todo = todo
-        let todoUUID = UUID(uuidString: todo.id)
-        _todoItems = Query(
-            filter: #Predicate<TodoItem> { item in
-                item.id == todoUUID
-            }
-        )
+        // SwiftData Query の #Predicate は Optional UUID を直接比較できないため、
+        // 全件取得して todoItem computed property で id をフィルタする。
+        _todoItems = Query()
     }
 
     var body: some View {
@@ -428,7 +425,7 @@ struct VisionOSTodoDetailView: View {
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
 
-            Button(intent: DeleteTodoIntent(todo: entity), role: .destructive) {
+            Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
                 Label("Delete", systemImage: "trash")
             }
             .buttonStyle(.bordered)

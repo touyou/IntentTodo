@@ -1,3 +1,4 @@
+#if os(iOS)
 import AppIntents
 import SwiftUI
 import TodoAppIntents
@@ -19,3 +20,4 @@ struct QuickAddTodoControl: ControlWidget {
         .description("Quickly add a new todo.")
     }
 }
+#endif

@@ -1,3 +1,4 @@
+#if os(iOS)
 //
 //  TodoCountControl.swift
 //  IntentTodoWidget
@@ -41,3 +42,4 @@ struct TodoCountControl: ControlWidget {
         return (try? context.fetchCount(descriptor)) ?? 0
     }
 }
+#endif

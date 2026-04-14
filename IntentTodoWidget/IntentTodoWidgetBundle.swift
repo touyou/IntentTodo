@@ -21,11 +21,11 @@ struct IntentTodoWidgetBundle: WidgetBundle {
         // Home screen widgets
         IntentTodoWidget()
 
-        // Control Center widgets (iOS 18+)
-        if #available(iOS 18.0, *) {
-            QuickAddTodoControl()
-            TodoCountControl()
-            ToggleUrgentTodoControl()
-        }
+        // Control Center widgets (iOS only — ControlWidget は visionOS 非対応)
+        #if os(iOS)
+        QuickAddTodoControl()
+        TodoCountControl()
+        ToggleUrgentTodoControl()
+        #endif
     }
 }

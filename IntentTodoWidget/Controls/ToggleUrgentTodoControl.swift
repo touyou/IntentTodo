@@ -1,3 +1,4 @@
+#if os(iOS)
 //
 //  ToggleUrgentTodoControl.swift
 //  IntentTodoWidget
@@ -55,3 +56,4 @@ struct ToggleUrgentTodoControl: ControlWidget {
         return try? context.fetch(descriptor).first
     }
 }
+#endif
