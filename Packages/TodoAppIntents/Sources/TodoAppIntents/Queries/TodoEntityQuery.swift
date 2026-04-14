@@ -6,38 +6,39 @@
 import AppIntents
 import Foundation
 import Repository
+import SwiftData
 
 /// A query for fetching todo entities in App Intents.
 ///
-/// This query is used by Siri and Shortcuts to find and display todo items.
+/// `@Dependency var modelContainer` で process-scoped に登録された ModelContainer を
+/// 受け取り、そのたびに repository を組み立てる（legacy `IntentDependencies` singleton
+/// 経由での dual-container 問題を回避）。
 public struct TodoEntityQuery: EntityQuery {
-    // MARK: - Initialization
+    @Dependency
+    var modelContainer: ModelContainer
 
     public init() {}
 
-    // MARK: - EntityQuery Requirements
+    @MainActor
+    private func repository() -> any TodoRepositoryProtocol {
+        SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
+    }
 
     @MainActor
     public func entities(for identifiers: [TodoAppEntity.ID]) async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        var results: [TodoAppEntity] = []
-
-        for identifier in identifiers {
+        let repo = repository()
+        return try identifiers.compactMap { identifier in
             guard let uuid = UUID(uuidString: identifier),
-                  let todoItem = try repository.fetch(by: uuid) else {
-                continue
+                  let todoItem = try repo.fetch(by: uuid) else {
+                return nil
             }
-            results.append(TodoAppEntity(from: todoItem))
+            return TodoAppEntity(from: todoItem)
         }
-
-        return results
     }
 
     @MainActor
     public func suggestedEntities() async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        let todos = try repository.fetchIncomplete()
-        return todos.map { TodoAppEntity(from: $0) }
+        try repository().fetchIncomplete().map { TodoAppEntity(from: $0) }
     }
 }
 
@@ -46,11 +47,8 @@ public struct TodoEntityQuery: EntityQuery {
 extension TodoEntityQuery: EntityStringQuery {
     @MainActor
     public func entities(matching string: String) async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        let allTodos = try repository.fetchAll()
         let lowercasedQuery = string.lowercased()
-
-        return allTodos
+        return try repository().fetchAll()
             .filter { $0.title.lowercased().contains(lowercasedQuery) }
             .map { TodoAppEntity(from: $0) }
     }
@@ -61,8 +59,6 @@ extension TodoEntityQuery: EntityStringQuery {
 extension TodoEntityQuery: EnumerableEntityQuery {
     @MainActor
     public func allEntities() async throws -> [TodoAppEntity] {
-        let repository = try IntentDependencies.shared.createRepository()
-        let todos = try repository.fetchAll()
-        return todos.map { TodoAppEntity(from: $0) }
+        try repository().fetchAll().map { TodoAppEntity(from: $0) }
     }
 }

@@ -23,8 +23,6 @@ import AppIntents
 ///   - `TodoEntityQuery`: Query for finding todos
 /// - **Shortcuts**:
 ///   - `TodoAppShortcuts`: App Shortcuts provider
-/// - **Dependencies**:
-///   - `IntentDependencies`: DI configuration for Intents
 public struct TodoIntentsPackage: AppIntentsPackage {
     public init() {}
 }
