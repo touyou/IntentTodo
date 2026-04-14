@@ -39,6 +39,7 @@ public struct ToggleUrgentTodoIntent: AppIntent {
         let isNowCompleted = todo.isCompleted
         try context.save()
 
+        WidgetReloader.reloadAllWidgets()
         ControlNotificationHelper.sendToggledNotification(
             todoTitle: todoTitle,
             isCompleted: isNowCompleted

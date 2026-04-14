@@ -276,6 +276,73 @@ func perform() async throws -> some IntentResult {
 
 ---
 
+## Primary / FromExtension 分離パターン
+
+同じ行動でも「**ユーザーがパラメータを直接選ぶか**」で実装を分ける。
+
+### 背景
+
+App Intents が `TodoAppEntity` のような `AppEntity` をパラメータに取る Intent を実行すると、`perform()` 前に `TodoEntityQuery.entities(for:)` を呼んで ID から entity を再解決する。この解決処理が Live Activity Extension プロセスで SwiftData の内部 assertion を踏んで `EXC_BREAKPOINT` で crash することが実機で確認された（2026-04-14）。
+
+スタック:
+```
+SwiftData`___lldb_unnamed_symbol_9d14c + 356
+SwiftData`dispatch thunk of ModelContext.fetch(_:) + 20
+SwiftDataTodoRepository.fetch(id:)   ← TodoEntityQuery から呼ばれる
+TodoEntityQuery.entities(for:)       ← parameter resolution 段階
+```
+
+### 解決策: 2 系統に分ける
+
+| 区分 | パラメータ | `isDiscoverable` | AppShortcuts | 用途 |
+|------|----------|------------------|--------------|------|
+| **Primary** | `todo: TodoAppEntity` | `true` | ✅ 登録 | Siri / Shortcuts / UI — ユーザーが todo を picker で選ぶ |
+| **FromExtension** | `todoId: String` | `false` | ❌ | Live Activity / Widget — 呼出元が todoId を既知 |
+
+String パラメータなら entity 解決を経由せず `perform()` に直行できる。
+
+```swift
+// Primary
+public struct ToggleTodoCompletionIntent: AppIntent {
+    @Parameter(title: "Todo") public var todo: TodoAppEntity
+    @Dependency var modelContainer: ModelContainer
+    // ...
+}
+
+// FromExtension
+public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
+    public static let isDiscoverable = false
+    @Parameter(title: "Todo ID") public var todoId: String
+    @Dependency var modelContainer: ModelContainer
+    // ...
+}
+#if os(iOS)
+extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
+#endif
+```
+
+### 共通ロジックの切り出し
+
+重複を避けるため `Actions/TodoActions.swift` に `@MainActor` 関数群として切り出し、両系統から呼ぶ。
+
+```swift
+public enum TodoActions {
+    @MainActor
+    public static func toggleCompletion(
+        todoId: String,
+        using repository: any TodoRepositoryProtocol
+    ) throws -> TodoToggleResult { /* ... */ }
+}
+```
+
+### DI は両者共通で @Dependency
+
+`@Dependency var modelContainer: ModelContainer` は Primary / FromExtension 両方で使える。`AppDependencyManager` への登録を `App.init()` と `WidgetBundle.init()` で済ませてあれば、どのプロセスで実行されても解決される（詳細は `04-ui-integration.md` の実行プロセス表）。
+
+> **補足**: かつて FromExtension では `SharedModelContainer.createContainer()` を直接呼ぶ方針にしたが、crash の真因は DI ではなく entity 解決だったと判明したので統一。
+
+---
+
 ## Intent 統合のベストプラクティス
 
 ### 重複Intentの検出と統合
