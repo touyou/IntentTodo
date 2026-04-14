@@ -2,11 +2,11 @@
 
 ## SwiftData と CloudKit 対応
 
-CloudKitを将来的に使用する場合、以下の制約を最初から意識する必要がある。
+CloudKit 同期を有効にする場合、[Apple 公式: Syncing model data across a person's devices / Define a CloudKit compatible schema](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices#Define-a-CloudKit-compatible-schema) が明記する以下の制約を意識する必要がある:
 
-1. **`@Attribute(.unique)` は使用禁止**: CloudKitは一意制約をサポートしない（iOS 26+ で追加された `#Unique<T>` マクロも同様にCloudKit環境では使用不可）
-2. **プロパティにデフォルト値**: 同期時のコンフリクト対策
-3. **リレーションシップはすべてoptional**: カスケード削除の問題を回避
+1. **`@Attribute(.unique)` は CloudKit では enforce されない**: Apple 公式より "the framework synchronizes changes concurrently and at opportune times, which means CloudKit is unable to enforce the unique property option." `#Unique<T>` マクロも同じ仕組みに依存しているため同様（ビルドエラーにはならないが一意制約は保証されない）。
+2. **リレーションシップはすべて optional**: Apple 公式より "CloudKit requires all relationships to be optional." また DeleteRule の `.deny` も CloudKit ではサポートされない。
+3. **プロパティにデフォルト値 / optional**: 同期時のコンフリクト対策（Apple 公式のスキーマ設計ガイダンス）。
 
 ### 推奨パターン
 

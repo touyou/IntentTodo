@@ -155,10 +155,12 @@ IntentTodoWatchApp/         # watchOS アプリ
 - `AnyView`は必要最小限に
 
 #### SwiftData（CloudKit使用時）
-- `@Attribute(.unique)`は使用禁止（CloudKitは一意制約をサポートしない）
-- **`#Unique<T>` マクロ（iOS 26+）**: SwiftData に新しいユニーク制約マクロが追加されたが、CloudKit使用時は同様に使用不可
-- プロパティはデフォルト値を持つかoptionalにする
-- リレーションシップは全てoptional
+
+[Apple 公式: Define a CloudKit compatible schema](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices#Define-a-CloudKit-compatible-schema) より:
+
+- `@Attribute(.unique)` は CloudKit では enforce されない（"CloudKit is unable to enforce the unique property option"）。`#Unique<T>` マクロも同じメカニズムのため同様
+- リレーションシップはすべて optional（"CloudKit requires all relationships to be optional"）。DeleteRule の `.deny` もサポート外
+- プロパティはデフォルト値を持つか optional にする（同期時のコンフリクト対策）
 
 ## App Intents実装ガイド
 
@@ -251,9 +253,18 @@ struct IntentTodoWidgetBundle: WidgetBundle {
 
 プロセスごとに `AppDependencyManager.shared` は独立インスタンスなので、そのプロセスで `@Dependency` を使う Intent がある場合は、そのプロセスの起点（`App.init()` / `WidgetBundle.init()` 等）で登録する必要がある。
 
-### Intent Modes（iOS 26+）
+### Intent Modes
 
-iOS 26で`openAppWhenRun`は非推奨となり、`supportedModes`に移行。
+[Apple 公式 `supportedModes` ドキュメント](https://developer.apple.com/documentation/appintents/appintent/supportedmodes)より:
+
+| モード | 動作 | 旧 API との対応 |
+|--------|------|----------------|
+| `.background` | アプリを開かずにバックグラウンド実行 | `openAppWhenRun = false` と同じ挙動 |
+| `.foreground` / `.foreground(.immediate)` | パラメータ解決後すぐフォアグラウンド | `openAppWhenRun = true` と同じ挙動 |
+| `.foreground(.dynamic)` | `perform()` 内で動的にフォアグラウンド化を決定 | **`ForegroundContinuableIntent` の後継**（下記注参照）|
+| `.foreground(.deferred)` | 初期バックグラウンド → `perform()` 内 or 返却時に自動フォアグラウンド化 | 新 API |
+
+> **`ForegroundContinuableIntent` は deprecated**: [Apple 公式ドキュメント](https://developer.apple.com/documentation/appintents/foregroundcontinuableintent)が明記: "This protocol is deprecated, please include `.foreground(.dynamic)` in the `supportedModes` of your app intent instead."
 
 ```swift
 struct MyIntent: AppIntent {
@@ -261,20 +272,12 @@ struct MyIntent: AppIntent {
     static var supportedModes: IntentModes { .background }
 
     // フォアグラウンドで実行（アプリを開く）
-    // static var supportedModes: IntentModes { .foreground }
+    // static var supportedModes: IntentModes { .foreground(.immediate) }
 
-    // 動的切り替え（必要時のみフォアグラウンド）
+    // 動的切り替え（初期バックグラウンド + 必要時 foreground へ）
     // static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
 }
 ```
-
-| モード | 用途 |
-|--------|------|
-| `.background` | アプリを開かずにバックグラウンド実行 |
-| `.foreground` | アプリを開いてフォアグラウンド実行 |
-| `.foreground(.immediate)` | 即座にフォアグラウンド |
-| `.foreground(.deferred)` | `continueInForeground()` で動的にフォアグラウンドへ遷移 |
-| `.foreground(.dynamic)` | `ForegroundContinuableIntent`（非推奨）の後継 |
 
 ### onAppIntentExecution（iOS 26+ / Intent → UI連携）
 

@@ -1,21 +1,13 @@
 # Control Widget と iOS 26
 
-## openAppWhenRun から supportedModes への移行
+## supportedModes の使い分け
 
-### iOS 26+ での新API
+[Apple 公式 `supportedModes`](https://developer.apple.com/documentation/appintents/appintent/supportedmodes) より (抜粋)：
 
-- **`supportedModes`**: `openAppWhenRun` の後継
-- **`IntentModes`**: `.background` / `.foreground` / `.foreground(.immediate)` / `.foreground(.deferred)` / `.foreground(.dynamic)`
-- `ForegroundContinuableIntent` は非推奨、`supportedModes` に `.foreground(.dynamic)` を含めることで置き換え
-
-### supportedModes 一覧
-
-| モード | 用途 |
-|--------|------|
-| `.background` | バックグラウンド実行（アプリを開かない） |
-| `.foreground` | フォアグラウンドでアプリを開く |
-| `.foreground(.immediate)` | 即座にフォアグラウンド |
-| `.foreground(.dynamic)` | `ForegroundContinuableIntent` の後継 |
+- `.background` — バックグラウンド実行（アプリを開かない）。`openAppWhenRun = false` と同等の挙動
+- `.foreground` / `.foreground(.immediate)` — パラメータ解決後すぐフォアグラウンド（`openAppWhenRun = true` と同等の挙動）
+- `.foreground(.dynamic)` — 実行中に動的に判断。**`ForegroundContinuableIntent` の後継**（[公式](https://developer.apple.com/documentation/appintents/foregroundcontinuableintent)が "This protocol is deprecated" と明記）
+- `.foreground(.deferred)` — 初期バックグラウンド → 自動 foreground 化
 
 ---
 

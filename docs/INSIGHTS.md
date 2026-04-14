@@ -46,7 +46,7 @@
 
 ### [06. Control Widget と iOS 26](insights/06-control-widget-ios26.md)
 
-- `openAppWhenRun` → `supportedModes` への移行
+- `supportedModes` の使い分け（`openAppWhenRun` と同等挙動の記述あり）
 - `ControlWidgetButton(action:)` + `.foreground(.immediate)` パターン（kind は reverse-domain 形式必須）
 - `ControlConfigurationIntent` の制約
 - `.background` モードによるバックグラウンドアクションとローカル通知フィードバック
