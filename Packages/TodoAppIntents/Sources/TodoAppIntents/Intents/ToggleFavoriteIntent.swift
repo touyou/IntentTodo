@@ -4,6 +4,7 @@
 //
 
 import AppIntents
+import Domain
 import Repository
 import SwiftData
 
@@ -40,16 +41,8 @@ public struct ToggleFavoriteIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
         let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-
-        guard let uuid = UUID(uuidString: todo.id),
-              let todoItem = try repository.fetch(by: uuid) else {
-            throw IntentError.notFound("Todo not found")
-        }
-
-        todoItem.isFavorite.toggle()
-        try repository.update(todoItem)
+        let entity = try TodoActions.toggleFavorite(todoId: todo.id, using: repository)
         WidgetReloader.reloadAllWidgets()
-
-        return .result(value: TodoAppEntity(from: todoItem))
+        return .result(value: entity)
     }
 }

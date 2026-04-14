@@ -4,6 +4,7 @@
 //
 
 import AppIntents
+import Domain
 import Repository
 import SwiftData
 
@@ -74,23 +75,15 @@ public struct AddTodoIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else {
-            throw IntentError.validation("Todo title cannot be empty")
-        }
-
         let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-
-        let todoItem = TodoItem(
-            title: trimmedTitle,
+        let entity = try TodoActions.create(
+            title: title,
             todoDescription: todoDescription,
+            dueDate: dueDate,
             isFavorite: isFavorite,
-            dueDate: dueDate
+            using: repository
         )
-
-        try repository.create(todoItem)
         WidgetReloader.reloadAllWidgets()
-
-        return .result(value: TodoAppEntity(from: todoItem))
+        return .result(value: entity)
     }
 }

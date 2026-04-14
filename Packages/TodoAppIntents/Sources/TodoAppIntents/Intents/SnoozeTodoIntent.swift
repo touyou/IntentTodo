@@ -2,13 +2,10 @@
 //  SnoozeTodoIntent.swift
 //  TodoAppIntents
 //
-//  Extends the due date of a todo by 30 minutes. Also updates any active
-//  Live Activity showing the todo on iOS.
+//  Primary variant: runs in the main app process via @Dependency.
+//  For Live Activity context, use SnoozeTodoFromExtensionIntent.
 //
 
-#if os(iOS)
-import ActivityKit
-#endif
 import AppIntents
 import Domain
 import Repository
@@ -38,41 +35,8 @@ public struct SnoozeTodoIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
         let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-
-        guard let uuid = UUID(uuidString: todo.id),
-              let todoItem = try repository.fetch(by: uuid),
-              let currentDueDate = todoItem.dueDate else {
-            throw IntentError.notFound("Todo or due date not found")
-        }
-
-        let newDueDate = currentDueDate.addingTimeInterval(30 * 60)
-        todoItem.dueDate = newDueDate
-        try repository.update(todoItem)
+        let result = try TodoActions.snooze(todoId: todo.id, using: repository)
         WidgetReloader.reloadAllWidgets()
-
-        #if os(iOS)
-        await updateMatchingLiveActivity(for: todo.id, newDueDate: newDueDate, title: todoItem.title)
-        #endif
-
-        return .result(value: TodoAppEntity(from: todoItem))
+        return .result(value: result.entity)
     }
-
-    #if os(iOS)
-    @MainActor
-    private func updateMatchingLiveActivity(for todoId: String, newDueDate: Date, title: String) async {
-        for activity in Activity<TodoDeadlineActivityAttributes>.activities
-        where activity.attributes.todoId == todoId {
-            let contentState = TodoDeadlineActivityAttributes.ContentState(
-                title: title,
-                dueDate: newDueDate,
-                isCompleted: false
-            )
-            await activity.update(using: contentState)
-        }
-    }
-    #endif
 }
-
-#if os(iOS)
-extension SnoozeTodoIntent: LiveActivityIntent {}
-#endif

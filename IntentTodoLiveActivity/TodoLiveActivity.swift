@@ -52,13 +52,13 @@ struct TodoDeadlineLiveActivity: Widget {
                         dueDate: context.state.dueDate
                     )
                     HStack(spacing: 16) {
-                        Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+                        Button(intent: ToggleTodoCompletionFromExtensionIntent(todo: entity)) {
                             Label("Complete", systemImage: "checkmark.circle.fill")
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
 
-                        Button(intent: SnoozeTodoIntent(todo: entity)) {
+                        Button(intent: SnoozeTodoFromExtensionIntent(todo: entity)) {
                             Label("Snooze", systemImage: "clock.arrow.circlepath")
                         }
                         .buttonStyle(.bordered)

@@ -48,14 +48,14 @@ struct LockScreenLiveActivityView: View {
                 .lineLimit(2)
 
             HStack(spacing: 16) {
-                Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+                Button(intent: ToggleTodoCompletionFromExtensionIntent(todo: entity)) {
                     Label("Mark Complete", systemImage: "checkmark.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
 
-                Button(intent: SnoozeTodoIntent(todo: entity)) {
+                Button(intent: SnoozeTodoFromExtensionIntent(todo: entity)) {
                     Label("Snooze 30m", systemImage: "clock.arrow.circlepath")
                         .frame(maxWidth: .infinity)
                 }
