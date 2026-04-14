@@ -33,13 +33,14 @@ struct QuickAddTodoControl: ControlWidget {
 }
 ```
 
-**`kind` は reverse-domain 形式を推奨**。Apple 公式の全サンプル（[Creating controls to perform actions across the system](https://developer.apple.com/documentation/widgetkit/creating-controls-to-perform-actions-across-the-system)）が `com.example.MyApp.TimerToggle` / `com.example.myApp.performActionButton` / `com.yourcompany.GarageDoorOpener` 等の reverse-domain 形式を使用：
+**`kind` は reverse-domain 形式を推奨**。短い名前（例: `"QuickAddTodoControl"`）でも動作することは実機確認済みだが、以下の理由で reverse-domain 形式が望ましい:
+
+- Apple 公式の全サンプル（[Creating controls to perform actions across the system](https://developer.apple.com/documentation/widgetkit/creating-controls-to-perform-actions-across-the-system)）が `com.example.MyApp.TimerToggle` / `com.example.myApp.performActionButton` / `com.yourcompany.GarageDoorOpener` 等の形式
+- システムで一意識別するための文字列なので、他アプリの Control と衝突しにくい形式の方が安全
 
 ```swift
 static let kind: String = "com.example.MyApp.TimerToggle"
 ```
-
-本プロジェクトで過去に `"QuickAddTodoControl"` のような短い名前にしていた時期は foreground 遷移が機能しなかった（経験則）。公式は形式を明示していないが、サンプルに合わせて reverse-domain 形式にしておくのが無難。
 
 ### ControlConfigurationIntent と SetValueIntent
 
