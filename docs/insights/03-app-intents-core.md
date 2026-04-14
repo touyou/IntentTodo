@@ -36,7 +36,7 @@ public struct AddTodoIntent: AppIntent {
 
 ### 基本
 
-`ModelContainer` は `Sendable` を満たすため、`@Dependency` でそのまま共有できる。`App.init()` で `AppDependencyManager.shared.add(dependency:)` に**同期登録**し、Intent 側で `@Dependency` で取得、`perform()` 内で `ModelContext(modelContainer)` から Repository を生成する。
+`ModelContainer` は `Sendable` を満たすため、`@Dependency` でそのまま共有できる。`App.init()` で `AppDependencyManager.shared.add(dependency:)` に**同期登録**し、Intent 側で `@Dependency` で取得、`perform()` 内で `modelContainer.mainContext` を使って Repository を生成する（毎回新しい `ModelContext(modelContainer)` を作ると保存されていない状態が共有されないので注意）。
 
 `@Observable @MainActor` クラス（`NavigationModel` 等）も同様に共有可能。
 
@@ -64,7 +64,7 @@ public struct AddTodoIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
         // ...
     }
 }
@@ -80,7 +80,9 @@ public struct AddTodoIntent: AppIntent {
 | `.foreground` | メインアプリ | `App.init()` |
 | `.background` / Siri / Shortcuts | メインアプリ | `App.init()` |
 | `.background` / Widget ControlWidgetButton | Widget Extension | `WidgetBundle.init()` |
-| `LiveActivityIntent` | Live Activity Extension | Extension 側 |
+| `LiveActivityIntent` | **メインアプリプロセス** (公式保証) | `App.init()` |
+
+> `LiveActivityIntent` は Apple 公式 [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) が "the system runs the app intent in the app's process" と明言している。つまりメインアプリ側の `AppDependencyManager` に登録してあれば解決される（Extension 側の登録は不要）。
 
 Widget Extension 側での登録例:
 
@@ -138,7 +140,7 @@ public struct TodoEntityQuery: EntityQuery {
 
     @MainActor
     private func makeRepository() -> SwiftDataTodoRepository {
-        SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
     }
 
     @MainActor
@@ -183,6 +185,13 @@ public struct TodoAppShortcuts: AppShortcutsProvider {
     }
 }
 ```
+
+### 10 件上限と設計指針
+
+Apple は `AppShortcutsProvider.appShortcuts` の登録数を **10 件** に制限している（iOS 26 時点）。本プロジェクトは現在 8 件で運用しており、枠 2 件分の余裕を意識的に確保する設計判断をしている。
+
+- 同じ Intent のパラメータ違いは、可能な限り 1 件にまとめて「フレーズを複数登録」する。例えば `ShowTodosIntent` は `filter` パラメータを 1 つの AppShortcut で受け、`Show my todos / Show incomplete todos / Show favorite todos` のフレーズ群にまとめている（以前は 3 件登録していたが、10 件枠を食い潰さないよう統合）。
+- アプリを「開くだけ」の用途（例: `LaunchAppIntent`）は Widget/ControlWidget 経由で呼べば足りるので、AppShortcut 登録を省いて枠を節約する。
 
 ### パッケージ内での定義
 

@@ -30,8 +30,28 @@ Button(intent: DeleteTodoIntent(todo: entity)) {
 | ケース | 方式 | 備考 |
 |--------|------|------|
 | チェックボックス、お気に入り | `Button(intent:)` | パラメータが既知 |
-| 削除ボタン | `Button(intent:)` | パラメータが既知 |
+| 削除ボタン | `Button(role:intent:)` | **`role:` を先に書く**（下記注記参照） |
 | 作成フォーム | `Button(intent:)` + Computed Property | 動的にIntent生成、dismissは`onChange`で |
+
+> **引数順の罠**: `Button(role:intent:)` は `role:` を**先に**書く。`Button(intent: X, role: .destructive)` の順だと別 init に解決されて `"extraneous argument label 'intent:'"` エラーになる（visionOS ビルドで実際に発生、詳細は `07-platform-specific.md` の「Button(intent:role:) の引数順」）。
+
+### 直接 `perform()` を呼ばない
+
+Intent の `@Dependency` はシステムが `Button(intent:)` 経由で dispatch した時にのみ `AppDependencyManager` から解決される。`Task { try? await intent.perform() }` のように手動で呼ぶと `@Dependency` がゼロ初期化状態になり、ModelContainer 利用時点でクラッシュする。
+
+```swift
+// ❌ watchOS などで @Dependency 未解決のまま実行→クラッシュ
+Button {
+    Task { try? await AddTodoIntent(title: title).perform() }
+} label: { Label("Add", systemImage: "plus") }
+
+// ✅ Button(intent:) でシステム dispatch 経由にする
+Button(intent: AddTodoIntent(title: title)) {
+    Label("Add", systemImage: "plus.circle.fill")
+}
+```
+
+アプリを開くだけの導線は **`Link(destination:)` を優先**する（Apple 公式推奨、詳細は「Widget への Button(intent:) 統合」節参照）。
 
 ---
 
@@ -185,6 +205,29 @@ static let supportedModes: IntentModes = [.foreground(.immediate)]
 ### UISceneAppIntent の制限
 
 `UISceneAppIntent` はSwift Package内で定義されたIntentには利用できない（`UISceneAppIntent`はUIKit依存のため、Packageスコープで参照不可）。マルチウィンドウでのシーン固有ルーティングが必要な場合は、メインアプリターゲット内でIntentを定義するか、`SceneDelegate`で`connectionOptions`を活用する。
+
+---
+
+## View は struct 抽出、computed-property View は避ける
+
+CLAUDE.md で規約化しているが、実装では崩れやすい。本プロジェクトでは `TodoListView` / `TodoDetailView` / `VisionOSTodoListView` / `VisionOSTodoDetailView` の各セクションを以下のような粒度で `private struct: View` に分割している。computed-property や method-returning `some View` は差分追跡単位にならず、親 `body` 全体が再評価されるため、メンテナンス時の体感パフォーマンスが落ちやすい。
+
+```swift
+// ✅ 実例: TodoDetailView の分割
+TodoDetailContent(todo: item)      // 全体
+  TodoDetailHeaderSection(todo:)   // チェックボックス + タイトル + ステータスバッジ
+  TodoDetailDueDateSection(...)    // 期限
+  TodoDetailTimeRemainingLabel(...) // TimelineView でライブ更新
+  TodoDetailSubtasksSection(...)
+  TodoDetailMetadataSection(...)
+  TodoDetailActionsSection(...)
+```
+
+ポイント:
+
+- **DueDateStatus を切り出し直す**: 複数セクションで "overdue / dueSoon" 判定が必要なら、`Domain.DueDateStatus.evaluate(date:isCompleted:)` を共通で呼ぶ。
+- **`TimelineView(.periodic(from:by:))`** で時間経過を受ける View は struct 化しておくと `context.date` を閉じ込められてテストもしやすい。
+- **Formatter は `static let` で共有**: `DateComponentsFormatter` などはインスタンス化コストが高いので、struct 内に `static let` で 1 度だけ生成する。
 
 ---
 

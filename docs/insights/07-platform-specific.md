@@ -41,6 +41,63 @@ IntentTodoWatchApp/                # watchOS Extension
 
 ---
 
+## macOS native 対応: Delegate の `#if` 分岐 + NotificationHandler 共通化
+
+`@UIApplicationDelegateAdaptor`（UIKit）と `@NSApplicationDelegateAdaptor`（AppKit）は別プロトコル依存なので完全共通化は不可能。SwiftUI マルチプラットフォームで定番とされる Paul Hudson / Swift by Sundell のパターンは、**通知デリゲート本体を cross-platform な 1 クラスに集約し、`#if` で AppDelegate を分岐して、そこから委譲する**構成。
+
+```swift
+// 共通 (platform-independent)
+final class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
+    static let shared = NotificationHandler()
+    @MainActor var navigationModel: NavigationModel?
+
+    func install() {
+        UNUserNotificationCenter.current().delegate = self
+        UNUserNotificationCenter.current().setNotificationCategories([ /* ... */ ])
+    }
+
+    @MainActor
+    func userNotificationCenter(_: UNUserNotificationCenter,
+                                 didReceive response: UNNotificationResponse) async {
+        // ... 共通ロジック
+        navigationModel?.showAddTodo()
+    }
+}
+
+// iOS / visionOS
+#if os(iOS) || os(visionOS)
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_: UIApplication, didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        NotificationHandler.shared.install()
+        return true
+    }
+    // SceneDelegate 結線等
+}
+#elseif os(macOS)
+final class MacAppDelegate: NSObject, NSApplicationDelegate {
+    func applicationDidFinishLaunching(_: Notification) {
+        NotificationHandler.shared.install()
+    }
+}
+#endif
+
+// @main
+@main
+struct IntentTodoApp: App {
+    #if os(iOS) || os(visionOS)
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    #elseif os(macOS)
+    @NSApplicationDelegateAdaptor(MacAppDelegate.self) var delegate
+    #endif
+}
+```
+
+- `UNUserNotificationCenterDelegate` は iOS / macOS / visionOS / watchOS すべてで同じシグネチャのため、本体の 1 クラス化は堅い選択。
+- 埋め込み Extension (`IntentTodoWatchApp.app` / `IntentTodoLiveActivityExtension.appex`) を macOS ビルドから除外するには、`project.pbxproj` の PBXBuildFile に `platformFilter = ios;` を追加する。
+- SceneDelegate は UIKit 専用なので `#if os(iOS) || os(visionOS)` で切る（macOS native で `UIScene` は存在しない）。
+
+---
+
 ## LiveActivity の Intent 設計
 
 ### LiveActivityIntent vs AppIntent

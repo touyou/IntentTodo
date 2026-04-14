@@ -29,6 +29,73 @@ public final class TodoItem {
 
 ---
 
+## @Model プロパティで `didSet` を使わない
+
+`@Model` マクロはプロパティアクセスを内部で swizzle する。その結果、CloudKit 経由のマージや KVC/KVO 経由の書き込みでは `didSet` オブザーバが**発火しない**ことがある。「変更時刻の自動更新」等の副作用を `didSet` に書いてしまうと、ローカルからの書き込みでは動いても、CloudKit で同じモデルが更新された時に `modifiedAt` が更新されない矛盾が生まれる。
+
+```swift
+// ❌ CloudKit マージ経由の更新で発火しない可能性
+@Model
+public final class TodoItem {
+    public var title: String {
+        didSet { modifiedAt = Date() }   // 発火タイミングが不安定
+    }
+    public var modifiedAt: Date
+}
+```
+
+```swift
+// ✅ 呼び出し側（TodoActions 等）で明示的に更新
+item.title = newTitle
+item.modifiedAt = Date()
+try repository.update(item)
+```
+
+本プロジェクトでは、`TodoItem` の全フィールドから `didSet` を除去し、`TodoActions.toggleCompletion` / `toggleFavorite` / `snooze` 各関数が変更後に `item.modifiedAt = Date()` を明示的に触る方針に統一している。
+
+---
+
+## 共有ドメイン値としての `DueDateStatus`
+
+期限日の状態判定（`overdue` / `dueSoon` / `normal`）は複数プラットフォームの View（`TodoDetailView` / `VisionOSTodoView` / `WatchDueDateLabel` / `TodoWidgetRow` 等）で必要になる。同じ閾値ロジックが複数箇所に散ると、閾値変更時の漏れやクラッシュ条件が揃わないといった問題が起きやすい。
+
+```swift
+// Packages/Domain/Sources/Domain/Models/DueDateStatus.swift
+public enum DueDateStatus: Sendable, Equatable {
+    case normal, dueSoon, overdue
+    public static let dueSoonThreshold: TimeInterval = 3600
+
+    public static func evaluate(
+        date: Date,
+        isCompleted: Bool,
+        now: Date = Date()
+    ) -> DueDateStatus {
+        guard !isCompleted else { return .normal }
+        let interval = date.timeIntervalSince(now)
+        if interval <= 0 { return .overdue }
+        if interval <= dueSoonThreshold { return .dueSoon }
+        return .normal
+    }
+}
+```
+
+全 View から `DueDateStatus.evaluate(date:isCompleted:)` を呼ぶ形に統一すると、閾値・状態判定が 1 箇所で管理でき、テスト容易性も上がる（注入可能な `now:` を持つので TimelineView との組み合わせで時間進行テストも可）。
+
+### TimeRemainingView の overdue 時 ClosedRange 制約
+
+SwiftUI の `Text(timerInterval:countsDown:)` は `ClosedRange<Date>` を引数に取り、下限 > 上限の場合に `precondition` で trap する。期限を過ぎた Live Activity で `Date()...dueDate` を渡すとクラッシュするため、`DueDateStatus` で `.overdue` を判定したら `Text(timerInterval:)` ではなく静的なラベル（"Overdue" 等）にフォールバックする。
+
+```swift
+if isOverdue {
+    Text("Overdue").foregroundStyle(.red)
+} else {
+    Text(timerInterval: Date()...dueDate, countsDown: true)
+        .monospacedDigit()
+}
+```
+
+---
+
 ## @Model マクロと Sendable の競合
 
 `@Model` マクロは自動的に `Sendable` 準拠を追加する。

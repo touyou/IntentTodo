@@ -27,7 +27,7 @@
 
 - 全てのアクションはApp Intentとして定義されること
 - xcodeprojにしか存在できない中核となるファイル以外はSwift Package Managerで管理されること
-- パッケージはレイヤーごと: Domain, Repository, AppIntents, UI（UseCase層は廃止→AppIntentsが担う）
+- パッケージはレイヤーごと + 表示先別の葉ノード: **Domain, Repository, TodoAppIntents, UI, LiveActivity, WidgetUI, WatchUI** の 7 パッケージ（UseCase層は廃止→AppIntentsが担う）。各 Extension ターゲットは `@main` / `WidgetBundle` / `ActivityConfiguration` などのスキャフォルドのみで、View 層・状態管理・データ取得は SPM 側に配置する
 - SwiftUIのView自体にはなるべくロジックを書かず、ViewModelに記述する（ただしViewModelはUI状態管理のみ）
 - コンポーネントはデータ単位で分けて、何か更新があった際に再レンダリングの範囲がそのViewに絞られるような形にできると良さそう
 - App Intentsで定義したアクションはButton(intent:)でなるべく直接実行できるように。その他にもApp Intentsを呼び出すようにしてなるべく二重でロジックを書かないようにする

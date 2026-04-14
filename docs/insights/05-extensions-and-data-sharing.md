@@ -9,14 +9,22 @@ WidgetやControlWidgetは、定義しただけでは動作しない。必ず `Wi
 ```swift
 @main
 struct IntentTodoWidgetBundle: WidgetBundle {
+    init() {
+        // Widget Extension プロセスで .background Intent の @Dependency を
+        // 解決するために同期登録する (詳細は 06-control-widget-ios26.md)。
+        AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
+    }
+
     var body: some Widget {
         IntentTodoWidget()           // ホーム画面ウィジェット
 
-        if #available(iOS 18.0, *) {
-            QuickAddTodoControl()     // コントロールセンター
-            TodoCountControl()
-            ToggleUrgentTodoControl() // ← 忘れがち！
-        }
+        // ControlWidget は visionOS で提供されないので #if で除外。
+        // `if #available(iOS 18.0, *)` では型解決を止められない。
+        #if !os(visionOS)
+        QuickAddTodoControl()     // コントロールセンター
+        TodoCountControl()
+        ToggleUrgentTodoControl()
+        #endif
     }
 }
 ```
@@ -116,6 +124,40 @@ struct LaunchAppIntent: AppIntent {
     }
 }
 ```
+
+### 通知タップ経由の経路: NotificationHandler への NavigationModel 注入
+
+通知タップで `didReceive` デリゲートが発火してアプリが表示されるルートは、Intent 経路とは別。ただしゴールは同じく NavigationModel に書き込むことで UI を更新する。アプリ側 (`App.init()`) で `NotificationHandler.shared.navigationModel` に同じインスタンスを注入しておく。
+
+```swift
+// IntentTodoApp.init()
+let navigation = NavigationModel()
+self.navigationModel = navigation
+AppDependencyManager.shared.add(dependency: navigation)   // Intent 経路
+
+#if os(iOS) || os(visionOS) || os(macOS)
+MainActor.assumeIsolated {
+    NotificationHandler.shared.navigationModel = navigation  // 通知経路
+}
+#endif
+```
+
+```swift
+// NotificationHandler
+@MainActor var navigationModel: NavigationModel?
+
+@MainActor
+func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse
+) async {
+    if isAddTodoAction {
+        navigationModel?.showAddTodo()
+    }
+}
+```
+
+旧 `IntentAppState` (UserDefaults + NotificationCenter) は cross-process に届かない `NotificationCenter.post` を含んでおり、`NavigationModel` と機能重複もしていたため撤去。同じ意図は `NavigationModel` への直接注入で十分達成できる。
 
 ### Widget / Extension 側から Intent 経由でアプリを操作する場合
 

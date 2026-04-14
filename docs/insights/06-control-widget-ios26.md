@@ -15,7 +15,7 @@
 
 ### ControlWidgetButton + foreground Intent
 
-Control Widget からアプリを開く場合、`ControlWidgetButton(action:)` に `.foreground(.immediate)` の Intent を渡す。
+Control Widget からアプリを開くだけの場合、`ControlWidgetButton(action:)` に `.foreground(.immediate)` の Intent を渡す。
 
 ```swift
 struct QuickAddTodoControl: ControlWidget {
@@ -33,14 +33,51 @@ struct QuickAddTodoControl: ControlWidget {
 }
 ```
 
-**`kind` は reverse-domain 形式を推奨**。短い名前（例: `"QuickAddTodoControl"`）でも動作することは実機確認済みだが、以下の理由で reverse-domain 形式が望ましい:
+### ControlValueProvider でデータを供給する
 
-- Apple 公式の全サンプル（[Creating controls to perform actions across the system](https://developer.apple.com/documentation/widgetkit/creating-controls-to-perform-actions-across-the-system)）が `com.example.MyApp.TimerToggle` / `com.example.myApp.performActionButton` / `com.yourcompany.GarageDoorOpener` 等の形式
-- システムで一意識別するための文字列なので、他アプリの Control と衝突しにくい形式の方が安全
+値を表示するタイプの Control（カウント表示・次の期限など）は、`StaticControlConfiguration(kind:provider:)` に `ControlValueProvider` を渡し、body ではその値を受け取るだけにする。body の中で直接 SwiftData fetch すると、WidgetKit 側の更新タイミング制御と噛み合わず body が過剰に評価される恐れがある。
 
 ```swift
-static let kind: String = "com.example.MyApp.TimerToggle"
+struct TodoCountControl: ControlWidget {
+    static let kind = "dev.touyou.IntentTodo.IntentTodoWidget.TodoCountControl"
+
+    var body: some ControlWidgetConfiguration {
+        StaticControlConfiguration(kind: Self.kind, provider: Provider()) { count in
+            ControlWidgetButton(action: ShowTodoCountIntent()) {
+                Label { Text("\(count)") } icon: { Image(systemName: "checklist") }
+            }
+        }
+        .displayName("Todo Count")
+        .description("Shows incomplete todo count. Tap for summary.")
+    }
+}
+
+extension TodoCountControl {
+    struct Provider: ControlValueProvider {
+        var previewValue: Int { 3 }
+        func currentValue() async throws -> Int {
+            try await MainActor.run {
+                let descriptor = FetchDescriptor<TodoItem>(predicate: #Predicate { !$0.isCompleted })
+                return (try? sharedWidgetModelContainer.mainContext.fetchCount(descriptor)) ?? 0
+            }
+        }
+    }
+}
 ```
+
+複数の値を返したい場合は `Snapshot` のような値型を自前で用意して `currentValue()` で返す（本プロジェクトの `ToggleUrgentTodoControl.Snapshot` 参照）。
+
+### kind は reverse-DNS 形式で統一
+
+本プロジェクトでは `dev.touyou.IntentTodo.<Target>.<WidgetName>` に統一している。対象は以下のすべて:
+
+| 種別 | 例 |
+|------|-----|
+| ControlWidget (3 種) | `dev.touyou.IntentTodo.IntentTodoWidget.QuickAddTodoControl` など |
+| ホーム Widget | `dev.touyou.IntentTodo.IntentTodoWidget` |
+| watchOS Complication | `dev.touyou.IntentTodo.IntentTodoWatchApp.TodoComplication` |
+
+Apple 公式の全サンプル（[Creating controls to perform actions across the system](https://developer.apple.com/documentation/widgetkit/creating-controls-to-perform-actions-across-the-system)）も `com.example.MyApp.TimerToggle` の形式。短い名前でも動作することは確認済みだが、システム全体で一意識別される文字列なので他アプリと衝突しにくい reverse-DNS 形式が安全。
 
 ### ControlConfigurationIntent と SetValueIntent
 
@@ -53,6 +90,19 @@ Widget Extension 内で定義した `ControlConfigurationIntent` は、アプリ
 ### ControlConfigurationIntent のフィードバック
 
 `.result(dialog:)` は非対応。視覚的状態変化 / システムハプティック / ローカル通知で代替する。
+
+### visionOS 非対応: `#if !os(visionOS)` でガード
+
+Apple 公式 [Developing a WidgetKit strategy](https://developer.apple.com/documentation/widgetkit/developing-a-widgetkit-strategy#Review-system-experiences-for-each-platform) のプラットフォーム対応表で、Controls は **iPhone / iPad / Apple Watch / Mac で Yes、Apple Vision Pro のみ No** と明記されている。
+
+```swift
+#if !os(visionOS)
+import WidgetKit
+// ... Control ウィジェット定義
+#endif
+```
+
+`if #available(iOS 18.0, *)` は実行時版チェックであり、コンパイル時に visionOS SDK が `ControlWidget` / `ControlWidgetButton` / `StaticControlConfiguration` 型を提供しない問題を回避できない。条件付きコンパイル（`#if`）で型参照自体を切る必要がある。
 
 ---
 
