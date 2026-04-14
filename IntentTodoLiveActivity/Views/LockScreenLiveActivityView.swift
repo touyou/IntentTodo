@@ -18,15 +18,6 @@ import WidgetKit
 struct LockScreenLiveActivityView: View {
     let context: ActivityViewContext<TodoDeadlineActivityAttributes>
 
-    private var entity: TodoAppEntity {
-        TodoAppEntity(
-            id: context.attributes.todoId,
-            title: context.state.title,
-            isCompleted: context.state.isCompleted,
-            dueDate: context.state.dueDate
-        )
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -48,14 +39,14 @@ struct LockScreenLiveActivityView: View {
                 .lineLimit(2)
 
             HStack(spacing: 16) {
-                Button(intent: ToggleTodoCompletionFromExtensionIntent(todo: entity)) {
+                Button(intent: ToggleTodoCompletionFromExtensionIntent(todoId: context.attributes.todoId)) {
                     Label("Mark Complete", systemImage: "checkmark.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
 
-                Button(intent: SnoozeTodoFromExtensionIntent(todo: entity)) {
+                Button(intent: SnoozeTodoFromExtensionIntent(todoId: context.attributes.todoId)) {
                     Label("Snooze 30m", systemImage: "clock.arrow.circlepath")
                         .frame(maxWidth: .infinity)
                 }

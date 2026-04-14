@@ -2,8 +2,8 @@
 //  SnoozeTodoFromExtensionIntent.swift
 //  TodoAppIntents
 //
-//  Variant for Live Activity context. Uses SharedModelContainer directly and
-//  conforms to LiveActivityIntent on iOS.
+//  FromExtension variant: parameter is `todoId: String` (not TodoAppEntity).
+//  See ToggleTodoCompletionFromExtensionIntent.swift for rationale.
 //
 
 #if os(iOS)
@@ -22,27 +22,29 @@ public struct SnoozeTodoFromExtensionIntent: AppIntent {
     public static let supportedModes: IntentModes = [.background]
 
     public static var parameterSummary: some ParameterSummary {
-        Summary("Snooze \(\.$todo) by 30 minutes")
+        Summary("Snooze todo \(\.$todoId) by 30 minutes")
     }
 
-    @Parameter(title: "Todo")
-    public var todo: TodoAppEntity
+    @Parameter(title: "Todo ID")
+    public var todoId: String
+
+    @Dependency
+    var modelContainer: ModelContainer
 
     public init() {}
 
-    public init(todo: TodoAppEntity) {
-        self.todo = todo
+    public init(todoId: String) {
+        self.todoId = todoId
     }
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let container = try SharedModelContainer.createContainer()
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(container))
-        let result = try TodoActions.snooze(todoId: todo.id, using: repository)
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
+        let result = try TodoActions.snooze(todoId: todoId, using: repository)
         WidgetReloader.reloadAllWidgets()
 
         #if os(iOS)
-        await updateMatchingLiveActivity(for: todo.id, newDueDate: result.newDueDate, title: result.title)
+        await updateMatchingLiveActivity(for: todoId, newDueDate: result.newDueDate, title: result.title)
         #endif
 
         return .result(value: result.entity)

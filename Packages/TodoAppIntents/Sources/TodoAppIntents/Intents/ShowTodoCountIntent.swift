@@ -2,8 +2,8 @@
 //  ShowTodoCountIntent.swift
 //  TodoAppIntents
 //
-//  Sends a local notification with the current incomplete todo count.
-//  Designed for Control Center buttons.
+//  Sends a notification with the current incomplete todo count.
+//  Designed for Control Center.
 //
 
 import AppIntents
