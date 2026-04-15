@@ -4,8 +4,8 @@
 
 CloudKit 同期を有効にする場合、[Apple 公式: Syncing model data across a person's devices / Define a CloudKit compatible schema](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices#Define-a-CloudKit-compatible-schema) が明記する以下の制約を意識する必要がある:
 
-1. **`@Attribute(.unique)` は CloudKit では enforce されない**: Apple 公式より "the framework synchronizes changes concurrently and at opportune times, which means CloudKit is unable to enforce the unique property option." `#Unique<T>` マクロも同じ仕組みに依存しているため同様（ビルドエラーにはならないが一意制約は保証されない）。
-2. **リレーションシップはすべて optional**: Apple 公式より "CloudKit requires all relationships to be optional." また DeleteRule の `.deny` も CloudKit ではサポートされない。
+1. **`@Attribute(.unique)` は CloudKit では enforce されない**: Apple 公式より "the framework synchronizes changes concurrently and at opportune times, which means CloudKit is unable to enforce the unique property option." 2026-04-15 時点の iOS 26 ドキュメントでも当該制約表が維持されていることを確認済。`#Unique<T>` マクロの CloudKit 互換性については Apple 公式 API リファレンスに直接の記述はないが、同じ一意性メカニズムに依拠するため同じ制約が及ぶと考えるのが妥当（実機でも一意制約が破られるケースを経験）。
+2. **リレーションシップはすべて optional**: Apple 公式より "CloudKit requires all relationships to be optional." また DeleteRule の `.deny` も CloudKit ではサポートされない（同表 2026-04-15 iOS 26 ドキュメントで確認）。
 3. **プロパティにデフォルト値 / optional**: 同期時のコンフリクト対策（Apple 公式のスキーマ設計ガイダンス）。
 
 ### 推奨パターン

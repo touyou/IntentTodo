@@ -204,23 +204,27 @@ public struct TodoIntentsPackage: AppIntentsPackage {
 }
 ```
 
-**重要**: メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を**重複宣言しない**こと。システム上 `AppIntentsPackage` はアプリあたり1つまでで、SPM 側の自動発見と二重登録になると Shortcuts のルーティングが壊れる。
+**重要**: メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を**重複宣言しない**こと。2026-04-13 の実機検証で、SPM 側の `AppIntentsPackage` 自動発見とメインアプリターゲットでの二重登録が重なると Shortcuts のルーティングが壊れる現象を確認した（エラーは `LNContextErrorDomain Code=2001`）。
+
+> **一次ソース未確認**: Apple 公式 API リファレンスで「アプリあたり 1 つまで」と明文化されている記述は 2026-04-15 時点で確認できていない。`AppIntentsPackage` / `includedPackages` のドキュメントには duplicate registration に関する注意書きが見つからないため、実機観測ベースの知見として扱う。
 
 **注意**: アプリ内に `AppShortcutsProvider` が複数存在するとビルドエラーになる。
 
 ### フレーズのパラメータ型制限
 
-App Shortcutのフレーズに埋め込めるのは **AppEntity** と **AppEnum** 型のみ。
+App Shortcut のフレーズに埋め込めるのは **AppEntity** と **AppEnum** 型のみ（2026-04-15 時点のコンパイラ観測）。
 
 ```swift
-// ❌ String型パラメータはフレーズに埋め込めない
-"Add \(\.$title) to \(.applicationName)"  // エラー: Invalid parameter type
+// ❌ String 型パラメータはフレーズに埋め込めない (compiler error)
+"Add \(\.$title) to \(.applicationName)"
 
-// ✅ AppEntity/AppEnumのみ使用可能
+// ✅ AppEntity / AppEnum のみ使用可能
 "Show \(\.$filter) todos in \(.applicationName)"  // filter: TodoFilterType (AppEnum)
 ```
 
-String型パラメータを使いたい場合は、Siriがユーザーに後から入力を求めるフローを利用する。
+String 型パラメータを使いたい場合は、Siri がユーザーに後から入力を求めるフローを利用する。
+
+> **一次ソース未確認**: Apple 公式 API リファレンスではこの制約を明示的に書いた箇所を 2026-04-15 時点で発見できていない。コンパイラエラー挙動から観測した制約として扱う。将来的に緩和される可能性もあるため iOS / Xcode の major バージョン更新時には再確認が望ましい。
 
 ---
 
@@ -238,6 +242,8 @@ String型パラメータを使いたい場合は、Siriがユーザーに後か�
 | `.foreground(.deferred)` | 初期バックグラウンド → `perform()` 内か返却時に自動 foreground 化 | 新 API |
 
 > **`ForegroundContinuableIntent` は deprecated**: [公式ドキュメント](https://developer.apple.com/documentation/appintents/foregroundcontinuableintent) が明記 — "This protocol is deprecated, please include `.foreground(.dynamic)` in the `supportedModes` of your app intent instead."
+
+> **`.foreground(.deferred)` の正確な挙動**: Apple 公式 [supportedModes](https://developer.apple.com/documentation/appintents/appintent/supportedmodes) には enum case としての存在は記載されるが、詳細な semantics（`perform()` 終了時に system が自動で foreground 化するタイミング）までは明記されていない (2026-04-15 時点)。上記の動作は実機検証ベース。
 
 ### 複合モード
 

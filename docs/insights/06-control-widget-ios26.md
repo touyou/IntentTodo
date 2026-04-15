@@ -93,7 +93,7 @@ Widget Extension 内で定義した `ControlConfigurationIntent` は、アプリ
 
 ### visionOS 非対応: `#if !os(visionOS)` でガード
 
-Apple 公式 [Developing a WidgetKit strategy](https://developer.apple.com/documentation/widgetkit/developing-a-widgetkit-strategy#Review-system-experiences-for-each-platform) のプラットフォーム対応表で、Controls は **iPhone / iPad / Apple Watch / Mac で Yes、Apple Vision Pro のみ No** と明記されている。
+Apple 公式 [Developing a WidgetKit strategy](https://developer.apple.com/documentation/widgetkit/developing-a-widgetkit-strategy#Review-system-experiences-for-each-platform) の "Review system experiences for each platform" セクションにある対応表で、Controls は **iPhone / iPad / Apple Watch / Mac で Yes、Apple Vision Pro のみ No** と明記されている（2026-04-15 時点の iOS 26 ドキュメントで確認済）。
 
 ```swift
 #if !os(visionOS)
