@@ -100,14 +100,13 @@ NavigationStack {
 
 つまり `onAppIntentExecution` のクロージャが**先**に実行され、その後に Intent の `perform()` が呼ばれる。両方でナビゲーションを行うと二重実行になるため、どちらか一方に統一することを推奨。
 
-### ⚠️ iOS バージョンによる動作差
+### ⚠️ cold start ナビゲーションは iOS 26.4 でも不安定 (実体験ベース)
 
-アプリが kill されている状態（cold start）での動作は iOS バージョンによって異なる：
+アプリが kill されている状態（cold start）での `onAppIntentExecution` 経由ナビゲーションは、Workshop PDF が "In iOS 26.4 and above this works as before" と書いていても、**実体験では 26.4 でも安定して完走しないケースが残る** (2026-04-12 の App Intents ワークショップで確認)。
 
-- **初期 iOS 26（〜26.3）**: cold start 時、Intentのシステムタイムアウト内にViewが準備できずナビゲーションが失敗する場合がある
-- **iOS 26.4 以降**: "works as before"（ワークショップPDF記載）—— cold start でも正常に動作する模様
+そのため本プロジェクトでは **`@Dependency var navigationModel` + `perform()` 内で NavigationModel に書き込む**パターンを基本とし、`onAppIntentExecution` 経路は補助的にしか使わない（詳細は本ドキュメントの「AppDependencyManager + perform()」セクション参照）。
 
-iOS 26.4 未満をサポートする場合や、安定性を優先する場合は `@Dependency` + `perform()` パターンを検討する（詳細は本ドキュメントの「AppDependencyManager + perform()」セクション参照）。
+> **過去の理解**: 初期 iOS 26 (〜26.3) で cold start 失敗が確認され、Workshop PDF では 26.4 で修正と謳われたが、実機では完全には解消していない印象。Apple Feedback に提出するには再現性をさらに詰める必要あり。
 
 ### 関連API
 

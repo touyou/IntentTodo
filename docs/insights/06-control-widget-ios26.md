@@ -87,9 +87,16 @@ Apple 公式の全サンプル（[Creating controls to perform actions across th
 
 Widget Extension 内で定義した `ControlConfigurationIntent` は、アプリ本体から参照できない（Swift のモジュール Name Mangling が原因）。`StaticControlConfiguration` を使用し、ConfigurationIntent を必要としない設計にする。
 
-### ControlConfigurationIntent のフィードバック
+### Control Widget からの Intent では `.result(dialog:)` が表示されない
 
-`.result(dialog:)` は非対応。視覚的状態変化 / システムハプティック / ローカル通知で代替する。
+2026-04-14 実機検証で確認: Control Center から `ControlWidgetButton(action:)` 経由で
+Intent を実行しても `.result(dialog:)` は UI に出ない。よってフィードバックは
+**視覚的状態変化 / システムハプティック / ローカル通知**で代替する必要がある。
+
+> **バグか by-design かは未確定**: Apple 公式で「Control Widget は dialog を出さない」と
+> 明示されたドキュメントは見当たらないが、Control Center の UX 設計上 dialog を出さないのが
+> 意図的な可能性もある。Feedback 提出の判断は保留中（既出 FB の有無 / 公式ガイダンス
+> 出典確認後に決める。Issue #30 A-1 参照）。
 
 ### visionOS 非対応: `#if !os(visionOS)` でガード
 
