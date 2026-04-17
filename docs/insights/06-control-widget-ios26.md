@@ -93,10 +93,11 @@ Widget Extension 内で定義した `ControlConfigurationIntent` は、アプリ
 Intent を実行しても `.result(dialog:)` は UI に出ない。よってフィードバックは
 **視覚的状態変化 / システムハプティック / ローカル通知**で代替する必要がある。
 
-> **バグか by-design かは未確定**: Apple 公式で「Control Widget は dialog を出さない」と
-> 明示されたドキュメントは見当たらないが、Control Center の UX 設計上 dialog を出さないのが
-> 意図的な可能性もある。Feedback 提出の判断は保留中（既出 FB の有無 / 公式ガイダンス
-> 出典確認後に決める。Issue #30 A-1 参照）。
+> **本プロジェクトの運用方針**: Control Widget はグラス風ミニマム UI が UX 設計語彙で、
+> dialog 表示はそもそも設計の一部として想定されていない可能性が高い (Apple 公式には
+> 明文記述なし)。本プロジェクトでは by-design 相当として扱い、**Apple Feedback の
+> 提出は行わない**。Control 経由で完了メッセージを伝えたい場合は `ControlNotificationHelper`
+> 経由でローカル通知を送る運用に統一している (`ToggleUrgentTodoIntent` / `ShowTodoCountIntent` 参照)。
 
 ### visionOS 非対応: `#if !os(visionOS)` でガード
 
