@@ -58,6 +58,16 @@ struct TodoServiceTests {
         #expect(try repo.fetch(by: item.id)?.isCompleted == true)
     }
 
+    @Test("toggleCompletion bumps modifiedAt forward")
+    func toggleCompletionBumpsModifiedAt() throws {
+        let item = TodoItem(title: "task")
+        let originalModifiedAt = item.modifiedAt
+        Thread.sleep(forTimeInterval: 0.05)
+        let (service, _) = makeService(seed: [item])
+        _ = try service.toggleCompletion(todoId: item.id.uuidString)
+        #expect(item.modifiedAt > originalModifiedAt)
+    }
+
     @Test("toggleCompletion throws for unknown id")
     func toggleCompletionNotFound() {
         let (service, _) = makeService()
