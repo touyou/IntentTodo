@@ -4,9 +4,6 @@
 //
 
 import AppIntents
-import Domain
-import Repository
-import SwiftData
 
 /// Toggles the favorite status of a todo item.
 public struct ToggleFavoriteIntent: AppIntent {
@@ -30,7 +27,7 @@ public struct ToggleFavoriteIntent: AppIntent {
     public var todo: TodoAppEntity
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {}
 
@@ -40,9 +37,7 @@ public struct ToggleFavoriteIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        let entity = try TodoActions.toggleFavorite(todoId: todo.id, using: repository)
-        WidgetReloader.reloadAllWidgets()
+        let entity = try todoService.toggleFavorite(todoId: todo.id)
         return .result(value: entity)
     }
 }

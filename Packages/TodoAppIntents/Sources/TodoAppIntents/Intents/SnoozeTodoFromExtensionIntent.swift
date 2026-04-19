@@ -2,18 +2,17 @@
 //  SnoozeTodoFromExtensionIntent.swift
 //  TodoAppIntents
 //
-//  FromExtension variant: parameter is `todoId: String` (not TodoAppEntity).
-//  See ToggleTodoCompletionFromExtensionIntent.swift for rationale.
+//  ⚠️ Apple bug workaround — see ToggleTodoCompletionFromExtensionIntent.swift
+//  for the full rationale (Issue #30 A-3). Remove together with its sibling
+//  once the Extension-process entity resolution bug is verified fixed.
 //
 
 #if os(iOS)
 import ActivityKit
+import Domain
 #endif
 import AppIntents
-import Domain
 import Foundation
-import Repository
-import SwiftData
 
 public struct SnoozeTodoFromExtensionIntent: AppIntent {
     public static let title: LocalizedStringResource = "Snooze Todo"
@@ -29,7 +28,7 @@ public struct SnoozeTodoFromExtensionIntent: AppIntent {
     public var todoId: String
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {}
 
@@ -39,9 +38,7 @@ public struct SnoozeTodoFromExtensionIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        let result = try TodoActions.snooze(todoId: todoId, using: repository)
-        WidgetReloader.reloadAllWidgets()
+        let result = try todoService.snooze(todoId: todoId)
 
         #if os(iOS)
         await updateMatchingLiveActivity(for: todoId, newDueDate: result.newDueDate, title: result.title)

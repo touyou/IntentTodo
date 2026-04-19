@@ -320,7 +320,7 @@ String パラメータなら entity 解決を経由せず `perform()` に直行�
 // Primary
 public struct ToggleTodoCompletionIntent: AppIntent {
     @Parameter(title: "Todo") public var todo: TodoAppEntity
-    @Dependency var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
     // ...
 }
 
@@ -328,7 +328,7 @@ public struct ToggleTodoCompletionIntent: AppIntent {
 public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
     public static let isDiscoverable = false
     @Parameter(title: "Todo ID") public var todoId: String
-    @Dependency var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
     // ...
 }
 #if os(iOS)
@@ -336,25 +336,28 @@ extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
 #endif
 ```
 
-### 共通ロジックの切り出し
+### 共通ロジックは TodoService に集約
 
-重複を避けるため `Actions/TodoActions.swift` に `@MainActor` 関数群として切り出し、両系統から呼ぶ。
+重複を避けるため `Services/TodoService.swift` (`@MainActor final class`) にビジネスロジックを集約し、Primary / FromExtension 両方の Intent が `@Dependency var todoService: TodoService` で参照する。`WidgetReloader.reloadAllWidgets()` は各メソッドの `defer` で自動呼び出しされるため、Intent 側で呼び忘れる心配がない。
 
 ```swift
-public enum TodoActions {
-    @MainActor
-    public static func toggleCompletion(
-        todoId: String,
-        using repository: any TodoRepositoryProtocol
-    ) throws -> TodoToggleResult { /* ... */ }
+@MainActor
+public final class TodoService {
+    private let repository: any TodoRepositoryProtocol
+    public init(repository: any TodoRepositoryProtocol) { ... }
+
+    public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
+        defer { WidgetReloader.reloadAllWidgets() }
+        // ...
+    }
 }
 ```
 
 ### DI は両者共通で @Dependency
 
-`@Dependency var modelContainer: ModelContainer` は Primary / FromExtension 両方で使える。`AppDependencyManager` への登録を `App.init()` と `WidgetBundle.init()` で済ませてあれば、どのプロセスで実行されても解決される（詳細は `04-ui-integration.md` の実行プロセス表）。
+`@Dependency var todoService: TodoService` は Primary / FromExtension 両方で使える。`TodoService.swiftDataBacked(container:)` ファクトリ経由で、メインアプリ / Widget Extension / watch App の各プロセスで `AppDependencyManager.shared` に登録する。登録先の詳細は `04-ui-integration.md` の実行プロセス表を参照。
 
-> **補足**: かつて FromExtension では `SharedModelContainer.createContainer()` を直接呼ぶ方針にしたが、crash の真因は DI ではなく entity 解決だったと判明したので統一。
+> **補足**: 旧 `TodoActions` (enum + static func) は TodoService に昇格済み。Repository を都度生成する負荷と呼び忘れ脆弱性を同時に解消。
 
 ---
 

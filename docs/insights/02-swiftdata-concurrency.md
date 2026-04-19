@@ -45,13 +45,13 @@ public final class TodoItem {
 ```
 
 ```swift
-// ✅ 呼び出し側（TodoActions 等）で明示的に更新
+// ✅ 呼び出し側（TodoService 等）で明示的に更新
 item.title = newTitle
 item.modifiedAt = Date()
 try repository.update(item)
 ```
 
-本プロジェクトでは、`TodoItem` の全フィールドから `didSet` を除去し、`TodoActions.toggleCompletion` / `toggleFavorite` / `snooze` 各関数が変更後に `item.modifiedAt = Date()` を明示的に触る方針に統一している。
+本プロジェクトでは、`TodoItem` の全フィールドから `didSet` を除去し、`TodoService.toggleCompletion` / `toggleFavorite` / `snooze` 各メソッドが変更後に `item.modifiedAt = Date()` を明示的に触る方針に統一している。
 
 ---
 

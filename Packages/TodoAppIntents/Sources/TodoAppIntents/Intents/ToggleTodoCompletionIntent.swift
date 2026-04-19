@@ -7,9 +7,6 @@
 //
 
 import AppIntents
-import Domain
-import Repository
-import SwiftData
 
 public struct ToggleTodoCompletionIntent: AppIntent {
     public static var title: LocalizedStringResource { "Toggle Todo Completion" }
@@ -32,7 +29,7 @@ public struct ToggleTodoCompletionIntent: AppIntent {
     public var todo: TodoAppEntity
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {}
 
@@ -42,9 +39,7 @@ public struct ToggleTodoCompletionIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        let result = try TodoActions.toggleCompletion(todoId: todo.id, using: repository)
-        WidgetReloader.reloadAllWidgets()
+        let result = try todoService.toggleCompletion(todoId: todo.id)
         return .result(value: result.entity)
     }
 }

@@ -4,8 +4,6 @@
 //
 
 import AppIntents
-import Repository
-import SwiftData
 
 /// Shows todos, optionally filtered.
 public struct ShowTodosIntent: AppIntent {
@@ -21,7 +19,7 @@ public struct ShowTodosIntent: AppIntent {
     public var filter: TodoFilterType
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {
         self.filter = .all
@@ -33,23 +31,13 @@ public struct ShowTodosIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog & OpensIntent {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        let todos: [TodoItem]
+        let entities = try todoService.listTodos(filter: filter)
         let screenTarget: AppScreenTarget
-
         switch filter {
-        case .all, .completed:
-            todos = try repository.fetchAll()
-            screenTarget = .todoList
-        case .incomplete:
-            todos = try repository.fetchIncomplete()
-            screenTarget = .incompleteTodos
-        case .favorites:
-            todos = try repository.fetchFavorites()
-            screenTarget = .favoriteTodos
+        case .all, .completed: screenTarget = .todoList
+        case .incomplete: screenTarget = .incompleteTodos
+        case .favorites: screenTarget = .favoriteTodos
         }
-
-        let entities = todos.map { TodoAppEntity(from: $0) }
         return .result(
             value: entities,
             opensIntent: LaunchAppIntent(target: screenTarget),

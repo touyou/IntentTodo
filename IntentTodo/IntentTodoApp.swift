@@ -6,12 +6,14 @@
 //
 
 import AppIntents
-import SwiftUI
+import os.log
 import SwiftData
-import Domain
+import SwiftUI
 import TodoAppIntents
 import UI
 import UserNotifications
+
+private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "IntentTodoApp")
 
 @main
 struct IntentTodoApp: App {
@@ -38,11 +40,15 @@ struct IntentTodoApp: App {
         do {
             let container = try SharedModelContainer.createContainer()
             modelContainer = container
-            // Register the ModelContainer so intents can access SwiftData via @Dependency.
             AppDependencyManager.shared.add(dependency: container)
         } catch {
             fatalError("Could not create ModelContainer: \(error)")
         }
+
+        // TodoService は Intent からも View からも参照可能な唯一のビジネスロジック層。
+        // Repository を内包するため、Intent 側は SwiftData を直接触らない。
+        let todoService = TodoService.swiftDataBacked(container: modelContainer)
+        AppDependencyManager.shared.add(dependency: todoService)
 
         // Same NavigationModel instance is stored in @State AND registered with
         // AppDependencyManager so intents can write navigation state via @Dependency.
@@ -96,10 +102,12 @@ struct IntentTodoApp: App {
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
             if granted {
-                print("Notification permission granted")
+                logger.info("Notification permission granted")
+            } else {
+                logger.info("Notification permission denied by user")
             }
         } catch {
-            print("Notification permission request failed: \(error)")
+            logger.error("Notification permission request failed: \(error.localizedDescription)")
         }
     }
 }

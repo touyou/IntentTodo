@@ -220,7 +220,7 @@ public struct ToggleTodoCompletionIntent: AppIntent {
 public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
     public static let isDiscoverable = false
     @Parameter(title: "Todo ID") public var todoId: String
-    @Dependency var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
     // ...
 }
 #if os(iOS)
@@ -228,7 +228,7 @@ extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
 #endif
 ```
 
-ビジネスロジックは両者で共通のため `Actions/TodoActions.swift` に切り出し、両方から呼ぶ。
+ビジネスロジックは両者で共通のため `Services/TodoService.swift` (`@MainActor final class`) に集約し、両 Intent が `@Dependency var todoService: TodoService` で参照する。
 
 ### Dialog vs 通知の使い分け
 
@@ -260,7 +260,7 @@ WidgetReloader.reloadAllWidgets()
 
 ### @Dependency + AppDependencyManager パターン
 
-Intent がアプリの共有状態（`ModelContainer`、`NavigationModel` 等）にアクセスする場合、`AppDependencyManager` に同期登録し Intent 側で `@Dependency` で取得する。
+Intent がアプリの共有状態（`TodoService`、`NavigationModel`、`ModelContainer` 等）にアクセスする場合、`AppDependencyManager` に同期登録し Intent 側で `@Dependency` で取得する。Intent がビジネスロジックを触るときは **`TodoService` を直接受け取る**のが基本（Repository は内包済み）。
 
 ```swift
 // App.init() で同期登録
@@ -274,6 +274,9 @@ struct MyApp: App {
         self.modelContainer = container
         AppDependencyManager.shared.add(dependency: container)
 
+        let todoService = TodoService.swiftDataBacked(container: container)
+        AppDependencyManager.shared.add(dependency: todoService)
+
         let navigation = NavigationModel()
         self.navigation = navigation
         AppDependencyManager.shared.add(dependency: navigation)
@@ -282,18 +285,19 @@ struct MyApp: App {
 
 // Intent で @Dependency から取得
 struct AddTodoIntent: AppIntent {
-    @Dependency var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
     @Parameter(title: "Title") var title: String
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        // ...
+        let entity = try todoService.create(title: title, ...)
+        // WidgetReloader.reloadAllWidgets() は TodoService 内の defer で自動呼出
+        return .result(value: entity)
     }
 }
 ```
 
-`ModelContainer` も `@Observable @MainActor` クラスも `Sendable` 要件を満たすため、`@Dependency` で問題なく共有できる。SwiftData アクセスは `modelContainer.mainContext` を使う（`ModelContext(modelContainer)` で毎回新規生成しない）。
+`TodoService` / `ModelContainer` / `@Observable @MainActor` クラスはいずれも `Sendable` 要件を満たすため `@Dependency` で問題なく共有できる。ビジネスロジックを直接扱わない Intent (例: `ToggleUrgentTodoIntent` のように fetch + mutate を 1 つの操作としてまとめたい場合) は `TodoService` にメソッドを足す方針で、Intent 側に SwiftData 呼び出しを書かない。
 
 ### 実行プロセスと登録先
 
@@ -313,6 +317,10 @@ struct AddTodoIntent: AppIntent {
 struct IntentTodoWidgetBundle: WidgetBundle {
     init() {
         AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
+        MainActor.assumeIsolated {
+            let todoService = TodoService.swiftDataBacked(container: sharedWidgetModelContainer)
+            AppDependencyManager.shared.add(dependency: todoService)
+        }
     }
 
     var body: some Widget { /* ... */ }

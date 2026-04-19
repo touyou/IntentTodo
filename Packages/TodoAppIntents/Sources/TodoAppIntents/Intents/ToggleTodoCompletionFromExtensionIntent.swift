@@ -2,22 +2,24 @@
 //  ToggleTodoCompletionFromExtensionIntent.swift
 //  TodoAppIntents
 //
-//  FromExtension variant: parameter is `todoId: String` (not TodoAppEntity).
+//  ⚠️ Apple bug workaround (keep until Issue #30 A-3 is verified fixed).
 //
-//  App Intents が TodoAppEntity パラメータを持つ Intent を実行するとき、
-//  perform() 前に TodoEntityQuery.entities(for:) を呼んで entity を解決しようとする。
-//  Live Activity Extension のプロセスで解決されると SwiftData が内部 assertion で
-//  trap することがあるため、呼び出し元（LA）が todoId を知っているケースでは
-//  entity resolution を経由しない String パラメータ版を用意する。
+//  When an Intent with `@Parameter var todo: TodoAppEntity` runs inside the
+//  Live Activity Extension process, App Intents calls TodoEntityQuery.entities(for:)
+//  to resolve the entity before perform(). SwiftData then trips an internal
+//  assertion and the Extension crashes with EXC_BREAKPOINT.
+//
+//  This variant sidesteps that path by accepting the UUID string directly and
+//  skipping entity resolution. Delete this file (and its Snooze sibling) once
+//  Apple fixes the Extension-process entity resolution bug — do NOT introduce
+//  new FromExtension variants without re-checking Issue #30 A-3 first.
 //
 
 #if os(iOS)
 import ActivityKit
+import Domain
 #endif
 import AppIntents
-import Domain
-import Repository
-import SwiftData
 
 public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
     public static var title: LocalizedStringResource { "Toggle Todo Completion" }
@@ -36,7 +38,7 @@ public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
     public var todoId: String
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {}
 
@@ -46,9 +48,7 @@ public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        let result = try TodoActions.toggleCompletion(todoId: todoId, using: repository)
-        WidgetReloader.reloadAllWidgets()
+        let result = try todoService.toggleCompletion(todoId: todoId)
 
         #if os(iOS)
         if result.isNowCompleted {

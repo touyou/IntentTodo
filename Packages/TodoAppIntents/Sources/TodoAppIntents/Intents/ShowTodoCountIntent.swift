@@ -7,9 +7,6 @@
 //
 
 import AppIntents
-import Domain
-import Repository
-import SwiftData
 
 public struct ShowTodoCountIntent: AppIntent {
     public static let title: LocalizedStringResource = "Show Todo Count"
@@ -17,17 +14,13 @@ public struct ShowTodoCountIntent: AppIntent {
     public static let supportedModes: IntentModes = [.background]
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {}
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<Int> {
-        let context = modelContainer.mainContext
-        let descriptor = FetchDescriptor<TodoItem>(
-            predicate: #Predicate { !$0.isCompleted }
-        )
-        let count = (try? context.fetchCount(descriptor)) ?? 0
+        let count = (try? todoService.incompleteCount()) ?? 0
 
         // Control Center では Dialog が表示されない (2026-04-14 検証済み) ため通知で返す。
         // ReturnsValue<Int> は Siri / Shortcuts から呼んだときの後続アクション用途。

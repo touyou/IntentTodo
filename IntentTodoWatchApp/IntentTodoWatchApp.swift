@@ -22,9 +22,14 @@ struct IntentTodoWatchApp: App {
         let container = try! SharedModelContainer.createContainer()
         modelContainer = container
 
-        // @Dependency var modelContainer を解決するために AppDependencyManager に同期登録。
+        // @Dependency で解決できるよう AppDependencyManager に同期登録する。
         // Task {} で遅延するとアプリ起動直後の Intent 実行で resolve 漏れが起きる。
         AppDependencyManager.shared.add(dependency: container)
+
+        MainActor.assumeIsolated {
+            let todoService = TodoService.swiftDataBacked(container: container)
+            AppDependencyManager.shared.add(dependency: todoService)
+        }
     }
 
     var body: some Scene {

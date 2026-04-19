@@ -35,7 +35,7 @@ public final class TodoItem {
     /// The date when the todo item was last modified.
     ///
     /// `@Model` プロパティで `didSet` を使うと CloudKit マージ時や KVC 経由の
-    /// 更新で発火しないため、更新側 (TodoActions 等) で明示的に触る方針。
+    /// 更新で発火しないため、更新側 (TodoService 等) で明示的に触る方針。
     public var modifiedAt: Date
 
     /// The category this todo belongs to (optional for CloudKit compatibility).
