@@ -58,16 +58,27 @@ struct MockTodoRepositoryTests {
         #expect(fetched == nil)
     }
 
-    @Test("Fetch with predicate returns matching todos")
-    func fetchWithPredicate() throws {
-        let todo1 = TodoItem(title: "Todo 1", isCompleted: true)
-        let todo2 = TodoItem(title: "Todo 2", isCompleted: false)
-        let todo3 = TodoItem(title: "Todo 3", isCompleted: false)
-        let repository = MockTodoRepository(initialTodos: [todo1, todo2, todo3])
+    @Test("FetchMostUrgentIncomplete returns earliest due incomplete todo")
+    func fetchMostUrgentIncomplete() throws {
+        let now = Date()
+        let completed = TodoItem(title: "Completed", isCompleted: true, dueDate: now.addingTimeInterval(60))
+        let later = TodoItem(title: "Later", dueDate: now.addingTimeInterval(7200))
+        let soonest = TodoItem(title: "Soonest", dueDate: now.addingTimeInterval(60))
+        let repository = MockTodoRepository(initialTodos: [completed, later, soonest])
 
-        let incomplete = try repository.fetch { !$0.isCompleted }
+        let urgent = try repository.fetchMostUrgentIncomplete()
 
-        #expect(incomplete.count == 2)
+        #expect(urgent?.title == "Soonest")
+    }
+
+    @Test("FetchMostUrgentIncomplete returns nil when no due incomplete todo")
+    func fetchMostUrgentIncompleteEmpty() throws {
+        let noDue = TodoItem(title: "No due")
+        let repository = MockTodoRepository(initialTodos: [noDue])
+
+        let urgent = try repository.fetchMostUrgentIncomplete()
+
+        #expect(urgent == nil)
     }
 
     // MARK: - Update Tests
@@ -139,6 +150,18 @@ struct MockTodoRepositoryTests {
 
         #expect(incomplete.count == 1)
         #expect(incomplete.first?.title == "Incomplete")
+    }
+
+    @Test("FetchCompleted returns only completed todos")
+    func fetchCompleted() throws {
+        let todo1 = TodoItem(title: "Complete", isCompleted: true)
+        let todo2 = TodoItem(title: "Incomplete", isCompleted: false)
+        let repository = MockTodoRepository(initialTodos: [todo1, todo2])
+
+        let completed = try repository.fetchCompleted()
+
+        #expect(completed.count == 1)
+        #expect(completed.first?.title == "Complete")
     }
 
     @Test("FetchFavorites returns only favorite todos")

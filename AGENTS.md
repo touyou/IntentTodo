@@ -35,34 +35,41 @@ UIクローム（装飾）が透明化し背景に溶け込む時代において
 ### パッケージ構成（App Intents中心設計）
 ```
 Packages/
-├── Domain/           # SwiftDataモデル、共通Entity、ActivityAttributes
+├── Domain/           # SwiftData モデル、共通 Entity、DueDateStatus、ActivityAttributes
 ├── Repository/       # データアクセス層（Protocol + 実装）
-├── TodoAppIntents/   # ★コア：Intent定義 + ビジネスロジック + Shortcuts
-└── UI/               # SwiftUI Views, ViewModels（表示のみ）
+├── TodoAppIntents/   # ★コア：Intent 定義 + ビジネスロジック + Shortcuts
+├── UI/               # メインアプリ SwiftUI Views/ViewModels（iOS/iPadOS/macOS/visionOS）
+├── LiveActivity/     # ActivityKit 管理 + ロック画面 View（iOS 限定）
+├── WidgetUI/         # ホームウィジェット View（TodoWidgetEntryView / TodoWidgetRow）
+└── WatchUI/          # watchOS View + Components + Complication（watchOS 限定）
 ```
 
 ### Extension ターゲット構成
+
+各 Extension は「App/Bundle/Widget 宣言 + Info.plist + entitlements」のみに薄く保ち、View・状態管理・データ取得ロジックはすべて SPM パッケージに置く方針。
+
 ```
-IntentTodoWidget/           # ホーム画面ウィジェット + コントロールセンター
-├── Configuration/          # WidgetConfigurationIntent
-├── Views/                  # Small/Medium/Large ウィジェットView
-└── IntentTodoWidgetBundle.swift  # 全Widget/Controlをバンドル
+IntentTodoWidget/                   # ホーム画面ウィジェット + コントロールセンター
+├── IntentTodoWidget.swift          # Provider + Widget 宣言（WidgetUI を import）
+├── IntentTodoWidgetBundle.swift    # 全 Widget / Control をバンドル
+├── Configuration/                  # WidgetConfigurationIntent
+├── Controls/                       # ControlWidget 3 種（#if !os(visionOS)）
+└── Helpers/WidgetModelContainer.swift
 
-IntentTodoLiveActivity/     # ライブアクティビティ
-├── Views/                  # ロック画面・Dynamic Island View
-├── Intents/                # LiveActivityIntent（完了/スヌーズ）
-└── Manager/                # TodoLiveActivityManager
+IntentTodoLiveActivity/             # ライブアクティビティ
+├── IntentTodoLiveActivityBundle.swift
+└── TodoLiveActivity.swift          # ActivityConfiguration（LiveActivity を import）
 
-IntentTodoWatchApp/         # watchOS アプリ
-├── Views/                  # リスト・詳細・追加View
-├── Components/             # 再利用可能コンポーネント
-└── TodoComplication.swift  # コンプリケーション定義
+IntentTodoWatchApp/                 # watchOS アプリ
+├── IntentTodoWatchApp.swift        # @main（WatchUI を import）
+└── TodoComplication.swift          # コンプリケーション Widget 宣言
 ```
 
 **ポイント**:
-- UseCase層は廃止 → AppIntentsがロジックを担う
-- UIはIntent実行トリガーと結果表示のみ
-- Repository ProtocolによりMock可能、テスタビリティ確保
+- UseCase 層は廃止 → AppIntents がロジックを担う
+- UI は Intent 実行トリガーと結果表示のみ
+- Extension はターゲット固有のスキャフォルドのみ、View は SPM に移送してプレビュー再利用・テスト可能化
+- Repository Protocol により Mock 可能、テスタビリティ確保
 
 ### マルチプラットフォーム展開指針（Action-Centered Design）
 
@@ -81,7 +88,7 @@ IntentTodoWatchApp/         # watchOS アプリ
 #### 実装済みプラットフォーム
 
 - **iOS/iPadOS**: メインアプリ（リスト、詳細、追加）
-- **macOS**: Catalyst対応
+- **macOS**: ネイティブビルド対応（`AppDelegate` (iOS/visionOS) と `MacAppDelegate` (macOS) を `#if os(...)` で分離、`NotificationHandler` を cross-platform 実体として共通化）
 - **watchOS**: アプリ + コンプリケーション（Circular/Corner/Rectangular/Inline）
 - **visionOS**: 空間UI（NavigationSplitView、Ornament、ホバーエフェクト）
 - **ウィジェット**: Small/Medium/Large サイズ対応（Todo一覧表示、アプリ起動は `Link(destination:)` を使用）
@@ -213,7 +220,7 @@ public struct ToggleTodoCompletionIntent: AppIntent {
 public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
     public static let isDiscoverable = false
     @Parameter(title: "Todo ID") public var todoId: String
-    @Dependency var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
     // ...
 }
 #if os(iOS)
@@ -221,7 +228,7 @@ extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
 #endif
 ```
 
-ビジネスロジックは両者で共通のため `Actions/TodoActions.swift` に切り出し、両方から呼ぶ。
+ビジネスロジックは両者で共通のため `Services/TodoService.swift` (`@MainActor final class`) に集約し、両 Intent が `@Dependency var todoService: TodoService` で参照する。
 
 ### Dialog vs 通知の使い分け
 
@@ -253,7 +260,7 @@ WidgetReloader.reloadAllWidgets()
 
 ### @Dependency + AppDependencyManager パターン
 
-Intent がアプリの共有状態（`ModelContainer`、`NavigationModel` 等）にアクセスする場合、`AppDependencyManager` に同期登録し Intent 側で `@Dependency` で取得する。
+Intent がアプリの共有状態（`TodoService`、`NavigationModel`、`ModelContainer` 等）にアクセスする場合、`AppDependencyManager` に同期登録し Intent 側で `@Dependency` で取得する。Intent がビジネスロジックを触るときは **`TodoService` を直接受け取る**のが基本（Repository は内包済み）。
 
 ```swift
 // App.init() で同期登録
@@ -267,6 +274,9 @@ struct MyApp: App {
         self.modelContainer = container
         AppDependencyManager.shared.add(dependency: container)
 
+        let todoService = TodoService.swiftDataBacked(container: container)
+        AppDependencyManager.shared.add(dependency: todoService)
+
         let navigation = NavigationModel()
         self.navigation = navigation
         AppDependencyManager.shared.add(dependency: navigation)
@@ -275,18 +285,19 @@ struct MyApp: App {
 
 // Intent で @Dependency から取得
 struct AddTodoIntent: AppIntent {
-    @Dependency var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
     @Parameter(title: "Title") var title: String
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        // ...
+        let entity = try todoService.create(title: title, ...)
+        // WidgetReloader.reloadAllWidgets() は TodoService 内の defer で自動呼出
+        return .result(value: entity)
     }
 }
 ```
 
-`ModelContainer` も `@Observable @MainActor` クラスも `Sendable` 要件を満たすため、`@Dependency` で問題なく共有できる。SwiftData アクセスは `modelContainer.mainContext` を使う（`ModelContext(modelContainer)` で毎回新規生成しない）。
+`TodoService` / `ModelContainer` / `@Observable @MainActor` クラスはいずれも `Sendable` 要件を満たすため `@Dependency` で問題なく共有できる。ビジネスロジックを直接扱わない Intent (例: `ToggleUrgentTodoIntent` のように fetch + mutate を 1 つの操作としてまとめたい場合) は `TodoService` にメソッドを足す方針で、Intent 側に SwiftData 呼び出しを書かない。
 
 ### 実行プロセスと登録先
 
@@ -306,6 +317,10 @@ struct AddTodoIntent: AppIntent {
 struct IntentTodoWidgetBundle: WidgetBundle {
     init() {
         AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
+        MainActor.assumeIsolated {
+            let todoService = TodoService.swiftDataBacked(container: sharedWidgetModelContainer)
+            AppDependencyManager.shared.add(dependency: todoService)
+        }
     }
 
     var body: some Widget { /* ... */ }

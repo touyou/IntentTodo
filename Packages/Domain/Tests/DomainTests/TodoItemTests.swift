@@ -22,7 +22,7 @@ struct TodoItemTests {
         #expect(todo.todoDescription == nil)
         #expect(todo.dueDate == nil)
         #expect(todo.category == nil)
-        #expect(todo.subTasks.isEmpty)
+        #expect((todo.subTasks ?? []).isEmpty)
     }
 
     @Test("TodoItem initializes with all properties")
@@ -94,18 +94,9 @@ struct TodoItemTests {
         #expect(todo.createdAt <= afterCreation)
     }
 
-    @Test("TodoItem updates modifiedAt on property change")
-    func modifiedAtTimestamp() {
-        let todo = TodoItem(title: "Test task")
-        let originalModifiedAt = todo.modifiedAt
-
-        // Small delay to ensure time difference
-        Thread.sleep(forTimeInterval: 0.1)
-        todo.title = "Changed title"
-
-        #expect(todo.modifiedAt >= originalModifiedAt)
-        #expect(todo.title == "Changed title")
-    }
+    // NOTE: didSet による自動 modifiedAt 更新は CloudKit マージで発火しない問題で
+    // 撤去済 (`docs/insights/02-swiftdata-concurrency.md`)。modifiedAt の更新責務は
+    // TodoService の各 mutation メソッドに移ったため、検証は TodoServiceTests 側で行う。
 }
 
 @Suite("SubTask Tests")
@@ -136,7 +127,7 @@ struct CategoryTests {
 
         #expect(category.name == "Work")
         #expect(category.colorHex == nil)
-        #expect(category.todos.isEmpty)
+        #expect((category.todos ?? []).isEmpty)
     }
 
     @Test("Category initializes with name and color")

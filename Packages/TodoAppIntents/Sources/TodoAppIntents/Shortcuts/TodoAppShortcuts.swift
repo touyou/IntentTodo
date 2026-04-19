@@ -22,39 +22,22 @@ public struct TodoAppShortcuts: AppShortcutsProvider {
             systemImageName: "plus.circle"
         )
 
-        // Query: all / incomplete / favorites
+        // Query: 1 shortcut に統合。フィルタ切替は Shortcuts エディタの
+        // Parameter ピッカーから選ぶ想定。
+        // 旧: all / incomplete / favorites を 3 件登録していたが AppShortcuts
+        //     10 件上限を食い潰していたため、余裕を確保する。
         AppShortcut(
             intent: ShowTodosIntent(),
             phrases: [
                 "Show my todos in \(.applicationName)",
                 "List todos in \(.applicationName)",
                 "What are my todos in \(.applicationName)",
+                "Show incomplete todos in \(.applicationName)",
+                "Show favorite todos in \(.applicationName)",
                 "Open \(.applicationName)"
             ],
             shortTitle: LocalizedStringResource("Show Todos"),
             systemImageName: "list.bullet"
-        )
-
-        AppShortcut(
-            intent: ShowTodosIntent(filter: .incomplete),
-            phrases: [
-                "Show incomplete todos in \(.applicationName)",
-                "What do I need to do in \(.applicationName)",
-                "Show unfinished tasks in \(.applicationName)"
-            ],
-            shortTitle: LocalizedStringResource("Incomplete Todos"),
-            systemImageName: "circle"
-        )
-
-        AppShortcut(
-            intent: ShowTodosIntent(filter: .favorites),
-            phrases: [
-                "Show favorite todos in \(.applicationName)",
-                "Show starred todos in \(.applicationName)",
-                "Important todos in \(.applicationName)"
-            ],
-            shortTitle: LocalizedStringResource("Favorite Todos"),
-            systemImageName: "star"
         )
 
         // Toggle completion (Primary; user picks a todo)

@@ -42,8 +42,28 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
         todos[id]
     }
 
-    public func fetch(where predicate: (TodoItem) -> Bool) throws -> [TodoItem] {
-        todos.values.filter(predicate)
+    public func fetchIncomplete() throws -> [TodoItem] {
+        todos.values
+            .filter { !$0.isCompleted }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    public func fetchCompleted() throws -> [TodoItem] {
+        todos.values
+            .filter { $0.isCompleted }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    public func fetchFavorites() throws -> [TodoItem] {
+        todos.values
+            .filter { $0.isFavorite }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
+    public func fetchMostUrgentIncomplete() throws -> TodoItem? {
+        todos.values
+            .filter { !$0.isCompleted && $0.dueDate != nil }
+            .min { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
 
     // MARK: - Update

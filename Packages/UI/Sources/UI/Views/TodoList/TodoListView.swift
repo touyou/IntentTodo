@@ -4,6 +4,9 @@
 //
 
 import Domain
+#if os(iOS)
+import LiveActivity
+#endif
 import SwiftData
 import SwiftUI
 import TodoAppIntents
@@ -22,12 +25,8 @@ public struct TodoListView: View {
 
     // MARK: - Computed Properties
 
-    private var allTodos: [TodoAppEntity] {
-        todoItems.map { TodoAppEntity(from: $0) }
-    }
-
     private var filteredTodos: [TodoAppEntity] {
-        viewModel.filteredTodos(from: allTodos)
+        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
     }
 
     // MARK: - Initialization
@@ -41,9 +40,12 @@ public struct TodoListView: View {
         NavigationStack(path: $navigationModel.path) {
             Group {
                 if filteredTodos.isEmpty {
-                    emptyView
+                    TodoListEmptyView(
+                        filter: viewModel.filter,
+                        searchText: viewModel.searchText
+                    )
                 } else {
-                    todoList
+                    TodoListContent(todos: filteredTodos)
                 }
             }
             .navigationTitle("Todos")
@@ -54,41 +56,45 @@ public struct TodoListView: View {
                 }
             }
             .toolbar {
-                toolbarContent
+                TodoListToolbar(viewModel: $viewModel)
             }
             .searchable(text: $viewModel.searchText, prompt: "Search todos")
             .sheet(isPresented: $navigationModel.showingAddTodo) {
-                addTodoSheet
+                AddTodoSheet(todoCount: todoItems.count)
             }
         }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
     }
+}
 
-    // MARK: - Subviews
+// MARK: - Empty View
 
-    private var emptyView: some View {
-        let content = emptyViewContent
-        return ContentUnavailableView {
+private struct TodoListEmptyView: View {
+    let filter: TodoFilter
+    let searchText: String
+    @Environment(NavigationModel.self) private var navigationModel
+
+    var body: some View {
+        let content = emptyContent
+        ContentUnavailableView {
             Label(content.title, systemImage: content.icon)
         } description: {
             Text(content.description)
         } actions: {
-            if viewModel.filter == .all && viewModel.searchText.isEmpty {
-                Button("Add Todo") {
-                    navigationModel.showAddTodo()
-                }
-                .buttonStyle(.borderedProminent)
+            if filter == .all && searchText.isEmpty {
+                Button("Add Todo") { navigationModel.showAddTodo() }
+                    .buttonStyle(.borderedProminent)
             }
         }
     }
 
-    private var emptyViewContent: (title: String, icon: String, description: String) {
-        if !viewModel.searchText.isEmpty {
+    private var emptyContent: (title: String, icon: String, description: String) {
+        if !searchText.isEmpty {
             return ("No Results", "magnifyingglass", "No todos match your search.")
         }
-        switch viewModel.filter {
+        switch filter {
         case .all:
             return ("No Todos", "checklist", "Tap + to add your first todo.")
         case .incomplete:
@@ -99,10 +105,17 @@ public struct TodoListView: View {
             return ("No Favorites", "star", "Star a todo to add it to favorites.")
         }
     }
+}
 
-    private var todoList: some View {
+// MARK: - List Content
+
+private struct TodoListContent: View {
+    let todos: [TodoAppEntity]
+    @Environment(NavigationModel.self) private var navigationModel
+
+    var body: some View {
         List {
-            ForEach(filteredTodos, id: \.id) { todo in
+            ForEach(todos, id: \.id) { todo in
                 Button {
                     navigationModel.showDetail(for: todo)
                 } label: {
@@ -115,11 +128,26 @@ public struct TodoListView: View {
             }
         }
         .listStyle(.plain)
-        .animation(.default, value: filteredTodos.map(\.id))
+        .animation(.default, value: todos.map(\.id))
+    }
+}
+
+// MARK: - Toolbar
+
+private struct TodoListToolbar: ToolbarContent {
+    @Binding var viewModel: TodoListViewModel
+    @Environment(NavigationModel.self) private var navigationModel
+
+    /// `.topBarTrailing` は macOS で利用不可のため分岐。
+    private var filterSortPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+        .automatic
+        #else
+        .topBarTrailing
+        #endif
     }
 
-    @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
+    var body: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
             Button {
                 navigationModel.showAddTodo()
@@ -130,7 +158,7 @@ public struct TodoListView: View {
             .accessibilityLabel("Add todo")
         }
 
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: filterSortPlacement) {
             Menu {
                 Picker("Filter", selection: $viewModel.filter) {
                     ForEach(TodoFilter.allCases) { filterOption in
@@ -144,8 +172,7 @@ public struct TodoListView: View {
                 Menu("Sort") {
                     Picker("Sort", selection: $viewModel.sortOrder) {
                         ForEach(TodoSortOrder.allCases) { order in
-                            Text(order.displayName)
-                                .tag(order)
+                            Text(order.displayName).tag(order)
                         }
                     }
                 }
@@ -157,14 +184,24 @@ public struct TodoListView: View {
             .accessibilityLabel("Filter and sort")
         }
     }
+}
 
-    private var addTodoSheet: some View {
+// MARK: - Add Todo Sheet
+
+private struct AddTodoSheet: View {
+    let todoCount: Int
+    @Environment(NavigationModel.self) private var navigationModel
+    @State private var baselineCount: Int?
+
+    var body: some View {
         NavigationStack {
             AddTodoView()
         }
         .presentationDetents([.medium])
-        .onChange(of: todoItems.count) { oldCount, newCount in
-            if newCount > oldCount {
+        .task { baselineCount = todoCount }
+        .onChange(of: todoCount) { _, newValue in
+            // シート開いた時点より件数が増えていれば Intent が成功したと判定しシートを閉じる。
+            if let baseline = baselineCount, newValue > baseline {
                 navigationModel.dismissAddTodo()
             }
         }

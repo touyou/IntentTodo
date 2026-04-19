@@ -9,6 +9,7 @@
 import ActivityKit
 import AppIntents
 import Domain
+import LiveActivity
 import SwiftUI
 import TodoAppIntents
 import WidgetKit

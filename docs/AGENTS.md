@@ -130,7 +130,7 @@ public struct AddTodoIntent: AppIntent {
         }
 
         // 2. Repository 生成（@Dependency で取得した ModelContainer から）
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
 
         // 3. 実行
         let todoItem = TodoItem(title: trimmedTitle, dueDate: dueDate)
@@ -205,7 +205,7 @@ struct AddTodoIntent: AppIntent {
 
     @MainActor
     func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
         // ...
     }
 }
@@ -273,7 +273,7 @@ public struct TodoEntityQuery: EntityQuery, EntityStringQuery {
 
     @MainActor
     private func makeRepository() -> SwiftDataTodoRepository {
-        SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
     }
 
     @MainActor

@@ -36,7 +36,7 @@ public struct AddTodoIntent: AppIntent {
 
 ### 基本
 
-`ModelContainer` は `Sendable` を満たすため、`@Dependency` でそのまま共有できる。`App.init()` で `AppDependencyManager.shared.add(dependency:)` に**同期登録**し、Intent 側で `@Dependency` で取得、`perform()` 内で `ModelContext(modelContainer)` から Repository を生成する。
+`ModelContainer` は `Sendable` を満たすため、`@Dependency` でそのまま共有できる。`App.init()` で `AppDependencyManager.shared.add(dependency:)` に**同期登録**し、Intent 側で `@Dependency` で取得、`perform()` 内で `modelContainer.mainContext` を使って Repository を生成する（毎回新しい `ModelContext(modelContainer)` を作ると保存されていない状態が共有されないので注意）。
 
 `@Observable @MainActor` クラス（`NavigationModel` 等）も同様に共有可能。
 
@@ -64,7 +64,7 @@ public struct AddTodoIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        let repository = SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
         // ...
     }
 }
@@ -80,7 +80,9 @@ public struct AddTodoIntent: AppIntent {
 | `.foreground` | メインアプリ | `App.init()` |
 | `.background` / Siri / Shortcuts | メインアプリ | `App.init()` |
 | `.background` / Widget ControlWidgetButton | Widget Extension | `WidgetBundle.init()` |
-| `LiveActivityIntent` | Live Activity Extension | Extension 側 |
+| `LiveActivityIntent` | **メインアプリプロセス** (公式保証) | `App.init()` |
+
+> `LiveActivityIntent` は Apple 公式 [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) が "the system runs the app intent in the app's process" と明言している。つまりメインアプリ側の `AppDependencyManager` に登録してあれば解決される（Extension 側の登録は不要）。
 
 Widget Extension 側での登録例:
 
@@ -138,7 +140,7 @@ public struct TodoEntityQuery: EntityQuery {
 
     @MainActor
     private func makeRepository() -> SwiftDataTodoRepository {
-        SwiftDataTodoRepository(modelContext: ModelContext(modelContainer))
+        SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
     }
 
     @MainActor
@@ -184,6 +186,13 @@ public struct TodoAppShortcuts: AppShortcutsProvider {
 }
 ```
 
+### 10 件上限と設計指針
+
+Apple は `AppShortcutsProvider.appShortcuts` の登録数を **10 件** に制限している（iOS 26 時点）。本プロジェクトは現在 8 件で運用しており、枠 2 件分の余裕を意識的に確保する設計判断をしている。
+
+- 同じ Intent のパラメータ違いは、可能な限り 1 件にまとめて「フレーズを複数登録」する。例えば `ShowTodosIntent` は `filter` パラメータを 1 つの AppShortcut で受け、`Show my todos / Show incomplete todos / Show favorite todos` のフレーズ群にまとめている（以前は 3 件登録していたが、10 件枠を食い潰さないよう統合）。
+- アプリを「開くだけ」の用途（例: `LaunchAppIntent`）は Widget/ControlWidget 経由で呼べば足りるので、AppShortcut 登録を省いて枠を節約する。
+
 ### パッケージ内での定義
 
 `AppShortcutsProvider` も Swift Package 内に配置可能。パッケージ側に `AppIntentsPackage` を1つ宣言するだけで、そこに含まれる Intent と AppShortcutsProvider がアプリ全体で認識される。
@@ -195,23 +204,27 @@ public struct TodoIntentsPackage: AppIntentsPackage {
 }
 ```
 
-**重要**: メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を**重複宣言しない**こと。システム上 `AppIntentsPackage` はアプリあたり1つまでで、SPM 側の自動発見と二重登録になると Shortcuts のルーティングが壊れる。
+**重要**: メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を**重複宣言しない**こと。2026-04-13 の実機検証で、SPM 側の `AppIntentsPackage` 自動発見とメインアプリターゲットでの二重登録が重なると Shortcuts のルーティングが壊れる現象を確認した（エラーは `LNContextErrorDomain Code=2001`）。
+
+> **一次ソース未確認**: Apple 公式 API リファレンスで「アプリあたり 1 つまで」と明文化されている記述は 2026-04-15 時点で確認できていない。`AppIntentsPackage` / `includedPackages` のドキュメントには duplicate registration に関する注意書きが見つからないため、実機観測ベースの知見として扱う。
 
 **注意**: アプリ内に `AppShortcutsProvider` が複数存在するとビルドエラーになる。
 
 ### フレーズのパラメータ型制限
 
-App Shortcutのフレーズに埋め込めるのは **AppEntity** と **AppEnum** 型のみ。
+App Shortcut のフレーズに埋め込めるのは **AppEntity** と **AppEnum** 型のみ（2026-04-15 時点のコンパイラ観測）。
 
 ```swift
-// ❌ String型パラメータはフレーズに埋め込めない
-"Add \(\.$title) to \(.applicationName)"  // エラー: Invalid parameter type
+// ❌ String 型パラメータはフレーズに埋め込めない (compiler error)
+"Add \(\.$title) to \(.applicationName)"
 
-// ✅ AppEntity/AppEnumのみ使用可能
+// ✅ AppEntity / AppEnum のみ使用可能
 "Show \(\.$filter) todos in \(.applicationName)"  // filter: TodoFilterType (AppEnum)
 ```
 
-String型パラメータを使いたい場合は、Siriがユーザーに後から入力を求めるフローを利用する。
+String 型パラメータを使いたい場合は、Siri がユーザーに後から入力を求めるフローを利用する。
+
+> **一次ソース未確認**: Apple 公式 API リファレンスではこの制約を明示的に書いた箇所を 2026-04-15 時点で発見できていない。コンパイラエラー挙動から観測した制約として扱う。将来的に緩和される可能性もあるため iOS / Xcode の major バージョン更新時には再確認が望ましい。
 
 ---
 
@@ -229,6 +242,8 @@ String型パラメータを使いたい場合は、Siriがユーザーに後か�
 | `.foreground(.deferred)` | 初期バックグラウンド → `perform()` 内か返却時に自動 foreground 化 | 新 API |
 
 > **`ForegroundContinuableIntent` は deprecated**: [公式ドキュメント](https://developer.apple.com/documentation/appintents/foregroundcontinuableintent) が明記 — "This protocol is deprecated, please include `.foreground(.dynamic)` in the `supportedModes` of your app intent instead."
+
+> **`.foreground(.deferred)` の正確な挙動**: Apple 公式 [supportedModes](https://developer.apple.com/documentation/appintents/appintent/supportedmodes) には enum case としての存在は記載されるが、詳細な semantics（`perform()` 終了時に system が自動で foreground 化するタイミング）までは明記されていない (2026-04-15 時点)。上記の動作は実機検証ベース。
 
 ### 複合モード
 
@@ -305,7 +320,7 @@ String パラメータなら entity 解決を経由せず `perform()` に直行�
 // Primary
 public struct ToggleTodoCompletionIntent: AppIntent {
     @Parameter(title: "Todo") public var todo: TodoAppEntity
-    @Dependency var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
     // ...
 }
 
@@ -313,7 +328,7 @@ public struct ToggleTodoCompletionIntent: AppIntent {
 public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
     public static let isDiscoverable = false
     @Parameter(title: "Todo ID") public var todoId: String
-    @Dependency var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
     // ...
 }
 #if os(iOS)
@@ -321,25 +336,28 @@ extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
 #endif
 ```
 
-### 共通ロジックの切り出し
+### 共通ロジックは TodoService に集約
 
-重複を避けるため `Actions/TodoActions.swift` に `@MainActor` 関数群として切り出し、両系統から呼ぶ。
+重複を避けるため `Services/TodoService.swift` (`@MainActor final class`) にビジネスロジックを集約し、Primary / FromExtension 両方の Intent が `@Dependency var todoService: TodoService` で参照する。`WidgetReloader.reloadAllWidgets()` は各メソッドの `defer` で自動呼び出しされるため、Intent 側で呼び忘れる心配がない。
 
 ```swift
-public enum TodoActions {
-    @MainActor
-    public static func toggleCompletion(
-        todoId: String,
-        using repository: any TodoRepositoryProtocol
-    ) throws -> TodoToggleResult { /* ... */ }
+@MainActor
+public final class TodoService {
+    private let repository: any TodoRepositoryProtocol
+    public init(repository: any TodoRepositoryProtocol) { ... }
+
+    public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
+        defer { WidgetReloader.reloadAllWidgets() }
+        // ...
+    }
 }
 ```
 
 ### DI は両者共通で @Dependency
 
-`@Dependency var modelContainer: ModelContainer` は Primary / FromExtension 両方で使える。`AppDependencyManager` への登録を `App.init()` と `WidgetBundle.init()` で済ませてあれば、どのプロセスで実行されても解決される（詳細は `04-ui-integration.md` の実行プロセス表）。
+`@Dependency var todoService: TodoService` は Primary / FromExtension 両方で使える。`TodoService.swiftDataBacked(container:)` ファクトリ経由で、メインアプリ / Widget Extension / watch App の各プロセスで `AppDependencyManager.shared` に登録する。登録先の詳細は `04-ui-integration.md` の実行プロセス表を参照。
 
-> **補足**: かつて FromExtension では `SharedModelContainer.createContainer()` を直接呼ぶ方針にしたが、crash の真因は DI ではなく entity 解決だったと判明したので統一。
+> **補足**: 旧 `TodoActions` (enum + static func) は TodoService に昇格済み。Repository を都度生成する負荷と呼び忘れ脆弱性を同時に解消。
 
 ---
 

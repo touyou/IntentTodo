@@ -18,6 +18,7 @@ let package = Package(
     dependencies: [
         .package(path: "../TodoAppIntents"),
         .package(path: "../Domain"),
+        .package(path: "../LiveActivity"),
     ],
     targets: [
         .target(
@@ -25,6 +26,7 @@ let package = Package(
             dependencies: [
                 .product(name: "TodoAppIntents", package: "TodoAppIntents"),
                 .product(name: "Domain", package: "Domain"),
+                .product(name: "LiveActivity", package: "LiveActivity"),
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")

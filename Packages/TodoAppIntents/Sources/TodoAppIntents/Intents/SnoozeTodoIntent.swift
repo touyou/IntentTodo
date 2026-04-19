@@ -7,9 +7,6 @@
 //
 
 import AppIntents
-import Domain
-import Repository
-import SwiftData
 
 public struct SnoozeTodoIntent: AppIntent {
     public static let title: LocalizedStringResource = "Snooze Todo"
@@ -24,7 +21,7 @@ public struct SnoozeTodoIntent: AppIntent {
     public var todo: TodoAppEntity
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {}
 
@@ -34,9 +31,7 @@ public struct SnoozeTodoIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        let result = try TodoActions.snooze(todoId: todo.id, using: repository)
-        WidgetReloader.reloadAllWidgets()
+        let result = try todoService.snooze(todoId: todo.id)
         return .result(value: result.entity)
     }
 }

@@ -16,12 +16,14 @@ let package = Package(
         ),
     ],
     dependencies: [
+        .package(path: "../Domain"),
         .package(path: "../Repository"),
     ],
     targets: [
         .target(
             name: "TodoAppIntents",
             dependencies: [
+                .product(name: "Domain", package: "Domain"),
                 .product(name: "Repository", package: "Repository"),
             ],
             swiftSettings: [

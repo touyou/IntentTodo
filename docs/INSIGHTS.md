@@ -16,6 +16,8 @@
 ### [02. SwiftData と Concurrency](insights/02-swiftdata-concurrency.md)
 
 - CloudKit対応の制約（`@Attribute(.unique)`禁止、optionalリレーション）
+- `@Model` プロパティで `didSet` を使わない（CloudKit マージ / KVC で発火しない）
+- `Domain.DueDateStatus` による期限判定ロジック共有と `TimeRemainingView` overdue クラッシュ対策
 - `@Model`マクロと`Sendable`の競合
 - Strict Concurrency対応（`@MainActor`パターン）
 - Repository Protocol設計
@@ -31,32 +33,40 @@
 
 ### [04. UI層とIntent統合](insights/04-ui-integration.md)
 
-- `Button(intent:)` の使用とプラットフォーム対応
+- `Button(intent:)` の使用とプラットフォーム対応（`Button(role:intent:)` は `role:` が先）
+- 直接 `perform()` を呼ばない（`@Dependency` はシステム dispatch 経由でのみ解決）
 - `onAppIntentExecution` と `AppDependencyManager + @Dependency + perform()` の使い分け
+- View は struct 抽出、computed-property View は避ける
 - `@Observable` + `@MainActor`パターン
 - App Intents vs ViewModelの役割分担
 
 ### [05. Extension とデータ共有](insights/05-extensions-and-data-sharing.md)
 
-- WidgetBundle の明示的登録
+- WidgetBundle の明示的登録（`AppDependencyManager` 同期登録 + ControlWidget は `#if !os(visionOS)`）
 - App Groups によるデータ共有（SharedModelContainer）
 - UserDefaults の App Group 対応
-- Intent → UI コミュニケーション（主経路: `@Dependency` + NavigationModel）
+- Intent → UI コミュニケーション（主経路: `@Dependency` + NavigationModel、通知タップ経路は `NotificationHandler` への注入）
 - WidgetKit 更新パターン（WidgetReloader）
 
 ### [06. Control Widget と iOS 26](insights/06-control-widget-ios26.md)
 
 - `supportedModes` の使い分け（`openAppWhenRun` と同等挙動の記述あり）
-- `ControlWidgetButton(action:)` + `.foreground(.immediate)` パターン（kind は reverse-domain 形式必須）
+- `ControlWidgetButton(action:)` + `.foreground(.immediate)` パターン
+- **`ControlValueProvider`** で値を供給するパターン（body 直 fetch より推奨）
+- `kind` は reverse-DNS 形式 (`dev.touyou.IntentTodo.<Target>.<WidgetName>`) に統一
 - `ControlConfigurationIntent` の制約
+- visionOS 非対応: `#if !os(visionOS)` ガード
 - `.background` モードによるバックグラウンドアクションとローカル通知フィードバック
 
 ### [07. プラットフォーム固有の知見](insights/07-platform-specific.md)
 
-- watchOS: `Button(intent:role:)` の API差異、ファイル分割指針
-- LiveActivity: `LiveActivityIntent` vs `AppIntent`、自動管理View Modifier
+- watchOS: `Button(intent:role:)` の API差異、`WatchUI` パッケージ分離方針
+- macOS native 対応: `@UIApplicationDelegateAdaptor` / `@NSApplicationDelegateAdaptor` の `#if` 分岐 + `NotificationHandler` 共通化
+- LiveActivity: `LiveActivityIntent` vs `AppIntent`、`.task(id:)` を使った監視 Modifier
 - Widget: `Button(intent:)` 統合と `Link(destination:)` 公式推奨
-- ファイル分割の一般的パターン
+- プラットフォームガード指針 (`#if os(iOS) \|\| os(visionOS)` / `#if !os(visionOS)` / `#if os(macOS)` の使い分け)
+- `#Predicate` の Optional 比較回避
+- `Button(intent:role:)` の引数順 (`role:` が先)
 
 ---
 
@@ -69,5 +79,7 @@
 
 ## 更新履歴
 
+- 2026-04-15 (2): `IntentDependencies` / `IntentAppState` 削除、`TodoEntityQuery` を `@Dependency` 化、Control Widgets を `ControlValueProvider` パターンに、`TodoItem.didSet` 撤去 + `TodoActions` で明示更新、AppShortcuts 8 件に整理、Widget/Complication `kind` の reverse-DNS 統一、通知タップの `NotificationHandler.navigationModel` 注入方式、主要 3 View を `private struct` 抽出。insights ドキュメントを全面的に最新化。
+- 2026-04-15: Extension 内の View を 3 パッケージ（`LiveActivity` / `WidgetUI` / `WatchUI`）に分離し、Extension はターゲット固有のスキャフォルドのみに絞る構成に移行。macOS native ビルド対応（`AppDelegate` / `MacAppDelegate` を `#if os(...)` で分離し `NotificationHandler` を共通化）。visionOS ビルド修復（`#Predicate` の Optional UUID 回避、`Button(intent:role:)` 引数順、ControlWidget の `#if !os(visionOS)` ガード）。`Domain.DueDateStatus` を導入して overdue/dueSoon 判定の重複を解消。
 - 2026-04-13: Shortcuts Intent ルーティング問題の根本原因（`IntentTodoAppIntentsPackage` のメインターゲット重複宣言）が判明。誤った知見（`.background + 通知ワークアラウンド`、`IntentAppState` フォールバック、`IntentDependencies.shared` パターン）を削除し、`@Dependency + AppDependencyManager` パターンを標準として記述更新。
 - 2026-03-19: 18セクションを7ファイルに分割・整理

@@ -29,6 +29,10 @@ public final class NavigationModel {
     /// Whether the add todo sheet is presented.
     public var showingAddTodo: Bool = false
 
+    /// Currently selected todo in NavigationSplitView layouts (visionOS, macOS).
+    /// Stack-based platforms (iOS/iPadOS/watchOS) use `path` instead and leave this nil.
+    public var selectedTodo: TodoAppEntity?
+
     // MARK: - Initialization
 
     public init() {}
@@ -56,6 +60,7 @@ public final class NavigationModel {
     public func navigateToRoot() {
         path.removeAll()
         showingAddTodo = false
+        selectedTodo = nil
     }
 
     /// Shows the add todo sheet.

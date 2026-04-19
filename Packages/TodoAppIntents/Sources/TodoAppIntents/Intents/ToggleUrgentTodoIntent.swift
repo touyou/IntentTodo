@@ -7,9 +7,6 @@
 //
 
 import AppIntents
-import Domain
-import Repository
-import SwiftData
 
 public struct ToggleUrgentTodoIntent: AppIntent {
     public static let title: LocalizedStringResource = "Toggle Urgent Todo"
@@ -17,34 +14,20 @@ public struct ToggleUrgentTodoIntent: AppIntent {
     public static let supportedModes: IntentModes = [.background]
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {}
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        let context = modelContainer.mainContext
-        var descriptor = FetchDescriptor<TodoItem>(
-            predicate: #Predicate { !$0.isCompleted && $0.dueDate != nil },
-            sortBy: [SortDescriptor(\TodoItem.dueDate, order: .forward)]
-        )
-        descriptor.fetchLimit = 1
-
-        guard let todo = try? context.fetch(descriptor).first else {
+        guard let result = try todoService.toggleMostUrgentTodo() else {
             return .result()
         }
-
-        let todoTitle = todo.title
-        todo.isCompleted.toggle()
-        let isNowCompleted = todo.isCompleted
-        try context.save()
-
-        WidgetReloader.reloadAllWidgets()
         // Control Center では Dialog が表示されない (2026-04-14 検証済み) ため、
         // 通知でフィードバックを返す。
         ControlNotificationHelper.sendToggledNotification(
-            todoTitle: todoTitle,
-            isCompleted: isNowCompleted
+            todoTitle: result.title,
+            isCompleted: result.isNowCompleted
         )
         return .result()
     }

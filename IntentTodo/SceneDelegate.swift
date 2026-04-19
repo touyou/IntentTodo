@@ -2,34 +2,26 @@
 //  SceneDelegate.swift
 //  IntentTodo
 //
-//  Handles scene-level App Intent routing.
-//  Complements onAppIntentExecution in SwiftUI for scene connection scenarios.
+//  iOS / visionOS 専用。macOS native ビルドでは UIKit が存在しないためビルドから除外する。
+//
+//  現状は空のスキャフォルド。将来 iOS 26+ の UISceneAppIntent を使って
+//  Shortcuts / Siri からの特定シーン起動を拾うときにここでハンドリングする。
+//  今のところナビゲーション経路は `onOpenURL` と `AppDependencyManager` 経由の
+//  NavigationModel 書き込みで足りているため、ハンドラ実装は未着手。
 //
 
-import UIKit
+#if os(iOS) || os(visionOS)
 import TodoAppIntents
+import UIKit
 
-/// Scene delegate that handles App Intent routing at the scene level.
-///
-/// This delegate uses `UIScene.ConnectionOptions.appIntent` to detect
-/// intents that triggered scene creation. For already-active scenes,
-/// `onAppIntentExecution` in SwiftUI handles Intent routing declaratively.
-///
-/// Relationship with other patterns:
-/// - **`onAppIntentExecution`** (SwiftUI): Primary handler for active scenes
-/// - **`SceneDelegate`** (UIKit): Handles scene creation triggered by intents
-/// - **`IntentAppState`**: Fallback for cross-process communication (Extensions)
 final class SceneDelegate: NSObject, UIWindowSceneDelegate {
-
-    // MARK: - Scene Lifecycle
-
     func scene(
         _ scene: UIScene,
         willConnectTo session: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
-        // Handle intent that triggered scene creation
-        // Note: connectionOptions.appIntent is available on iOS 26+
-        // when a UISceneAppIntent triggers a new scene
+        // TODO: iOS 26+ UISceneAppIntent を採用するときはここで接続シーンを
+        // NavigationModel に紐付ける。Issue #30 A-1 の cold start 経路検証後に判断。
     }
 }
+#endif

@@ -4,9 +4,7 @@
 //
 
 import AppIntents
-import Domain
-import Repository
-import SwiftData
+import Foundation
 
 /// An intent that creates a new todo item.
 ///
@@ -29,6 +27,8 @@ public struct AddTodoIntent: AppIntent {
         )
     }
 
+    /// Runs in the background by default; `.foreground(.deferred)` lets `perform()`
+    /// opt into foreground on demand (e.g. for Siri follow-up UI).
     public static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
 
     public static var parameterSummary: some ParameterSummary {
@@ -52,7 +52,7 @@ public struct AddTodoIntent: AppIntent {
     // MARK: - Dependencies
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     // MARK: - Initialization
 
@@ -75,15 +75,12 @@ public struct AddTodoIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        let entity = try TodoActions.create(
+        let entity = try todoService.create(
             title: title,
             todoDescription: todoDescription,
             dueDate: dueDate,
-            isFavorite: isFavorite,
-            using: repository
+            isFavorite: isFavorite
         )
-        WidgetReloader.reloadAllWidgets()
         return .result(value: entity)
     }
 }

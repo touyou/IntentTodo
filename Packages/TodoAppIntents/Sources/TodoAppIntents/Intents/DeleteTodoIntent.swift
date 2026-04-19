@@ -4,9 +4,6 @@
 //
 
 import AppIntents
-import Domain
-import Repository
-import SwiftData
 
 /// Deletes a todo item.
 public struct DeleteTodoIntent: AppIntent {
@@ -30,7 +27,7 @@ public struct DeleteTodoIntent: AppIntent {
     public var todo: TodoAppEntity
 
     @Dependency
-    var modelContainer: ModelContainer
+    var todoService: TodoService
 
     public init() {}
 
@@ -40,9 +37,7 @@ public struct DeleteTodoIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        try TodoActions.delete(todoId: todo.id, using: repository)
-        WidgetReloader.reloadAllWidgets()
+        try todoService.delete(todoId: todo.id)
         return .result()
     }
 }

@@ -6,13 +6,14 @@
 //
 
 import SwiftUI
+import WatchUI
 import WidgetKit
 
 // MARK: - Complication Widget
 
 /// Widget that displays todo information on the watch face.
 struct TodoComplicationWidget: Widget {
-    let kind = "TodoComplication"
+    let kind = "dev.touyou.IntentTodo.IntentTodoWatchApp.TodoComplication"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: TodoComplicationProvider()) { entry in

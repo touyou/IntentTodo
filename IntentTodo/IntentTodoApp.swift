@@ -6,18 +6,27 @@
 //
 
 import AppIntents
-import SwiftUI
+import os.log
 import SwiftData
-import Domain
+import SwiftUI
 import TodoAppIntents
 import UI
 import UserNotifications
+
+private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "IntentTodoApp")
 
 @main
 struct IntentTodoApp: App {
     // MARK: - Properties
 
+    // UIApplicationDelegate と NSApplicationDelegate は別プロトコルのため、
+    // プラットフォームごとに Adaptor を分岐（デファクトパターン）。
+    // 通知ハンドラ本体は NotificationHandler に集約し、両 Delegate から共通に利用する。
+    #if os(iOS) || os(visionOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #elseif os(macOS)
+    @NSApplicationDelegateAdaptor(MacAppDelegate.self) var appDelegate
+    #endif
 
     let modelContainer: ModelContainer
 
@@ -31,17 +40,37 @@ struct IntentTodoApp: App {
         do {
             let container = try SharedModelContainer.createContainer()
             modelContainer = container
-            // Register the ModelContainer so intents can access SwiftData via @Dependency.
             AppDependencyManager.shared.add(dependency: container)
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            logger.critical("ModelContainer init failed: \(String(reflecting: error))")
+            if let nsError = error as NSError? {
+                logger.critical("NSError domain=\(nsError.domain) code=\(nsError.code)")
+                logger.critical("NSError userInfo=\(nsError.userInfo)")
+            }
+            fatalError("Could not create ModelContainer: \(String(reflecting: error))")
         }
+
+        // TodoService は Intent からも View からも参照可能な唯一のビジネスロジック層。
+        // Repository を内包するため、Intent 側は SwiftData を直接触らない。
+        let todoService = TodoService.swiftDataBacked(container: modelContainer)
+        AppDependencyManager.shared.add(dependency: todoService)
+
+        // Spotlight index の初期投入 (IndexedEntity 準拠だけでは検索対象にならない).
+        // mutation 側 (create / toggle / delete / snooze) は TodoService 内で差分 index.
+        Task { await todoService.indexAllForSpotlight() }
 
         // Same NavigationModel instance is stored in @State AND registered with
         // AppDependencyManager so intents can write navigation state via @Dependency.
         let navigation = NavigationModel()
         self.navigationModel = navigation
         AppDependencyManager.shared.add(dependency: navigation)
+
+        // 通知タップ時のナビゲーションも同じ NavigationModel を使う。
+        #if os(iOS) || os(visionOS) || os(macOS)
+        MainActor.assumeIsolated {
+            NotificationHandler.shared.navigationModel = navigation
+        }
+        #endif
     }
 
     // MARK: - Body
@@ -82,10 +111,12 @@ struct IntentTodoApp: App {
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
             if granted {
-                print("Notification permission granted")
+                logger.info("Notification permission granted")
+            } else {
+                logger.info("Notification permission denied by user")
             }
         } catch {
-            print("Notification permission request failed: \(error)")
+            logger.error("Notification permission request failed: \(error.localizedDescription)")
         }
     }
 }

@@ -49,12 +49,13 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         return try modelContext.fetch(descriptor).first
     }
 
-    public func fetch(where predicate: (TodoItem) -> Bool) throws -> [TodoItem] {
-        // Note: For complex predicates that can't be expressed with #Predicate,
-        // we fetch all and filter in memory. For production, consider using
-        // specific fetch methods with #Predicate for better performance.
-        let descriptor = FetchDescriptor<TodoItem>()
-        return try modelContext.fetch(descriptor).filter(predicate)
+    public func fetchMostUrgentIncomplete() throws -> TodoItem? {
+        var descriptor = FetchDescriptor<TodoItem>(
+            predicate: #Predicate { !$0.isCompleted && $0.dueDate != nil },
+            sortBy: [SortDescriptor(\TodoItem.dueDate, order: .forward)]
+        )
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
     }
 
     // MARK: - Update
@@ -87,6 +88,17 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
     public func fetchIncomplete() throws -> [TodoItem] {
         let predicate = #Predicate<TodoItem> { todo in
             !todo.isCompleted
+        }
+        let descriptor = FetchDescriptor<TodoItem>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    public func fetchCompleted() throws -> [TodoItem] {
+        let predicate = #Predicate<TodoItem> { todo in
+            todo.isCompleted
         }
         let descriptor = FetchDescriptor<TodoItem>(
             predicate: predicate,

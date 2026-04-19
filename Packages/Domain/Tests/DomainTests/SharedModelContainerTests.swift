@@ -57,15 +57,13 @@ struct SharedModelContainerTests {
 
     // MARK: - Configuration Tests
 
-    @Test("Configuration uses shared container URL")
-    func configurationUsesSharedURL() {
+    @Test("Configuration is non-in-memory in DEBUG fallback as well")
+    func configurationIsNotInMemoryOnly() {
+        // In DEBUG (SPM test) builds the configuration falls back to a non-shared
+        // on-disk store; in production it would be the App Group store. Either
+        // way it is never in-memory.
         let config = SharedModelContainer.configuration
-
-        // Configuration should be non-nil
-        #expect(config != nil)
-
-        // Configuration should not be in-memory only
-        #expect(config?.isStoredInMemoryOnly == false)
+        #expect(config.isStoredInMemoryOnly == false)
     }
 
     // MARK: - Container Tests
