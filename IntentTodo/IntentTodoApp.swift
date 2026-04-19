@@ -57,7 +57,10 @@ struct IntentTodoApp: App {
 
         // Spotlight index の初期投入 (IndexedEntity 準拠だけでは検索対象にならない).
         // mutation 側 (create / toggle / delete / snooze) は TodoService 内で差分 index.
-        Task { await todoService.indexAllForSpotlight() }
+        // 件数が増えても初回フレーム描画と競合しないよう、priority を低めに固定する。
+        Task(priority: .utility) {
+            await todoService.indexAllForSpotlight()
+        }
 
         // Same NavigationModel instance is stored in @State AND registered with
         // AppDependencyManager so intents can write navigation state via @Dependency.
