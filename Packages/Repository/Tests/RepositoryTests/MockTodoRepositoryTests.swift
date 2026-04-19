@@ -152,6 +152,18 @@ struct MockTodoRepositoryTests {
         #expect(incomplete.first?.title == "Incomplete")
     }
 
+    @Test("FetchCompleted returns only completed todos")
+    func fetchCompleted() throws {
+        let todo1 = TodoItem(title: "Complete", isCompleted: true)
+        let todo2 = TodoItem(title: "Incomplete", isCompleted: false)
+        let repository = MockTodoRepository(initialTodos: [todo1, todo2])
+
+        let completed = try repository.fetchCompleted()
+
+        #expect(completed.count == 1)
+        #expect(completed.first?.title == "Complete")
+    }
+
     @Test("FetchFavorites returns only favorite todos")
     func fetchFavorites() throws {
         let todo1 = TodoItem(title: "Favorite", isFavorite: true)

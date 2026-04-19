@@ -48,6 +48,12 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
+    public func fetchCompleted() throws -> [TodoItem] {
+        todos.values
+            .filter { $0.isCompleted }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     public func fetchFavorites() throws -> [TodoItem] {
         todos.values
             .filter { $0.isFavorite }

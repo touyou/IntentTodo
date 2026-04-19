@@ -159,6 +159,17 @@ struct TodoServiceTests {
         #expect(entities.first?.title == "open")
     }
 
+    @Test("listTodos filters by completed")
+    func listTodosCompleted() throws {
+        let open = TodoItem(title: "open")
+        let done = TodoItem(title: "done")
+        done.isCompleted = true
+        let (service, _) = makeService(seed: [open, done])
+        let entities = try service.listTodos(filter: .completed)
+        #expect(entities.count == 1)
+        #expect(entities.first?.title == "done")
+    }
+
     @Test("incompleteCount reflects repository state")
     func incompleteCountMatches() throws {
         let open1 = TodoItem(title: "o1")

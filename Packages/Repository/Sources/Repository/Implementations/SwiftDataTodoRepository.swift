@@ -96,6 +96,17 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         return try modelContext.fetch(descriptor)
     }
 
+    public func fetchCompleted() throws -> [TodoItem] {
+        let predicate = #Predicate<TodoItem> { todo in
+            todo.isCompleted
+        }
+        let descriptor = FetchDescriptor<TodoItem>(
+            predicate: predicate,
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
     public func fetchFavorites() throws -> [TodoItem] {
         let predicate = #Predicate<TodoItem> { todo in
             todo.isFavorite

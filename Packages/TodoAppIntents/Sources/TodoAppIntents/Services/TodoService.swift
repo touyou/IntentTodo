@@ -167,8 +167,10 @@ public final class TodoService {
     public func listTodos(filter: TodoFilterType) throws -> [TodoAppEntity] {
         let items: [TodoItem]
         switch filter {
-        case .all, .completed:
+        case .all:
             items = try repository.fetchAll()
+        case .completed:
+            items = try repository.fetchCompleted()
         case .incomplete:
             items = try repository.fetchIncomplete()
         case .favorites:

@@ -33,6 +33,9 @@ public protocol TodoRepositoryProtocol {
     /// Fetches all incomplete todo items, sorted by creation time (descending).
     func fetchIncomplete() throws -> [TodoItem]
 
+    /// Fetches all completed todo items, sorted by creation time (descending).
+    func fetchCompleted() throws -> [TodoItem]
+
     /// Fetches all favorite todo items, sorted by creation time (descending).
     func fetchFavorites() throws -> [TodoItem]
 
