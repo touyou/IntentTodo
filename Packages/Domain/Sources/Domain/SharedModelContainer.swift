@@ -50,13 +50,18 @@ public enum SharedModelContainer {
 
     /// Creates a ModelConfiguration for shared data storage.
     /// Uses App Group container if available, otherwise falls back to default.
+    ///
+    /// `cloudKitDatabase: .automatic` pulls the container identifier from the
+    /// target's `com.apple.developer.icloud-container-identifiers` entitlement
+    /// (`iCloud.dev.touyou.IntentTodo`). All targets that open this store must
+    /// carry that entitlement plus `aps-environment` for silent remote push.
     public static var configuration: ModelConfiguration? {
         if let containerURL = sharedContainerURL {
             let storeURL = containerURL.appendingPathComponent(databaseFilename)
             return ModelConfiguration(
                 schema: schema,
                 url: storeURL,
-                cloudKitDatabase: .none  // Disable CloudKit for shared container
+                cloudKitDatabase: .automatic
             )
         } else {
             // Fallback for when App Group is not available (e.g., previews, tests)
