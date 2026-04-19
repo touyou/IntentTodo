@@ -19,7 +19,6 @@ public struct VisionOSTodoListView: View {
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
     @Environment(NavigationModel.self) private var navigationModel
-    @State private var selectedTodo: TodoAppEntity?
 
     private var filteredTodos: [TodoAppEntity] {
         viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
@@ -33,11 +32,11 @@ public struct VisionOSTodoListView: View {
             VisionOSSidebar(
                 todos: filteredTodos,
                 viewModel: $viewModel,
-                selectedTodo: $selectedTodo
+                selectedTodo: $navigationModel.selectedTodo
             )
             .navigationTitle("Todos")
         } detail: {
-            VisionOSDetailPane(selectedTodo: selectedTodo)
+            VisionOSDetailPane(selectedTodo: navigationModel.selectedTodo)
         }
         .ornament(attachmentAnchor: .scene(.bottom)) {
             VisionOSBottomOrnament(viewModel: $viewModel)
