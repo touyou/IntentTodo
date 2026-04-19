@@ -47,6 +47,26 @@ struct TodoServiceTests {
         }
     }
 
+    @Test("create persists all parameters round-trip")
+    func createRoundTripsAllParameters() throws {
+        let due = Date(timeIntervalSince1970: 1_700_000_000)
+        let (service, repo) = makeService()
+        let entity = try service.create(
+            title: "buy milk",
+            todoDescription: "2L",
+            dueDate: due,
+            isFavorite: true
+        )
+        #expect(entity.title == "buy milk")
+        #expect(entity.dueDate == due)
+        #expect(entity.isFavorite == true)
+        // Repository 経由で TodoItem.todoDescription も確認 (Entity 側に expose されていないため).
+        let stored = try repo.fetchAll().first
+        #expect(stored?.todoDescription == "2L")
+        #expect(stored?.dueDate == due)
+        #expect(stored?.isFavorite == true)
+    }
+
     // MARK: - toggleCompletion
 
     @Test("toggleCompletion flips and persists")
@@ -94,6 +114,22 @@ struct TodoServiceTests {
         #expect(entity.isFavorite == true)
     }
 
+    @Test("toggleFavorite throws for invalid id string")
+    func toggleFavoriteInvalidId() {
+        let (service, _) = makeService()
+        #expect(throws: IntentError.self) {
+            _ = try service.toggleFavorite(todoId: "not-a-uuid")
+        }
+    }
+
+    @Test("toggleFavorite throws for unknown id")
+    func toggleFavoriteNotFound() {
+        let (service, _) = makeService()
+        #expect(throws: IntentError.self) {
+            _ = try service.toggleFavorite(todoId: UUID().uuidString)
+        }
+    }
+
     // MARK: - delete
 
     @Test("delete removes the todo")
@@ -109,6 +145,14 @@ struct TodoServiceTests {
         let (service, _) = makeService()
         #expect(throws: IntentError.self) {
             try service.delete(todoId: "not-a-uuid")
+        }
+    }
+
+    @Test("delete throws when repository cannot find the id")
+    func deleteNotFound() {
+        let (service, _) = makeService()
+        #expect(throws: (any Error).self) {
+            try service.delete(todoId: UUID().uuidString)
         }
     }
 
@@ -130,6 +174,32 @@ struct TodoServiceTests {
         #expect(throws: IntentError.self) {
             _ = try service.snooze(todoId: item.id.uuidString)
         }
+    }
+
+    @Test("snooze throws for invalid id string")
+    func snoozeInvalidId() {
+        let (service, _) = makeService()
+        #expect(throws: IntentError.self) {
+            _ = try service.snooze(todoId: "not-a-uuid")
+        }
+    }
+
+    @Test("snooze throws for unknown id")
+    func snoozeNotFound() {
+        let (service, _) = makeService()
+        #expect(throws: IntentError.self) {
+            _ = try service.snooze(todoId: UUID().uuidString)
+        }
+    }
+
+    @Test("snooze defaults to 30 minutes when no interval is given")
+    func snoozeDefaultIsThirtyMinutes() throws {
+        let baseDate = Date(timeIntervalSince1970: 1_700_000_000)
+        let item = TodoItem(title: "task", dueDate: baseDate)
+        let (service, _) = makeService(seed: [item])
+        let result = try service.snooze(todoId: item.id.uuidString)
+        #expect(result.newDueDate == baseDate.addingTimeInterval(TodoService.defaultSnoozeInterval))
+        #expect(TodoService.defaultSnoozeInterval == 30 * 60)
     }
 
     // MARK: - toggleMostUrgentTodo
