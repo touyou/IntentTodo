@@ -4,8 +4,11 @@
 //
 
 import Domain
+import os.log
 import SwiftData
 import WidgetKit
+
+private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoComplication")
 
 /// Timeline provider that fetches todo data for complications.
 public struct TodoComplicationProvider: TimelineProvider {
@@ -31,7 +34,9 @@ public struct TodoComplicationProvider: TimelineProvider {
         let container = modelContainer
         Task { @MainActor in
             let entry = Self.makeEntry(using: container)
-            let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+            // 失敗時は短い間隔で再試行 (5 分後)、成功時は 15 分後に通常更新。
+            let nextUpdateMinutes = entry.loadFailed ? 5 : 15
+            let nextUpdate = Calendar.current.date(byAdding: .minute, value: nextUpdateMinutes, to: Date())!
             completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
         }
     }
@@ -41,7 +46,15 @@ public struct TodoComplicationProvider: TimelineProvider {
         // 1 fetch で全 Todo を取り、集計は in-memory で行う (watchOS での典型件数で
         // クエリを 2 回投げるより安い + 集計ロジックが1箇所にまとまる)。
         let context = modelContainer.mainContext
-        let allTodos = (try? context.fetch(FetchDescriptor<TodoItem>())) ?? []
+        let allTodos: [TodoItem]
+        do {
+            allTodos = try context.fetch(FetchDescriptor<TodoItem>())
+        } catch {
+            // fetch 失敗を「予定なし」と誤認させないため unavailable entry を返す。
+            // getTimeline 側の policy で短い間隔のリトライにする。
+            logger.error("complication fetch failed: \(String(reflecting: error))")
+            return .unavailable()
+        }
 
         let incompleteTodos = allTodos
             .filter { !$0.isCompleted }

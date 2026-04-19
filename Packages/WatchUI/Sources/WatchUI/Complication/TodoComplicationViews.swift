@@ -115,17 +115,54 @@ public struct TodoComplicationEntryView: View {
     }
 
     public var body: some View {
+        if entry.loadFailed {
+            UnavailableComplicationView(family: family)
+        } else {
+            switch family {
+            case .accessoryCircular:
+                CircularComplicationView(entry: entry)
+            case .accessoryCorner:
+                CornerComplicationView(entry: entry)
+            case .accessoryRectangular:
+                RectangularComplicationView(entry: entry)
+            case .accessoryInline:
+                InlineComplicationView(entry: entry)
+            default:
+                CircularComplicationView(entry: entry)
+            }
+        }
+    }
+}
+
+/// fetch 失敗時に表示する代替。「予定なし」(全 0) と区別がつく見た目に。
+struct UnavailableComplicationView: View {
+    let family: WidgetFamily
+
+    var body: some View {
         switch family {
-        case .accessoryCircular:
-            CircularComplicationView(entry: entry)
-        case .accessoryCorner:
-            CornerComplicationView(entry: entry)
-        case .accessoryRectangular:
-            RectangularComplicationView(entry: entry)
         case .accessoryInline:
-            InlineComplicationView(entry: entry)
+            Label("Todos —", systemImage: "exclamationmark.triangle")
+        case .accessoryRectangular:
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Image(systemName: "exclamationmark.triangle")
+                    Text("Couldn't load")
+                        .font(.headline)
+                }
+                Text("Open the app to retry.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        case .accessoryCorner:
+            Text("—")
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .widgetCurvesContent()
         default:
-            CircularComplicationView(entry: entry)
+            ZStack {
+                AccessoryWidgetBackground()
+                Image(systemName: "exclamationmark.triangle")
+                    .font(.title3)
+            }
         }
     }
 }

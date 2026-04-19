@@ -7,10 +7,13 @@
 
 #if !os(visionOS)
 import Domain
+import os.log
 import SwiftData
 import SwiftUI
 import TodoAppIntents
 import WidgetKit
+
+private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "ToggleUrgentTodoControl")
 
 /// Control widget for toggling the most urgent todo.
 ///
@@ -59,10 +62,16 @@ extension ToggleUrgentTodoControl {
                     sortBy: [SortDescriptor(\TodoItem.dueDate, order: .forward)]
                 )
                 descriptor.fetchLimit = 1
-                guard let todo = try? context.fetch(descriptor).first else {
-                    return .empty
+                do {
+                    let todo = try context.fetch(descriptor).first
+                    return todo.map { Snapshot(title: $0.title, isCompleted: $0.isCompleted) } ?? .empty
+                } catch {
+                    // fetch 失敗を `try?` で `.empty` (= "No urgent todo") に潰すと、
+                    // ユーザーが「期限近い Todo はない」と誤認して期限超過するリスクがある。
+                    // throw して WidgetKit に前回値 / placeholder の維持を委ねる。
+                    logger.error("ToggleUrgentTodoControl fetch failed: \(String(reflecting: error))")
+                    throw error
                 }
-                return Snapshot(title: todo.title, isCompleted: todo.isCompleted)
             }
         }
     }

@@ -7,12 +7,15 @@
 
 import AppIntents
 import Domain
+import os.log
 import Repository
 import SwiftData
 import SwiftUI
 import TodoAppIntents
 import WidgetKit
 import WidgetUI
+
+private let widgetLogger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoWidgetProvider")
 
 // MARK: - Timeline Provider
 
@@ -76,13 +79,16 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
             return TodoWidgetEntry(
                 date: Date(),
                 todos: Array(entities),
-                configuration: configuration
+                configuration: configuration,
+                loadFailed: false
             )
         } catch {
+            widgetLogger.error("fetchEntry failed: \(String(reflecting: error))")
             return TodoWidgetEntry(
                 date: Date(),
                 todos: [],
-                configuration: configuration
+                configuration: configuration,
+                loadFailed: true
             )
         }
     }
@@ -95,6 +101,9 @@ struct TodoWidgetEntry: TimelineEntry {
     let date: Date
     let todos: [TodoAppEntity]
     let configuration: TodoWidgetConfigurationIntent
+    /// SwiftData fetch が失敗したかどうか。true のときは View 側で空表示ではなく
+    /// 「読み込めません」表示にして、空 ("All done!") との誤認を防ぐ。
+    var loadFailed: Bool = false
 }
 
 // MARK: - Widget Definition
@@ -108,7 +117,7 @@ struct IntentTodoWidget: Widget {
             intent: TodoWidgetConfigurationIntent.self,
             provider: TodoWidgetProvider()
         ) { entry in
-            TodoWidgetEntryView(todos: entry.todos)
+            TodoWidgetEntryView(todos: entry.todos, loadFailed: entry.loadFailed)
         }
         .configurationDisplayName("Todo List")
         .description("View your todos at a glance.")
