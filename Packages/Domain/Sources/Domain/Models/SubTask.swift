@@ -7,21 +7,24 @@ import Foundation
 import SwiftData
 
 /// A sub-task that belongs to a parent todo item.
+///
+/// CloudKit 互換のため、すべての属性は宣言時にデフォルト値を持つ。
+/// 詳細は `TodoItem` のコメント参照。
 @Model
 public final class SubTask {
     // MARK: - Properties
 
     /// Unique identifier for the sub-task.
-    public var id: UUID
+    public var id: UUID = UUID()
 
     /// The title of the sub-task.
-    public var title: String
+    public var title: String = ""
 
     /// Whether the sub-task has been completed.
-    public var isCompleted: Bool
+    public var isCompleted: Bool = false
 
     /// The order index for sorting sub-tasks.
-    public var orderIndex: Int
+    public var orderIndex: Int = 0
 
     /// The parent todo item this sub-task belongs to.
     public var parentTodo: TodoItem?

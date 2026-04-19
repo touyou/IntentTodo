@@ -7,21 +7,24 @@ import Foundation
 import SwiftData
 
 /// A category for organizing todo items.
+///
+/// CloudKit 互換のため、すべての属性は宣言時にデフォルト値を持ち、
+/// to-many リレーションは空配列デフォルト。
 @Model
 public final class Category {
     // MARK: - Properties
 
     /// Unique identifier for the category.
-    public var id: UUID
+    public var id: UUID = UUID()
 
     /// The name of the category.
-    public var name: String
+    public var name: String = ""
 
     /// Optional hex color code for the category (e.g., "#FF5733").
     public var colorHex: String?
 
     /// Todo items belonging to this category.
-    public var todos: [TodoItem]
+    public var todos: [TodoItem] = []
 
     // MARK: - Initialization
 
