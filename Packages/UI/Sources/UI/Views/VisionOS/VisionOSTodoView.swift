@@ -268,8 +268,8 @@ struct VisionOSTodoDetailView: View {
                     if let description = item.todoDescription, !description.isEmpty {
                         VisionOSDescriptionSection(description: description)
                     }
-                    if !item.subTasks.isEmpty {
-                        VisionOSSubtasksSection(subtasks: item.subTasks)
+                    if let subTasks = item.subTasks, !subTasks.isEmpty {
+                        VisionOSSubtasksSection(subtasks: subTasks)
                     }
                     VisionOSActionsSection(entity: TodoAppEntity(from: item))
                 }

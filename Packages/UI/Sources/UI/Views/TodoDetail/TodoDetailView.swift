@@ -71,9 +71,9 @@ private struct TodoDetailContent: View {
                 }
             }
 
-            if !todo.subTasks.isEmpty {
+            if let subTasks = todo.subTasks, !subTasks.isEmpty {
                 Section("Subtasks") {
-                    TodoDetailSubtasksSection(subtasks: todo.subTasks)
+                    TodoDetailSubtasksSection(subtasks: subTasks)
                 }
             }
 

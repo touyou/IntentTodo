@@ -49,8 +49,12 @@ public final class TodoItem {
     public var category: Category?
 
     /// Sub-tasks associated with this todo item.
+    ///
+    /// CloudKit 互換のため optional `[SubTask]?`。読み取りは `subTasks ?? []` で
+    /// nil 安全に扱う (View / Service 側で). Apple "Define a CloudKit compatible
+    /// schema" が `to-many relationships must be optional` を要求する。
     @Relationship(deleteRule: .cascade, inverse: \SubTask.parentTodo)
-    public var subTasks: [SubTask] = []
+    public var subTasks: [SubTask]? = []
 
     // MARK: - Initialization
 

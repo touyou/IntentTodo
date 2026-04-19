@@ -22,7 +22,7 @@ struct TodoItemTests {
         #expect(todo.todoDescription == nil)
         #expect(todo.dueDate == nil)
         #expect(todo.category == nil)
-        #expect(todo.subTasks.isEmpty)
+        #expect((todo.subTasks ?? []).isEmpty)
     }
 
     @Test("TodoItem initializes with all properties")
@@ -136,7 +136,7 @@ struct CategoryTests {
 
         #expect(category.name == "Work")
         #expect(category.colorHex == nil)
-        #expect(category.todos.isEmpty)
+        #expect((category.todos ?? []).isEmpty)
     }
 
     @Test("Category initializes with name and color")

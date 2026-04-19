@@ -24,7 +24,10 @@ public final class Category {
     public var colorHex: String?
 
     /// Todo items belonging to this category.
-    public var todos: [TodoItem] = []
+    ///
+    /// CloudKit 互換のため optional `[TodoItem]?`。読み取りは `todos ?? []` で
+    /// nil 安全に扱う。
+    public var todos: [TodoItem]? = []
 
     // MARK: - Initialization
 
