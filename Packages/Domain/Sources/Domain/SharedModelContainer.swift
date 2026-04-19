@@ -80,15 +80,22 @@ public enum SharedModelContainer {
     public static func createContainer() throws -> ModelContainer {
         logger.info("createContainer() called")
         logger.info("App Group identifier: \(appGroupIdentifier)")
-        logger.info("Shared container URL: \(sharedContainerURL?.absoluteString ?? "nil")")
+        logger.info("Shared container URL: \(sharedContainerURL?.absoluteString ?? "nil — falling back to default")")
 
-        if let config = configuration {
-            logger.info("Using shared configuration with URL")
-            return try ModelContainer(for: schema, configurations: [config])
-        } else {
-            logger.info("Using fallback configuration (no App Group)")
-            // Minimal fallback
-            return try ModelContainer(for: schema)
+        do {
+            if let config = configuration {
+                logger.info("Using shared configuration with URL")
+                return try ModelContainer(for: schema, configurations: [config])
+            } else {
+                logger.info("Using fallback configuration (no App Group)")
+                return try ModelContainer(for: schema)
+            }
+        } catch {
+            logger.error("ModelContainer creation failed: \(String(reflecting: error))")
+            if let nsError = error as NSError? {
+                logger.error("NSError domain=\(nsError.domain) code=\(nsError.code) userInfo=\(nsError.userInfo)")
+            }
+            throw error
         }
     }
 

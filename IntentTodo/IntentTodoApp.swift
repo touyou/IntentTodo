@@ -42,7 +42,12 @@ struct IntentTodoApp: App {
             modelContainer = container
             AppDependencyManager.shared.add(dependency: container)
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            logger.critical("ModelContainer init failed: \(String(reflecting: error))")
+            if let nsError = error as NSError? {
+                logger.critical("NSError domain=\(nsError.domain) code=\(nsError.code)")
+                logger.critical("NSError userInfo=\(nsError.userInfo)")
+            }
+            fatalError("Could not create ModelContainer: \(String(reflecting: error))")
         }
 
         // TodoService は Intent からも View からも参照可能な唯一のビジネスロジック層。
