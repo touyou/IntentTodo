@@ -32,17 +32,24 @@ public struct ShowTodosIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog & OpensIntent {
         let entities = try todoService.listTodos(filter: filter)
-        let screenTarget: AppScreenTarget
-        switch filter {
-        case .all, .completed: screenTarget = .todoList
-        case .incomplete: screenTarget = .incompleteTodos
-        case .favorites: screenTarget = .favoriteTodos
-        }
         return .result(
             value: entities,
-            opensIntent: LaunchAppIntent(target: screenTarget),
+            opensIntent: LaunchAppIntent(target: Self.screenTarget(for: filter)),
             dialog: dialog(for: entities)
         )
+    }
+
+    /// 画面遷移先と filter のマッピングは Intent perform() の外でも検証したいので
+    /// 純関数として切り出す (perform は @Dependency 解決の都合で SPM テストが書きにくい)。
+    static func screenTarget(for filter: TodoFilterType) -> AppScreenTarget {
+        switch filter {
+        case .all, .completed:
+            return .todoList
+        case .incomplete:
+            return .incompleteTodos
+        case .favorites:
+            return .favoriteTodos
+        }
     }
 
     // MARK: - Dialog
