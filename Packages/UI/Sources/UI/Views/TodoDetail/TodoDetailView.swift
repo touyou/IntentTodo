@@ -36,6 +36,10 @@ public struct TodoDetailView: View {
                 )
             }
         }
+        #if os(macOS)
+        // macOS native はデフォルトだとコンテンツが端まで詰まって窮屈に見えるので横余白を付与。
+        .padding(.horizontal, 24)
+        #endif
         .navigationTitle("Details")
         #if os(iOS) || os(visionOS)
         .navigationBarTitleDisplayMode(.inline)

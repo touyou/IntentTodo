@@ -48,6 +48,11 @@ public struct TodoListView: View {
                     TodoListContent(todos: filteredTodos)
                 }
             }
+            #if os(macOS)
+            // macOS native はデフォルトだとコンテンツが端まで詰まって窮屈に見えるので、
+            // List/Empty 双方に共通の横余白を入れる。
+            .padding(.horizontal, 24)
+            #endif
             .navigationTitle("Todos")
             .navigationDestination(for: NavigationDestination.self) { destination in
                 switch destination {
@@ -198,6 +203,10 @@ private struct AddTodoSheet: View {
             AddTodoView()
         }
         .presentationDetents([.medium])
+        #if os(macOS)
+        // macOS の sheet はデフォルトだと小さすぎて Form が窮屈になるため最小サイズを指定。
+        .frame(minWidth: 480, minHeight: 360)
+        #endif
         .task { baselineCount = todoCount }
         .onChange(of: todoCount) { _, newValue in
             // シート開いた時点より件数が増えていれば Intent が成功したと判定しシートを閉じる。
