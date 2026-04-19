@@ -55,6 +55,10 @@ struct IntentTodoApp: App {
         let todoService = TodoService.swiftDataBacked(container: modelContainer)
         AppDependencyManager.shared.add(dependency: todoService)
 
+        // Spotlight index の初期投入 (IndexedEntity 準拠だけでは検索対象にならない).
+        // mutation 側 (create / toggle / delete / snooze) は TodoService 内で差分 index.
+        Task { await todoService.indexAllForSpotlight() }
+
         // Same NavigationModel instance is stored in @State AND registered with
         // AppDependencyManager so intents can write navigation state via @Dependency.
         let navigation = NavigationModel()

@@ -10,6 +10,9 @@
 //  eliminating per-intent reload bookkeeping.
 //
 
+#if os(iOS) || os(macOS)
+import CoreSpotlight
+#endif
 import Domain
 import Foundation
 import Repository
@@ -81,7 +84,9 @@ public final class TodoService {
             dueDate: dueDate
         )
         try repository.create(item)
-        return TodoAppEntity(from: item)
+        let entity = TodoAppEntity(from: item)
+        reindexSpotlight(entity)
+        return entity
     }
 
     public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
@@ -90,7 +95,9 @@ public final class TodoService {
         item.isCompleted.toggle()
         item.modifiedAt = Date()
         try repository.update(item)
-        return TodoToggleResult(entity: TodoAppEntity(from: item), isNowCompleted: item.isCompleted)
+        let entity = TodoAppEntity(from: item)
+        reindexSpotlight(entity)
+        return TodoToggleResult(entity: entity, isNowCompleted: item.isCompleted)
     }
 
     public func toggleFavorite(todoId: String) throws -> TodoAppEntity {
@@ -99,7 +106,9 @@ public final class TodoService {
         item.isFavorite.toggle()
         item.modifiedAt = Date()
         try repository.update(item)
-        return TodoAppEntity(from: item)
+        let entity = TodoAppEntity(from: item)
+        reindexSpotlight(entity)
+        return entity
     }
 
     public func delete(todoId: String) throws {
@@ -108,6 +117,7 @@ public final class TodoService {
             throw IntentError.validation("Invalid todo ID")
         }
         try repository.delete(by: uuid)
+        deindexSpotlight(id: todoId)
     }
 
     public func snooze(
@@ -123,8 +133,10 @@ public final class TodoService {
         item.dueDate = newDueDate
         item.modifiedAt = Date()
         try repository.update(item)
+        let entity = TodoAppEntity(from: item)
+        reindexSpotlight(entity)
         return TodoSnoozeResult(
-            entity: TodoAppEntity(from: item),
+            entity: entity,
             newDueDate: newDueDate,
             title: item.title
         )
@@ -143,6 +155,7 @@ public final class TodoService {
         item.isCompleted.toggle()
         item.modifiedAt = Date()
         try repository.update(item)
+        reindexSpotlight(TodoAppEntity(from: item))
         return UrgentTodoToggleResult(title: title, isNowCompleted: item.isCompleted)
     }
 
@@ -165,6 +178,22 @@ public final class TodoService {
         try repository.fetchIncomplete().count
     }
 
+    // MARK: - Spotlight
+
+    /// Populate Spotlight with every todo currently in the store. Call once on
+    /// app launch — `IndexedEntity` conformance alone is not enough for
+    /// Spotlight to discover entities (it covers Apple Intelligence surfaces).
+    public func indexAllForSpotlight() async {
+        #if os(iOS) || os(macOS)
+        do {
+            let entities = try listTodos(filter: .all)
+            try await CSSearchableIndex.default().indexAppEntities(entities)
+        } catch {
+            // Non-fatal: Spotlight just won't show entries that failed to index.
+        }
+        #endif
+    }
+
     // MARK: - Private
 
     private func resolve(todoId: String) throws -> TodoItem {
@@ -175,6 +204,28 @@ public final class TodoService {
             throw IntentError.notFound("Todo not found")
         }
         return item
+    }
+
+    /// Add / update a single todo in Spotlight. Fire-and-forget; Spotlight
+    /// failures must not surface to the Intent caller.
+    private func reindexSpotlight(_ entity: TodoAppEntity) {
+        #if os(iOS) || os(macOS)
+        Task {
+            try? await CSSearchableIndex.default().indexAppEntities([entity])
+        }
+        #endif
+    }
+
+    /// Remove a deleted todo from Spotlight.
+    private func deindexSpotlight(id: String) {
+        #if os(iOS) || os(macOS)
+        Task {
+            try? await CSSearchableIndex.default().deleteAppEntities(
+                identifiedBy: [id],
+                ofType: TodoAppEntity.self
+            )
+        }
+        #endif
     }
 }
 
