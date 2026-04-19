@@ -15,8 +15,11 @@ import CoreSpotlight
 #endif
 import Domain
 import Foundation
+import os.log
 import Repository
 import SwiftData
+
+private let spotlightLogger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoService.Spotlight")
 
 // MARK: - Result Types
 
@@ -187,9 +190,11 @@ public final class TodoService {
         #if os(iOS) || os(macOS)
         do {
             let entities = try listTodos(filter: .all)
+            spotlightLogger.info("indexAllForSpotlight start count=\(entities.count)")
             try await CSSearchableIndex.default().indexAppEntities(entities)
+            spotlightLogger.info("indexAllForSpotlight done count=\(entities.count)")
         } catch {
-            // Non-fatal: Spotlight just won't show entries that failed to index.
+            spotlightLogger.error("indexAllForSpotlight failed: \(String(reflecting: error))")
         }
         #endif
     }
@@ -210,8 +215,14 @@ public final class TodoService {
     /// failures must not surface to the Intent caller.
     private func reindexSpotlight(_ entity: TodoAppEntity) {
         #if os(iOS) || os(macOS)
+        let id = entity.id
         Task {
-            try? await CSSearchableIndex.default().indexAppEntities([entity])
+            do {
+                try await CSSearchableIndex.default().indexAppEntities([entity])
+                spotlightLogger.debug("reindex ok id=\(id)")
+            } catch {
+                spotlightLogger.error("reindex failed id=\(id): \(String(reflecting: error))")
+            }
         }
         #endif
     }
@@ -220,10 +231,15 @@ public final class TodoService {
     private func deindexSpotlight(id: String) {
         #if os(iOS) || os(macOS)
         Task {
-            try? await CSSearchableIndex.default().deleteAppEntities(
-                identifiedBy: [id],
-                ofType: TodoAppEntity.self
-            )
+            do {
+                try await CSSearchableIndex.default().deleteAppEntities(
+                    identifiedBy: [id],
+                    ofType: TodoAppEntity.self
+                )
+                spotlightLogger.debug("deindex ok id=\(id)")
+            } catch {
+                spotlightLogger.error("deindex failed id=\(id): \(String(reflecting: error))")
+            }
         }
         #endif
     }
