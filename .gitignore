@@ -41,3 +41,7 @@ docs/references/
 
 # Claude
 .claude/settings.local.json
+
+# Vendored skills under .claude/skills/ are personal/local references (codex-derived).
+# The project's own redistributable skill lives under skills/ at repo root.
+.claude/skills/
