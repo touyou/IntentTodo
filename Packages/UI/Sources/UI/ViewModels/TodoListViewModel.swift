@@ -3,7 +3,6 @@
 //  IntentTodo
 //
 
-import Domain
 import Foundation
 import TodoAppIntents
 
@@ -17,7 +16,6 @@ import TodoAppIntents
 /// - Sort order management
 /// - Search text management
 /// - Filtering and sorting logic (UI-specific, not used by Siri/Shortcuts)
-/// - Caching `TodoAppEntity` snapshots from `@Query` updates
 @MainActor
 @Observable
 public final class TodoListViewModel {
@@ -32,24 +30,9 @@ public final class TodoListViewModel {
     /// Search text for filtering todos.
     public var searchText = ""
 
-    // MARK: - Cached Entities
-
-    /// `@Query` から渡される `TodoItem` を `TodoAppEntity` に変換したキャッシュ。
-    /// View は `.onChange(of: todoItems, initial: true) { update(from:) }` で
-    /// 更新する。これにより entity 化のコストを body 評価のたびではなく Query
-    /// 更新時のみに限定できる (1,000 件規模でスクロール時のカクつきを抑える)。
-    public private(set) var entities: [TodoAppEntity] = []
-
     // MARK: - Initialization
 
     public init() {}
-
-    // MARK: - Cache Update
-
-    /// Updates the cached entity snapshot from the latest `@Query` result.
-    public func update(from todos: [TodoItem]) {
-        entities = todos.map { TodoAppEntity(from: $0) }
-    }
 
     // MARK: - Filtering & Sorting
 

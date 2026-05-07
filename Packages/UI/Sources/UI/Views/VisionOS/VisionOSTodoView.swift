@@ -21,8 +21,10 @@ public struct VisionOSTodoListView: View {
     @Environment(NavigationModel.self) private var navigationModel
 
     private var filteredTodos: [TodoAppEntity] {
-        // ViewModel が entities をキャッシュしているので body 内 map は不要。
-        viewModel.filteredTodos(from: viewModel.entities)
+        // SwiftData の `@Query` が返す `[TodoItem]` は class ベースの `PersistentModel`
+        // を要素に持つため、要素の中身変更 (title / isCompleted トグル) では `onChange`
+        // ベースのキャッシュ更新が発火しない。安全側に倒し、body 評価ごとに entity 化する。
+        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
     }
 
     public init() {}
@@ -44,9 +46,6 @@ public struct VisionOSTodoListView: View {
         }
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             VisionOSAddTodoSheet()
-        }
-        .onChange(of: todoItems, initial: true) {
-            viewModel.update(from: todoItems)
         }
     }
 }
