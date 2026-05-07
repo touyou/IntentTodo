@@ -37,7 +37,11 @@ public struct TodoListView: View {
 
     public var body: some View {
         @Bindable var navigationModel = navigationModel
-        NavigationStack(path: $navigationModel.path) {
+        // iOS/iPadOS/macOS 共通で NavigationSplitView。
+        // - iPad/macOS: sidebar + detail の二分割表示
+        // - iPhone (compact width): 自動で push 風に collapse されるので 1 view で両対応
+        // - visionOS は別ファイル (VisionOSTodoView) で別実装
+        NavigationSplitView {
             Group {
                 if filteredTodos.isEmpty {
                     TodoListEmptyView(
@@ -45,32 +49,56 @@ public struct TodoListView: View {
                         searchText: viewModel.searchText
                     )
                 } else {
-                    TodoListContent(todos: filteredTodos)
+                    TodoListSidebar(
+                        todos: filteredTodos,
+                        selection: $navigationModel.selectedTodo
+                    )
                 }
             }
-            #if os(macOS)
-            // macOS native はデフォルトだとコンテンツが端まで詰まって窮屈に見えるので、
-            // List/Empty 双方に共通の横余白を入れる。
-            .padding(.horizontal, 24)
-            #endif
             .navigationTitle("Todos")
-            .navigationDestination(for: NavigationDestination.self) { destination in
-                switch destination {
-                case .todoDetail(let todo):
-                    TodoDetailView(todo: todo)
-                }
-            }
             .toolbar {
                 TodoListToolbar(viewModel: $viewModel)
             }
             .searchable(text: $viewModel.searchText, prompt: "Search todos")
-            .sheet(isPresented: $navigationModel.showingAddTodo) {
-                AddTodoSheet(todoCount: todoItems.count)
+            // sidebar 既定幅は TodoRowView には狭いため ideal を広めに固定 (iPad/macOS)。
+            .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 480)
+        } detail: {
+            if let selected = navigationModel.selectedTodo {
+                TodoDetailView(todo: selected)
+            } else {
+                ContentUnavailableView(
+                    "Select a Todo",
+                    systemImage: "checklist",
+                    description: Text("Pick a todo from the sidebar to view details.")
+                )
             }
+        }
+        .sheet(isPresented: $navigationModel.showingAddTodo) {
+            AddTodoSheet(todoCount: todoItems.count)
         }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
+    }
+}
+
+// MARK: - Sidebar
+
+private struct TodoListSidebar: View {
+    let todos: [TodoAppEntity]
+    @Binding var selection: TodoAppEntity?
+
+    var body: some View {
+        List(selection: $selection) {
+            ForEach(todos, id: \.id) { todo in
+                TodoRowView(todo: todo)
+                    .tag(todo)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        DeleteButton(todo: todo)
+                    }
+            }
+        }
+        .animation(.default, value: todos.map(\.id))
     }
 }
 
@@ -109,31 +137,6 @@ private struct TodoListEmptyView: View {
         case .favorites:
             return ("No Favorites", "star", "Star a todo to add it to favorites.")
         }
-    }
-}
-
-// MARK: - List Content
-
-private struct TodoListContent: View {
-    let todos: [TodoAppEntity]
-    @Environment(NavigationModel.self) private var navigationModel
-
-    var body: some View {
-        List {
-            ForEach(todos, id: \.id) { todo in
-                Button {
-                    navigationModel.showDetail(for: todo)
-                } label: {
-                    TodoRowView(todo: todo)
-                }
-                .buttonStyle(.plain)
-                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    DeleteButton(todo: todo)
-                }
-            }
-        }
-        .listStyle(.plain)
-        .animation(.default, value: todos.map(\.id))
     }
 }
 
@@ -199,14 +202,24 @@ private struct AddTodoSheet: View {
     @State private var baselineCount: Int?
 
     var body: some View {
+        #if os(macOS)
+        // macOS では NavigationStack + navigationTitle がタイトル上に大きな余白を
+        // 取って窮屈に見えるため、NavigationStack を外して AddTodoView 単体を表示。
+        // ツールバー (Cancel / Add ボタン) は AddTodoView 側の .toolbar が
+        // ウィンドウバーに自動配置される。
+        AddTodoView()
+            .frame(minWidth: 520, minHeight: 420)
+            .task { baselineCount = todoCount }
+            .onChange(of: todoCount) { _, newValue in
+                if let baseline = baselineCount, newValue > baseline {
+                    navigationModel.dismissAddTodo()
+                }
+            }
+        #else
         NavigationStack {
             AddTodoView()
         }
         .presentationDetents([.medium])
-        #if os(macOS)
-        // macOS の sheet はデフォルトだと小さすぎて Form が窮屈になるため最小サイズを指定。
-        .frame(minWidth: 480, minHeight: 360)
-        #endif
         .task { baselineCount = todoCount }
         .onChange(of: todoCount) { _, newValue in
             // シート開いた時点より件数が増えていれば Intent が成功したと判定しシートを閉じる。
@@ -214,6 +227,7 @@ private struct AddTodoSheet: View {
                 navigationModel.dismissAddTodo()
             }
         }
+        #endif
     }
 }
 

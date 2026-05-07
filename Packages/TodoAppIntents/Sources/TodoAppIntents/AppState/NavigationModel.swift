@@ -40,13 +40,16 @@ public final class NavigationModel {
     // MARK: - Navigation Methods
 
     /// Navigates to the detail view for a todo.
+    /// 同時に selectedTodo にも書き込むので macOS NavigationSplitView の detail も追従する。
     public func showDetail(for todo: TodoAppEntity) {
         path.append(.todoDetail(todo))
+        selectedTodo = todo
     }
 
     /// Pops to the root view.
     public func popToRoot() {
         path.removeAll()
+        selectedTodo = nil
     }
 
     /// Pops the last view from the stack.
