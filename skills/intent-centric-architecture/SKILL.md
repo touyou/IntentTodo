@@ -25,7 +25,8 @@ Read these references as needed:
 - `references/04-process-and-dependencies.md` — `@Dependency` + `AppDependencyManager` across app process, Widget Extension process, and Live Activity Extension process; SPM packaging and `AppIntentsPackage` rules.
 - `references/05-ui-integration.md` — `onAppIntentExecution`, `AppIntentSceneDelegate`, and the cold-start fallback for early iOS 26.
 - `references/06-feedback-channels.md` — when Dialog is read aloud, when it is silent, and when to fall back to local notifications (Control Widget reality check).
-- `references/07-data-and-side-effects.md` — `WidgetReloader.reloadAllWidgets()`, idempotent intents, `TodoService`-style aggregation.
+- `references/07-data-and-side-effects.md` — `WidgetReloader.reloadAllWidgets()`, idempotent intents, `TodoService`-style aggregation, the SwiftData `@Query` + `.onChange(of:)` foot-gun.
+- `references/08-platform-quirks.md` — visionOS Liquid Glass API availability (`Glass*ButtonStyle` not on visionOS), watchOS CPU constraints, macOS `NavigationSplitView` detail-pane `dismiss()` no-op, multi-platform component consolidation, Liquid Glass philosophy ("where not to use it").
 - `references/code-templates.md` — copy-pasteable templates for Service-backed Intent, Primary+FromExtension pair, Entity+Query, `WidgetConfigurationIntent`, and `AppShortcutsProvider`.
 
 ## Core principles
@@ -87,6 +88,9 @@ Read these references as needed:
 - Adopting `ForegroundContinuableIntent` for new code. Apple deprecated it in favor of `supportedModes: [.background, .foreground(.dynamic)]`.
 - Declaring `AppIntentsPackage` in both the app target and a SPM package. Apps support exactly one.
 - Showing a `.result(dialog:)` from a Control Widget intent and assuming the user will see it.
+- Caching SwiftData `@Query` results in a `@Observable` view model via `.onChange(of: todoItems)` to avoid per-`body` mapping. `[PersistentModel]` is identity-equatable, so in-place attribute updates (toggle, edit) do not fire `.onChange` — your cache silently goes stale. Map directly in `body`, or use a SwiftData `struct` projection. (See `references/07-data-and-side-effects.md`.)
+- Adding `glassEffect` / `glassBackgroundEffect` to content surfaces (badges, chips, cards, list rows) "to be consistent with Liquid Glass". Apple's HIG positions Liquid Glass as a navigation-layer signal; the standard SwiftUI navigation chrome on iOS 26+ is already glass-rendered automatically. Decorating individual content elements creates noise. (See `references/08-platform-quirks.md`.)
+- Using `.buttonStyle(.glass)` / `.glassProminent` in code that compiles for visionOS — those styles are not available on visionOS. (See `references/08-platform-quirks.md`.)
 
 ## Notes
 
@@ -100,3 +104,4 @@ Read these references as needed:
 - App Intents API and platform behavior shifts every iOS cycle. When uncertain, web-search current Apple Developer documentation before committing to a pattern.
 - A healthy first pass usually contains: one open-app intent, two background action intents, one or two `AppEntity` types with a single `EntityQuery`, one `AppShortcutsProvider`, and one `Service` that owns the persistence calls — that is enough to ship to Shortcuts, Siri, Spotlight, and a basic widget.
 - Background reading on the design philosophy: <https://goodpatch-tech.hatenablog.com/entry/liquid_glass_and_app_intents>.
+- When using this skill alongside performance / Liquid Glass / SwiftUI-pattern reviewers (e.g. `swiftui-performance-audit`, `swiftui-liquid-glass`), treat their output as a *candidate list*, not a verdict. Reviewer skills tend to read guidelines as coverage targets ("this place could use feature X, therefore it should") and miss the more important Apple guidance of "where *not* to use it" or "what platform doesn't support it". Filter every suggestion against the data-flow and platform-availability constraints in this skill before adopting it.
