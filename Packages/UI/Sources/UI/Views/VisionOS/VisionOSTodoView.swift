@@ -42,7 +42,7 @@ public struct VisionOSTodoListView: View {
             VisionOSBottomOrnament(viewModel: $viewModel)
         }
         .sheet(isPresented: $navigationModel.showingAddTodo) {
-            VisionOSAddTodoSheet(todoCount: todoItems.count)
+            VisionOSAddTodoSheet()
         }
     }
 }
@@ -163,22 +163,15 @@ private struct VisionOSBottomOrnament: View {
 
 // MARK: - Add Sheet
 
+/// Sheet container for `AddTodoView` on visionOS. Dismissal is driven by
+/// `AddTodoIntent.perform()` via `navigationModel.dismissAddTodo()` — no need to
+/// observe `@Query` count drift here.
 private struct VisionOSAddTodoSheet: View {
-    let todoCount: Int
-    @Environment(NavigationModel.self) private var navigationModel
-    @State private var baselineCount: Int?
-
     var body: some View {
         NavigationStack {
             AddTodoView()
         }
         .frame(minWidth: 400, minHeight: 300)
-        .task { baselineCount = todoCount }
-        .onChange(of: todoCount) { _, newValue in
-            if let baseline = baselineCount, newValue > baseline {
-                navigationModel.dismissAddTodo()
-            }
-        }
     }
 }
 
@@ -248,12 +241,31 @@ struct VisionOSTodoRow: View {
 
 struct VisionOSTodoDetailView: View {
     let todo: TodoAppEntity
-    @Query private var todoItems: [TodoItem]
-    private var todoItem: TodoItem? { todoItems.first }
 
     init(todo: TodoAppEntity) {
         self.todo = todo
-        let targetId = UUID(uuidString: todo.id) ?? UUID()
+    }
+
+    var body: some View {
+        // UUID parse に失敗した場合は @Query を投げずに不在表示へ落とす。
+        if let targetId = UUID(uuidString: todo.id) {
+            VisionOSTodoDetailQueryView(targetId: targetId)
+        } else {
+            ContentUnavailableView(
+                "Todo Not Found",
+                systemImage: "questionmark.circle",
+                description: Text("This todo may have been deleted.")
+            )
+            .navigationTitle("Details")
+        }
+    }
+}
+
+private struct VisionOSTodoDetailQueryView: View {
+    @Query private var todoItems: [TodoItem]
+    private var todoItem: TodoItem? { todoItems.first }
+
+    init(targetId: UUID) {
         _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
     }
 
