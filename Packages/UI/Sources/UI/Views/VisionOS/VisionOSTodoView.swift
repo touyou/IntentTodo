@@ -153,7 +153,7 @@ private struct VisionOSBottomOrnament: View {
             } label: {
                 Label("Add Todo", systemImage: "plus.circle.fill")
             }
-            .buttonStyle(.glassProminent)
+            .buttonStyle(.borderedProminent)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -460,7 +460,8 @@ private struct VisionOSActionsSection: View {
     let entity: TodoAppEntity
 
     var body: some View {
-        // Action は interactive layer なので Liquid Glass の glass ボタンに乗せる。
+        // visionOS は .buttonStyle(.glass) / .glassProminent を未サポートのため
+        // .bordered のままで運用 (空間 UI の hover effect 側で interactivity を担保)。
         HStack(spacing: 20) {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
                 Label(
@@ -468,14 +469,14 @@ private struct VisionOSActionsSection: View {
                     systemImage: entity.isFavorite ? "star.slash" : "star"
                 )
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
 
             Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
                 Label("Delete", systemImage: "trash")
             }
-            .buttonStyle(.glass)
+            .buttonStyle(.bordered)
             .tint(.red)
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
