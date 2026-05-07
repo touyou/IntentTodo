@@ -162,6 +162,14 @@ cd Packages/TodoAppIntents && swift test
 | "Show incomplete todos in IntentTodo" | 未完了 Todo 表示 |
 | "Show favorite todos in IntentTodo" | お気に入り Todo 表示 |
 
+## Claude Code skill として配布
+
+このリポジトリは、本プロジェクトで蓄積した App Intent 中心設計の知見を **Claude Code plugin** として再利用できる形で同梱しています。
+
+- 配布物: [`skills/intent-centric-architecture/`](skills/intent-centric-architecture/) + [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
+- 内容: SKILL.md + 7 章の references + code-templates
+- インストール手順は [`skills/intent-centric-architecture/README.md`](skills/intent-centric-architecture/README.md) を参照
+
 ## ドキュメント
 
 - [docs/AGENTS.md](docs/AGENTS.md) - App Intents 中心設計ガイド
