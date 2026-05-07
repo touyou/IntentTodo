@@ -14,22 +14,50 @@ import WidgetKit
 public struct TodoWidgetEntryView: View {
     @Environment(\.widgetFamily) private var family
     let todos: [TodoAppEntity]
+    let loadFailed: Bool
 
-    public init(todos: [TodoAppEntity]) {
+    public init(todos: [TodoAppEntity], loadFailed: Bool = false) {
         self.todos = todos
+        self.loadFailed = loadFailed
     }
 
     public var body: some View {
-        switch family {
-        case .systemSmall:
-            SmallTodoWidgetView(todos: todos)
-        case .systemMedium:
-            MediumTodoWidgetView(todos: todos)
-        case .systemLarge:
-            LargeTodoWidgetView(todos: todos)
-        default:
-            SmallTodoWidgetView(todos: todos)
+        if loadFailed {
+            WidgetLoadFailureView()
+        } else {
+            switch family {
+            case .systemSmall:
+                SmallTodoWidgetView(todos: todos)
+            case .systemMedium:
+                MediumTodoWidgetView(todos: todos)
+            case .systemLarge:
+                LargeTodoWidgetView(todos: todos)
+            default:
+                SmallTodoWidgetView(todos: todos)
+            }
         }
+    }
+}
+
+/// fetch 失敗時に表示する代替 View。空の Todo リスト ("All done!") とは
+/// はっきり区別できる文言にしておく。
+struct WidgetLoadFailureView: View {
+    var body: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle")
+                .font(.title3)
+                .foregroundStyle(.orange)
+            Text("Couldn't load todos")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+            Text("Open the app to retry.")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding()
+        .containerBackground(.fill.tertiary, for: .widget)
     }
 }
 

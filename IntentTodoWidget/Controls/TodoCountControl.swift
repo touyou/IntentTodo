@@ -7,10 +7,13 @@
 
 #if !os(visionOS)
 import Domain
+import os.log
 import SwiftData
 import SwiftUI
 import TodoAppIntents
 import WidgetKit
+
+private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoCountControl")
 
 /// Control widget showing incomplete todo count.
 /// Tapping sends a notification with the current count summary.
@@ -45,7 +48,15 @@ extension TodoCountControl {
                 let descriptor = FetchDescriptor<TodoItem>(
                     predicate: #Predicate { !$0.isCompleted }
                 )
-                return (try? context.fetchCount(descriptor)) ?? 0
+                do {
+                    return try context.fetchCount(descriptor)
+                } catch {
+                    // fetch 失敗を `?? 0` で吸収すると Control が "0" を表示し、
+                    // ユーザーは「全部完了」と誤認してしまうため throw に変える。
+                    // WidgetKit が前回値 / placeholder を維持し、`?? 0` の嘘表示を回避。
+                    logger.error("TodoCountControl fetchCount failed: \(String(reflecting: error))")
+                    throw error
+                }
             }
         }
     }

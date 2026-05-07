@@ -5,8 +5,11 @@
 
 import AppIntents
 import Foundation
+import os.log
 import Repository
 import SwiftData
+
+private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoEntityQuery")
 
 /// A query for fetching todo entities in App Intents.
 ///
@@ -28,9 +31,14 @@ public struct TodoEntityQuery: EntityQuery {
     public func entities(for identifiers: [TodoAppEntity.ID]) async throws -> [TodoAppEntity] {
         let repo = repository()
         return try identifiers.compactMap { identifier in
-            guard let uuid = UUID(uuidString: identifier),
-                  let todoItem = try repo.fetch(by: uuid) else {
+            guard let uuid = UUID(uuidString: identifier) else {
+                // 不正な UUID は呼び出し側 (Shortcuts / Live Activity) のバグの兆候。
+                // 削除済 todo (fetch nil) は正常系なので、ここで区別してログを残す。
+                logger.warning("entities(for:) received invalid UUID string: \(identifier, privacy: .public)")
                 return nil
+            }
+            guard let todoItem = try repo.fetch(by: uuid) else {
+                return nil  // 既に削除済み (CloudKit merge 等)。正常系なので無音。
             }
             return TodoAppEntity(from: todoItem)
         }

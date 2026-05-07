@@ -44,4 +44,19 @@ struct NavigationModelTests {
         navigation.navigateToRoot()
         #expect(navigation.path.isEmpty)
     }
+
+    @Test("navigateToRoot also clears showingAddTodo and selectedTodo")
+    func navigateToRootClearsAllState() {
+        let navigation = NavigationModel()
+        let entity = TodoAppEntity(id: UUID().uuidString, title: "sample", isCompleted: false)
+        navigation.selectedTodo = entity
+        navigation.showAddTodo()
+        navigation.showDetail(for: entity)
+
+        navigation.navigateToRoot()
+
+        #expect(navigation.path.isEmpty)
+        #expect(navigation.showingAddTodo == false)
+        #expect(navigation.selectedTodo == nil)
+    }
 }

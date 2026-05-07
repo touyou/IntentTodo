@@ -57,9 +57,18 @@ public struct UrgentTodoToggleResult: Sendable {
 /// ```
 @MainActor
 public final class TodoService {
+    // MARK: - Constants
+
+    /// `snooze` のデフォルト延長時間 (30 分)。SnoozeTodoIntent の description とも一致。
+    public static let defaultSnoozeInterval: TimeInterval = 30 * 60
+
     // MARK: - Dependencies
 
     private let repository: any TodoRepositoryProtocol
+
+    /// 進行中の Spotlight 操作 (id 単位)。連続トグルで前タスクをキャンセルし、
+    /// 最新の reindex/deindex だけが Spotlight に反映されるようにする (race condition 対策)。
+    private var inflightSpotlightTasks: [String: Task<Void, Never>] = [:]
 
     // MARK: - Initialization
 
@@ -75,11 +84,11 @@ public final class TodoService {
         dueDate: Date?,
         isFavorite: Bool
     ) throws -> TodoAppEntity {
-        defer { WidgetReloader.reloadAllWidgets() }
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             throw IntentError.validation("Todo title cannot be empty")
         }
+        defer { WidgetReloader.reloadAllWidgets() }
         let item = TodoItem(
             title: trimmed,
             todoDescription: todoDescription,
@@ -115,17 +124,22 @@ public final class TodoService {
     }
 
     public func delete(todoId: String) throws {
-        defer { WidgetReloader.reloadAllWidgets() }
         guard let uuid = UUID(uuidString: todoId) else {
             throw IntentError.validation("Invalid todo ID")
         }
+        // Spotlight は idempotent。CloudKit merge で既に消えていて
+        // repository.delete が throw した場合でも、ローカル index は消しておく方が
+        // 整合性が取れるので defer で unconditional に呼ぶ。
+        defer {
+            deindexSpotlight(id: todoId)
+            WidgetReloader.reloadAllWidgets()
+        }
         try repository.delete(by: uuid)
-        deindexSpotlight(id: todoId)
     }
 
     public func snooze(
         todoId: String,
-        by interval: TimeInterval = 30 * 60
+        by interval: TimeInterval = TodoService.defaultSnoozeInterval
     ) throws -> TodoSnoozeResult {
         defer { WidgetReloader.reloadAllWidgets() }
         let item = try resolve(todoId: todoId)
@@ -215,36 +229,67 @@ public final class TodoService {
 
     /// Add / update a single todo in Spotlight. Fire-and-forget; Spotlight
     /// failures must not surface to the Intent caller.
+    ///
+    /// 同じ id に対して前回の reindex/deindex Task が残っていればキャンセルしてから
+    /// 新しい Task を走らせる。これで連続トグル時に古い状態が後から上書きする
+    /// race condition を避ける。
     private func reindexSpotlight(_ entity: TodoAppEntity) {
         #if os(iOS) || os(macOS)
         let id = entity.id
-        Task {
+        inflightSpotlightTasks[id]?.cancel()
+        inflightSpotlightTasks[id] = Task { [weak self] in
+            defer {
+                Task { @MainActor [weak self] in self?.inflightSpotlightTasks.removeValue(forKey: id) }
+            }
             do {
                 try await CSSearchableIndex.default().indexAppEntities([entity])
+                if Task.isCancelled { return }
                 spotlightLogger.debug("reindex ok id=\(id)")
+            } catch is CancellationError {
+                return
             } catch {
-                spotlightLogger.error("reindex failed id=\(id): \(String(reflecting: error))")
+                Self.logSpotlight(error, action: "reindex", id: id)
             }
         }
         #endif
     }
 
-    /// Remove a deleted todo from Spotlight.
+    /// Remove a deleted todo from Spotlight. race 対策は `reindexSpotlight` と同じ。
     private func deindexSpotlight(id: String) {
         #if os(iOS) || os(macOS)
-        Task {
+        inflightSpotlightTasks[id]?.cancel()
+        inflightSpotlightTasks[id] = Task { [weak self] in
+            defer {
+                Task { @MainActor [weak self] in self?.inflightSpotlightTasks.removeValue(forKey: id) }
+            }
             do {
                 try await CSSearchableIndex.default().deleteAppEntities(
                     identifiedBy: [id],
                     ofType: TodoAppEntity.self
                 )
+                if Task.isCancelled { return }
                 spotlightLogger.debug("deindex ok id=\(id)")
+            } catch is CancellationError {
+                return
             } catch {
-                spotlightLogger.error("deindex failed id=\(id): \(String(reflecting: error))")
+                Self.logSpotlight(error, action: "deindex", id: id)
             }
         }
         #endif
     }
+
+    #if os(iOS) || os(macOS)
+    /// CSSearchableIndex のエラーは `NSError(domain: CSSearchableIndexErrorDomain)`
+    /// で `code` を見れば quotaExceeded(1) / invalidIndexState(2) /
+    /// userInteractionRequired(3) / indexUnavailable(4) を区別できる。
+    /// 一律 `error` で潰さず、判別できるようにログに出しておくと運用で原因切り分けがしやすい。
+    private static func logSpotlight(_ error: Error, action: String, id: String) {
+        let nsError = error as NSError
+        spotlightLogger.error(
+            "spotlight \(action) failed id=\(id, privacy: .public) domain=\(nsError.domain, privacy: .public) code=\(nsError.code): \(String(reflecting: error))"
+        )
+    }
+    #endif
 }
 
 // MARK: - Factory

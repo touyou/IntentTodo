@@ -82,6 +82,11 @@ public struct AddTodoView: View {
                     .accessibilityIdentifier("favoriteToggle")
             }
         }
+        #if os(macOS)
+        // macOS の Form デフォルト (.automatic) は背景無し・横端密着で窮屈なので
+        // grouped にして iOS と同じインセット付きカード見た目に揃える。
+        .formStyle(.grouped)
+        #endif
         .navigationTitle("New Todo")
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)

@@ -36,7 +36,9 @@ public struct TodoDetailView: View {
                 )
             }
         }
-        .navigationTitle("Details")
+        // Detail のタイトルは選択中の todo タイトルを反映 (macOS Mail / Notes と同じ慣習)。
+        // Todo が消えたケースでは "Details" にフォールバック。
+        .navigationTitle(todo?.title ?? "Details")
         #if os(iOS) || os(visionOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif

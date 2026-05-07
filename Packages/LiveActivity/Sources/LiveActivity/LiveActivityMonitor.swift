@@ -9,7 +9,10 @@
 #if os(iOS)
 import ActivityKit
 import Domain
+import os.log
 import SwiftUI
+
+private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "LiveActivityMonitor")
 
 struct LiveActivityMonitorModifier: ViewModifier {
     let todos: [TodoItem]
@@ -35,11 +38,20 @@ struct LiveActivityMonitorModifier: ViewModifier {
 
         for todo in urgentTodos {
             guard let dueDate = todo.dueDate else { continue }
-            try? await TodoLiveActivityManager.shared.startActivity(
-                todoId: todo.id.uuidString,
-                title: todo.title,
-                dueDate: dueDate
-            )
+            do {
+                try await TodoLiveActivityManager.shared.startActivity(
+                    todoId: todo.id.uuidString,
+                    title: todo.title,
+                    dueDate: dueDate
+                )
+            } catch {
+                // Activity 上限到達 (8 件) / throttling / Encodable 失敗等。
+                // ユーザー操作で解消可能なので silently 飲まずログを残す。
+                // 同一 todoId に対しては次の reconcile (todos 変化時) で再試行される。
+                logger.error(
+                    "startActivity failed for todoId=\(todo.id.uuidString, privacy: .public): \(String(reflecting: error))"
+                )
+            }
         }
 
         // End activities for completed todos or those past 15 minutes after due.

@@ -27,9 +27,11 @@ public struct AddTodoIntent: AppIntent {
         )
     }
 
-    /// Runs in the background by default; `.foreground(.deferred)` lets `perform()`
-    /// opt into foreground on demand (e.g. for Siri follow-up UI).
-    public static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
+    /// バックグラウンド実行のみ。perform() は OpensIntent / requestForeground を
+    /// 使わず .result(value:) を返すだけなので、`.foreground(.deferred)` を入れても
+    /// 実際にフォアグラウンド化される経路がない。Siri 経由の追加 UI が必要になったら
+    /// その時点で `.foreground(.dynamic)` を足す。
+    public static var supportedModes: IntentModes { .background }
 
     public static var parameterSummary: some ParameterSummary {
         Summary("Add todo titled \(\.$title)")

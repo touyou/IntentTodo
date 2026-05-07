@@ -17,6 +17,9 @@ public struct TodoComplicationEntry: TimelineEntry, Sendable {
     let nextDueTitle: String?
     let completedToday: Int
     let totalToday: Int
+    /// fetch が失敗した場合は true。complication 表示で「予定なし」と区別するため、
+    /// View 側で "—" や warning icon に切り替える。
+    let loadFailed: Bool
 
     init(
         date: Date,
@@ -24,7 +27,8 @@ public struct TodoComplicationEntry: TimelineEntry, Sendable {
         nextDueDate: Date?,
         nextDueTitle: String?,
         completedToday: Int,
-        totalToday: Int
+        totalToday: Int,
+        loadFailed: Bool = false
     ) {
         self.date = date
         self.incompleteCount = incompleteCount
@@ -32,6 +36,7 @@ public struct TodoComplicationEntry: TimelineEntry, Sendable {
         self.nextDueTitle = nextDueTitle
         self.completedToday = completedToday
         self.totalToday = totalToday
+        self.loadFailed = loadFailed
     }
 
     public static var placeholder: TodoComplicationEntry {
@@ -42,6 +47,19 @@ public struct TodoComplicationEntry: TimelineEntry, Sendable {
             nextDueTitle: "Sample Todo",
             completedToday: 3,
             totalToday: 8
+        )
+    }
+
+    /// Fetch 失敗時の表示用エントリ。「予定なし」(全 0) との誤認を防ぐ。
+    static func unavailable(at date: Date = Date()) -> TodoComplicationEntry {
+        TodoComplicationEntry(
+            date: date,
+            incompleteCount: 0,
+            nextDueDate: nil,
+            nextDueTitle: nil,
+            completedToday: 0,
+            totalToday: 0,
+            loadFailed: true
         )
     }
 }
