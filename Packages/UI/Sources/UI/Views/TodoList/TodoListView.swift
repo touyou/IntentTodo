@@ -179,21 +179,10 @@ private struct TodoListToolbar: ToolbarContent {
 
         ToolbarItem(placement: filterSortPlacement) {
             Menu {
-                Picker("Filter", selection: $viewModel.filter) {
-                    ForEach(TodoFilter.allCases) { filterOption in
-                        Label(filterOption.displayName, systemImage: filterOption.systemImage)
-                            .tag(filterOption)
-                    }
-                }
-
+                FilterPicker(selection: $viewModel.filter)
                 Divider()
-
                 Menu("Sort") {
-                    Picker("Sort", selection: $viewModel.sortOrder) {
-                        ForEach(TodoSortOrder.allCases) { order in
-                            Text(order.displayName).tag(order)
-                        }
-                    }
+                    SortPicker(selection: $viewModel.sortOrder)
                 }
             } label: {
                 Label("Filter", systemImage: "line.3.horizontal.decrease.circle")

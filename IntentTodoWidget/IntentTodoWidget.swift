@@ -30,6 +30,7 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
                 TodoAppEntity(id: "1", title: "Sample Todo", isCompleted: false),
                 TodoAppEntity(id: "2", title: "Another Todo", isCompleted: true, dueDate: Date())
             ],
+            incompleteCount: 1,
             configuration: TodoWidgetConfigurationIntent()
         )
     }
@@ -75,10 +76,14 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
             }
 
             let entities = sortedTodos.prefix(10).map { TodoAppEntity(from: $0) }
+            // 各 size view が独立して `todos.filter { !$0.isCompleted }.count` を
+            // 走らせていた旧実装を、Provider 側で 1 回 precompute する形に集約。
+            let incompleteCount = sortedTodos.lazy.filter { !$0.isCompleted }.count
 
             return TodoWidgetEntry(
                 date: Date(),
                 todos: Array(entities),
+                incompleteCount: incompleteCount,
                 configuration: configuration,
                 loadFailed: false
             )
@@ -87,6 +92,7 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
             return TodoWidgetEntry(
                 date: Date(),
                 todos: [],
+                incompleteCount: 0,
                 configuration: configuration,
                 loadFailed: true
             )
@@ -100,6 +106,9 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
 struct TodoWidgetEntry: TimelineEntry {
     let date: Date
     let todos: [TodoAppEntity]
+    /// 全 todos のうち未完了件数。各 size view が個別に filter+count せず、Provider
+    /// が 1 回計算した値をそのまま参照するために持つ。
+    let incompleteCount: Int
     let configuration: TodoWidgetConfigurationIntent
     /// SwiftData fetch が失敗したかどうか。true のときは View 側で空表示ではなく
     /// 「読み込めません」表示にして、空 ("All done!") との誤認を防ぐ。
@@ -117,7 +126,11 @@ struct IntentTodoWidget: Widget {
             intent: TodoWidgetConfigurationIntent.self,
             provider: TodoWidgetProvider()
         ) { entry in
-            TodoWidgetEntryView(todos: entry.todos, loadFailed: entry.loadFailed)
+            TodoWidgetEntryView(
+                todos: entry.todos,
+                incompleteCount: entry.incompleteCount,
+                loadFailed: entry.loadFailed
+            )
         }
         .configurationDisplayName("Todo List")
         .description("View your todos at a glance.")
@@ -137,6 +150,7 @@ struct IntentTodoWidget: Widget {
             TodoAppEntity(id: "2", title: "Call mom", isCompleted: false),
             TodoAppEntity(id: "3", title: "Finish report", isCompleted: true)
         ],
+        incompleteCount: 2,
         configuration: TodoWidgetConfigurationIntent()
     )
 }
@@ -156,6 +170,7 @@ struct IntentTodoWidget: Widget {
                 dueDate: Date().addingTimeInterval(-3600)
             )
         ],
+        incompleteCount: 2,
         configuration: TodoWidgetConfigurationIntent()
     )
 }

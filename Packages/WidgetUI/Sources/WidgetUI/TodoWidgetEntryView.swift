@@ -14,10 +14,12 @@ import WidgetKit
 public struct TodoWidgetEntryView: View {
     @Environment(\.widgetFamily) private var family
     let todos: [TodoAppEntity]
+    let incompleteCount: Int
     let loadFailed: Bool
 
-    public init(todos: [TodoAppEntity], loadFailed: Bool = false) {
+    public init(todos: [TodoAppEntity], incompleteCount: Int, loadFailed: Bool = false) {
         self.todos = todos
+        self.incompleteCount = incompleteCount
         self.loadFailed = loadFailed
     }
 
@@ -27,13 +29,13 @@ public struct TodoWidgetEntryView: View {
         } else {
             switch family {
             case .systemSmall:
-                SmallTodoWidgetView(todos: todos)
+                SmallTodoWidgetView(todos: todos, incompleteCount: incompleteCount)
             case .systemMedium:
-                MediumTodoWidgetView(todos: todos)
+                MediumTodoWidgetView(todos: todos, incompleteCount: incompleteCount)
             case .systemLarge:
-                LargeTodoWidgetView(todos: todos)
+                LargeTodoWidgetView(todos: todos, incompleteCount: incompleteCount)
             default:
-                SmallTodoWidgetView(todos: todos)
+                SmallTodoWidgetView(todos: todos, incompleteCount: incompleteCount)
             }
         }
     }
@@ -63,6 +65,7 @@ struct WidgetLoadFailureView: View {
 
 struct SmallTodoWidgetView: View {
     let todos: [TodoAppEntity]
+    let incompleteCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -72,7 +75,7 @@ struct SmallTodoWidgetView: View {
                 Text("Todos")
                     .font(.headline)
                 Spacer()
-                Text("\(todos.filter { !$0.isCompleted }.count)")
+                Text("\(incompleteCount)")
                     .font(.title2.bold())
                     .foregroundStyle(.orange)
             }
@@ -105,6 +108,7 @@ struct SmallTodoWidgetView: View {
 
 struct MediumTodoWidgetView: View {
     let todos: [TodoAppEntity]
+    let incompleteCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -114,7 +118,7 @@ struct MediumTodoWidgetView: View {
                 Text("Todos")
                     .font(.headline)
                 Spacer()
-                Text("\(todos.filter { !$0.isCompleted }.count) remaining")
+                Text("\(incompleteCount) remaining")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -145,6 +149,7 @@ struct MediumTodoWidgetView: View {
 
 struct LargeTodoWidgetView: View {
     let todos: [TodoAppEntity]
+    let incompleteCount: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -155,7 +160,7 @@ struct LargeTodoWidgetView: View {
                 Text("Todos")
                     .font(.headline)
                 Spacer()
-                Text("\(todos.filter { !$0.isCompleted }.count) remaining")
+                Text("\(incompleteCount) remaining")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

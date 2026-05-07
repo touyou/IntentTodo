@@ -126,12 +126,7 @@ private struct VisionOSBottomOrnament: View {
     var body: some View {
         HStack(spacing: 24) {
             Menu {
-                Picker("Filter", selection: $viewModel.filter) {
-                    ForEach(TodoFilter.allCases) { filterOption in
-                        Label(filterOption.displayName, systemImage: filterOption.systemImage)
-                            .tag(filterOption)
-                    }
-                }
+                FilterPicker(selection: $viewModel.filter)
             } label: {
                 Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
             }
@@ -140,11 +135,7 @@ private struct VisionOSBottomOrnament: View {
             Divider().frame(height: 24)
 
             Menu {
-                Picker("Sort", selection: $viewModel.sortOrder) {
-                    ForEach(TodoSortOrder.allCases) { order in
-                        Text(order.displayName).tag(order)
-                    }
-                }
+                SortPicker(selection: $viewModel.sortOrder)
             } label: {
                 Label("Sort", systemImage: "arrow.up.arrow.down")
             }
@@ -324,31 +315,16 @@ private struct VisionOSHeaderSection: View {
 
             HStack(spacing: 12) {
                 if item.isCompleted {
-                    VisionOSStatusBadge(title: "Completed", icon: "checkmark.circle.fill", color: .green)
+                    StatusBadge(title: "Completed", systemImage: "checkmark.circle.fill", color: .green, size: .prominent)
                 }
                 if item.isFavorite {
-                    VisionOSStatusBadge(title: "Favorite", icon: "star.fill", color: .yellow)
+                    StatusBadge(title: "Favorite", systemImage: "star.fill", color: .yellow, size: .prominent)
                 }
             }
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .glassBackgroundEffect()
-    }
-}
-
-private struct VisionOSStatusBadge: View {
-    let title: String
-    let icon: String
-    let color: Color
-
-    var body: some View {
-        Label(title, systemImage: icon)
-            .font(.subheadline)
-            .foregroundStyle(color)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(color.opacity(0.15), in: Capsule())
     }
 }
 
@@ -441,12 +417,17 @@ private struct VisionOSDescriptionSection: View {
 }
 
 private struct VisionOSSubtasksSection: View {
-    let subtasks: [SubTask]
+    /// 表示前に sort 済み。body 評価のたびに sort を走らせていた旧実装を init 1 回に集約。
+    private let sortedSubtasks: [SubTask]
+
+    init(subtasks: [SubTask]) {
+        self.sortedSubtasks = subtasks.sorted { $0.orderIndex < $1.orderIndex }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Subtasks").font(.headline).foregroundStyle(.secondary)
-            ForEach(subtasks.sorted { $0.orderIndex < $1.orderIndex }, id: \.id) { subtask in
+            ForEach(sortedSubtasks, id: \.id) { subtask in
                 HStack {
                     Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
                         .foregroundStyle(subtask.isCompleted ? .green : .secondary)
