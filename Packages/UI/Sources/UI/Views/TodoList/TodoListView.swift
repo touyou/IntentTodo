@@ -26,7 +26,10 @@ public struct TodoListView: View {
     // MARK: - Computed Properties
 
     private var filteredTodos: [TodoAppEntity] {
-        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
+        // ViewModel が `@Query` 更新時に entities をキャッシュしているので、
+        // body 評価のたびに発生していた `todoItems.map { TodoAppEntity(from: $0) }`
+        // は不要。filter/sort のみここで適用する (filter/sort は item 数に対して軽量)。
+        viewModel.filteredTodos(from: viewModel.entities)
     }
 
     // MARK: - Initialization
@@ -76,6 +79,11 @@ public struct TodoListView: View {
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             AddTodoSheet()
         }
+        // `@Query` 更新時に ViewModel の entity キャッシュを更新する。
+        // initial: true で最初のレンダリングにも反映される。
+        .onChange(of: todoItems, initial: true) {
+            viewModel.update(from: todoItems)
+        }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
@@ -89,6 +97,10 @@ private struct TodoListSidebar: View {
     @Binding var selection: TodoAppEntity?
 
     var body: some View {
+        // SwiftData @Query の delta 検出により List の行挿入/削除は標準で animate
+        // されるため、明示的な `.animation(value: todos.map(\.id))` は外す。旧実装は
+        // body 評価のたびに `[String]` 配列を再アロケートしていたため、件数が増える
+        // ほどスクロールがカクついていた。
         List(selection: $selection) {
             ForEach(todos, id: \.id) { todo in
                 TodoRowView(todo: todo)
@@ -98,7 +110,6 @@ private struct TodoListSidebar: View {
                     }
             }
         }
-        .animation(.default, value: todos.map(\.id))
     }
 }
 

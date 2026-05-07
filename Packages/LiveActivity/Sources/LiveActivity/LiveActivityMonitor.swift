@@ -17,10 +17,22 @@ private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "LiveA
 struct LiveActivityMonitorModifier: ViewModifier {
     let todos: [TodoItem]
 
+    /// reconcile が反応すべき変化を絞った signature。dueDate を持たない todo は
+    /// Live Activity の対象外なので無視し、対象 todo の `id` / `isCompleted` /
+    /// `dueDate` のみを観測する。これにより dueDate 無 todo の追加・編集では
+    /// `.task` が再起動されなくなる (旧実装は全 todo の id 配列を毎更新で
+    /// 再アロケートしており、件数増で観測コストが線形に増えていた)。
+    private var monitorSignature: [String] {
+        todos.compactMap { todo in
+            guard let dueDate = todo.dueDate else { return nil }
+            return "\(todo.id.uuidString)|\(todo.isCompleted)|\(dueDate.timeIntervalSinceReferenceDate)"
+        }
+    }
+
     func body(content: Content) -> some View {
         // .task(id:) は id 変化のたびに自動でキャンセル＆再起動するので、
         // onChange + unstructured Task の組み合わせより安全でシリアル実行が保証される。
-        content.task(id: todos.map(\.id)) {
+        content.task(id: monitorSignature) {
             await checkAndReconcileActivities()
         }
     }
