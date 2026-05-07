@@ -56,6 +56,9 @@ public struct AddTodoIntent: AppIntent {
     @Dependency
     var todoService: TodoService
 
+    @Dependency
+    var navigationModel: NavigationModel
+
     // MARK: - Initialization
 
     public init() {}
@@ -83,6 +86,11 @@ public struct AddTodoIntent: AppIntent {
             dueDate: dueDate,
             isFavorite: isFavorite
         )
+        // UI から呼ばれた場合は Add シートを閉じる。Siri / Shortcuts / Widget から
+        // 呼ばれた場合は元から閉じているので no-op。@Query の件数差分でシートを
+        // 閉じていた旧実装は他デバイス / Widget からの追加で誤クローズしたため、
+        // Intent 完了 = シート閉じるという 1 対 1 対応に集約した。
+        navigationModel.dismissAddTodo()
         return .result(value: entity)
     }
 }

@@ -12,19 +12,52 @@ import TodoAppIntents
 ///
 /// Actions use `Button(intent:)` for consistency with App Intents architecture.
 public struct TodoDetailView: View {
-    @Query private var todoItems: [TodoItem]
-    @Environment(\.dismiss) private var dismiss
-
-    private var todo: TodoItem? { todoItems.first }
+    let todo: TodoAppEntity
 
     public init(todo: TodoAppEntity) {
-        // TodoAppEntity.id (String) → UUID 変換に失敗したら何もマッチしないように
-        // ランダム UUID でフィルタする (ContentUnavailableView に落ちる)。
-        let targetId = UUID(uuidString: todo.id) ?? UUID()
-        _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
+        self.todo = todo
     }
 
     public var body: some View {
+        // `TodoAppEntity.id` (String) → `UUID` の parse に失敗したら、@Query を
+        // 投げずに不在表示へ落とす。旧実装はランダム UUID で必ずヒットしないクエリ
+        // を発行していたため SwiftData 側に無駄な往復が発生していた。
+        if let targetId = UUID(uuidString: todo.id) {
+            TodoDetailQueryView(targetId: targetId, fallbackTitle: todo.title)
+        } else {
+            ContentUnavailableView(
+                "Todo Not Found",
+                systemImage: "questionmark.circle",
+                description: Text("This todo may have been deleted.")
+            )
+            .navigationTitle(todo.title)
+            #if os(iOS) || os(visionOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+        }
+    }
+}
+
+// MARK: - Query Wrapper
+
+/// `@Query` を発行するのは parse 成功後のみ。`@Environment(\.dismiss)` は
+/// NavigationSplitView の detail ペインでは効かないため、todo 消滅時は
+/// `NavigationModel.selectedTodo = nil` で selection を解除する (compact width で
+/// 折り畳まれた NavigationStack 上でも selection クリアで自動 pop する)。
+private struct TodoDetailQueryView: View {
+    @Query private var todoItems: [TodoItem]
+    @Environment(NavigationModel.self) private var navigationModel
+
+    let fallbackTitle: String
+
+    private var todo: TodoItem? { todoItems.first }
+
+    init(targetId: UUID, fallbackTitle: String) {
+        self.fallbackTitle = fallbackTitle
+        _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
+    }
+
+    var body: some View {
         Group {
             if let todo {
                 TodoDetailContent(todo: todo)
@@ -37,13 +70,15 @@ public struct TodoDetailView: View {
             }
         }
         // Detail のタイトルは選択中の todo タイトルを反映 (macOS Mail / Notes と同じ慣習)。
-        // Todo が消えたケースでは "Details" にフォールバック。
-        .navigationTitle(todo?.title ?? "Details")
+        // Todo が消えたケースでは選択時のタイトルを保持して読みやすさを保つ。
+        .navigationTitle(todo?.title ?? fallbackTitle)
         #if os(iOS) || os(visionOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .onChange(of: todo) { _, newValue in
-            if newValue == nil { dismiss() }
+            if newValue == nil {
+                navigationModel.selectedTodo = nil
+            }
         }
     }
 }

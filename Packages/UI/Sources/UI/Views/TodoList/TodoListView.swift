@@ -74,7 +74,7 @@ public struct TodoListView: View {
             }
         }
         .sheet(isPresented: $navigationModel.showingAddTodo) {
-            AddTodoSheet(todoCount: todoItems.count)
+            AddTodoSheet()
         }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
@@ -196,11 +196,10 @@ private struct TodoListToolbar: ToolbarContent {
 
 // MARK: - Add Todo Sheet
 
+/// Sheet container for `AddTodoView`. Dismissal is driven by `AddTodoIntent.perform()`
+/// which calls `navigationModel.dismissAddTodo()` on success — no need to observe
+/// `@Query` count drift here.
 private struct AddTodoSheet: View {
-    let todoCount: Int
-    @Environment(NavigationModel.self) private var navigationModel
-    @State private var baselineCount: Int?
-
     var body: some View {
         #if os(macOS)
         // macOS では NavigationStack + navigationTitle がタイトル上に大きな余白を
@@ -209,24 +208,11 @@ private struct AddTodoSheet: View {
         // ウィンドウバーに自動配置される。
         AddTodoView()
             .frame(minWidth: 520, minHeight: 420)
-            .task { baselineCount = todoCount }
-            .onChange(of: todoCount) { _, newValue in
-                if let baseline = baselineCount, newValue > baseline {
-                    navigationModel.dismissAddTodo()
-                }
-            }
         #else
         NavigationStack {
             AddTodoView()
         }
         .presentationDetents([.medium])
-        .task { baselineCount = todoCount }
-        .onChange(of: todoCount) { _, newValue in
-            // シート開いた時点より件数が増えていれば Intent が成功したと判定しシートを閉じる。
-            if let baseline = baselineCount, newValue > baseline {
-                navigationModel.dismissAddTodo()
-            }
-        }
         #endif
     }
 }
