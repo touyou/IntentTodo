@@ -21,7 +21,8 @@ public struct VisionOSTodoListView: View {
     @Environment(NavigationModel.self) private var navigationModel
 
     private var filteredTodos: [TodoAppEntity] {
-        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
+        // ViewModel が entities をキャッシュしているので body 内 map は不要。
+        viewModel.filteredTodos(from: viewModel.entities)
     }
 
     public init() {}
@@ -43,6 +44,9 @@ public struct VisionOSTodoListView: View {
         }
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             VisionOSAddTodoSheet()
+        }
+        .onChange(of: todoItems, initial: true) {
+            viewModel.update(from: todoItems)
         }
     }
 }
