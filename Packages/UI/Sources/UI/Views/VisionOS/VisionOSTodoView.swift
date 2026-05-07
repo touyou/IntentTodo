@@ -153,7 +153,7 @@ private struct VisionOSBottomOrnament: View {
             } label: {
                 Label("Add Todo", systemImage: "plus.circle.fill")
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.glassProminent)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -353,6 +353,8 @@ private struct VisionOSDueDateSection: View {
     let isCompleted: Bool
 
     var body: some View {
+        // Liquid Glass はナビゲーション層 (Ornament) と主要 surface (Header) に
+        // 限定する方針。本文セクションはコンテンツ層なので plain padding で表示。
         VStack(alignment: .leading, spacing: 12) {
             Text("Due Date")
                 .font(.headline)
@@ -375,7 +377,6 @@ private struct VisionOSDueDateSection: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassBackgroundEffect()
     }
 }
 
@@ -432,7 +433,6 @@ private struct VisionOSDescriptionSection: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassBackgroundEffect()
     }
 }
 
@@ -453,7 +453,6 @@ private struct VisionOSSubtasksSection: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassBackgroundEffect()
     }
 }
 
@@ -461,6 +460,7 @@ private struct VisionOSActionsSection: View {
     let entity: TodoAppEntity
 
     var body: some View {
+        // Action は interactive layer なので Liquid Glass の glass ボタンに乗せる。
         HStack(spacing: 20) {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
                 Label(
@@ -468,14 +468,14 @@ private struct VisionOSActionsSection: View {
                     systemImage: entity.isFavorite ? "star.slash" : "star"
                 )
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
 
             Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
                 Label("Delete", systemImage: "trash")
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             .tint(.red)
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
