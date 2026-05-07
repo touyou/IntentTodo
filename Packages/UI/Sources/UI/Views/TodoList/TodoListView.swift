@@ -26,10 +26,13 @@ public struct TodoListView: View {
     // MARK: - Computed Properties
 
     private var filteredTodos: [TodoAppEntity] {
-        // ViewModel が `@Query` 更新時に entities をキャッシュしているので、
-        // body 評価のたびに発生していた `todoItems.map { TodoAppEntity(from: $0) }`
-        // は不要。filter/sort のみここで適用する (filter/sort は item 数に対して軽量)。
-        viewModel.filteredTodos(from: viewModel.entities)
+        // SwiftData の `@Query` が返す `[TodoItem]` は class ベースの `PersistentModel`
+        // を要素に持つため、要素の中身変更 (title / isCompleted トグル) では `onChange`
+        // ベースのキャッシュ更新が発火しない。安全側に倒し、body 評価ごとに entity 化する。
+        // 1,000 件規模での map コストが問題になるなら、`TodoItem` のフィールドだけを
+        // 抜き出した軽量 projection (例: SwiftData の `#Predicate` で fetch する struct)
+        // を別途検討する。
+        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
     }
 
     // MARK: - Initialization
@@ -78,11 +81,6 @@ public struct TodoListView: View {
         }
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             AddTodoSheet()
-        }
-        // `@Query` 更新時に ViewModel の entity キャッシュを更新する。
-        // initial: true で最初のレンダリングにも反映される。
-        .onChange(of: todoItems, initial: true) {
-            viewModel.update(from: todoItems)
         }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
@@ -179,21 +177,10 @@ private struct TodoListToolbar: ToolbarContent {
 
         ToolbarItem(placement: filterSortPlacement) {
             Menu {
-                Picker("Filter", selection: $viewModel.filter) {
-                    ForEach(TodoFilter.allCases) { filterOption in
-                        Label(filterOption.displayName, systemImage: filterOption.systemImage)
-                            .tag(filterOption)
-                    }
-                }
-
+                FilterPicker(selection: $viewModel.filter)
                 Divider()
-
                 Menu("Sort") {
-                    Picker("Sort", selection: $viewModel.sortOrder) {
-                        ForEach(TodoSortOrder.allCases) { order in
-                            Text(order.displayName).tag(order)
-                        }
-                    }
+                    SortPicker(selection: $viewModel.sortOrder)
                 }
             } label: {
                 Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
