@@ -353,6 +353,8 @@ private struct VisionOSDueDateSection: View {
     let isCompleted: Bool
 
     var body: some View {
+        // Liquid Glass はナビゲーション層 (Ornament) と主要 surface (Header) に
+        // 限定する方針。本文セクションはコンテンツ層なので plain padding で表示。
         VStack(alignment: .leading, spacing: 12) {
             Text("Due Date")
                 .font(.headline)
@@ -375,7 +377,6 @@ private struct VisionOSDueDateSection: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassBackgroundEffect()
     }
 }
 
@@ -432,7 +433,6 @@ private struct VisionOSDescriptionSection: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassBackgroundEffect()
     }
 }
 
@@ -453,7 +453,6 @@ private struct VisionOSSubtasksSection: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassBackgroundEffect()
     }
 }
 
@@ -461,6 +460,8 @@ private struct VisionOSActionsSection: View {
     let entity: TodoAppEntity
 
     var body: some View {
+        // visionOS は .buttonStyle(.glass) / .glassProminent を未サポートのため
+        // .bordered のままで運用 (空間 UI の hover effect 側で interactivity を担保)。
         HStack(spacing: 20) {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
                 Label(
