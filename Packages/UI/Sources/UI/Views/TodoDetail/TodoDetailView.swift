@@ -3,6 +3,7 @@
 //  IntentTodo
 //
 
+import AppIntents
 import Domain
 import SwiftData
 import SwiftUI
@@ -86,6 +87,10 @@ private struct TodoDetailQueryView: View {
 // MARK: - Detail Content
 
 private struct TodoDetailContent: View {
+    /// Activity type advertised to Siri / Apple Intelligence as onscreen content.
+    /// Must match the `NSUserActivityTypes` entry in the app's Info.plist.
+    private static let viewingTodoActivityType = "dev.touyou.IntentTodo.ViewingTodo"
+
     let todo: TodoItem
 
     private var entity: TodoAppEntity { TodoAppEntity(from: todo) }
@@ -125,6 +130,13 @@ private struct TodoDetailContent: View {
         #if os(visionOS)
         .listStyle(.plain)
         #endif
+        // Onscreen Entities (WWDC 2026): advertise the visible todo to Siri /
+        // Apple Intelligence so the person can ask about "this" todo. The
+        // association is cleared automatically when the view goes away.
+        .userActivity(Self.viewingTodoActivityType) { activity in
+            activity.title = String(localized: "Viewing \(todo.title)")
+            activity.appEntityIdentifier = EntityIdentifier(for: entity)
+        }
     }
 }
 
