@@ -44,6 +44,11 @@ public struct TodoAppEntity: AppEntity, Hashable {
     @Property(title: "Category")
     public var category: CategoryAppEntity?
 
+    /// Estimated time to complete, exposed as the App Intents native `Duration`
+    /// type (WWDC 2026). Bridged from the stored `TimeInterval` on the model.
+    @Property(title: "Estimated Duration")
+    public var estimatedDuration: Duration?
+
     // MARK: - Derived Properties (WWDC 2026 property macros)
 
     /// Whether the todo is past its due date and still incomplete.
@@ -148,6 +153,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.isFavorite = todoItem.isFavorite
         self.dueDate = todoItem.dueDate
         self.category = todoItem.category.map(CategoryAppEntity.init(from:))
+        self.estimatedDuration = todoItem.estimatedDuration.map { Duration.seconds($0) }
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -158,7 +164,8 @@ public struct TodoAppEntity: AppEntity, Hashable {
         isFavorite: Bool = false,
         dueDate: Date? = nil,
         createdAt: Date = Date(),
-        category: CategoryAppEntity? = nil
+        category: CategoryAppEntity? = nil,
+        estimatedDuration: Duration? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -167,6 +174,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.isFavorite = isFavorite
         self.dueDate = dueDate
         self.category = category
+        self.estimatedDuration = estimatedDuration
     }
 
     // MARK: - Hashable / Equatable
@@ -182,6 +190,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
             && lhs.dueDate == rhs.dueDate
             && lhs.createdAt == rhs.createdAt
             && lhs.category == rhs.category
+            && lhs.estimatedDuration == rhs.estimatedDuration
     }
 
     public func hash(into hasher: inout Hasher) {

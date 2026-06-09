@@ -82,7 +82,8 @@ public final class TodoService {
         title: String,
         todoDescription: String?,
         dueDate: Date?,
-        isFavorite: Bool
+        isFavorite: Bool,
+        estimatedDuration: TimeInterval? = nil
     ) throws -> TodoAppEntity {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -93,7 +94,8 @@ public final class TodoService {
             title: trimmed,
             todoDescription: todoDescription,
             isFavorite: isFavorite,
-            dueDate: dueDate
+            dueDate: dueDate,
+            estimatedDuration: estimatedDuration
         )
         try repository.create(item)
         let entity = TodoAppEntity(from: item)

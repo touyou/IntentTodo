@@ -35,6 +35,13 @@ public final class TodoItem {
     /// Optional due date for the todo item.
     public var dueDate: Date?
 
+    /// Estimated time to complete, in seconds.
+    ///
+    /// Stored as `TimeInterval` for SwiftData/CloudKit compatibility (optional, so
+    /// no migration concerns) and bridged to the App Intents `Duration` type at the
+    /// entity boundary.
+    public var estimatedDuration: TimeInterval?
+
     /// The date when the todo item was created.
     public var createdAt: Date = Date()
 
@@ -70,7 +77,8 @@ public final class TodoItem {
         todoDescription: String? = nil,
         isCompleted: Bool = false,
         isFavorite: Bool = false,
-        dueDate: Date? = nil
+        dueDate: Date? = nil,
+        estimatedDuration: TimeInterval? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -78,6 +86,7 @@ public final class TodoItem {
         self.isCompleted = isCompleted
         self.isFavorite = isFavorite
         self.dueDate = dueDate
+        self.estimatedDuration = estimatedDuration
         self.createdAt = Date()
         self.modifiedAt = Date()
         self.category = nil

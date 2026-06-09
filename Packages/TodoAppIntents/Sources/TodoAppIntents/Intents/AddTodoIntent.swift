@@ -51,6 +51,11 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Mark as Favorite", description: "Whether to mark as favorite", default: false)
     public var isFavorite: Bool
 
+    /// Estimated time to complete. Uses the App Intents native `Duration` type
+    /// (WWDC 2026) so Siri / Shortcuts present a proper duration picker.
+    @Parameter(title: "Estimated Duration", description: "Estimated time to complete")
+    public var estimatedDuration: Duration?
+
     // MARK: - Dependencies
 
     @Dependency
@@ -68,12 +73,14 @@ public struct AddTodoIntent: AppIntent {
         title: String,
         todoDescription: String? = nil,
         dueDate: Date? = nil,
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        estimatedDuration: Duration? = nil
     ) {
         self.title = title
         self.todoDescription = todoDescription
         self.dueDate = dueDate
         self.isFavorite = isFavorite
+        self.estimatedDuration = estimatedDuration
     }
 
     // MARK: - Perform
@@ -84,7 +91,8 @@ public struct AddTodoIntent: AppIntent {
             title: title,
             todoDescription: todoDescription,
             dueDate: dueDate,
-            isFavorite: isFavorite
+            isFavorite: isFavorite,
+            estimatedDuration: estimatedDuration.map { Double($0.components.seconds) }
         )
         // UI から呼ばれた場合は Add シートを閉じる。Siri / Shortcuts / Widget から
         // 呼ばれた場合は元から閉じているので no-op。@Query の件数差分でシートを
