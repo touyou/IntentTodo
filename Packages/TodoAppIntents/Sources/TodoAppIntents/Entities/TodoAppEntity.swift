@@ -7,7 +7,9 @@ import AppIntents
 #if canImport(CoreSpotlight)
 import CoreSpotlight
 #endif
+import Domain
 import Repository
+import SwiftData
 
 /// An App Intents entity representing a todo item.
 ///
@@ -32,6 +34,56 @@ public struct TodoAppEntity: AppEntity, Hashable {
 
     /// The creation date of the todo item.
     public var createdAt: Date
+
+    // MARK: - Derived Properties (WWDC 2026 property macros)
+
+    /// Whether the todo is past its due date and still incomplete.
+    ///
+    /// Uses `@ComputedProperty` (iOS 26+) so the value is derived live from the
+    /// entity's snapshot fields and exposed to Shortcuts / Siri without being
+    /// stored. Cheap and synchronous — no external source access.
+    @ComputedProperty(title: "Is Overdue")
+    public var isOverdue: Bool {
+        guard !isCompleted, let dueDate else { return false }
+        return dueDate < Date()
+    }
+
+    /// A short human-readable summary of subtask completion (e.g. "2/5 completed").
+    ///
+    /// Uses `@DeferredProperty` (iOS 26+): subtasks are a SwiftData relationship
+    /// that isn't carried in the lightweight entity snapshot, so the value is
+    /// fetched on demand only when Shortcuts / Siri actually request it. It is
+    /// deliberately excluded from Spotlight indexing per the deferred-property
+    /// contract.
+    @DeferredProperty(title: "Subtask Progress")
+    public var subtaskProgress: String {
+        get async throws {
+            try await Self.loadSubtaskProgress(forID: id)
+        }
+    }
+
+    /// Fetches subtask completion counts on the MainActor and formats a summary.
+    ///
+    /// Entities can't use `@Dependency` (that is intents-only), so the shared
+    /// container is read from `TodoEntityStore`, which the app registers at launch.
+    private static func loadSubtaskProgress(forID id: String) async throws -> String {
+        try await MainActor.run {
+            guard let container = TodoEntityStore.container else {
+                return String(localized: "No subtasks")
+            }
+            let repository = SwiftDataTodoRepository(modelContext: container.mainContext)
+            guard let uuid = UUID(uuidString: id),
+                  let item = try repository.fetch(by: uuid) else {
+                return String(localized: "No subtasks")
+            }
+            let subTasks = item.subTasks ?? []
+            guard !subTasks.isEmpty else {
+                return String(localized: "No subtasks")
+            }
+            let completed = subTasks.filter(\.isCompleted).count
+            return "\(completed)/\(subTasks.count) completed"
+        }
+    }
 
     // MARK: - AppEntity Requirements
 
@@ -103,6 +155,24 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.isFavorite = isFavorite
         self.dueDate = dueDate
         self.createdAt = createdAt
+    }
+
+    // MARK: - Hashable / Equatable
+
+    // The `@ComputedProperty` / `@DeferredProperty` macros add non-`Hashable`
+    // `EntityProperty` backing storage, so synthesis is unavailable. Equality
+    // compares the value snapshot fields; the hash uses the stable id.
+    public static func == (lhs: TodoAppEntity, rhs: TodoAppEntity) -> Bool {
+        lhs.id == rhs.id
+            && lhs.title == rhs.title
+            && lhs.isCompleted == rhs.isCompleted
+            && lhs.isFavorite == rhs.isFavorite
+            && lhs.dueDate == rhs.dueDate
+            && lhs.createdAt == rhs.createdAt
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
     }
 }
 

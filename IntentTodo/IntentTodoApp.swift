@@ -41,6 +41,12 @@ struct IntentTodoApp: App {
             let container = try SharedModelContainer.createContainer()
             modelContainer = container
             AppDependencyManager.shared.add(dependency: container)
+
+            // TodoAppEntity deferred properties fetch on demand via this shared
+            // container (entities can't use @Dependency — that's intents-only).
+            MainActor.assumeIsolated {
+                TodoEntityStore.register(container: container)
+            }
         } catch {
             logger.critical("ModelContainer init failed: \(String(reflecting: error))")
             if let nsError = error as NSError? {

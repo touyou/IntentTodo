@@ -84,6 +84,46 @@ struct TodoAppEntityTests {
         #expect(set.count == 1)
     }
 
+    // MARK: - isOverdue (@ComputedProperty)
+
+    @Test("isOverdue is true for an incomplete todo past its due date")
+    func isOverdueWhenPastDueAndIncomplete() {
+        let entity = TodoAppEntity(
+            id: "test-id",
+            title: "Late Todo",
+            isCompleted: false,
+            dueDate: Date().addingTimeInterval(-3600)
+        )
+        #expect(entity.isOverdue == true)
+    }
+
+    @Test("isOverdue is false when the todo is completed even if past due")
+    func isNotOverdueWhenCompleted() {
+        let entity = TodoAppEntity(
+            id: "test-id",
+            title: "Done Todo",
+            isCompleted: true,
+            dueDate: Date().addingTimeInterval(-3600)
+        )
+        #expect(entity.isOverdue == false)
+    }
+
+    @Test("isOverdue is false for a future due date")
+    func isNotOverdueWhenDueInFuture() {
+        let entity = TodoAppEntity(
+            id: "test-id",
+            title: "Upcoming Todo",
+            dueDate: Date().addingTimeInterval(3600)
+        )
+        #expect(entity.isOverdue == false)
+    }
+
+    @Test("isOverdue is false when there is no due date")
+    func isNotOverdueWithoutDueDate() {
+        let entity = TodoAppEntity(id: "test-id", title: "No Due Date")
+        #expect(entity.isOverdue == false)
+    }
+
     @Test("TypeDisplayRepresentation is configured")
     func typeDisplayRepresentationConfigured() {
         let representation = TodoAppEntity.typeDisplayRepresentation
