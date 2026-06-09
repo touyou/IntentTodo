@@ -510,6 +510,7 @@ Types: feat, fix, refactor, test, docs, chore
 ## 参照ドキュメント
 
 - `docs/PLAN.md` - 開発計画
+- `docs/WWDC2026-UPDATES.md` - WWDC 2026 更新の適用検討マップ（対応済み/候補/根拠セッションURL）
 - `docs/AGENTS.md` - App Intents中心設計の詳細ガイド
 - `docs/APP_INTENT_DRIVEN_DESIGN.md` - 関連概念の整理と比較
 - `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト（目次）
