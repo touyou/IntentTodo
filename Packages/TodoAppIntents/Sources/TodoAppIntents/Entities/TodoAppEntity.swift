@@ -39,6 +39,11 @@ public struct TodoAppEntity: AppEntity, Hashable {
     /// The creation date of the todo item.
     public var createdAt: Date
 
+    /// The category this todo belongs to, if any. Exposed as a related entity so
+    /// Siri / Shortcuts can filter or navigate todos by category.
+    @Property(title: "Category")
+    public var category: CategoryAppEntity?
+
     // MARK: - Derived Properties (WWDC 2026 property macros)
 
     /// Whether the todo is past its due date and still incomplete.
@@ -142,6 +147,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.isCompleted = todoItem.isCompleted
         self.isFavorite = todoItem.isFavorite
         self.dueDate = todoItem.dueDate
+        self.category = todoItem.category.map(CategoryAppEntity.init(from:))
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -151,7 +157,8 @@ public struct TodoAppEntity: AppEntity, Hashable {
         isCompleted: Bool = false,
         isFavorite: Bool = false,
         dueDate: Date? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        category: CategoryAppEntity? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -159,6 +166,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.isCompleted = isCompleted
         self.isFavorite = isFavorite
         self.dueDate = dueDate
+        self.category = category
     }
 
     // MARK: - Hashable / Equatable
@@ -173,6 +181,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
             && lhs.isFavorite == rhs.isFavorite
             && lhs.dueDate == rhs.dueDate
             && lhs.createdAt == rhs.createdAt
+            && lhs.category == rhs.category
     }
 
     public func hash(into hasher: inout Hasher) {
