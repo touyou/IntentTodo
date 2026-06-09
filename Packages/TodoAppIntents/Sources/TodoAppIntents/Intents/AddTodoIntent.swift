@@ -79,7 +79,7 @@ public struct AddTodoIntent: AppIntent {
     // MARK: - Perform
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
+    public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> & ProvidesDialog & ShowsSnippetIntent {
         let entity = try todoService.create(
             title: title,
             todoDescription: todoDescription,
@@ -91,6 +91,14 @@ public struct AddTodoIntent: AppIntent {
         // 閉じていた旧実装は他デバイス / Widget からの追加で誤クローズしたため、
         // Intent 完了 = シート閉じるという 1 対 1 対応に集約した。
         navigationModel.dismissAddTodo()
-        return .result(value: entity)
+
+        // WWDC 2026: Siri / Shortcuts から呼ばれた場合は作成した Todo を
+        // インタラクティブスニペットで提示し、その場で完了 / お気に入り操作を
+        // 可能にする。UI Button(intent:) 経由ではスニペット / dialog は表示されない。
+        return .result(
+            value: entity,
+            dialog: IntentDialog("Added \"\(entity.title)\"."),
+            snippetIntent: TodoSnippetIntent(todoId: entity.id)
+        )
     }
 }
