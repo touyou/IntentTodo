@@ -56,6 +56,11 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Estimated Duration", description: "Estimated time to complete")
     public var estimatedDuration: Duration?
 
+    /// Person to assign the todo to. Uses the App Intents native
+    /// `PersonNameComponents` type (WWDC 2026) so Siri can resolve a name.
+    @Parameter(title: "Assignee", description: "Person responsible for the todo")
+    public var assignee: PersonNameComponents?
+
     // MARK: - Dependencies
 
     @Dependency
@@ -74,13 +79,15 @@ public struct AddTodoIntent: AppIntent {
         todoDescription: String? = nil,
         dueDate: Date? = nil,
         isFavorite: Bool = false,
-        estimatedDuration: Duration? = nil
+        estimatedDuration: Duration? = nil,
+        assignee: PersonNameComponents? = nil
     ) {
         self.title = title
         self.todoDescription = todoDescription
         self.dueDate = dueDate
         self.isFavorite = isFavorite
         self.estimatedDuration = estimatedDuration
+        self.assignee = assignee
     }
 
     // MARK: - Perform
@@ -92,7 +99,8 @@ public struct AddTodoIntent: AppIntent {
             todoDescription: todoDescription,
             dueDate: dueDate,
             isFavorite: isFavorite,
-            estimatedDuration: estimatedDuration.map { Double($0.components.seconds) }
+            estimatedDuration: estimatedDuration.map { Double($0.components.seconds) },
+            assigneeName: assignee.map { PersonNameComponentsFormatter().string(from: $0) }
         )
         // UI から呼ばれた場合は Add シートを閉じる。Siri / Shortcuts / Widget から
         // 呼ばれた場合は元から閉じているので no-op。@Query の件数差分でシートを

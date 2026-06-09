@@ -49,6 +49,10 @@ public struct TodoAppEntity: AppEntity, Hashable {
     @Property(title: "Estimated Duration")
     public var estimatedDuration: Duration?
 
+    /// Display name of the assignee, if any.
+    @Property(title: "Assignee")
+    public var assigneeName: String?
+
     // MARK: - Derived Properties (WWDC 2026 property macros)
 
     /// Whether the todo is past its due date and still incomplete.
@@ -154,6 +158,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.dueDate = todoItem.dueDate
         self.category = todoItem.category.map(CategoryAppEntity.init(from:))
         self.estimatedDuration = todoItem.estimatedDuration.map { Duration.seconds($0) }
+        self.assigneeName = todoItem.assigneeName
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -165,7 +170,8 @@ public struct TodoAppEntity: AppEntity, Hashable {
         dueDate: Date? = nil,
         createdAt: Date = Date(),
         category: CategoryAppEntity? = nil,
-        estimatedDuration: Duration? = nil
+        estimatedDuration: Duration? = nil,
+        assigneeName: String? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -175,6 +181,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.dueDate = dueDate
         self.category = category
         self.estimatedDuration = estimatedDuration
+        self.assigneeName = assigneeName
     }
 
     // MARK: - Hashable / Equatable
@@ -191,6 +198,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
             && lhs.createdAt == rhs.createdAt
             && lhs.category == rhs.category
             && lhs.estimatedDuration == rhs.estimatedDuration
+            && lhs.assigneeName == rhs.assigneeName
     }
 
     public func hash(into hasher: inout Hasher) {

@@ -42,6 +42,12 @@ public final class TodoItem {
     /// entity boundary.
     public var estimatedDuration: TimeInterval?
 
+    /// Display name of the person this todo is assigned to, if any.
+    ///
+    /// Stored as a formatted `String` (CloudKit-safe); the App Intents layer accepts
+    /// it as a native `PersonNameComponents` parameter and formats it here.
+    public var assigneeName: String?
+
     /// The date when the todo item was created.
     public var createdAt: Date = Date()
 
@@ -78,7 +84,8 @@ public final class TodoItem {
         isCompleted: Bool = false,
         isFavorite: Bool = false,
         dueDate: Date? = nil,
-        estimatedDuration: TimeInterval? = nil
+        estimatedDuration: TimeInterval? = nil,
+        assigneeName: String? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -87,6 +94,7 @@ public final class TodoItem {
         self.isFavorite = isFavorite
         self.dueDate = dueDate
         self.estimatedDuration = estimatedDuration
+        self.assigneeName = assigneeName
         self.createdAt = Date()
         self.modifiedAt = Date()
         self.category = nil
