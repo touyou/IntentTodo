@@ -21,15 +21,19 @@ public struct TodoAppEntity: AppEntity, Hashable {
     public var id: String
 
     /// The title of the todo item.
+    @Property(title: "Title")
     public var title: String
 
     /// Whether the todo item is completed.
+    @Property(title: "Completed")
     public var isCompleted: Bool
 
     /// Whether the todo item is marked as favorite.
+    @Property(title: "Favorite")
     public var isFavorite: Bool
 
     /// The due date of the todo item, if any.
+    @Property(title: "Due Date")
     public var dueDate: Date?
 
     /// The creation date of the todo item.
@@ -133,11 +137,11 @@ public struct TodoAppEntity: AppEntity, Hashable {
     @MainActor
     public init(from todoItem: TodoItem) {
         self.id = todoItem.id.uuidString
+        self.createdAt = todoItem.createdAt
         self.title = todoItem.title
         self.isCompleted = todoItem.isCompleted
         self.isFavorite = todoItem.isFavorite
         self.dueDate = todoItem.dueDate
-        self.createdAt = todoItem.createdAt
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -150,11 +154,11 @@ public struct TodoAppEntity: AppEntity, Hashable {
         createdAt: Date = Date()
     ) {
         self.id = id
+        self.createdAt = createdAt
         self.title = title
         self.isCompleted = isCompleted
         self.isFavorite = isFavorite
         self.dueDate = dueDate
-        self.createdAt = createdAt
     }
 
     // MARK: - Hashable / Equatable
