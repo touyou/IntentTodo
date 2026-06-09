@@ -1,13 +1,13 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.4
 import PackageDescription
 
 let package = Package(
     name: "Domain",
     platforms: [
-        .iOS(.v26),
-        .macOS(.v26),
-        .watchOS(.v26),
-        .visionOS(.v26)
+        .iOS(.v27),
+        .macOS(.v27),
+        .watchOS(.v27),
+        .visionOS(.v27)
     ],
     products: [
         .library(

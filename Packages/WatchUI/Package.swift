@@ -1,10 +1,10 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.4
 import PackageDescription
 
 let package = Package(
     name: "WatchUI",
     platforms: [
-        .watchOS(.v26)
+        .watchOS(.v27)
     ],
     products: [
         .library(
