@@ -468,15 +468,16 @@ Action-Centered DesignとApp Intents中心設計をさらに深化させる次�
 | フェーズ | 機能 | 概要 | 状態 |
 |---------|------|------|------|
 | **Entity強化** | プロパティマクロ | @ComputedProperty, @DeferredProperty | ✅ Xcode 27 ブランチ |
-| **Intent Modes** | 高度な実行制御 | .background/.foreground(.dynamic) | ✅ Xcode 27 ブランチ |
 | **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier | ✅ Xcode 27 ブランチ |
 | **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ Xcode 27 ブランチ |
-| **Apple Intelligence** | FoundationModels統合 | Todo自動生成、サマリー、Tool Calling | 未着手 |
-| **Visual Intelligence** | IntentValueQuery | カメラからTodo認識 | 未着手 |
-| **Liquid Glass** | UI適応 | widgetAccentable, glassEffect() | 未着手 |
-| **visionOS強化** | 空間体験 | mountingStyles, levelOfDetail, ExtraLarge | 未着手 |
+| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.*) | 🔜 計画中 |
+| **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor | 🔜 計画中 |
+| **高度な Intent** | 会話/寄付/提案 | requestConfirmation, IntentDonationManager, RelevantEntities | 🔜 計画中 |
+| **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, allowedExecutionTargets | 🔜 計画中 |
+| **テスト基盤** | Intent 実経路テスト | AppIntentsTesting (makeIntent/run) | 🔜 計画中 |
+| **Intent Modes** | 動的実行制御 | .foreground(.dynamic)（適所を再選定中） | 保留（#2 revert 済） |
 
-> 「✅ Xcode 27 ブランチ」は `xcode27` ブランチ（26.x ベータ SDK 検証用、main 未マージ）で実装済み。実装パターンと採用時の落とし穴は `docs/insights/03-app-intents-core.md` の「Xcode 27 / WWDC 2026 で採用した API」を参照。
+> 「✅ Xcode 27 ブランチ」は `xcode27` ブランチ（26.x ベータ SDK 検証用、main 未マージ）で実装済み。「🔜 計画中」は `docs/APP_INTENTS_CENTRIC_PLAN.md` の検証計画に沿って実装予定。実装パターンと落とし穴は `docs/insights/03-app-intents-core.md`「Xcode 27 / WWDC 2026 で採用した API」を参照。
 > 詳細は `docs/PLAN.md` の「拡張可能性」セクションを参照
 
 ## 開発フロー（TDD）
@@ -510,7 +511,7 @@ Types: feat, fix, refactor, test, docs, chore
 ## 参照ドキュメント
 
 - `docs/PLAN.md` - 開発計画
-- `docs/WWDC2026-UPDATES.md` - WWDC 2026 更新の適用検討マップ（対応済み/候補/根拠セッションURL）
+- `docs/APP_INTENTS_CENTRIC_PLAN.md` - WWDC 2026 セッション要素の検証計画（セッション別チェックリスト + 根拠URL）
 - `docs/AGENTS.md` - App Intents中心設計の詳細ガイド
 - `docs/APP_INTENT_DRIVEN_DESIGN.md` - 関連概念の整理と比較
 - `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト（目次）
