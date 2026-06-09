@@ -465,16 +465,18 @@ struct TodoEntity: AppEntity, IndexedEntity {
 
 Action-Centered DesignとApp Intents中心設計をさらに深化させる次のフェーズ：
 
-| フェーズ | 機能 | 概要 |
-|---------|------|------|
-| **Apple Intelligence** | FoundationModels統合 | Todo自動生成、サマリー、Tool Calling |
-| **Visual Intelligence** | IntentValueQuery | カメラからTodo認識、Onscreen Entities |
-| **Intent Modes** | 高度な実行制御 | .background/.foreground(.dynamic) |
-| **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット |
-| **Entity強化** | プロパティマクロ | @ComputedProperty, @DeferredProperty |
-| **Liquid Glass** | UI適応 | widgetAccentable, glassEffect() |
-| **visionOS強化** | 空間体験 | mountingStyles, levelOfDetail, ExtraLarge |
+| フェーズ | 機能 | 概要 | 状態 |
+|---------|------|------|------|
+| **Entity強化** | プロパティマクロ | @ComputedProperty, @DeferredProperty | ✅ Xcode 27 ブランチ |
+| **Intent Modes** | 高度な実行制御 | .background/.foreground(.dynamic) | ✅ Xcode 27 ブランチ |
+| **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier | ✅ Xcode 27 ブランチ |
+| **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ Xcode 27 ブランチ |
+| **Apple Intelligence** | FoundationModels統合 | Todo自動生成、サマリー、Tool Calling | 未着手 |
+| **Visual Intelligence** | IntentValueQuery | カメラからTodo認識 | 未着手 |
+| **Liquid Glass** | UI適応 | widgetAccentable, glassEffect() | 未着手 |
+| **visionOS強化** | 空間体験 | mountingStyles, levelOfDetail, ExtraLarge | 未着手 |
 
+> 「✅ Xcode 27 ブランチ」は `xcode27` ブランチ（26.x ベータ SDK 検証用、main 未マージ）で実装済み。実装パターンと採用時の落とし穴は `docs/insights/03-app-intents-core.md` の「Xcode 27 / WWDC 2026 で採用した API」を参照。
 > 詳細は `docs/PLAN.md` の「拡張可能性」セクションを参照
 
 ## 開発フロー（TDD）

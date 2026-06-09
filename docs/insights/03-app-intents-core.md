@@ -411,3 +411,64 @@ public enum TodoFilterType: String, AppEnum {
     }
 }
 ```
+
+## Xcode 27 / WWDC 2026 で採用した API
+
+> `xcode27` ブランチ（26.x ベータ SDK 検証用、main 未マージ）で採用。ベータ仕様のため変更の可能性あり。
+
+### @ComputedProperty / @DeferredProperty（Entity プロパティマクロ）
+
+`AppEntity` のプロパティをスナップショット以外の源から導出/取得して Shortcuts・Siri に公開できる。
+
+- `@ComputedProperty`: 同期 getter。`TodoAppEntity.isOverdue` はスナップショットの `dueDate` / `isCompleted` から導出（外部アクセスなし）。
+- `@DeferredProperty`: 非同期 getter (`get async throws`)。要求時のみ取得され、**Spotlight index には含まれず、Siri / Shortcuts にも自動送出されない**。`TodoAppEntity.subtaskProgress` はサブタスク（SwiftData リレーション）を必要時だけ取得する。
+
+**落とし穴**:
+- **Entity は `@Dependency` を使えない**。Apple 公式: 「dependency injection は main app から *intent* へデータを渡すためだけに使える」。`EntityQuery` では使えるが `AppEntity` では `Unknown attribute 'Dependency'` になる。→ 共有 `ModelContainer` を App 起動時に `TodoEntityStore`（`@MainActor enum` の static）へ登録し、deferred getter から参照する（Apple サンプルの ambient `modelData` パターン相当）。
+- **プロパティマクロは非 `Hashable` な `EntityProperty` backing を生成する**ため `Hashable` / `Equatable` の自動合成が壊れる。→ `==` / `hash(into:)` を明示実装（id ベースの hash + スナップショット比較の等価）。
+
+### Intent Modes: `.foreground(.dynamic)` + `continueInForeground`
+
+`ShowTodosIntent` を `[.background, .foreground(.dynamic)]` にし、background 優先で実行。
+
+```swift
+public static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
+
+func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog {
+    let entities = try todoService.listTodos(filter: filter)
+    if systemContext.currentMode.canContinueInForeground {
+        do {
+            try await continueInForeground(alwaysConfirm: false)
+            navigationModel.navigateToRoot()
+        } catch { /* foreground 拒否 → background のまま */ }
+    }
+    return .result(value: entities, dialog: dialog(for: entities))
+}
+```
+
+- `.foreground(.dynamic)` は deprecated な `ForegroundContinuableIntent` の後継。
+- **`OpensIntent` 返却は dynamic background と矛盾する**（常にアプリを開いてしまう）。foreground 遷移は `continueInForeground()` 成功後に `NavigationModel` で直接行い、`OpensIntent` は使わない。
+- 「アプリを開く」専用 Intent（`LaunchAppIntent`）は `.foreground(.immediate)` を維持する。dynamic にしない。
+
+### Onscreen Entities（画面コンテンツを Siri / Apple Intelligence に提供）
+
+詳細 View に `.userActivity` を付与し、表示中エンティティを関連付ける。
+
+```swift
+.userActivity("dev.touyou.IntentTodo.ViewingTodo") { activity in
+    activity.title = String(localized: "Viewing \(todo.title)")
+    activity.appEntityIdentifier = EntityIdentifier(for: entity)   // AppIntents
+}
+```
+
+- `appEntityIdentifier`（`NSUserActivity` の AppIntents 拡張）/ `EntityIdentifier(for:)` は `import AppIntents` が必要。
+- アクティビティタイプ文字列は **Info.plist の `NSUserActivityTypes` に登録**し、コード側の定数と一致させる。
+
+### Interactive Snippet（`SnippetIntent`）
+
+`SnippetIntent.perform()` は `some IntentResult & ShowsSnippetView` を返し、`.result(view:)` で SwiftUI を提示。ホスト Intent は `.result(value:dialog:snippetIntent:)` で `ShowsSnippetIntent` を返す。
+
+- スニペットの Button は **ウィジェット同様に `Button(intent:)` で App Intent を直接実行**する。
+- ボタン押下のたびに **システムが `SnippetIntent` を再実行**するため、`perform()` は毎回最新状態を取得する（本プロジェクトは `TodoEntityStore` から再フェッチしてラベルを更新）。
+- 本プロジェクトの `AddTodoIntent` 経由スニペットは **app プロセスで提示**されるため、entity 解決クラッシュ（Live Activity Extension 限定の Issue #30 A-3）は該当せず Primary な entity ベース Intent を使う。**新規 `FromExtension` 変種は追加しない**（FromExtension は LA/Widget 専用ワークアラウンドのため）。
+- `SnippetIntent` は `isDiscoverable = false`（`snippetIntent:` 経由でのみ提示、Shortcuts 非露出）。
