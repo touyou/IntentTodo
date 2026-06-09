@@ -9,7 +9,12 @@ import AppIntents
 public struct ShowTodosIntent: AppIntent {
     public static var title: LocalizedStringResource { "Show Todos" }
     public static let description = IntentDescription("Shows your todo items")
-    public static var supportedModes: IntentModes { .foreground }
+
+    // WWDC 2026 Intent Modes: prefer the background (so Siri / Shortcuts can read
+    // the count without opening the app) and transition to the foreground only
+    // when the system permits — see `perform()`. `.foreground(.dynamic)` replaces
+    // the deprecated `ForegroundContinuableIntent`.
+    public static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
 
     public static var parameterSummary: some ParameterSummary {
         Summary("Show \(\.$filter) todos")
@@ -21,6 +26,9 @@ public struct ShowTodosIntent: AppIntent {
     @Dependency
     var todoService: TodoService
 
+    @Dependency
+    var navigationModel: NavigationModel
+
     public init() {
         self.filter = .all
     }
@@ -30,17 +38,27 @@ public struct ShowTodosIntent: AppIntent {
     }
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog & OpensIntent {
+    public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog {
         let entities = try todoService.listTodos(filter: filter)
-        return .result(
-            value: entities,
-            opensIntent: LaunchAppIntent(target: Self.screenTarget(for: filter)),
-            dialog: dialog(for: entities)
-        )
+
+        // Background-first: only bring the app forward (and route to the matching
+        // screen) when the current run mode allows it. If the system denies the
+        // transition, fall through and just return the spoken/displayed dialog.
+        if systemContext.currentMode.canContinueInForeground {
+            do {
+                try await continueInForeground(alwaysConfirm: false)
+                navigationModel.navigateToRoot()
+            } catch {
+                // Foreground transition unavailable — continue in the background.
+            }
+        }
+
+        return .result(value: entities, dialog: dialog(for: entities))
     }
 
-    /// 画面遷移先と filter のマッピングは Intent perform() の外でも検証したいので
-    /// 純関数として切り出す (perform は @Dependency 解決の都合で SPM テストが書きにくい)。
+    /// filter → 表示画面のマッピング。`perform()` のフォアグラウンド遷移は現状すべて
+    /// ルートのリストを開く (LaunchAppIntent と同じ挙動) が、フィルタ別画面を追加する際の
+    /// 単一ルーティング地点として純関数で保持し、SPM テストで網羅検証する。
     static func screenTarget(for filter: TodoFilterType) -> AppScreenTarget {
         switch filter {
         case .all, .completed:
