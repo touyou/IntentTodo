@@ -5,6 +5,7 @@
 
 import AppIntents
 import Foundation
+import GeoToolbox
 
 /// An intent that creates a new todo item.
 ///
@@ -61,6 +62,11 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Assignee", description: "Person responsible for the todo")
     public var assignee: PersonNameComponents?
 
+    /// Location associated with the todo. Uses the App Intents native
+    /// `PlaceDescriptor` (GeoToolbox) type so Siri can resolve a place.
+    @Parameter(title: "Location", description: "Place associated with the todo")
+    public var location: PlaceDescriptor?
+
     // MARK: - Dependencies
 
     @Dependency
@@ -80,7 +86,8 @@ public struct AddTodoIntent: AppIntent {
         dueDate: Date? = nil,
         isFavorite: Bool = false,
         estimatedDuration: Duration? = nil,
-        assignee: PersonNameComponents? = nil
+        assignee: PersonNameComponents? = nil,
+        location: PlaceDescriptor? = nil
     ) {
         self.title = title
         self.todoDescription = todoDescription
@@ -88,6 +95,7 @@ public struct AddTodoIntent: AppIntent {
         self.isFavorite = isFavorite
         self.estimatedDuration = estimatedDuration
         self.assignee = assignee
+        self.location = location
     }
 
     // MARK: - Perform
@@ -100,7 +108,10 @@ public struct AddTodoIntent: AppIntent {
             dueDate: dueDate,
             isFavorite: isFavorite,
             estimatedDuration: estimatedDuration.map { Double($0.components.seconds) },
-            assigneeName: assignee.map { PersonNameComponentsFormatter().string(from: $0) }
+            assigneeName: assignee.map { PersonNameComponentsFormatter().string(from: $0) },
+            locationName: location.flatMap { TodoPlace.decompose($0).name },
+            locationLatitude: location.flatMap { TodoPlace.decompose($0).latitude },
+            locationLongitude: location.flatMap { TodoPlace.decompose($0).longitude }
         )
         // UI から呼ばれた場合は Add シートを閉じる。Siri / Shortcuts / Widget から
         // 呼ばれた場合は元から閉じているので no-op。@Query の件数差分でシートを

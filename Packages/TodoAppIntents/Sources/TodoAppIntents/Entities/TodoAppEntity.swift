@@ -8,6 +8,7 @@ import AppIntents
 import CoreSpotlight
 #endif
 import Domain
+import GeoToolbox
 import Repository
 import SwiftData
 
@@ -52,6 +53,11 @@ public struct TodoAppEntity: AppEntity, Hashable {
     /// Display name of the assignee, if any.
     @Property(title: "Assignee")
     public var assigneeName: String?
+
+    /// Associated location, exposed as the App Intents native `PlaceDescriptor`
+    /// (GeoToolbox) type. Bridged from the stored name + coordinate.
+    @Property(title: "Location")
+    public var location: PlaceDescriptor?
 
     // MARK: - Derived Properties (WWDC 2026 property macros)
 
@@ -159,6 +165,11 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.category = todoItem.category.map(CategoryAppEntity.init(from:))
         self.estimatedDuration = todoItem.estimatedDuration.map { Duration.seconds($0) }
         self.assigneeName = todoItem.assigneeName
+        self.location = TodoPlace.descriptor(
+            name: todoItem.locationName,
+            latitude: todoItem.locationLatitude,
+            longitude: todoItem.locationLongitude
+        )
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -171,7 +182,8 @@ public struct TodoAppEntity: AppEntity, Hashable {
         createdAt: Date = Date(),
         category: CategoryAppEntity? = nil,
         estimatedDuration: Duration? = nil,
-        assigneeName: String? = nil
+        assigneeName: String? = nil,
+        location: PlaceDescriptor? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -182,6 +194,7 @@ public struct TodoAppEntity: AppEntity, Hashable {
         self.category = category
         self.estimatedDuration = estimatedDuration
         self.assigneeName = assigneeName
+        self.location = location
     }
 
     // MARK: - Hashable / Equatable
@@ -189,6 +202,8 @@ public struct TodoAppEntity: AppEntity, Hashable {
     // The `@ComputedProperty` / `@DeferredProperty` macros add non-`Hashable`
     // `EntityProperty` backing storage, so synthesis is unavailable. Equality
     // compares the value snapshot fields; the hash uses the stable id.
+    // `location` (PlaceDescriptor) is excluded as it isn't guaranteed `Equatable`;
+    // the underlying stored name/coordinate are reflected via the model anyway.
     public static func == (lhs: TodoAppEntity, rhs: TodoAppEntity) -> Bool {
         lhs.id == rhs.id
             && lhs.title == rhs.title

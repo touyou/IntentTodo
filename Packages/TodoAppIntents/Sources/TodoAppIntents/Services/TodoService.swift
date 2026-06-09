@@ -84,7 +84,10 @@ public final class TodoService {
         dueDate: Date?,
         isFavorite: Bool,
         estimatedDuration: TimeInterval? = nil,
-        assigneeName: String? = nil
+        assigneeName: String? = nil,
+        locationName: String? = nil,
+        locationLatitude: Double? = nil,
+        locationLongitude: Double? = nil
     ) throws -> TodoAppEntity {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -97,7 +100,10 @@ public final class TodoService {
             isFavorite: isFavorite,
             dueDate: dueDate,
             estimatedDuration: estimatedDuration,
-            assigneeName: assigneeName
+            assigneeName: assigneeName,
+            locationName: locationName,
+            locationLatitude: locationLatitude,
+            locationLongitude: locationLongitude
         )
         try repository.create(item)
         let entity = TodoAppEntity(from: item)

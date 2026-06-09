@@ -48,6 +48,18 @@ public final class TodoItem {
     /// it as a native `PersonNameComponents` parameter and formats it here.
     public var assigneeName: String?
 
+    /// Common name of the location associated with this todo, if any.
+    ///
+    /// Location is decomposed into CloudKit-safe primitives (name + coordinate) and
+    /// bridged to / from the App Intents `PlaceDescriptor` (GeoToolbox) type.
+    public var locationName: String?
+
+    /// Latitude of the associated location, if any.
+    public var locationLatitude: Double?
+
+    /// Longitude of the associated location, if any.
+    public var locationLongitude: Double?
+
     /// The date when the todo item was created.
     public var createdAt: Date = Date()
 
@@ -85,7 +97,10 @@ public final class TodoItem {
         isFavorite: Bool = false,
         dueDate: Date? = nil,
         estimatedDuration: TimeInterval? = nil,
-        assigneeName: String? = nil
+        assigneeName: String? = nil,
+        locationName: String? = nil,
+        locationLatitude: Double? = nil,
+        locationLongitude: Double? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -95,6 +110,9 @@ public final class TodoItem {
         self.dueDate = dueDate
         self.estimatedDuration = estimatedDuration
         self.assigneeName = assigneeName
+        self.locationName = locationName
+        self.locationLatitude = locationLatitude
+        self.locationLongitude = locationLongitude
         self.createdAt = Date()
         self.modifiedAt = Date()
         self.category = nil
