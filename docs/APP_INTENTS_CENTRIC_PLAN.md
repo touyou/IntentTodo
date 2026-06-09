@@ -104,9 +104,12 @@
 ## 実行フェーズ（順序）
 
 - **Phase 0 整地** ✅: `#2` を Intent 合成へ revert（`cab8e67`）、本計画を主眼に再焦点化。
-- **Phase 1 基盤 + ドメイン橋渡し** 🔨: `@Property` 公開 / Category・SubTask の Entity 化 / Query 充実 /
-  `Duration`・`PersonNameComponents` パラメータ / `ValueRepresentation`(→`IntentPerson`) / `TransientAppEntity`。
-  （#345 型系 + #344 Entity 基礎の検証）
+- **Phase 1 基盤 + ドメイン橋渡し** 🔨（大半完了）:
+  - ✅ `TodoAppEntity` の主要属性を `@Property` 公開（`48348aa`）
+  - ✅ Category / SubTask を AppEntity 化 + Query（`1ef65ec`）、Todo→Category 関係を公開
+  - ✅ `Duration`（`002e6a9`）/ `PersonNameComponents`（`6ca1c09`）/ `PlaceDescriptor`（`5e3b4c7`）を
+    ネイティブ型として `@Parameter` + `@Property` 検証（保存は CloudKit 互換 primitive、入力は system 型）
+  - ⬜ 残: `ValueRepresentation`(→`IntentPerson`) / `TransientAppEntity` / `EntityPropertyQuery`（後続 or Phase 4 と統合）
 - **Phase 2 App Schema（reminders）**: #240 / #344。
 - **Phase 3 高度な Intent**: #343（会話ダイアログ / `requestConfirmation` / `requestChoice` /
   `IntentDonationManager` / `RelevantEntities` / system intents `OpenIntent`・`DeleteIntent`）。
