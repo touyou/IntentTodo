@@ -461,24 +461,24 @@ struct TodoEntity: AppEntity, IndexedEntity {
 - [x] コントロールセンター（クイック追加/Todo数/緊急Todo）
 - [x] Siri/Shortcuts（TodoAppShortcuts）
 
-### 拡張ロードマップ（Next Phase）
+### 拡張ロードマップ（WWDC 2026 要素の検証）
 
-Action-Centered DesignとApp Intents中心設計をさらに深化させる次のフェーズ：
+Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要素を `xcode27` ブランチで検証済み（指定6セッション網羅。深度 **B**=ビルド/型成立まで。R=実機 Siri/Visual Intelligence、U=実 run は手動/CI）：
 
 | フェーズ | 機能 | 概要 | 状態 |
 |---------|------|------|------|
-| **Entity強化** | プロパティマクロ | @ComputedProperty, @DeferredProperty | ✅ Xcode 27 ブランチ |
-| **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier | ✅ Xcode 27 ブランチ |
-| **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ Xcode 27 ブランチ |
-| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.*) | 🔜 計画中 |
-| **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor | 🔜 計画中 |
-| **高度な Intent** | 会話/寄付/提案 | requestConfirmation, IntentDonationManager, RelevantEntities | 🔜 計画中 |
-| **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, allowedExecutionTargets | 🔜 計画中 |
-| **テスト基盤** | Intent 実経路テスト | AppIntentsTesting (makeIntent/run) | 🔜 計画中 |
+| **Entity強化** | プロパティマクロ | @ComputedProperty, @DeferredProperty | ✅ |
+| **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier | ✅ |
+| **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ |
+| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) | ✅ list適合 / reminder本体は保留 |
+| **高度な Intent** | 対話/寄付/system intent | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, IntentDialog(full:supporting:) | ✅（RelevantEntities は不適合） |
+| **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, CancellableIntent, allowedExecutionTargets, @UnionValue, SyncableEntity | ✅ |
+| **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor, semanticContentSearch | ✅ |
+| **テスト基盤** | Intent 実経路テスト | AppIntentsTesting (makeIntent/run, UIテストバンドル) | ✅ |
 | **Intent Modes** | 動的実行制御 | .foreground(.dynamic)（適所を再選定中） | 保留（#2 revert 済） |
 
-> 「✅ Xcode 27 ブランチ」は `xcode27` ブランチ（26.x ベータ SDK 検証用、main 未マージ）で実装済み。「🔜 計画中」は `docs/APP_INTENTS_CENTRIC_PLAN.md` の検証計画に沿って実装予定。実装パターンと落とし穴は `docs/insights/03-app-intents-core.md`「Xcode 27 / WWDC 2026 で採用した API」を参照。
-> 詳細は `docs/PLAN.md` の「拡張可能性」セクションを参照
+> 検証は `xcode27` ブランチ（26.x ベータ SDK 用、**main 未マージ**）。状態・コミット・残タスクは `docs/HANDOFF.md` と `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
+> **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（マクロ生成 init + 入れ子サブエンティティの再設計が必要）、EventKit/Contacts 連携（別フレームワーク軸）。
 
 ## 開発フロー（TDD）
 
