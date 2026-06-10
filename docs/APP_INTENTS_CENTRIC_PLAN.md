@@ -45,7 +45,7 @@
 |------|-------------|-------------------|---------|------|
 | Entity プロパティマクロ | `@ComputedProperty` `@DeferredProperty` | `isOverdue` / `subtaskProgress` | U | ✅ |
 | ValueRepresentation | `AppEntity.ValueRepresentation` `IntentValueRepresentation(exporting:importing:)` | 担当者を `IntentPerson` と相互変換 | B/U | ⬜ |
-| RelevantEntities | `RelevantEntities.updateEntities(_:for:)` `AppEntityContext` | 「次の期限/緊急 Todo」を文脈寄付 | B/R | ⬜ |
+| RelevantEntities | `RelevantEntities.updateEntities(_:for:)` `AppEntityContext` | 「次の期限/緊急 Todo」を文脈寄付 | B/R | 🚫 不適合 |
 | EntityCollection | `EntityCollection<TodoAppEntity>` `resolvedEntities()` | バルク完了/削除 Intent | U | ⬜ |
 | ネイティブ Parameter 型 | `Duration` `PersonNameComponents` | 所要時間 / 担当者名を `@Parameter` | U | ⬜ |
 | @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ⬜ |
@@ -76,14 +76,14 @@
 |------|-------------|-------------------|---------|------|
 | Entity の作り分け | `@AppEntity` `IndexedEntity` `TransientAppEntity` | Category/SubTask を Entity 化、検索用 Transient を試す | B/U | 🔨 |
 | Spotlight セマンティック | `CSSearchableIndex` `IndexedEntity` | （一部済）semantic index 検証 | R | 🔨 |
-| システムアクション Intent | `OpenIntent` `DeleteIntent`（system intent 群） | Open/Delete を system intent プロトコルへ | B | ⬜ |
+| システムアクション Intent | `OpenIntent` `DeleteIntent`（system intent 群） | Open/Delete を system intent プロトコルへ | B | ✅ `375efd1`/`92221d0` |
 
 ### #343 高度な App Intent 機能 — https://developer.apple.com/jp/videos/play/wwdc2026/343/
 
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
-| 会話的ダイアログ | `ProvidesDialog` `IntentDialog(full:supporting:)` | Siri 応答を full/supporting で強化 | B/R | 🔨 |
-| 対話的な質問 | `requestConfirmation` `requestChoice` | 削除確認 / フィルタ選択 | B/R | ⬜ |
+| 会話的ダイアログ | `ProvidesDialog` `IntentDialog(full:supporting:)` | Siri 応答を full/supporting で強化 | B/R | ✅(B) `1f4bbc7` |
+| 対話的な質問 | `requestConfirmation` `requestChoice` | 削除確認 / スヌーズ時間選択 | B/R | ✅(B) `27fc2db`/`db6efa3` |
 | ビジュアル応答 | `ShowsSnippetView` `DisplayRepresentation` | （済）Interactive Snippet | R | ✅ |
 | 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | Add/Complete を寄付、削除時 predicate | B/R | ⬜ |
 | セマンティック検索 | `IndexedEntity` `IntentValueQuery` | 構造化検索 | B | ⬜ |
@@ -119,10 +119,14 @@
     さらに `section` / `locationTrigger` 等の **入れ子サブエンティティを再帰的に要求**するため、
     モデルから組み立てる自前 init と相性が悪く深掘りが必要。連携面では list 適合で App Schema の
     仕組み自体は検証済みのため、reminder 本体適合は独立タスクとして将来再挑戦する。
-- **Phase 3 高度な Intent** 🔨（2/5）: #343
+- **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
   - ✅ `requestConfirmation`（DeleteTodoIntent）`27fc2db`
   - ✅ `IntentDonationManager`（Add で donate / Delete で deleteDonations）`b4dbd63`
-  - ⬜ `RelevantEntities`（API 未確定・要 WebFetch）/ `requestChoice` / system intents（`OpenIntent`・`DeleteIntent`）/ 会話ダイアログ強化
+  - ✅ `requestChoice`（SnoozeTodoIntent でスヌーズ時間選択）`db6efa3`
+  - ✅ system intents: `OpenIntent`→`OpenTodoIntent` `375efd1` / `DeleteIntent`→`DeleteTodosIntent`（バルク）`92221d0`
+  - ✅ 会話ダイアログ `IntentDialog(full:supporting:)`（ShowTodosIntent）`1f4bbc7`
+  - 🚫 `RelevantEntities`: **Todo/reminders ドメインに適合する `AppEntityContext` が存在しない**（`.audio(.nowPlaying)`
+    と framework overlay の domain context のみ）ため適合不能。詳細は insights/03 参照。
 - **Phase 4 大量・実行制御**: #345（`EntityCollection` / `LongRunningIntent` / `CancellableIntent` /
   `allowedExecutionTargets` / `@UnionValue` / Syncable）。
 - **Phase 5 Visual Intelligence**: #297（`IntentValueQuery` + Vision / `OpenIntent` / `@UnionValue` / EventKit・Contacts）。

@@ -36,22 +36,19 @@
 - `25d1d61` `CategoryAppEntity`→`@AppEntity(schema: .reminders.list)`
 - `bad37a3` 知見記録（reminder 本体保留の理由）
 
-### Phase 3 高度な Intent 🔨（2/5）
+### Phase 3 高度な Intent ✅（B 深度で完了。R=実機 Siri 手動確認は残る）
 - `27fc2db` DeleteTodoIntent に `requestConfirmation(dialog:)`
 - `b4dbd63` IntentDonationManager（Add で `donate()` / Delete で `deleteDonations(matching:.entityIdentifiers([EntityIdentifier(for:)]))`）
+- `db6efa3` SnoozeTodoIntent に `requestChoice`（30分/1時間/1日のスヌーズ時間選択）。`IntentChoiceOption` は Equatable
+- `375efd1` `OpenTodoIntent`（system intent `OpenIntent` 適合、target: TodoAppEntity → showDetail）
+- `92221d0` `DeleteTodosIntent`（system intent `DeleteIntent` 適合、`entities: [TodoAppEntity]` のバルク削除）
+- `1f4bbc7` ShowTodosIntent の dialog を `IntentDialog(full:supporting:)` に強化
+- 🚫 `RelevantEntities` は **不適合と確定**: `AppEntityContext` が `.audio(.nowPlaying)` 等のドメイン固有 context
+  しか持たず、todo/reminders 向けが無い。Apple が追加するまで保留（insights/03 に記録）。
 
 ## 3. 残作業（次セッションの起点）
 
-### Phase 3 の残り（#343）
-- **`RelevantEntities`**（次の期限/緊急 Todo を文脈寄付）— ⚠️ **API 未確定**。`updateEntities(_:for:)` は
-  インスタンスメソッドだが、**インスタンス取得方法（`.shared`/`.default`?）と `AppEntityContext` の具体値が
-  DocumentationSearch で出ず**。再開時はまず `WebFetch` で Apple 公式
-  (`https://developer.apple.com/documentation/AppIntents/RelevantEntities` と
-  `.../AppEntityContext`) を確認してから実装。当てずっぽうで進めない。
-- **`requestChoice`**（フィルタ選択などの対話）— `IntentChoiceOption` + `requestChoice(between:dialog:)`。
-- **system intents 適合** — `OpenIntent`（`OpenTodoIntent` を新設 or LaunchAppIntent 派生）/
-  `DeleteIntent`（`DeleteTodoIntent` を適合。⚠️ `Entity` 関連型 + 複数 entity パラメータ形状の制約あり、要 API 確認）。
-- 会話ダイアログ `IntentDialog(full:supporting:)` への強化（ShowTodosIntent 等）。
+> Phase 3 は完了。次は **Phase 4**（推奨順: 4 → 5 → 6）。
 
 ### Phase 4 大量・実行制御（#345）
 - `EntityCollection<TodoAppEntity>` でバルク完了/削除 Intent（新設）
@@ -90,6 +87,6 @@
 ## 5. 再開手順
 
 1. `git switch xcode27` → `BuildProject` で緑を確認。
-2. `docs/APP_INTENTS_CENTRIC_PLAN.md` のチェックリストで次要素を選ぶ（推奨順: Phase 3 残 → 4 → 5 → 6）。
+2. `docs/APP_INTENTS_CENTRIC_PLAN.md` のチェックリストで次要素を選ぶ（推奨順: Phase 4 → 5 → 6）。
 3. 新 API は実装前に `DocumentationSearch` / 必要なら `WebFetch` でシンボル・可用性を確定（特に RelevantEntities）。
 4. 機能ごとに実装 → `BuildProject` → 該当 SPM テスト → コミット。落とし穴は insights/03 に追記。

@@ -490,3 +490,63 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
   （SDK 27 の「`@State` がマクロ化」初期化規約と同根。`swiftui-whats-new-27` skill 参照）。
   → リッチな共有 entity を reminder 本体スキーマに適合させるのは深掘りが必要。list 適合で App Schema の
   仕組み自体は検証できるため、本体適合は独立タスクとして切り出すのが現実的。
+
+### 対話的な質問（`requestChoice`）
+
+`AppIntent.requestChoice(between:dialog:)` は perform() を中断し、ユーザーに選択肢を提示する（WWDC 2026 #343）。
+`requestConfirmation`（yes/no）の多分岐版。
+
+```swift
+let choice = try await requestChoice(
+    between: [IntentChoiceOption(title: "30 minutes"), IntentChoiceOption(title: "1 hour"), .cancel],
+    dialog: IntentDialog("Snooze “\(todo.title)” for how long?")
+)
+```
+
+- 返り値は選ばれた `IntentChoiceOption`。**`IntentChoiceOption` は `Equatable`**（`==` / `switch case` で照合可）。
+  ただし安定した識別子は持たないため、本プロジェクトでは選択肢と逆引きを `SnoozeDuration` enum に
+  一元化し、`IntentChoiceOption(title:) == choice` で突き合わせる（option list と mapping のドリフト防止）。
+- `.cancel` を含めると、それが選ばれたとき `requestChoice` が cancellation error を throw して intent を中断。
+- `IntentChoiceOption(title:style:)` の `style` は `.default` / `.destructive` / `.cancel`。
+- **`.background` モードの intent からも呼べる**（`requestConfirmation` と同様、Siri / Shortcuts の UI に surface する）。
+  `SnoozeTodoIntent`（Primary）は UI Button から呼ばれず Siri/Shortcuts 専用なので、ここに置くのが安全。
+  LA/Widget 用の `*FromExtensionIntent` 変種は固定間隔のまま据え置く（対話を求めない）。
+- view 付きの `requestChoice(between:dialog:view:)` / `requestChoice(between:dialog:content:)` も存在。
+
+### system intents（`OpenIntent` / `DeleteIntent`）
+
+App Intents は「開く」「削除する」等の共通アクションに **system intent プロトコル**を用意している（#344）。
+適合すると、システムがそのアクションを意味的に理解する（Spotlight 結果タップ → 開く 等）。スキーママクロ
+（`@AppIntent(schema: .system.open)` など）を使わず、**プロトコルに直接適合**するだけでよい。
+
+- **`OpenIntent`**: `var target: Target`（`Target: AppEntity`、関連型は `target` から推論）を要求。
+  `OpenTodoIntent` は `@Parameter var target: TodoAppEntity` を持ち、perform() で `NavigationModel.showDetail`
+  へ遷移（`LaunchAppIntent` と同じ cold-start 安全な `@Dependency` ナビ方式）。`supportedModes` は
+  `.foreground(.immediate)`。
+- **`DeleteIntent`**（`: SystemIntent`）: `var entities: [Entity]`（**複数 entity の配列**、関連型 `Entity` は
+  推論）を要求。単数の `todo: TodoAppEntity` 形では適合できないため、UI 駆動の単体 `DeleteTodoIntent` とは
+  分離して `DeleteTodosIntent`（バルク削除）を新設した。requestConfirmation で一括確認 → 各 todo 削除 +
+  donation 削除。
+- いずれも **AppShortcuts には未登録**（10 件枠の温存。system intent は AppShortcut 無しでも意味解釈される）。
+
+### 会話ダイアログ（`IntentDialog(full:supporting:)`）
+
+`IntentDialog` には単一文字列の `init(_:)` の他に **`init(full:supporting:)`** がある（#343）。
+
+- `full`: 画面が無い文脈（音声のみ）で読み上げる、それ単体で完結するメッセージ。
+- `supporting`: 返却した値（一覧など）が視覚表示される文脈で、その表示に添える短い一言。
+- `init(full:systemImageName:)` / `init(full:supporting:systemImageName:)` もある。
+- `ShowTodosIntent` は `ReturnsValue<[TodoAppEntity]>` を返すので、音声単独（full: 件数を完全文で）と
+  視覚併用（supporting: 「Here are your incomplete todos.」）を出し分けるのに適合する。
+
+### `RelevantEntities` は Todo ドメインに不適合（ブロッカー記録）
+
+「次の期限/緊急 Todo」を文脈寄付する目的で `RelevantEntities.shared.updateEntities(_:for:)` を検討したが、
+**第二引数 `AppEntityContext` がドメイン固有のファクトリしか持たない**ことが判明（DocumentationSearch 確認）。
+
+- 提供される context は `.audio(.nowPlaying)`（`AudioContext`）と、framework overlay（HealthKit 等）が
+  定義する domain context のみ。**汎用 / reminders / todo 向けの context 値が存在しない**。
+- `.audio(.nowPlaying)` で todo を寄付するのは意味的に誤り（再生中メディア扱いになる）。
+- → **本アプリ（reminders ドメイン）では `RelevantEntities` は現状適合不能**。Apple が todo / reminders 向け
+  `AppEntityContext` を追加するまで保留。`RelevantIntent` / `RelevantIntentManager`（WidgetConfigurationIntent
+  ベースのウィジェット提案）は別軸の API なので、文脈提案が必要なら将来そちらを検討する。
