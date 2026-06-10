@@ -122,6 +122,22 @@ public final class TodoService {
         return TodoToggleResult(entity: entity, isNowCompleted: item.isCompleted)
     }
 
+    /// Marks a todo as completed. Idempotent (unlike `toggleCompletion`): calling
+    /// it on an already-completed todo is a no-op. Used by bulk-completion intents
+    /// that operate over a collection of ids.
+    @discardableResult
+    public func markCompleted(todoId: String) throws -> TodoAppEntity {
+        defer { WidgetReloader.reloadAllWidgets() }
+        let item = try resolve(todoId: todoId)
+        if !item.isCompleted {
+            item.isCompleted = true
+            item.modifiedAt = Date()
+            try repository.update(item)
+            reindexSpotlight(TodoAppEntity(from: item))
+        }
+        return TodoAppEntity(from: item)
+    }
+
     public func toggleFavorite(todoId: String) throws -> TodoAppEntity {
         defer { WidgetReloader.reloadAllWidgets() }
         let item = try resolve(todoId: todoId)

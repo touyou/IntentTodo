@@ -78,6 +78,21 @@ struct TodoServiceTests {
         #expect(try repo.fetch(by: item.id)?.isCompleted == true)
     }
 
+    @Test("markCompleted sets completed and is idempotent")
+    func markCompletedIsIdempotent() throws {
+        let item = TodoItem(title: "task")
+        let (service, repo) = makeService(seed: [item])
+
+        let first = try service.markCompleted(todoId: item.id.uuidString)
+        #expect(first.isCompleted == true)
+        #expect(try repo.fetch(by: item.id)?.isCompleted == true)
+
+        // Calling again stays completed (no toggle back to incomplete).
+        let second = try service.markCompleted(todoId: item.id.uuidString)
+        #expect(second.isCompleted == true)
+        #expect(try repo.fetch(by: item.id)?.isCompleted == true)
+    }
+
     @Test("toggleCompletion bumps modifiedAt forward")
     func toggleCompletionBumpsModifiedAt() throws {
         let item = TodoItem(title: "task")
