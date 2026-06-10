@@ -56,6 +56,10 @@ public struct ShowTodosIntent: AppIntent {
 
     /// Siri/Shortcuts の結果表示 / 読み上げ用メッセージ。
     /// Control Center からの呼出では表示されないが、データ更新が無いためフィードバック不要。
+    ///
+    /// WWDC 2026 (#343): `IntentDialog(full:supporting:)` で音声単独用と視覚併用を分ける。
+    /// - `full`: 画面が無い文脈(音声のみ)で読み上げる、それ単体で完結するメッセージ。
+    /// - `supporting`: 返却した一覧が視覚表示される文脈で、リストに添える短い一言。
     private func dialog(for entities: [TodoAppEntity]) -> IntentDialog {
         let count = entities.count
         let categoryLabel: String = {
@@ -68,10 +72,16 @@ public struct ShowTodosIntent: AppIntent {
         }()
 
         if count == 0 {
-            return IntentDialog("No \(categoryLabel)s.")
+            return IntentDialog(
+                full: "You have no \(categoryLabel)s.",
+                supporting: "No \(categoryLabel)s."
+            )
         }
-        let plural = count == 1 ? categoryLabel : "\(categoryLabel)s"
-        return IntentDialog("You have \(count) \(plural).")
+        let noun = count == 1 ? categoryLabel : "\(categoryLabel)s"
+        return IntentDialog(
+            full: "You have \(count) \(noun).",
+            supporting: count == 1 ? "Here is your \(categoryLabel)." : "Here are your \(categoryLabel)s."
+        )
     }
 }
 
