@@ -15,7 +15,13 @@ import SwiftData
 /// An App Intents entity representing a todo item.
 ///
 /// This entity is used in Siri, Shortcuts, and Spotlight to reference todo items.
-public struct TodoAppEntity: AppEntity, Hashable {
+///
+/// Conforms to `SyncableEntity` (WWDC 2026 #345): `id` is the `TodoItem`'s UUID
+/// stringified, which is identical across a person's devices (SwiftData + CloudKit
+/// replicate the same record id). That stability lets the system refer to a todo
+/// consistently across devices — e.g. transferring a Siri conversation. No extra
+/// `SyncableEntityIdentifier` is needed because there is no separate local id.
+public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     // MARK: - Properties
 
     /// The unique identifier for this entity.
