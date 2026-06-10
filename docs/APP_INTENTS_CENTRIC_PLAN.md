@@ -110,7 +110,15 @@
   - ✅ `Duration`（`002e6a9`）/ `PersonNameComponents`（`6ca1c09`）/ `PlaceDescriptor`（`5e3b4c7`）を
     ネイティブ型として `@Parameter` + `@Property` 検証（保存は CloudKit 互換 primitive、入力は system 型）
   - ⬜ 残: `ValueRepresentation`(→`IntentPerson`) / `TransientAppEntity` / `EntityPropertyQuery`（後続 or Phase 4 と統合）
-- **Phase 2 App Schema（reminders）**: #240 / #344。
+- **Phase 2 App Schema（reminders）** ✅（list 階層で適合・検証）/ ⏳（reminder 本体は保留）:
+  - ✅ xcode27 を iOS 27 世代へ引き上げ（`.reminders` は iOS 27+ 限定のため）`ed22d80`
+  - ✅ `TodoListType` → `@AppEnum(schema: .reminders.listType)` `ed22d80`
+  - ✅ `CategoryAppEntity` → `@AppEntity(schema: .reminders.list)`（Category = reminders のリスト）`25d1d61`
+  - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**。
+    判明事項（probe 検証）: reminder スキーマはマクロ生成 init が `EntityProperty<T>` 引数を取り、
+    さらに `section` / `locationTrigger` 等の **入れ子サブエンティティを再帰的に要求**するため、
+    モデルから組み立てる自前 init と相性が悪く深掘りが必要。連携面では list 適合で App Schema の
+    仕組み自体は検証済みのため、reminder 本体適合は独立タスクとして将来再挑戦する。
 - **Phase 3 高度な Intent**: #343（会話ダイアログ / `requestConfirmation` / `requestChoice` /
   `IntentDonationManager` / `RelevantEntities` / system intents `OpenIntent`・`DeleteIntent`）。
 - **Phase 4 大量・実行制御**: #345（`EntityCollection` / `LongRunningIntent` / `CancellableIntent` /

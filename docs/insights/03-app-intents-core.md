@@ -472,3 +472,21 @@ func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]>
 - ボタン押下のたびに **システムが `SnippetIntent` を再実行**するため、`perform()` は毎回最新状態を取得する（本プロジェクトは `TodoEntityStore` から再フェッチしてラベルを更新）。
 - 本プロジェクトの `AddTodoIntent` 経由スニペットは **app プロセスで提示**されるため、entity 解決クラッシュ（Live Activity Extension 限定の Issue #30 A-3）は該当せず Primary な entity ベース Intent を使う。**新規 `FromExtension` 変種は追加しない**（FromExtension は LA/Widget 専用ワークアラウンドのため）。
 - `SnippetIntent` は `isDiscoverable = false`（`snippetIntent:` 経由でのみ提示、Shortcuts 非露出）。
+
+### App Schema（`@AppEntity(schema:)` / `@AppEnum(schema:)`）— reminders ドメイン
+
+assistant schema に適合させると、Siri / Apple Intelligence がコンテンツを意味的に理解する。
+
+- **`.reminders` ドメインは iOS 27+ 限定**（`'reminders' is only available in iOS 27.0 or newer`）。
+  採用には deployment を 27 世代へ上げる（`.v27` は PackageDescription 6.4 = `swift-tools-version: 6.4`）。
+- **小スキーマは素直**: `CategoryAppEntity` を `@AppEntity(schema: .reminders.list)` に適合（`id` / `name` /
+  `type: TodoListType`）、`TodoListType` を `@AppEnum(schema: .reminders.listType)` に。マクロが
+  `typeDisplayRepresentation` を生成するので手書きは削除、`Hashable` はマクロ backing が非 Hashable のため明示実装。
+- **大スキーマ（`.reminders.reminder`）の落とし穴**: スキーマが `dueDate: DateComponents?`（`Date?` と衝突）、
+  非 optional `list`、再帰 `subtasks: [Self]`、`images`/`tags`/`urls`/`recurrence`/`section`/`locationTrigger`
+  等を要求。さらに **マクロ生成 init は `EntityProperty<T>` 引数**を取り、`section`/`locationTrigger` 等の
+  **入れ子サブエンティティを再帰的に要求**する。モデルから組み立てる自前 `init(from:)`（プロパティ順次代入）は
+  `self.images used before being initialized` で弾かれ、代入順 / デフォルト / 他マクロ除去では解消しない
+  （SDK 27 の「`@State` がマクロ化」初期化規約と同根。`swiftui-whats-new-27` skill 参照）。
+  → リッチな共有 entity を reminder 本体スキーマに適合させるのは深掘りが必要。list 適合で App Schema の
+  仕組み自体は検証できるため、本体適合は独立タスクとして切り出すのが現実的。
