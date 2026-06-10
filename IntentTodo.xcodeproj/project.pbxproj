@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		4649B7102FD964D40094754A /* AppIntentsTestingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4649B70F2FD964D40094754A /* AppIntentsTestingTests.swift */; };
 		46AFBE922F2C1C7200444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBE912F2C1C7200444306 /* UI */; };
-		46F00B00000000000000FAC1 /* LiveActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00C00000000000000FAC1 /* LiveActivity */; platformFilter = ios; };
 		46AFBEC02F2CFEA400444306 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEBF2F2CFEA400444306 /* WidgetKit.framework */; };
 		46AFBEC22F2CFEA400444306 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEC12F2CFEA400444306 /* SwiftUI.framework */; };
 		46AFBECF2F2CFEA500444306 /* IntentTodoWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 46AFBEBE2F2CFEA400444306 /* IntentTodoWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -50,6 +50,7 @@
 		46F00300000000000000FAC1 /* LiveActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00400000000000000FAC1 /* LiveActivity */; };
 		46F00600000000000000FAC1 /* WidgetUI in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00700000000000000FAC1 /* WidgetUI */; };
 		46F00900000000000000FAC1 /* WatchUI in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00A00000000000000FAC1 /* WatchUI */; };
+		46F00B00000000000000FAC1 /* LiveActivity in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 46F00C00000000000000FAC1 /* LiveActivity */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -117,14 +118,12 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		4649B70F2FD964D40094754A /* AppIntentsTestingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentsTestingTests.swift; sourceTree = "<group>"; };
 		46AFBC392F2BA68C00444306 /* IntentTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFBE8B2F2C1C3B00444306 /* Domain */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Domain; sourceTree = "<group>"; };
 		46AFBE8C2F2C1C3B00444306 /* Repository */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Repository; sourceTree = "<group>"; };
 		46AFBE8D2F2C1C3B00444306 /* TodoAppIntents */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = TodoAppIntents; sourceTree = "<group>"; };
 		46AFBE8E2F2C1C3B00444306 /* UI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = UI; sourceTree = "<group>"; };
-		46F00100000000000000FAC1 /* LiveActivity */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = LiveActivity; sourceTree = "<group>"; };
-		46F00500000000000000FAC1 /* WidgetUI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WidgetUI; sourceTree = "<group>"; };
-		46F00800000000000000FAC1 /* WatchUI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WatchUI; sourceTree = "<group>"; };
 		46AFBE932F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		46AFBE942F2C241700444306 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		46AFBE952F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
@@ -197,6 +196,9 @@
 		46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		46F00009000000000000FAC1 /* MacAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAppDelegate.swift; sourceTree = "<group>"; };
 		46F0000B000000000000FAC1 /* NotificationHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationHandler.swift; sourceTree = "<group>"; };
+		46F00100000000000000FAC1 /* LiveActivity */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = LiveActivity; sourceTree = "<group>"; };
+		46F00500000000000000FAC1 /* WidgetUI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WidgetUI; sourceTree = "<group>"; };
+		46F00800000000000000FAC1 /* WatchUI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WatchUI; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -433,6 +435,7 @@
 			isa = PBXGroup;
 			children = (
 				46AFC0FE2F34F73500444306 /* IntentTodoUITest.swift */,
+				4649B70F2FD964D40094754A /* AppIntentsTestingTests.swift */,
 			);
 			path = IntentTodoUITest;
 			sourceTree = "<group>";
@@ -757,6 +760,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4649B7102FD964D40094754A /* AppIntentsTestingTests.swift in Sources */,
 				46AFC1012F34F73500444306 /* IntentTodoUITest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
