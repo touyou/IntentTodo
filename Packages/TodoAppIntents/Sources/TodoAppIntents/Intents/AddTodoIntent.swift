@@ -119,6 +119,10 @@ public struct AddTodoIntent: AppIntent {
         // Intent 完了 = シート閉じるという 1 対 1 対応に集約した。
         navigationModel.dismissAddTodo()
 
+        // Donate the action so the system can predict / proactively suggest it
+        // (IntentDonationManager). Failures are non-fatal.
+        try? await donate()
+
         // WWDC 2026: Siri / Shortcuts から呼ばれた場合は作成した Todo を
         // インタラクティブスニペットで提示し、その場で完了 / お気に入り操作を
         // 可能にする。UI Button(intent:) 経由ではスニペット / dialog は表示されない。

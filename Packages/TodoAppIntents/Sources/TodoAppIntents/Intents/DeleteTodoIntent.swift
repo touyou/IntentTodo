@@ -43,6 +43,13 @@ public struct DeleteTodoIntent: AppIntent {
             dialog: IntentDialog("Delete “\(todo.title)”?")
         )
         try todoService.delete(todoId: todo.id)
+
+        // The todo no longer exists — remove any donations that reference it so the
+        // system stops suggesting actions it can't perform (IntentDonationManager).
+        try? await IntentDonationManager.shared.deleteDonations(
+            matching: .entityIdentifiers([EntityIdentifier(for: todo)])
+        )
+
         return .result()
     }
 }
