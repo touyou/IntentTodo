@@ -46,16 +46,18 @@
 - 🚫 `RelevantEntities` は **不適合と確定**: `AppEntityContext` が `.audio(.nowPlaying)` 等のドメイン固有 context
   しか持たず、todo/reminders 向けが無い。Apple が追加するまで保留（insights/03 に記録）。
 
+### Phase 4 大量・実行制御 ✅（B 深度で完了）#345
+- `8e2d637` `CompleteTodosIntent` で `EntityCollection`(.identifiers のみ) + `LongRunningIntent`
+  (performBackgroundTask + progress) + `CancellableIntent`(onCancel) を同時実装。`allowedExecutionTargets [.main]`。
+  `TodoService.markCompleted`(冪等) + テスト追加。
+- `099dae3` `@UnionValue` の `TodoOrCategory` + `SearchEverythingIntent`（混在結果）。**public enum は `: Sendable` 明示必須**。
+- `d347cb2` `TodoAppEntity` を `SyncableEntity` 適合（String UUID id でそのまま可）。
+- **`allowedExecutionTargets` で FromExtension 分離は統合不可**と結論（分離は entity 解決回避が目的、プロセス制御とは別軸。
+  選択肢は `.main`/`.appIntentsExtension` のみで Widget/LA Extension 非対象）。詳細 insights/03。
+
 ## 3. 残作業（次セッションの起点）
 
-> Phase 3 は完了。次は **Phase 4**（推奨順: 4 → 5 → 6）。
-
-### Phase 4 大量・実行制御（#345）
-- `EntityCollection<TodoAppEntity>` でバルク完了/削除 Intent（新設）
-- `LongRunningIntent` + `CancellableIntent`（`withIntentCancellationHandler`）
-- `allowedExecutionTargets`（`IntentExecutionTargets`）— FromExtension 二重定義の整理可否を検証
-- `@UnionValue`（`UnionValue()` マクロ）
-- `SyncableEntity`（id が UUID なら `struct ... : AppEntity, SyncableEntity` 追加だけ。Phase 5 と相性）
+> Phase 3・4 完了。次は **Phase 5**（推奨順: 5 → 6）。
 
 ### Phase 5 Visual Intelligence（#297）
 - `IntentValueQuery` + `SemanticContentDescriptor`（カメラ/スクショ → 該当 Todo）
@@ -83,10 +85,14 @@
 - `Domain.Category` は型名衝突するので限定必須。
 - 新規 `*FromExtensionIntent` 変種は**追加しない**（LA/Widget 専用ワークアラウンド）。
 - データ更新 Intent は末尾で Widget reload（`TodoService` の defer で自動。新規 Service メソッドでも踏襲）。
+- **`@UnionValue` を `public enum` に付けたら `: Sendable` を明示**（自動推論されずマクロ生成コードがビルド失敗）。
+- **`LongRunningIntent.performBackgroundTask` の `operation` は nonisolated**。MainActor の `TodoService` は
+  `try await` でホップして呼ぶ（`perform()` を @MainActor にしなくてよい）。
+- `allowedExecutionTargets` の選択肢は `.main` / `.appIntentsExtension` のみ（Widget/LA Extension は対象外）。
 
 ## 5. 再開手順
 
 1. `git switch xcode27` → `BuildProject` で緑を確認。
-2. `docs/APP_INTENTS_CENTRIC_PLAN.md` のチェックリストで次要素を選ぶ（推奨順: Phase 4 → 5 → 6）。
+2. `docs/APP_INTENTS_CENTRIC_PLAN.md` のチェックリストで次要素を選ぶ（推奨順: Phase 5 → 6）。
 3. 新 API は実装前に `DocumentationSearch` / 必要なら `WebFetch` でシンボル・可用性を確定（特に RelevantEntities）。
 4. 機能ごとに実装 → `BuildProject` → 該当 SPM テスト → コミット。落とし穴は insights/03 に追記。

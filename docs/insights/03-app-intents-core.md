@@ -550,3 +550,64 @@ App Intents は「開く」「削除する」等の共通アクションに **sy
 - → **本アプリ（reminders ドメイン）では `RelevantEntities` は現状適合不能**。Apple が todo / reminders 向け
   `AppEntityContext` を追加するまで保留。`RelevantIntent` / `RelevantIntentManager`（WidgetConfigurationIntent
   ベースのウィジェット提案）は別軸の API なので、文脈提案が必要なら将来そちらを検討する。
+
+## Phase 4: 大量・実行制御（#345）
+
+### `EntityCollection` + `LongRunningIntent` + `CancellableIntent`（バルク処理）
+
+`CompleteTodosIntent`（バルク完了）で3つを同時に検証。
+
+- **`EntityCollection<TodoAppEntity>`**: `@Parameter` の型にすると、**パラメータ解決時に各 id を
+  full entity へ解決しない**（数百件でメモリ/時間を節約）。`.identifiers`（`[Entity.ID]` = `[String]`）で
+  id だけ取り出せる。完全な entity が要るときだけ `resolvedEntities()`。完了処理は id しか要らないので
+  解決を完全に回避できる。
+- **`LongRunningIntent`**（`: ProgressReportingIntent`）: `performBackgroundTask { ... }` で囲むと
+  バックグラウンド30秒制限を延長。**`progress`（`Progress`）を定期更新しないとシステムが延長を打ち切る**。
+  `progress.totalUnitCount` / `completedUnitCount` を逐次更新する。
+- **`CancellableIntent`**: `performBackgroundTask(operation:onCancel:)`（`Self: CancellableIntent` 必須）で
+  `onCancel: (IntentCancellationReason) -> Void` を渡せる。ループ内で `try Task.checkCancellation()`。
+- **並行性の注意**: `perform()` を `@MainActor` にしなくても、`operation` クロージャ（nonisolated async）から
+  `try await todoService.markCompleted(...)` とすれば MainActor へホップして SwiftData 変更が安全に動く。
+
+### `allowedExecutionTargets`（実行プロセス指定）
+
+`static var allowedExecutionTargets: IntentExecutionTargets { [.main] }` で intent の実行先を限定できる。
+選べるのは **`.main`（アプリ本体）/ `.appIntentsExtension`（App Intents Extension）**。
+
+- 本アプリは App Intents Extension を持たず、バルク SwiftData 変更はアプリ本体が最も確実なので、新設の
+  バルク Intent は `[.main]` に固定した。
+- **⚠️ FromExtension 分離を `allowedExecutionTargets` で統合することはできない**（検証結論）:
+  - FromExtension（`todoId: String`）と Primary（`todo: TodoAppEntity`）の分離は、**Live Activity
+    Extension プロセスでの entity 解決クラッシュ回避が目的**（パラメータの「型」を変えて解決自体を避ける）。
+  - `allowedExecutionTargets` が制御するのは**どのプロセスが perform するか**であって、entity 解決の有無では
+    ない。しかも選択肢は `.main` / `.appIntentsExtension` のみで、**Widget/Live Activity Extension は対象外**。
+  - LA ボタン用変種は `LiveActivityIntent`（Apple 保証でアプリプロセス実行）だが、クラッシュは
+    パラメータ解決段で起きるため、解決を経由しない String 版が依然必要。→ **FromExtension は維持**。
+
+### `SyncableEntity`（デバイス間 ID 一貫）
+
+`struct TodoAppEntity: AppEntity, SyncableEntity` を追加するだけ。`id` がデバイス間で一貫していれば
+（本アプリは UUID 文字列 = SwiftData/CloudKit が同一レコード id を複製）**追加変更不要**で適合できる
+（`String` id でも OK と確認。`var id: UUID` 直なら尚良し）。local/stable が別なら `id` を
+`SyncableEntityIdentifier<Local, Stable>` 型にする。Siri 会話のデバイス間転送などでシステムが entity を
+一貫参照できるようになる。
+
+### `@UnionValue`（複数 entity 型を1つの値で）
+
+`@UnionValue` を enum に付けると、`AppUnionValue` / `_IntentValueRepresentable` 適合と nested `Cases` enum を
+マクロ生成する。`@Parameter` / `ReturnsValue` の型として使え、`ParameterSummary` の `Switch`/`When` で
+ケース分岐もできる。
+
+```swift
+@UnionValue
+public enum TodoOrCategory: Sendable {   // ← public enum は Sendable 自動推論されないため明示必須
+    case todo(TodoAppEntity)
+    case category(CategoryAppEntity)
+}
+```
+
+- **落とし穴**: `public enum` に `@UnionValue` を付けると、マクロ生成コードが `Sendable` を要求する。
+  Swift は public 型の `Sendable` を自動推論しないので **`: Sendable` を明示**しないと
+  「Type '...' does not conform to the 'Sendable' protocol」（生成ソース内）でビルド失敗する。
+- 各ケースの associated value は単一の値型（AppEntity 等）にする。`SearchEverythingIntent` は
+  `ReturnsValue<[TodoOrCategory]>` で todo とカテゴリの混在結果を返す。

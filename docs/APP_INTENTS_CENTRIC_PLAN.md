@@ -46,13 +46,13 @@
 | Entity プロパティマクロ | `@ComputedProperty` `@DeferredProperty` | `isOverdue` / `subtaskProgress` | U | ✅ |
 | ValueRepresentation | `AppEntity.ValueRepresentation` `IntentValueRepresentation(exporting:importing:)` | 担当者を `IntentPerson` と相互変換 | B/U | ⬜ |
 | RelevantEntities | `RelevantEntities.updateEntities(_:for:)` `AppEntityContext` | 「次の期限/緊急 Todo」を文脈寄付 | B/R | 🚫 不適合 |
-| EntityCollection | `EntityCollection<TodoAppEntity>` `resolvedEntities()` | バルク完了/削除 Intent | U | ⬜ |
-| ネイティブ Parameter 型 | `Duration` `PersonNameComponents` | 所要時間 / 担当者名を `@Parameter` | U | ⬜ |
-| @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ⬜ |
-| LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ⬜ |
-| CancellableIntent | `withIntentCancellationHandler` `IntentCancellationReason` | 上記のグレースフルキャンセル | B/U | ⬜ |
-| ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets`） | FromExtension 二重定義の整理可否を検証 | B | ⏳ |
-| SyncableEntity | `_SyncableEntity`（要確認） | デバイス間 ID 同期 | B | ⏳ |
+| EntityCollection | `EntityCollection<TodoAppEntity>` `resolvedEntities()` | バルク完了 Intent | U | ✅(B) `8e2d637` |
+| ネイティブ Parameter 型 | `Duration` `PersonNameComponents` | 所要時間 / 担当者名を `@Parameter` | U | ✅ Phase 1 |
+| @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ✅ `099dae3` |
+| LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ✅(B) `8e2d637` |
+| CancellableIntent | `withIntentCancellationHandler` `IntentCancellationReason` | 上記のグレースフルキャンセル | B/U | ✅(B) `8e2d637` |
+| ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets`） | FromExtension 整理可否を検証→**統合不可と結論** | B | ✅ `8e2d637` |
+| SyncableEntity | `SyncableEntity`（`String`/`UUID` id でそのまま適合） | デバイス間 ID 同期 | B | ✅ `d347cb2` |
 
 ### #240 App Schema による Siri 体験 — https://developer.apple.com/jp/videos/play/wwdc2026/240/
 
@@ -127,8 +127,12 @@
   - ✅ 会話ダイアログ `IntentDialog(full:supporting:)`（ShowTodosIntent）`1f4bbc7`
   - 🚫 `RelevantEntities`: **Todo/reminders ドメインに適合する `AppEntityContext` が存在しない**（`.audio(.nowPlaying)`
     と framework overlay の domain context のみ）ため適合不能。詳細は insights/03 参照。
-- **Phase 4 大量・実行制御**: #345（`EntityCollection` / `LongRunningIntent` / `CancellableIntent` /
-  `allowedExecutionTargets` / `@UnionValue` / Syncable）。
+- **Phase 4 大量・実行制御** ✅（B 深度で完了。U/R は実機・一部テストが残る）: #345
+  - ✅ `CompleteTodosIntent` で `EntityCollection` + `LongRunningIntent` + `CancellableIntent` を同時実装 `8e2d637`
+  - ✅ `allowedExecutionTargets [.main]`。FromExtension 分離は entity 解決回避が目的でプロセス制御では**統合不可**と結論 `8e2d637`
+  - ✅ `@UnionValue`（`TodoOrCategory`）+ `SearchEverythingIntent` `099dae3`
+  - ✅ `SyncableEntity`（`TodoAppEntity`、String UUID id でそのまま適合）`d347cb2`
+  - 詳細・落とし穴は insights/03「Phase 4: 大量・実行制御」を参照。
 - **Phase 5 Visual Intelligence**: #297（`IntentValueQuery` + Vision / `OpenIntent` / `@UnionValue` / EventKit・Contacts）。
 - **Phase 6 テスト基盤**: #295（`AppIntentsTesting` で perform / query / 連鎖を検証）。
 
