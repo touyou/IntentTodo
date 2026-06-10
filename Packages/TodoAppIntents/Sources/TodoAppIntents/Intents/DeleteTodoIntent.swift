@@ -37,6 +37,11 @@ public struct DeleteTodoIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
+        // Destructive action — ask Siri / Shortcuts to confirm first. The call
+        // throws (cancelling the intent) if the person declines.
+        try await requestConfirmation(
+            dialog: IntentDialog("Delete “\(todo.title)”?")
+        )
         try todoService.delete(todoId: todo.id)
         return .result()
     }
