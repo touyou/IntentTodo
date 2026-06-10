@@ -659,3 +659,42 @@ visual search の「More results」に対応する intent。`@Parameter var sema
 
 「期限→カレンダー / 担当者→連絡先」は EventKit / Contacts という**別フレームワーク連携**で、App Intents
 中心設計の検証主眼からは外れる。本ブランチでは未実装とし、必要になった時点で独立タスクとして扱う。
+
+## Phase 6: テスト基盤（#295 AppIntentsTesting）
+
+### UI テストバンドル必須（unit test 不可）
+
+[Apple 公式](https://developer.apple.com/documentation/AppIntentsTesting/testing-your-app-intents-code)が明記:
+**「App Intents Testing は intent を**ライブのアプリプロセスで**実行するため、テストは unit test ではなく
+UI テスティングバンドルに置く」**。本プロジェクトは既存の `IntentTodoUITest`（UIテストターゲット）に
+追加した（新規ターゲット不要）。SPM の Testing パッケージでは動かない（アプリプロセス + 登録済み
+`AppDependencyManager` が要るため）。
+
+```swift
+import AppIntentsTesting
+
+@MainActor override func setUp() async throws {
+    app = XCUIApplication(); app.launch()           // ← ライブ起動
+    definitions = IntentDefinitions(bundleIdentifier: "dev.touyou.IntentTodo")
+}
+```
+
+### 型消去 API（文字列キー）
+
+- `IntentDefinitions(bundleIdentifier:)` がアプリの intents / entities / enums / queries を発見。
+- サブスクリプトは **型名**でキーする: `definitions.intents["AddTodoIntent"]` /
+  `definitions.entities["TodoAppEntity"]` / `definitions.valueQueries["TodoVisualIntelligenceQuery"]`。
+- `makeIntent(<パラメータラベル>: 値)` → `try await intent.run()` で実経路実行。`entities["..."].entities(matching:)`
+  で entity query、`valueQueries["..."].values(for:)` で value query。戻り値は `AnyAppEntity` 等の型消去型で、
+  **動的プロパティアクセス**（`try match.title` を `String` に代入）で値を取り出す。
+- アプリターゲットを import せず文字列で参照するため、**多くの誤りはコンパイルではなく実行時**に出る。
+  本ブランチは **buildForTesting + live diagnostics 0 件**まで（B 深度）。実 run はシミュレータ起動 +
+  実 SwiftData 変更を伴うため、テストは一意タイトルで作成 → 操作 → 削除の**自己クリーンアップ設計**にし、
+  実行自体は手動 / CI に委ねる。
+
+### 落とし穴: ファイルのターゲット所属
+
+UIテストターゲットは synchronized folder ではないため、**ファイルを置くだけでは target に入らない**
+（ビルドは通るが当該ファイルは無視される）。Xcode プロジェクトに登録する必要がある（本作業では
+`XcodeWrite` で追加 → `project.pbxproj` に反映）。`@MainActor override func setUp() async` にしないと
+`XCUIApplication` の MainActor 隔離で Swift 6 エラーになる。

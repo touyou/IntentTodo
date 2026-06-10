@@ -63,13 +63,17 @@
 - `VisualIntelligence` は iOS 専用 → 関連ファイルは `#if canImport(VisualIntelligence)` ガード。
 - EventKit/Contacts は別フレームワーク連携のため未実装（記録のみ）。
 
-## 3. 残作業（次セッションの起点）
+### Phase 6 テスト基盤 ✅（B 深度で完了）#295
+- `be7cf2b` 既存 `IntentTodoUITest`（UIテストバンドル）に AppIntentsTesting テストを追加。
+  `IntentDefinitions(bundleIdentifier: "dev.touyou.IntentTodo")` → `makeIntent`/`run`(AddTodo) /
+  `entities(matching:)` / Add→Show 連鎖。自己クリーンアップ設計。buildForTesting + live diagnostics 0件まで。
+- **AppIntentsTesting は UIテストバンドル必須**（unit test 不可、ライブアプリプロセスで out-of-process 実行）。
+- UIテストターゲットは synchronized folder でないため `XcodeWrite` で project 登録が必要。詳細 insights/03。
 
-> Phase 3・4・5 完了。次は **Phase 6（テスト基盤 #295）**。
+## 3. 残作業
 
-### Phase 6 テスト基盤（#295）
-- `AppIntentsTesting`（`makeIntent()` / `run()`）で perform / query / 複数 Intent 連鎖を検証。
-  ⚠️ XCUITest バンドルで動く（別ターゲット構成が要る点に注意）。SPM Testing とは別。
+> **指定6セッション(345/240/295/344/343/297)の検証は全フェーズ完了**（いずれも B 深度。R=実機 Siri/
+> Visual Intelligence、U=実 run は手動/CIに委ねる）。残るは下記の独立タスクのみ。
 
 ### 保留（独立タスク化）
 - **コア TodoAppEntity → `@AppEntity(schema: .reminders.reminder)`**。判明事項（probe 検証済）:
@@ -97,6 +101,6 @@
 ## 5. 再開手順
 
 1. `git switch xcode27` → `BuildProject` で緑を確認。
-2. `docs/APP_INTENTS_CENTRIC_PLAN.md` のチェックリストで次要素を選ぶ（次: Phase 6 テスト基盤）。
+2. 6セッションの検証は完了。残タスクは「保留（独立タスク化）」の reminder 本体スキーマ等のみ。
 3. 新 API は実装前に `DocumentationSearch` / 必要なら `WebFetch` でシンボル・可用性を確定（特に RelevantEntities）。
 4. 機能ごとに実装 → `BuildProject` → 該当 SPM テスト → コミット。落とし穴は insights/03 に追記。

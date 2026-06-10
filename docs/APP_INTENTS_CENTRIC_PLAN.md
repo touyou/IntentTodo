@@ -66,9 +66,9 @@
 
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
-| Intent 実行テスト | `makeIntent()` `run()`（AppIntentsTesting） | `AddTodoIntent` 等の `perform()` を実経路で | U | ⬜ |
-| Entity query テスト | 同上 | `entities(matching:)` を TDD で | U | ⬜ |
-| 複数 Intent 連鎖 | 同上 | Add → Toggle → Show を 1 テストで | U | ⬜ |
+| Intent 実行テスト | `makeIntent()` `run()`（AppIntentsTesting） | `AddTodoIntent` を実経路で | U | ✅(B) `be7cf2b` |
+| Entity query テスト | 同上 | `entities(matching:)` | U | ✅(B) `be7cf2b` |
+| 複数 Intent 連鎖 | 同上 | Add → Show を 1 テストで | U | ✅(B) `be7cf2b` |
 
 ### #344 Code Along: アプリを Siri 対応 — https://developer.apple.com/jp/videos/play/wwdc2026/344/
 
@@ -138,7 +138,10 @@
   - ✅ `TodoSemanticContentSearchIntent`（`@AppIntent(schema: .visualIntelligence.semanticContentSearch)`）`069aa48`
   - ✅ 結果タップ=`OpenTodoIntent` / 複数結果型=`@UnionValue TodoOrCategory` を再利用
   - ⏭ EventKit/Contacts は別フレームワーク連携のため本ブランチ対象外（記録のみ）。詳細 insights/03。
-- **Phase 6 テスト基盤**: #295（`AppIntentsTesting` で perform / query / 連鎖を検証）。
+- **Phase 6 テスト基盤** ✅（B 深度で完了。実 run は手動/CI）: #295
+  - ✅ `IntentTodoUITest`（UIテストバンドル必須）に AppIntentsTesting テストを追加 `be7cf2b`
+  - ✅ `makeIntent`/`run`(AddTodo) / `entities(matching:)` / Add→Show 連鎖。buildForTesting + live diagnostics 0件。
+  - 自己クリーンアップ設計（一意タイトルで作成→削除）。詳細 insights/03。
 
 > 各フェーズは機能単位の小コミット + `BuildProject` 確認で進める。R 深度（実機 Siri/Visual Intelligence）は
 > デバイス手動確認が必要なため、コード側は B/U まで到達させ、R は別途手動検証メモを残す。
