@@ -55,13 +55,17 @@
 - **`allowedExecutionTargets` で FromExtension 分離は統合不可**と結論（分離は entity 解決回避が目的、プロセス制御とは別軸。
   選択肢は `.main`/`.appIntentsExtension` のみで Widget/LA Extension 非対象）。詳細 insights/03。
 
+### Phase 5 Visual Intelligence ✅（B 深度で完了）#297
+- `069aa48` `TodoVisualIntelligenceQuery: IntentValueQuery`（`values(for: SemanticContentDescriptor)` で
+  `input.labels` を todo/カテゴリ名に一致させ `[TodoOrCategory]` を返す。IntentValueQuery は `@Dependency` 可）
+  + `TodoSemanticContentSearchIntent`（`@AppIntent(schema: .visualIntelligence.semanticContentSearch)`）。
+- 結果タップ=`OpenTodoIntent`、複数結果型=`@UnionValue TodoOrCategory` を再利用（新規 entity/型を増やさず）。
+- `VisualIntelligence` は iOS 専用 → 関連ファイルは `#if canImport(VisualIntelligence)` ガード。
+- EventKit/Contacts は別フレームワーク連携のため未実装（記録のみ）。
+
 ## 3. 残作業（次セッションの起点）
 
-> Phase 3・4 完了。次は **Phase 5**（推奨順: 5 → 6）。
-
-### Phase 5 Visual Intelligence（#297）
-- `IntentValueQuery` + `SemanticContentDescriptor`（カメラ/スクショ → 該当 Todo）
-- `OpenIntent`（結果タップ）/ `@UnionValue`（複数結果型）/ EventKit・Contacts 連携
+> Phase 3・4・5 完了。次は **Phase 6（テスト基盤 #295）**。
 
 ### Phase 6 テスト基盤（#295）
 - `AppIntentsTesting`（`makeIntent()` / `run()`）で perform / query / 複数 Intent 連鎖を検証。
@@ -93,6 +97,6 @@
 ## 5. 再開手順
 
 1. `git switch xcode27` → `BuildProject` で緑を確認。
-2. `docs/APP_INTENTS_CENTRIC_PLAN.md` のチェックリストで次要素を選ぶ（推奨順: Phase 5 → 6）。
+2. `docs/APP_INTENTS_CENTRIC_PLAN.md` のチェックリストで次要素を選ぶ（次: Phase 6 テスト基盤）。
 3. 新 API は実装前に `DocumentationSearch` / 必要なら `WebFetch` でシンボル・可用性を確定（特に RelevantEntities）。
 4. 機能ごとに実装 → `BuildProject` → 該当 SPM テスト → コミット。落とし穴は insights/03 に追記。

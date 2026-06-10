@@ -611,3 +611,51 @@ public enum TodoOrCategory: Sendable {   // ← public enum は Sendable 自動�
   「Type '...' does not conform to the 'Sendable' protocol」（生成ソース内）でビルド失敗する。
 - 各ケースの associated value は単一の値型（AppEntity 等）にする。`SearchEverythingIntent` は
   `ReturnsValue<[TodoOrCategory]>` で todo とカテゴリの混在結果を返す。
+
+## Phase 5: Visual Intelligence（#297）
+
+### `IntentValueQuery` + `SemanticContentDescriptor`
+
+カメラ / スクショの visual search に対して、アプリのコンテンツを entity として返す入口。
+
+```swift
+#if canImport(VisualIntelligence)
+import VisualIntelligence
+
+public struct TodoVisualIntelligenceQuery: IntentValueQuery {
+    @Dependency var todoService: TodoService   // ← IntentValueQuery は @Dependency 可
+    public func values(for input: SemanticContentDescriptor) async throws -> [TodoOrCategory] { ... }
+}
+#endif
+```
+
+- **`IntentValueQuery: PersistentlyIdentifiable, _SupportsAppDependencies, Sendable`** — `AppEntity` と違い
+  **`@Dependency` が使える**ので `TodoService` を直接注入できる（entity の `TodoEntityStore` 迂回は不要）。
+- `values(for:)` の `Input` は `SemanticContentDescriptor`、戻り値は entity 配列または **`@UnionValue` 配列**
+  （`[TodoOrCategory]` で todo / category 混在結果）。`EntityQuery` と違い**単一 entity 型に縛られない**のが
+  value query の利点。
+- **`SemanticContentDescriptor`（`VisualIntelligence`）**: `labels: [String]`（一般的な英語ラベル。建物の固有名は
+  来ない、`en_US`、同義語/翻訳なし）と `pixelBuffer: CVReadOnlyPixelBuffer?`。本アプリは labels を todo タイトル /
+  カテゴリ名に部分一致させた（画像一致は ML が要るため見送り）。
+- **並行性**: `values(for:)` は nonisolated。MainActor の `TodoService` は
+  `try await MainActor.run { try todoService.listTodos(...) }` でホップして取得し、以降は Sendable な
+  `TodoAppEntity` 値で off-actor フィルタする。
+- **登録不要**: 他の query 同様、システムが自動発見（AppShortcut 不要）。
+
+### `@AppIntent(schema: .visualIntelligence.semanticContentSearch)`（もっと見る）
+
+visual search の「More results」に対応する intent。`@Parameter var semanticContent: SemanticContentDescriptor`
+だけを持つ形をスキーママクロが要求し、`reminders` スキーマのような `EntityProperty` init 地雷は踏まない
+（entity プロパティが無いため）。perform でアプリを開きリスト表示。
+
+### iOS 専用ガードと既存要素の再利用
+
+- `VisualIntelligence` は **iOS 専用**。本パッケージは macOS/watchOS/visionOS/Widget でもビルドするため、
+  Visual Intelligence 関連ファイルは **`#if canImport(VisualIntelligence)`** で丸ごとガードする。
+- **結果タップ → 詳細表示**は Phase 3 の `OpenTodoIntent`（`OpenIntent`）が、**複数結果型**は Phase 4 の
+  `@UnionValue`（`TodoOrCategory`）がそのまま流用できる。Visual Intelligence のために新規 entity/型を増やさない。
+
+### EventKit / Contacts 連携は別軸（記録のみ）
+
+「期限→カレンダー / 担当者→連絡先」は EventKit / Contacts という**別フレームワーク連携**で、App Intents
+中心設計の検証主眼からは外れる。本ブランチでは未実装とし、必要になった時点で独立タスクとして扱う。
