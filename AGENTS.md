@@ -512,6 +512,7 @@ Types: feat, fix, refactor, test, docs, chore
 
 - `docs/PLAN.md` - 開発計画
 - `docs/APP_INTENTS_CENTRIC_PLAN.md` - WWDC 2026 セッション要素の検証計画（セッション別チェックリスト + 根拠URL）
+- `docs/HANDOFF.md` - 上記検証作業の引き継ぎメモ（進捗・残作業・再開手順、xcode27 ブランチ）
 - `docs/AGENTS.md` - App Intents中心設計の詳細ガイド
 - `docs/APP_INTENT_DRIVEN_DESIGN.md` - 関連概念の整理と比較
 - `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト（目次）

@@ -119,8 +119,10 @@
     さらに `section` / `locationTrigger` 等の **入れ子サブエンティティを再帰的に要求**するため、
     モデルから組み立てる自前 init と相性が悪く深掘りが必要。連携面では list 適合で App Schema の
     仕組み自体は検証済みのため、reminder 本体適合は独立タスクとして将来再挑戦する。
-- **Phase 3 高度な Intent**: #343（会話ダイアログ / `requestConfirmation` / `requestChoice` /
-  `IntentDonationManager` / `RelevantEntities` / system intents `OpenIntent`・`DeleteIntent`）。
+- **Phase 3 高度な Intent** 🔨（2/5）: #343
+  - ✅ `requestConfirmation`（DeleteTodoIntent）`27fc2db`
+  - ✅ `IntentDonationManager`（Add で donate / Delete で deleteDonations）`b4dbd63`
+  - ⬜ `RelevantEntities`（API 未確定・要 WebFetch）/ `requestChoice` / system intents（`OpenIntent`・`DeleteIntent`）/ 会話ダイアログ強化
 - **Phase 4 大量・実行制御**: #345（`EntityCollection` / `LongRunningIntent` / `CancellableIntent` /
   `allowedExecutionTargets` / `@UnionValue` / Syncable）。
 - **Phase 5 Visual Intelligence**: #297（`IntentValueQuery` + Vision / `OpenIntent` / `@UnionValue` / EventKit・Contacts）。
