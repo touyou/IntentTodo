@@ -477,7 +477,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 | **テスト基盤** | Intent 実経路テスト | AppIntentsTesting (makeIntent/run, UIテストバンドル) | ✅ |
 | **Intent Modes** | 動的実行制御 | .foreground(.dynamic)（適所を再選定中） | 保留（#2 revert 済） |
 
-> 検証は `xcode27` ブランチ（26.x ベータ SDK 用、**main 未マージ**）。状態・コミット・残タスクは `docs/HANDOFF.md` と `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
+> 検証は `xcode27` ブランチ（26.x ベータ SDK 用、**main 未マージ**）。状態・コミット・残タスクは `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
 > **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（マクロ生成 init + 入れ子サブエンティティの再設計が必要）、EventKit/Contacts 連携（別フレームワーク軸）。
 
 ## 開発フロー（TDD）
@@ -511,8 +511,7 @@ Types: feat, fix, refactor, test, docs, chore
 ## 参照ドキュメント
 
 - `docs/PLAN.md` - 開発計画
-- `docs/APP_INTENTS_CENTRIC_PLAN.md` - WWDC 2026 セッション要素の検証計画（セッション別チェックリスト + 根拠URL）
-- `docs/HANDOFF.md` - 上記検証作業の引き継ぎメモ（進捗・残作業・再開手順、xcode27 ブランチ）
+- `docs/APP_INTENTS_CENTRIC_PLAN.md` - WWDC 2026 セッション要素の検証計画と結果（セッション別チェックリスト + コミット + 残タスク）
 - `docs/AGENTS.md` - App Intents中心設計の詳細ガイド
 - `docs/APP_INTENT_DRIVEN_DESIGN.md` - 関連概念の整理と比較
 - `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト（目次）
