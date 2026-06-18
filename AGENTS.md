@@ -467,18 +467,18 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 
 | フェーズ | 機能 | 概要 | 状態 |
 |---------|------|------|------|
-| **Entity強化** | プロパティマクロ | @ComputedProperty, @DeferredProperty | ✅ |
-| **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier | ✅ |
+| **Entity強化** | プロパティマクロ / 値表現 | @ComputedProperty, @DeferredProperty, @Property(indexingKey:)(#43), Transferable + ValueRepresentation→IntentPerson/PlaceDescriptor(#44) | ✅ |
+| **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier（単一）/ .appEntityIdentifier(forSelectionType:)（一覧, #46）/ 通知 appEntityIdentifiers(#46) | ✅ |
 | **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ |
-| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) | ✅ list適合 / reminder本体は保留 |
-| **高度な Intent** | 対話/寄付/system intent | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, IntentDialog(full:supporting:) | ✅（RelevantEntities は不適合） |
-| **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, CancellableIntent, allowedExecutionTargets, @UnionValue, SyncableEntity | ✅ |
+| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) / @AppIntent(schema: .system.search)(#47) | ✅ list+search適合 / reminder本体は据え置き(#48) |
+| **高度な Intent** | 対話/寄付/system/部分更新 | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, IntentDialog(full:supporting:), IntentParameter.valueState(#45) | ✅（RelevantEntities は不適合） |
+| **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, CancellableIntent, allowedExecutionTargets(.main/.appIntentsExtension/.widgetKitExtension, #42), @UnionValue, SyncableEntity | ✅ |
 | **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor, semanticContentSearch | ✅ |
 | **テスト基盤** | Intent 実経路テスト | AppIntentsTesting (makeIntent/run, UIテストバンドル) | ✅ |
 | **Intent Modes** | 動的実行制御 | .foreground(.dynamic)（適所を再選定中） | 保留（#2 revert 済） |
 
 > 検証は `xcode27` ブランチ（26.x ベータ SDK 用、**main 未マージ**）。状態・コミット・残タスクは `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
-> **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（マクロ生成 init + 入れ子サブエンティティの再設計が必要）、EventKit/Contacts 連携（別フレームワーク軸）。
+> **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（#48 で再評価 → マクロ生成 init + 入れ子サブエンティティの再設計が必要なため据え置き。list 適合 + 自前 Intent で新 Siri 連携は成立）、`OwnershipProvidingEntity` / `requestValue`（#47、個人利用主体で優先度低）、EventKit/Contacts 連携（別フレームワーク軸）。
 
 ## 開発フロー（TDD）
 

@@ -44,14 +44,14 @@
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
 | Entity プロパティマクロ | `@ComputedProperty` `@DeferredProperty` | `isOverdue` / `subtaskProgress` | U | ✅ |
-| ValueRepresentation | `AppEntity.ValueRepresentation` `IntentValueRepresentation(exporting:importing:)` | 担当者を `IntentPerson` と相互変換 | B/U | ⬜ |
+| ValueRepresentation | `AppEntity.ValueRepresentation` `IntentValueRepresentation(exporting:importing:)` | 担当者を `IntentPerson` / 場所を `PlaceDescriptor` へ export | B | ✅ (#44) |
 | RelevantEntities | `RelevantEntities.updateEntities(_:for:)` `AppEntityContext` | 「次の期限/緊急 Todo」を文脈寄付 | B/R | 🚫 不適合 |
 | EntityCollection | `EntityCollection<TodoAppEntity>` `resolvedEntities()` | バルク完了 Intent | U | ✅(B) `8e2d637` |
 | ネイティブ Parameter 型 | `Duration` `PersonNameComponents` | 所要時間 / 担当者名を `@Parameter` | U | ✅ Phase 1 |
 | @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ✅ `099dae3` |
 | LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ✅(B) `8e2d637` |
 | CancellableIntent | `withIntentCancellationHandler` `IntentCancellationReason` | 上記のグレースフルキャンセル | B/U | ✅(B) `8e2d637` |
-| ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets`） | FromExtension 整理可否を検証→**統合不可と結論** | B | ✅ `8e2d637` |
+| ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets` = `.main` / `.appIntentsExtension` / `.widgetKitExtension`） | FromExtension 整理可否を検証→**統合不可と結論**（#42 で `.widgetKitExtension` の存在を反映、結論不変） | B | ✅ `8e2d637` |
 | SyncableEntity | `SyncableEntity`（`String`/`UUID` id でそのまま適合） | デバイス間 ID 同期 | B | ✅ `d347cb2` |
 
 ### #240 App Schema による Siri 体験 — https://developer.apple.com/jp/videos/play/wwdc2026/240/
@@ -59,8 +59,8 @@
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
 | App Schema 適合 | `@AppEntity(schema: .reminders.*)` `@AppIntent(schema:)` | Todo を reminders ドメインへ意味的適合 | B/R | ⬜ |
-| Transferable export | `Transferable` | Entity を他アプリへエクスポート | B | ⬜ |
-| Onscreen recognition | `userActivity` `appEntityIdentifier` | （済）詳細画面の Todo を提供 | R | ✅ |
+| Transferable export | `Transferable` `ProxyRepresentation` `ValueRepresentation` | Entity を他アプリへエクスポート（title / IntentPerson / PlaceDescriptor） | B | ✅ (#44) |
+| Onscreen recognition | `userActivity` `appEntityIdentifier` | 詳細画面の単一 Todo（済）+ 一覧の `forSelectionType:`（#46） | R | ✅ |
 
 ### #295 AppIntentsTesting — https://developer.apple.com/jp/videos/play/wwdc2026/295/
 
@@ -75,8 +75,9 @@
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
 | Entity の作り分け | `@AppEntity` `IndexedEntity` `TransientAppEntity` | Category/SubTask を Entity 化、検索用 Transient を試す | B/U | 🔨 |
-| Spotlight セマンティック | `CSSearchableIndex` `IndexedEntity` | （一部済）semantic index 検証 | R | 🔨 |
+| Spotlight セマンティック | `CSSearchableIndex` `IndexedEntity` `@Property(indexingKey:)` | title→`\.title` / description→`\.contentDescription`（#43。iOS/macOS 限定 overload） | B | ✅ (#43) |
 | システムアクション Intent | `OpenIntent` `DeleteIntent`（system intent 群） | Open/Delete を system intent プロトコルへ | B | ✅ `375efd1`/`92221d0` |
+| IntentParameter.valueState | `$param.valueState`（`.set` / `.unset`） | `UpdateTodoIntent` で「新値 / 明示クリア / 据え置き」を区別 | B | ✅ (#45) |
 
 ### #343 高度な App Intent 機能 — https://developer.apple.com/jp/videos/play/wwdc2026/343/
 
@@ -86,9 +87,9 @@
 | 対話的な質問 | `requestConfirmation` `requestChoice` | 削除確認 / スヌーズ時間選択 | B/R | ✅(B) `27fc2db`/`db6efa3` |
 | ビジュアル応答 | `ShowsSnippetView` `DisplayRepresentation` | （済）Interactive Snippet | R | ✅ |
 | 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | Add/Complete を寄付、削除時 predicate | B/R | ⬜ |
-| セマンティック検索 | `IndexedEntity` `IntentValueQuery` | 構造化検索 | B | ⬜ |
-| Onscreen（コレクション） | `userActivity` + 選択アノテーション | 一覧での選択を onscreen 提供 | B/R | ⬜ |
-| 既存統合へのエンティティ付与 | UserNotifications / AlarmKit / Now Playing | 通知に entity を紐付け | B | ⏳ |
+| セマンティック検索 | `IndexedEntity` `@Property(indexingKey:)` `.system.search` | indexingKey(#43) + in-app 検索スキーマ(#47) | B | ✅ (#43/#47) |
+| Onscreen（コレクション） | `.appEntityIdentifier(forSelectionType:)` | 一覧の各行を onscreen 提供 | B | ✅ (#46) |
+| 既存統合へのエンティティ付与 | `UNMutableNotificationContent.appEntityIdentifiers` | toggle 通知に entity を紐付け | B | ✅ (#46) |
 
 ### #297 Visual Intelligence 統合 — https://developer.apple.com/jp/videos/play/wwdc2026/297/
 
@@ -109,16 +110,22 @@
   - ✅ Category / SubTask を AppEntity 化 + Query（`1ef65ec`）、Todo→Category 関係を公開
   - ✅ `Duration`（`002e6a9`）/ `PersonNameComponents`（`6ca1c09`）/ `PlaceDescriptor`（`5e3b4c7`）を
     ネイティブ型として `@Parameter` + `@Property` 検証（保存は CloudKit 互換 primitive、入力は system 型）
-  - ⬜ 残: `ValueRepresentation`(→`IntentPerson`) / `TransientAppEntity` / `EntityPropertyQuery`（後続 or Phase 4 と統合）
+  - ✅ `ValueRepresentation`(→`IntentPerson` / `PlaceDescriptor`) を `Transferable` 経由で実装（#44）
+  - ⬜ 残: `TransientAppEntity` / `EntityPropertyQuery`（後続 or Phase 4 と統合）
 - **Phase 2 App Schema（reminders）** ✅（list 階層で適合・検証）/ ⏳（reminder 本体は保留）:
   - ✅ xcode27 を iOS 27 世代へ引き上げ（`.reminders` は iOS 27+ 限定のため）`ed22d80`
   - ✅ `TodoListType` → `@AppEnum(schema: .reminders.listType)` `ed22d80`
   - ✅ `CategoryAppEntity` → `@AppEntity(schema: .reminders.list)`（Category = reminders のリスト）`25d1d61`
-  - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**。
+  - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**（#48 で優先度再考 → 据え置き）。
     判明事項（probe 検証）: reminder スキーマはマクロ生成 init が `EntityProperty<T>` 引数を取り、
     さらに `section` / `locationTrigger` 等の **入れ子サブエンティティを再帰的に要求**するため、
     モデルから組み立てる自前 init と相性が悪く深掘りが必要。連携面では list 適合で App Schema の
     仕組み自体は検証済みのため、reminder 本体適合は独立タスクとして将来再挑戦する。
+    **#48 再評価**: 具体的前提（`.reminders.section` = name+list / `.reminders.locationTrigger` = place(PlaceDescriptor)+event /
+    `.reminders.locationTriggerEvent` = arrive/depart）を確認したが、コアブロッカー（生成 init の `EntityProperty<T>` +
+    初期化規約）はサブエンティティを揃えても不変。**新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な
+    自前 Intent 群 + `OpenIntent`/`DeleteIntent` + `.system.search`(#47) + `indexingKey`(#43)）と確認したため、本体適合は
+    SDK のスキーママクロ init 規約が扱いやすくなるのを待つ独立タスクとして据え置く。詳細は insights/03「Phase 7」。
 - **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
   - ✅ `requestConfirmation`（DeleteTodoIntent）`27fc2db`
   - ✅ `IntentDonationManager`（Add で donate / Delete で deleteDonations）`b4dbd63`
@@ -130,6 +137,9 @@
 - **Phase 4 大量・実行制御** ✅（B 深度で完了。U/R は実機・一部テストが残る）: #345
   - ✅ `CompleteTodosIntent` で `EntityCollection` + `LongRunningIntent` + `CancellableIntent` を同時実装 `8e2d637`
   - ✅ `allowedExecutionTargets [.main]`。FromExtension 分離は entity 解決回避が目的でプロセス制御では**統合不可**と結論 `8e2d637`
+    （#42: 選択肢は `.main` / `.appIntentsExtension` / `.widgetKitExtension` の 3 種。`.widgetKitExtension` を踏まえても
+    LA は target 対象外 + entity 解決の有無は target で変えられないため結論不変。entity 解決の実行先が `[.main]` で本体に
+    寄るかは R 深度で未検証）
   - ✅ `@UnionValue`（`TodoOrCategory`）+ `SearchEverythingIntent` `099dae3`
   - ✅ `SyncableEntity`（`TodoAppEntity`、String UUID id でそのまま適合）`d347cb2`
   - 詳細・落とし穴は insights/03「Phase 4: 大量・実行制御」を参照。
@@ -142,6 +152,15 @@
   - ✅ `IntentTodoUITest`（UIテストバンドル必須）に AppIntentsTesting テストを追加 `be7cf2b`
   - ✅ `makeIntent`/`run`(AddTodo) / `entities(matching:)` / Add→Show 連鎖。buildForTesting + live diagnostics 0件。
   - 自己クリーンアップ設計（一意タイトルで作成→削除）。詳細 insights/03。
+- **Phase 7 WWDC 2026 追加検証（#42–#48）** ✅（B 深度。iOS/visionOS/watchOS の 3 スキームで `BuildProject` グリーン）:
+  - ✅ #42: `allowedExecutionTargets` に `.widgetKitExtension` がある旨を記録訂正（FromExtension 統合不可の結論は不変）
+  - ✅ #43: `@Property(indexingKey:)` で title→`\.title` / 新設 description→`\.contentDescription`（iOS/macOS 限定 overload を `#if` 分岐）
+  - ✅ #44: `TodoAppEntity: Transferable` + `ValueRepresentation` で title / `IntentPerson`(担当者) / `PlaceDescriptor`(場所) を export
+  - ✅ #45: `UpdateTodoIntent` + `IntentParameter.valueState` + `TodoService.update`/`FieldUpdate`（新値/明示クリア/据え置きを区別）
+  - ✅ #46: 一覧に `.appEntityIdentifier(forSelectionType:)` / toggle 通知に `UNMutableNotificationContent.appEntityIdentifiers`
+  - ✅ #47: `ShowTodoSearchResultsIntent`（`@AppIntent(schema: .system.search)`）+ `NavigationModel.pendingSearchText` 配線。ownership/requestValue は未採用
+  - ✅ #48: reminder 本体スキーマ適合は再評価のうえ据え置き（list 適合 + 自前 Intent で新 Siri 連携は成立を確認）
+  - 詳細・落とし穴は insights/03「Phase 7」。R 深度（実機 Siri/Spotlight/Visual Intelligence）は手動。
 
 > 各フェーズは機能単位の小コミット + `BuildProject` 確認で進める。R 深度（実機 Siri/Visual Intelligence）は
 > デバイス手動確認が必要なため、コード側は B/U まで到達させ、R は別途手動検証メモを残す。

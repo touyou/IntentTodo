@@ -572,17 +572,27 @@ App Intents は「開く」「削除する」等の共通アクションに **sy
 ### `allowedExecutionTargets`（実行プロセス指定）
 
 `static var allowedExecutionTargets: IntentExecutionTargets { [.main] }` で intent の実行先を限定できる。
-選べるのは **`.main`（アプリ本体）/ `.appIntentsExtension`（App Intents Extension）**。
+選べるのは **`.main`（アプリ本体）/ `.appIntentsExtension`（App Intents Extension）/ `.widgetKitExtension`
+（WidgetKit Extension）** の 3 種（`IntentExecutionTargets` の公式 discussion が "the main app, an App Intents
+extension, or a WidgetKit extension" と明記。型名は `AppIntent.ExecutionTargets = IntentExecutionTargets`）。
+> **記録訂正（#42）**: 以前ここを「`.main` / `.appIntentsExtension` のみ」と記録していたが誤り。WWDC 2026
+> セッション 345 のとおり **`.widgetKitExtension` も存在**する（Widget ボタンからの更新を本体に寄せて
+> データ競合を避ける用途）。
 
 - 本アプリは App Intents Extension を持たず、バルク SwiftData 変更はアプリ本体が最も確実なので、新設の
   バルク Intent は `[.main]` に固定した。
-- **⚠️ FromExtension 分離を `allowedExecutionTargets` で統合することはできない**（検証結論）:
+- **⚠️ FromExtension 分離を `allowedExecutionTargets` で統合することはできない**（検証結論。`.widgetKitExtension`
+  の存在を踏まえても結論は不変）:
   - FromExtension（`todoId: String`）と Primary（`todo: TodoAppEntity`）の分離は、**Live Activity
     Extension プロセスでの entity 解決クラッシュ回避が目的**（パラメータの「型」を変えて解決自体を避ける）。
   - `allowedExecutionTargets` が制御するのは**どのプロセスが perform するか**であって、entity 解決の有無では
-    ない。しかも選択肢は `.main` / `.appIntentsExtension` のみで、**Widget/Live Activity Extension は対象外**。
+    ない。`.widgetKitExtension` を加えても Widget は対象になり得るだけで、**Live Activity Extension は依然
+    対象外**であり、何より「entity を解決するか否か」は target 指定では変えられない。
   - LA ボタン用変種は `LiveActivityIntent`（Apple 保証でアプリプロセス実行）だが、クラッシュは
     パラメータ解決段で起きるため、解決を経由しない String 版が依然必要。→ **FromExtension は維持**。
+  - **未検証（R 深度・要実機 #42）**: `[.main]` ピン（または `.widgetKitExtension` 指定）で **パラメータ解決
+    (entity resolution) の実行プロセスまで本体側に寄るか** は実機未確認。もし寄るなら LA/Widget からの解決
+    クラッシュを target 指定で回避できる可能性が残るが、現状はコードで型分離（String 版）する方が確実。
 
 ### `SyncableEntity`（デバイス間 ID 一貫）
 
@@ -698,3 +708,94 @@ UIテストターゲットは synchronized folder ではないため、**ファ�
 （ビルドは通るが当該ファイルは無視される）。Xcode プロジェクトに登録する必要がある（本作業では
 `XcodeWrite` で追加 → `project.pbxproj` に反映）。`@MainActor override func setUp() async` にしないと
 `XCUIApplication` の MainActor 隔離で Swift 6 エラーになる。
+
+## Phase 7: WWDC 2026 追加検証（#43–#48）
+
+> issue #42–#48（WWDC 2026 セッション 240 / 343 / 344 / 345 起票）を `xcode27` で実装。すべて B 深度
+> （iOS / visionOS / watchOS の 3 スキームで `BuildProject` グリーン）。R 深度（実機 Siri / Spotlight）は手動。
+
+### `@Property(indexingKey:)`（セマンティック Spotlight、#240 / #43）
+
+`@Property(title:indexingKey:)` の `indexingKey` は `PartialKeyPath<CSSearchableItemAttributeSet>`。プロパティ値を
+Spotlight のセマンティックインデックスのキーへ宣言的にマップし、意味ベース検索 / Q&A の対象にできる。
+
+- `TodoAppEntity.title` → `\.title`、新設 `todoDescription` → `\.contentDescription`。
+- **`textContent` は SDK に露出していない**（`title` / `contentDescription` / `textContentSummary`(read-only) を確認）。
+  自然文の本文は `contentDescription` に載せるのが妥当。
+- **落とし穴（プラットフォーム）**: `indexingKey:` オーバーロードは **iOS / macOS でしか vend されない**。
+  visionOS / watchOS では `Extra argument 'indexingKey'` + `Cannot infer key path type` でビルド失敗するため、
+  既存の `IndexedEntity` 拡張と同じ `#if os(iOS) || os(macOS)` で分岐し、他プラットフォームは素の `@Property`
+  にフォールバックする。**`XcodeRefreshCodeIssuesInFile`（iOS コンテキスト）は通っても、別プラットフォーム
+  destination の `BuildProject` で初めて露見する**ので、entity 系の変更は必ずフルビルドで複数 destination を回す。
+- 既存の手書き `attributeSet`（キーワード index）とは併存可。indexingKey はセマンティック経路を足すもの。
+
+### `Transferable` + `ValueRepresentation`（構造化値エクスポート、#240/#345 / #44）
+
+`TodoAppEntity: Transferable` の `transferRepresentation` に複数表現を並べる:
+
+- `ProxyRepresentation(exporting: \.title)`: タイトルを plain text で（どのテキスト先にも貼れる）。
+- **`ValueRepresentation`**（`AppEntity.ValueRepresentation` = `IntentValueRepresentation<Item, IntentValue>`,
+  `Item: Transferable`）: エンティティを **システム intent value 型**へ橋渡し。`init(exporting:)` /
+  `init(exporting:importing:)`。本アプリは担当者を **`IntentPerson`**、場所を **`PlaceDescriptor`** へ export。
+  - `IntentPerson(identifier:name:handle:)` は **全引数必須**（`identifier` / `handle` を省くと
+    `Missing arguments for parameters 'identifier', 'handle'`）。`identifier: .applicationDefined(todo.id)`,
+    `name: .displayName(name)`, `handle: nil`。
+  - export closure は `async throws`。値が無い todo は `throw` してその表現を出さない（空値を返さない）。
+  - これが計画 doc の「ValueRepresentation(→IntentPerson)」を兼ねる。`IntentPerson` 自体も `Transferable`。
+
+### `IntentParameter.valueState`（部分更新、#344 / #45）
+
+更新系 intent の optional パラメータで「新値 / 明示クリア / 据え置き」を区別する。
+
+- `$param.valueState` は `IntentParameter<Value>.ValueState`。`case set(Value)` / `case unset`。
+  optional パラメータでは `.set(nil)` が **明示クリア**、`.unset` が **未指定（据え置き）**。素の `nil` チェックでは
+  この 2 つが潰れる。
+- `TodoService` 側に `enum FieldUpdate<Value> { case unchanged; case set(Value) }`（`ValueState` の写像）を置き、
+  `update(todoId:title:...)` が各フィールドを `.unchanged` / `.set` で受ける。`UpdateTodoIntent` は
+  `$param.valueState` → `FieldUpdate` を generic ヘルパー 2 種でマップ:
+  - optional モデル列: `if case .set(let v) = state { .set(v) } else { .unchanged }`（`.set(nil)` 透過）
+  - required モデル列（title 等、Intent では optional 公開）: `if case .set(let v?) = state { .set(v) } else { .unchanged }`
+    （`.set(nil)` は据え置き = 必須列は空にできない）
+- `Duration?` → モデルの `TimeInterval?` は perform 内で `duration.map { TimeInterval($0.components.seconds) }` と変換。
+
+### コレクション Onscreen + 通知へのエンティティ付与（#343 / #46）
+
+- **コレクション onscreen**: `List` に `.appEntityIdentifier(forSelectionType: TodoAppEntity.self) { EntityIdentifier(for: TodoAppEntity.self, identifier: $0.id) }`。
+  「3 番目のやつ」のような onscreen 参照に対応。`forSelectionType:` 版は大きなリストで id を遅延マップしオーバーヘッドを抑える
+  （単一 entity 版 `.appEntityIdentifier(_:)` は既に詳細画面で使用済み）。
+- **通知へのエンティティ付与**: `UNMutableNotificationContent.appEntityIdentifiers = [EntityIdentifier(for:identifier:)]`
+  （iOS 27、`import AppIntents`）。画面外でも Siri が通知の文脈を理解する。**永続 AppEntity 必須**（TransientAppEntity 不可）。
+  `ControlNotificationHelper.sendToggledNotification` に `todoId` を足し、`UrgentTodoToggleResult` に `id` を持たせて配線。
+
+### `.system.search`（in-app 検索スキーマ、#343 / #47）
+
+`@AppIntent(schema: .system.search)` + `ShowInAppSearchResultsIntent` で、Siri / Apple Intelligence が検索語を
+**アプリ自身の検索 UI** に流して結果を出せる（issue は「`.system.searchInApp`」表記だが **SDK の正式名は `.system.search`**。
+`ShowInAppSearchResultsIntent` 自体は iOS 16 からの型で、スキーママクロ形が新）。
+
+- 形: `static let searchScopes: [StringSearchScope] = [.general]` + `var criteria: StringSearchCriteria`（マクロが
+  `@Parameter` を注入、`criteria.term` で検索語）。`title` / `supportedModes` はスキーマが供給。
+- **ナビゲーション**: `@Dependency var navigationModel` に検索語を書く設計。`NavigationModel.pendingSearchText` を新設し、
+  `TodoListView` が `.onChange` / `.onAppear` で `viewModel.searchText` に転写してから nil に戻す（cold-start 安全な
+  `@Dependency` ナビ方式と同系統）。
+- **`SearchEverythingIntent` とは別物**: あちらは `@UnionValue` の `[TodoOrCategory]` を **返す** value 検索。
+  こちらは検索 UI へ **遷移** する。スキーマの意味（"take the person to search results"）が異なるため統合せず別 Intent にした。
+- 低優先項目（#47）: `OwnershipProvidingEntity`（shared/public/private の出し分け）/ `$param.requestValue`（perform 途中の聞き返し）
+  は個人利用主体では優先度低として **未採用**（必要時に追加）。
+
+### reminder 本体スキーマ適合の優先度再考（#240 Group Lab / #48）
+
+「新 Siri 連携は App Schema 採用が前提」だが、コア `TodoAppEntity` の `@AppEntity(schema: .reminders.reminder)` 適合は
+**引き続き保留**と判断（再評価結果）。
+
+- **確認した具体的前提**（DocumentationSearch）: reminder 本体は入れ子サブエンティティとして
+  `@AppEntity(schema: .reminders.section)`（`name` + `list`）と `@AppEntity(schema: .reminders.locationTrigger)`
+  （`place: GeoToolbox.PlaceDescriptor` + `event`）、後者の `event` に `@AppEnum(schema: .reminders.locationTriggerEvent)`
+  （`arrive` / `depart`）を要求。`locationTrigger.place` が `PlaceDescriptor` な点は本アプリの `TodoPlace` 橋渡しと相性が良い。
+- **コアブロッカーは不変**: サブエンティティを揃えても、reminder スキーママクロの **生成 init が `EntityProperty<T>` 引数 +
+  入れ子再帰**を要求し、モデルから組み立てる自前 init と衝突（`self.images used before being initialized`、SDK 27 の
+  `@State` マクロ化と同根の初期化規約問題）。サブエンティティ追加では解消しない。
+- **新 Siri 連携は本体適合なしでも成立**（#48 のフォールバック検証）: `CategoryAppEntity` の `.reminders.list` 適合 +
+  discoverable な自前 Intent 群（Add / Update(#45) / Toggle / Show / `.system.search`(#47)）+ `OpenIntent` / `DeleteIntent` +
+  `IndexedEntity` セマンティック index(#43) で、意味理解・検索・遷移は機能する。**本体適合は SDK のスキーママクロ init 規約が
+  扱いやすくなるのを待つ独立タスク**として据え置く。
