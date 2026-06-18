@@ -27,7 +27,8 @@ public struct ToggleUrgentTodoIntent: AppIntent {
         // 通知でフィードバックを返す。
         ControlNotificationHelper.sendToggledNotification(
             todoTitle: result.title,
-            isCompleted: result.isNowCompleted
+            isCompleted: result.isNowCompleted,
+            todoId: result.id
         )
         return .result()
     }

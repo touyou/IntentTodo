@@ -33,6 +33,11 @@ public final class NavigationModel {
     /// Stack-based platforms (iOS/iPadOS/watchOS) use `path` instead and leave this nil.
     public var selectedTodo: TodoAppEntity?
 
+    /// A search term an intent wants the list to apply. The list view observes
+    /// this, copies it into its `.searchable` field, then clears it back to nil.
+    /// Drives `ShowTodoSearchResultsIntent` (`.system.search`, WWDC 2026 #343/#47).
+    public var pendingSearchText: String?
+
     // MARK: - Initialization
 
     public init() {}
@@ -69,6 +74,12 @@ public final class NavigationModel {
     /// Shows the add todo sheet.
     public func showAddTodo() {
         showingAddTodo = true
+    }
+
+    /// Navigates to the root list and asks it to run an in-app search for `term`.
+    public func showSearch(matching term: String) {
+        navigateToRoot()
+        pendingSearchText = term
     }
 
     /// Dismisses the add todo sheet.

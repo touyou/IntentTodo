@@ -4,6 +4,7 @@
 //
 
 import AppIntents
+import CoreTransferable
 #if canImport(CoreSpotlight)
 import CoreSpotlight
 #endif
@@ -27,9 +28,30 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     /// The unique identifier for this entity.
     public var id: String
 
+    // `indexingKey:` (WWDC 2026 #240) maps the property onto the Spotlight
+    // semantic index via a `CSSearchableItemAttributeSet` key, so semantic search
+    // / Q&A can reason over the text. The overload is only vended where Spotlight
+    // indexing exists (iOS / macOS) — matching the `IndexedEntity` extension below —
+    // so other platforms fall back to a plain `@Property`.
+    #if os(iOS) || os(macOS)
+    /// The title of the todo item (semantically indexed via `.title`).
+    @Property(title: "Title", indexingKey: \.title)
+    public var title: String
+
+    /// A longer free-text description of the todo, if any (semantically indexed
+    /// via `.contentDescription` — the field most likely to carry natural-language
+    /// content that semantic search / Q&A benefits from).
+    @Property(title: "Description", indexingKey: \.contentDescription)
+    public var todoDescription: String?
+    #else
     /// The title of the todo item.
     @Property(title: "Title")
     public var title: String
+
+    /// A longer free-text description of the todo, if any.
+    @Property(title: "Description")
+    public var todoDescription: String?
+    #endif
 
     /// Whether the todo item is completed.
     @Property(title: "Completed")
@@ -165,6 +187,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         self.id = todoItem.id.uuidString
         self.createdAt = todoItem.createdAt
         self.title = todoItem.title
+        self.todoDescription = todoItem.todoDescription
         self.isCompleted = todoItem.isCompleted
         self.isFavorite = todoItem.isFavorite
         self.dueDate = todoItem.dueDate
@@ -182,6 +205,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     public init(
         id: String,
         title: String,
+        todoDescription: String? = nil,
         isCompleted: Bool = false,
         isFavorite: Bool = false,
         dueDate: Date? = nil,
@@ -194,6 +218,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         self.id = id
         self.createdAt = createdAt
         self.title = title
+        self.todoDescription = todoDescription
         self.isCompleted = isCompleted
         self.isFavorite = isFavorite
         self.dueDate = dueDate
@@ -213,6 +238,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     public static func == (lhs: TodoAppEntity, rhs: TodoAppEntity) -> Bool {
         lhs.id == rhs.id
             && lhs.title == rhs.title
+            && lhs.todoDescription == rhs.todoDescription
             && lhs.isCompleted == rhs.isCompleted
             && lhs.isFavorite == rhs.isFavorite
             && lhs.dueDate == rhs.dueDate
@@ -224,6 +250,42 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
 
     public func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+// MARK: - Transferable (structured value export, WWDC 2026 #240/#345)
+
+/// Lets a todo be shared / dragged / copied out of the app as structured values
+/// that other apps and the system understand.
+///
+/// - A plain-text proxy (the title) so any text target can accept it.
+/// - `ValueRepresentation` (`AppEntity.ValueRepresentation` = `IntentValueRepresentation`)
+///   bridges to the system intent value types `IntentPerson` (assignee) and
+///   `PlaceDescriptor` (location). This is the same machinery the issue tracks as
+///   "ValueRepresentation(→IntentPerson)". The export closures throw when the
+///   underlying value is absent, so a todo with no assignee / location simply
+///   doesn't offer those flavors instead of exporting empty values.
+extension TodoAppEntity: Transferable {
+    public static var transferRepresentation: some TransferRepresentation {
+        ProxyRepresentation(exporting: \.title)
+
+        ValueRepresentation(exporting: { (todo: TodoAppEntity) -> IntentPerson in
+            guard let name = todo.assigneeName, !name.isEmpty else {
+                throw IntentError.notFound("Todo has no assignee to export")
+            }
+            return IntentPerson(
+                identifier: .applicationDefined(todo.id),
+                name: .displayName(name),
+                handle: nil
+            )
+        })
+
+        ValueRepresentation(exporting: { (todo: TodoAppEntity) -> PlaceDescriptor in
+            guard let location = todo.location else {
+                throw IntentError.notFound("Todo has no location to export")
+            }
+            return location
+        })
     }
 }
 

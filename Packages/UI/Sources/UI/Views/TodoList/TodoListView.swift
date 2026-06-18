@@ -3,6 +3,7 @@
 //  IntentTodo
 //
 
+import AppIntents
 import Domain
 #if os(iOS)
 import LiveActivity
@@ -82,9 +83,22 @@ public struct TodoListView: View {
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             AddTodoSheet()
         }
+        // Apply a search term pushed by ShowTodoSearchResultsIntent (.system.search).
+        .onChange(of: navigationModel.pendingSearchText) { _, newValue in
+            applyPendingSearch(newValue)
+        }
+        .onAppear { applyPendingSearch(navigationModel.pendingSearchText) }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
+    }
+
+    /// Copies an intent-supplied search term into the search field, then clears
+    /// the pending value so it isn't re-applied.
+    private func applyPendingSearch(_ term: String?) {
+        guard let term else { return }
+        viewModel.searchText = term
+        navigationModel.pendingSearchText = nil
     }
 }
 
@@ -107,6 +121,13 @@ private struct TodoListSidebar: View {
                         DeleteButton(todo: todo)
                     }
             }
+        }
+        // Collection onscreen (WWDC 2026 #343): advertise every visible row's
+        // entity so Siri / Apple Intelligence can resolve references like "the
+        // third one" while the list is on screen. The selection-type variant
+        // keeps overhead low for large lists by mapping ids lazily.
+        .appEntityIdentifier(forSelectionType: TodoAppEntity.self) { todo in
+            EntityIdentifier(for: TodoAppEntity.self, identifier: todo.id)
         }
     }
 }

@@ -7,6 +7,7 @@
 //  で実機検証済み)、通知が唯一のフィードバック経路。スケジュール失敗時はログを残す。
 //
 
+import AppIntents
 import os.log
 import UserNotifications
 
@@ -14,11 +15,17 @@ private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "Contr
 
 /// Helper for sending feedback notifications from Control Center widgets.
 public enum ControlNotificationHelper {
-    public static func sendToggledNotification(todoTitle: String, isCompleted: Bool) {
+    public static func sendToggledNotification(todoTitle: String, isCompleted: Bool, todoId: String? = nil) {
         let content = UNMutableNotificationContent()
         content.title = isCompleted ? "Todo Completed" : "Todo Reopened"
         content.body = "\(isCompleted ? "✅" : "⏳") \(todoTitle)"
         content.sound = .default
+        // Associate the affected todo so Siri / Apple Intelligence understand the
+        // notification's context even off-screen (WWDC 2026 #343). Persistent
+        // AppEntity required (TransientAppEntity not supported here).
+        if let todoId {
+            content.appEntityIdentifiers = [EntityIdentifier(for: TodoAppEntity.self, identifier: todoId)]
+        }
 
         schedule(content, identifierPrefix: "todo-toggle")
     }

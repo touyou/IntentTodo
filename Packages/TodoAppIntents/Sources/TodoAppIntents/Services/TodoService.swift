@@ -21,6 +21,20 @@ import SwiftData
 
 private let spotlightLogger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoService.Spotlight")
 
+// MARK: - Partial Update
+
+/// Describes a single field's intent in a partial update.
+///
+/// Mirrors `IntentParameter.ValueState` (WWDC 2026 #344): `.unchanged` leaves the
+/// stored value alone, while `.set` writes a new value. For optional fields the
+/// `Value` is itself optional, so `.set(nil)` means "explicitly clear" — distinct
+/// from `.unchanged` ("don't touch"). A plain `nil` check can't express that
+/// difference; `FieldUpdate` makes it explicit end-to-end.
+public enum FieldUpdate<Value>: Sendable where Value: Sendable {
+    case unchanged
+    case set(Value)
+}
+
 // MARK: - Result Types
 
 /// Payload returned after toggling a todo's completion.
@@ -41,6 +55,7 @@ public struct TodoSnoozeResult: Sendable {
 /// Payload returned after toggling the most urgent todo.
 @MainActor
 public struct UrgentTodoToggleResult: Sendable {
+    public let id: String
     public let title: String
     public let isNowCompleted: Bool
 }
@@ -185,6 +200,44 @@ public final class TodoService {
         )
     }
 
+    /// Applies a partial update to a todo. Each field is a `FieldUpdate`, so the
+    /// caller can leave a field untouched (`.unchanged`), set a new value
+    /// (`.set(value)`), or — for optional fields — explicitly clear it (`.set(nil)`).
+    /// Used by `UpdateTodoIntent`, which derives each `FieldUpdate` from the
+    /// corresponding parameter's `valueState` (WWDC 2026 #344).
+    @discardableResult
+    public func update(
+        todoId: String,
+        title: FieldUpdate<String> = .unchanged,
+        todoDescription: FieldUpdate<String?> = .unchanged,
+        dueDate: FieldUpdate<Date?> = .unchanged,
+        isFavorite: FieldUpdate<Bool> = .unchanged,
+        estimatedDuration: FieldUpdate<TimeInterval?> = .unchanged,
+        assigneeName: FieldUpdate<String?> = .unchanged
+    ) throws -> TodoAppEntity {
+        defer { WidgetReloader.reloadAllWidgets() }
+        let item = try resolve(todoId: todoId)
+
+        if case .set(let value) = title {
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else {
+                throw IntentError.validation("Todo title cannot be empty")
+            }
+            item.title = trimmed
+        }
+        if case .set(let value) = todoDescription { item.todoDescription = value }
+        if case .set(let value) = dueDate { item.dueDate = value }
+        if case .set(let value) = isFavorite { item.isFavorite = value }
+        if case .set(let value) = estimatedDuration { item.estimatedDuration = value }
+        if case .set(let value) = assigneeName { item.assigneeName = value }
+
+        item.modifiedAt = Date()
+        try repository.update(item)
+        let entity = TodoAppEntity(from: item)
+        reindexSpotlight(entity)
+        return entity
+    }
+
     /// Picks the earliest-due incomplete todo and toggles its completion.
     /// Returns `nil` when there is no matching todo.
     ///
@@ -195,11 +248,12 @@ public final class TodoService {
             return nil
         }
         let title = item.title
+        let id = item.id.uuidString
         item.isCompleted.toggle()
         item.modifiedAt = Date()
         try repository.update(item)
         reindexSpotlight(TodoAppEntity(from: item))
-        return UrgentTodoToggleResult(title: title, isNowCompleted: item.isCompleted)
+        return UrgentTodoToggleResult(id: id, title: title, isNowCompleted: item.isCompleted)
     }
 
     // MARK: - Read (no widget reload)
