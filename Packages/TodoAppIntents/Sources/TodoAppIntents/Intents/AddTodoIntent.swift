@@ -121,7 +121,7 @@ public struct AddTodoIntent: AppIntent {
 
         // Donate the action so the system can predict / proactively suggest it
         // (IntentDonationManager). Failures are non-fatal.
-        try? await donate()
+        _ = try? await donate()
 
         // WWDC 2026: Siri / Shortcuts から呼ばれた場合は作成した Todo を
         // インタラクティブスニペットで提示し、その場で完了 / お気に入り操作を

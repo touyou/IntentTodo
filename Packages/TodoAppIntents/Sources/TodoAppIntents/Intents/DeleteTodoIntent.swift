@@ -46,7 +46,7 @@ public struct DeleteTodoIntent: AppIntent {
 
         // The todo no longer exists — remove any donations that reference it so the
         // system stops suggesting actions it can't perform (IntentDonationManager).
-        try? await IntentDonationManager.shared.deleteDonations(
+        _ = try? await IntentDonationManager.shared.deleteDonations(
             matching: .entityIdentifiers([EntityIdentifier(for: todo)])
         )
 

@@ -57,7 +57,7 @@ public struct SnoozeTodoFromExtensionIntent: AppIntent {
                 dueDate: newDueDate,
                 isCompleted: false
             )
-            await activity.update(using: contentState)
+            await activity.update(ActivityContent(state: contentState, staleDate: nil))
         }
     }
     #endif

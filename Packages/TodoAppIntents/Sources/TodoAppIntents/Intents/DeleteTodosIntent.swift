@@ -56,7 +56,7 @@ public struct DeleteTodosIntent: DeleteIntent {
             try todoService.delete(todoId: entity.id)
             // Drop donations referencing a now-deleted todo so the system stops
             // suggesting actions it can no longer perform (IntentDonationManager).
-            try? await IntentDonationManager.shared.deleteDonations(
+            _ = try? await IntentDonationManager.shared.deleteDonations(
                 matching: .entityIdentifiers([EntityIdentifier(for: entity)])
             )
         }

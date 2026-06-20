@@ -64,7 +64,7 @@ public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
     private func endMatchingLiveActivity(for todoId: String) async {
         for activity in Activity<TodoDeadlineActivityAttributes>.activities
         where activity.attributes.todoId == todoId {
-            await activity.end(dismissalPolicy: .immediate)
+            await activity.end(activity.content, dismissalPolicy: .immediate)
         }
     }
     #endif

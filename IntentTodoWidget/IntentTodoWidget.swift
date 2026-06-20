@@ -49,7 +49,7 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
     private func fetchEntry(for configuration: Intent) async -> TodoWidgetEntry {
         do {
             let repository = SwiftDataTodoRepository(modelContext: sharedWidgetModelContainer.mainContext)
-            let todos = try await repository.fetchAll()
+            let todos = try repository.fetchAll()
 
             let filteredTodos: [TodoItem]
             switch configuration.filter {
