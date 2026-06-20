@@ -287,6 +287,13 @@ private struct TodoDetailSubtasksSection: View {
 private struct TodoDetailMetadataSection: View {
     let todo: TodoItem
 
+    /// 秒で保持された所要時間を "1h 30m" 形式へ整形する。
+    private var formattedDuration: String? {
+        guard let seconds = todo.estimatedDuration, seconds > 0 else { return nil }
+        return Duration.seconds(seconds)
+            .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
+    }
+
     var body: some View {
         Group {
             LabeledContent("Created") {
@@ -303,6 +310,24 @@ private struct TodoDetailMetadataSection: View {
                             .frame(width: 10, height: 10)
                         Text(category.name)
                     }
+                }
+            }
+            // WWDC 2026 で追加した属性 (所要時間 / 担当者 / 場所) を表示。
+            // 値は Created/Modified と同じく plain Text に揃える (Label を value に
+            // 置くと行が縦に間延びするため)。
+            if let formattedDuration {
+                LabeledContent("Estimated Duration") {
+                    Text(formattedDuration)
+                }
+            }
+            if let assignee = todo.assigneeName, !assignee.isEmpty {
+                LabeledContent("Assignee") {
+                    Text(assignee)
+                }
+            }
+            if let location = todo.locationName, !location.isEmpty {
+                LabeledContent("Location") {
+                    Text(location)
                 }
             }
         }

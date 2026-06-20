@@ -277,6 +277,7 @@ private struct VisionOSTodoDetailQueryView: View {
                     if let subTasks = item.subTasks, !subTasks.isEmpty {
                         VisionOSSubtasksSection(subtasks: subTasks)
                     }
+                    VisionOSDetailsSection(item: item)
                     VisionOSActionsSection(entity: TodoAppEntity(from: item))
                 }
                 .padding(40)
@@ -437,6 +438,49 @@ private struct VisionOSSubtasksSection: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// WWDC 2026 で追加した属性 (所要時間 / 担当者 / 場所) を表示。いずれも未設定なら
+/// セクションごと非表示。
+private struct VisionOSDetailsSection: View {
+    let item: TodoItem
+
+    private var formattedDuration: String? {
+        guard let seconds = item.estimatedDuration, seconds > 0 else { return nil }
+        return Duration.seconds(seconds)
+            .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
+    }
+
+    private var assignee: String? {
+        item.assigneeName.flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    private var location: String? {
+        item.locationName.flatMap { $0.isEmpty ? nil : $0 }
+    }
+
+    private var hasContent: Bool {
+        formattedDuration != nil || assignee != nil || location != nil
+    }
+
+    var body: some View {
+        if hasContent {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Details").font(.headline).foregroundStyle(.secondary)
+                if let formattedDuration {
+                    Label(formattedDuration, systemImage: "hourglass").font(.body)
+                }
+                if let assignee {
+                    Label(assignee, systemImage: "person").font(.body)
+                }
+                if let location {
+                    Label(location, systemImage: "mappin.and.ellipse").font(.body)
+                }
+            }
+            .padding(24)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 
