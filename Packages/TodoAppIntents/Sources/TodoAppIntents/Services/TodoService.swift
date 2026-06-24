@@ -274,7 +274,7 @@ public final class TodoService {
     }
 
     public func incompleteCount() throws -> Int {
-        try repository.fetchIncomplete().count
+        try repository.incompleteCount()
     }
 
     // MARK: - Spotlight

@@ -175,4 +175,21 @@ struct MockTodoRepositoryTests {
         #expect(favorites.count == 1)
         #expect(favorites.first?.title == "Favorite")
     }
+
+    @Test("IncompleteCount counts only incomplete todos")
+    func incompleteCount() throws {
+        let open1 = TodoItem(title: "Open 1", isCompleted: false)
+        let open2 = TodoItem(title: "Open 2", isCompleted: false)
+        let done = TodoItem(title: "Done", isCompleted: true)
+        let repository = MockTodoRepository(initialTodos: [open1, open2, done])
+
+        #expect(try repository.incompleteCount() == 2)
+    }
+
+    @Test("IncompleteCount returns 0 for empty repository")
+    func incompleteCountEmpty() throws {
+        let repository = MockTodoRepository()
+
+        #expect(try repository.incompleteCount() == 0)
+    }
 }

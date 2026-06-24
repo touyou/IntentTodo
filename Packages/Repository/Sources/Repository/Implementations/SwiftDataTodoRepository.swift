@@ -58,6 +58,16 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         return try modelContext.fetch(descriptor).first
     }
 
+    public func incompleteCount() throws -> Int {
+        // fetchCount counts at the store level without materializing TodoItem
+        // instances into memory (Apple: "without the overhead of fetching the
+        // models themselves").
+        let descriptor = FetchDescriptor<TodoItem>(
+            predicate: #Predicate { !$0.isCompleted }
+        )
+        return try modelContext.fetchCount(descriptor)
+    }
+
     // MARK: - Update
 
     public func update(_ todo: TodoItem) throws {

@@ -66,6 +66,10 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
             .min { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
     }
 
+    public func incompleteCount() throws -> Int {
+        todos.values.lazy.filter { !$0.isCompleted }.count
+    }
+
     // MARK: - Update
 
     public func update(_ todo: TodoItem) throws {

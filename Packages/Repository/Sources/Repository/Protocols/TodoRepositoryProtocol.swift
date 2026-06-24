@@ -43,6 +43,13 @@ public protocol TodoRepositoryProtocol {
     /// when no incomplete todo has a due date.
     func fetchMostUrgentIncomplete() throws -> TodoItem?
 
+    /// Returns the number of incomplete todo items without materializing them.
+    ///
+    /// Implementations should count at the store level (e.g.
+    /// `ModelContext.fetchCount`) rather than fetching the full table and
+    /// counting in memory.
+    func incompleteCount() throws -> Int
+
     // MARK: - Update
 
     /// Updates an existing todo item.

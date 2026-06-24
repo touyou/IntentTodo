@@ -85,6 +85,21 @@ let container = try SharedModelContainer.createContainer()
 
 watchOS と iOS は別デバイスのため、App Groups では直接データ共有できない。Watch Connectivityを使用するか、CloudKitで同期する必要がある。
 
+### マイグレーションは 1 プロセス（アプリ本体）だけが担当する
+
+複数プロセス（アプリ本体 / Widget / LiveActivity）が同じ App Group 上の store を共有する場合、**スキーマのマイグレーションを走らせるプロセスを 1 つに固定する**必要がある。WWDC 2026 "SwiftData Group Lab" (session 8017) で明言された設計指針:
+
+> 複数プロセスから同じデータベースを触るなら、マイグレーションを担当するプロセスをひとつに決める。アプリ本体を担当にして、Widget や Extension はマイグレーション完了後のファイルを読み書きする構成にする。**新バージョンへの更新後、アプリ本体より先に Widget が動く場合もある**ため、Widget / Extension 側にはマイグレーションプランを含めない。必要ならアプリの起動を促す。
+
+理由は、アプリ更新直後は **アプリ本体より先に Widget / Extension プロセスが起動し得る** ため。両者がマイグレーションプランを持っていると、Extension が古い→新しいスキーマへの移行を先に試み、本体のマイグレーションと競合する危険がある。
+
+本プロジェクトでの現状と指針:
+
+- 現状 `SharedModelContainer.createContainer()` は全ターゲット共通で、**まだ `SchemaMigrationPlan` を導入していない**ため問題は顕在化していない。
+- 将来スキーマ変更でマイグレーションプランを導入する際は、**マイグレーションプランを渡すのはアプリ本体の `ModelContainer` だけ**にする。Widget / LiveActivity が使うコンテナはマイグレーションプラン無し（= 移行済みファイルを読むだけ）で構成する。
+  - 例: `SharedModelContainer.createContainer(migrationPlan:)` のように引数化し、アプリ本体だけがプランを渡す。Extension は引数なしで呼ぶ。
+- Extension が「まだ移行されていない store」を読む可能性に備え、Extension 側の起動失敗時は **アプリ起動を促す**フォールバック（`Link` でアプリを開く等）を用意しておくと安全。
+
 ---
 
 ## UserDefaults の App Group 対応
