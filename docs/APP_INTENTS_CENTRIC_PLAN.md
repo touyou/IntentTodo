@@ -151,6 +151,10 @@
   - ✅ `TodoVisualIntelligenceQuery: IntentValueQuery`（`values(for: SemanticContentDescriptor)` → `[TodoOrCategory]`）`069aa48`
   - ✅ `TodoSemanticContentSearchIntent`（`@AppIntent(schema: .visualIntelligence.semanticContentSearch)`）`069aa48`
   - ✅ 結果タップ=`OpenTodoIntent` / 複数結果型=`@UnionValue TodoOrCategory` を再利用
+  - ✅ **Xcode 27 beta 2 で macOS 対応化**: 当初「iOS 専用」だったが beta 2 で `VisualIntelligence` が Mac に
+    import 可能に。Mac は visual search 結果 entity が全て openable であることを要求するため `OpenCategoryIntent`
+    （`CategoryAppEntity` 用 `OpenIntent`）を新設し、`#if canImport(VisualIntelligence)` のまま iOS+Mac で成立
+    （iOS/macOS/visionOS の 3 destination フルビルド green）。詳細 insights/03「beta 2 で macOS 対応」。
   - ⏭ EventKit/Contacts は別フレームワーク連携のため本ブランチ対象外（記録のみ）。詳細 insights/03。
 - **Phase 6 テスト基盤** ✅（B 深度で完了。実 run は手動/CI）: #295
   - ✅ `IntentTodoUITest`（UIテストバンドル必須）に AppIntentsTesting テストを追加 `be7cf2b`

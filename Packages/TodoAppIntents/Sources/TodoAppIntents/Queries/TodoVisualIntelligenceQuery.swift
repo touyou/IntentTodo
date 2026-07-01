@@ -6,8 +6,12 @@
 //  when a person performs a visual search (camera / screenshot); we return matching
 //  todos and categories so they appear in the visual search results.
 //
-//  Guarded by `canImport(VisualIntelligence)` — the framework is iOS-only, while
-//  this package also builds for macOS / watchOS / visionOS / widget extensions.
+//  Guarded by `canImport(VisualIntelligence)`. Originally iOS-only because the
+//  framework didn't exist elsewhere; Xcode 27 beta 2 makes it importable on Mac too,
+//  so this now builds wherever the framework is present. Mac additionally enforces
+//  that every entity a visual-search query returns is openable (has an `OpenIntent`)
+//  — satisfied here because both members of the `TodoOrCategory` union have one
+//  (`OpenTodoIntent` / `OpenCategoryIntent`).
 //
 
 #if canImport(VisualIntelligence)

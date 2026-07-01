@@ -7,7 +7,9 @@
 //  intent so the app can open its full results for the recognized content.
 //
 //  Conforms to the `.visualIntelligence.semanticContentSearch` assistant schema;
-//  guarded by `canImport(VisualIntelligence)` (iOS-only framework).
+//  guarded by `canImport(VisualIntelligence)`. Originally iOS-only; Xcode 27 beta 2
+//  makes the framework importable on Mac too, so this builds wherever it exists
+//  (see TodoVisualIntelligenceQuery for the openability requirement that enables it).
 //
 
 #if canImport(VisualIntelligence)

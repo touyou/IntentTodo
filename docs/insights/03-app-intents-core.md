@@ -666,12 +666,31 @@ visual search の「More results」に対応する intent。`@Parameter var sema
 だけを持つ形をスキーママクロが要求し、`reminders` スキーマのような `EntityProperty` init 地雷は踏まない
 （entity プロパティが無いため）。perform でアプリを開きリスト表示。
 
-### iOS 専用ガードと既存要素の再利用
+### canImport ガードと既存要素の再利用
 
-- `VisualIntelligence` は **iOS 専用**。本パッケージは macOS/watchOS/visionOS/Widget でもビルドするため、
-  Visual Intelligence 関連ファイルは **`#if canImport(VisualIntelligence)`** で丸ごとガードする。
+- `VisualIntelligence` 関連ファイルは **`#if canImport(VisualIntelligence)`** で丸ごとガードする。当初は
+  `VisualIntelligence` が **iOS 専用**だったための措置だが、**Xcode 27 beta 2 で Mac にも import 可能**になった
+  （下記「beta 2 で macOS 対応」参照）。`canImport` のみのガードなので、フレームワークが存在するプラットフォーム
+  （iOS + Mac）で自動的にビルドされる。
 - **結果タップ → 詳細表示**は Phase 3 の `OpenTodoIntent`（`OpenIntent`）が、**複数結果型**は Phase 4 の
   `@UnionValue`（`TodoOrCategory`）がそのまま流用できる。Visual Intelligence のために新規 entity/型を増やさない。
+
+### beta 2 で macOS 対応（`OpenCategoryIntent` 追加で「iOS 専用」を解消）
+
+「VisualIntelligence は iOS 専用」は SDK にフレームワークが無かった時点の制約で、**恒久的な不可能ではなかった**。
+Xcode 27 beta 2 で Mac に import 可能になったため、macOS でも成立させた。
+
+- **Mac 固有の追加バリデーション**: visual search の `IntentValueQuery` が返す entity は**すべて openable
+  （`OpenIntent` を持つ）**必要がある。`TodoVisualIntelligenceQuery` は `TodoOrCategory` union を返すため、
+  `TodoAppEntity`（`OpenTodoIntent`）に加え **`CategoryAppEntity` にも `OpenIntent` が必要**。
+  Mac ビルドで `result type 'CategoryAppEntity' that is not openable ... must be associated with an OpenIntent`
+  エラーになる（**iOS シミュレータ / iPhone ビルドでは出ず、Mac Catalyst でのみ発火**）。
+- **解決**: `OpenCategoryIntent`（`OpenIntent`、`target: CategoryAppEntity`）を新設。カテゴリ専用画面は無いので
+  `perform()` は `navigateToRoot()`（アプリを開く）だけ。**openable にすること自体が目的**で、これで union が
+  全メンバ openable になり Mac ビルドが通る（AppShortcut 未登録なので 10 件枠に影響なし）。
+- **教訓**: 「プラットフォーム限定」は当時の SDK 制約に過ぎない場合がある。SDK 更新時は `#if canImport` ガードを
+  外して**本当に不可能か**を実ビルドで確かめる。iOS だけでなく **macOS(My Mac=Catalyst) / visionOS の複数
+  destination をフルビルド**して初めて分かる差異がある（`indexingKey` #43 と同じ教訓）。
 
 ### EventKit / Contacts 連携は別軸（記録のみ）
 
@@ -793,8 +812,9 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
 - **落とし穴（watchOS 非対応 / Xcode 27 beta 2）**: `.system` ドメインのスキーマも beta 2 で **watchOS で unavailable**
   （`'system' is unavailable in watchOS` / `'search' is unavailable in watchOS`）。watch アプリには検索遷移先の UI が
   無いため、`ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外した（`NavigationModel` / `TodoListView`
-  からの参照はコメントのみで実害なし）。`.visualIntelligence.*`（#297）は元々 `#if canImport(VisualIntelligence)` で
-  iOS 限定ガード済みのため watchOS には来ない。
+  からの参照はコメントのみで実害なし）。`.visualIntelligence.*`（#297）は `#if canImport(VisualIntelligence)` ガード
+  なので watchOS（フレームワーク非存在）には来ない。※ beta 2 で **Mac には import 可能**になり macOS でも成立
+  させた（`OpenCategoryIntent` 追加）。詳細は上記「beta 2 で macOS 対応」。
 
 ### reminder 本体スキーマ適合の優先度再考（#240 Group Lab / #48）
 
