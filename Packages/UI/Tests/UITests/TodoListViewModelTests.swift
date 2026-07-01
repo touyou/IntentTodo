@@ -19,7 +19,8 @@ struct TodoListViewModelTests {
         isCompleted: Bool = false,
         isFavorite: Bool = false,
         dueDate: Date? = nil,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        sortIndex: Int = 0
     ) -> TodoAppEntity {
         TodoAppEntity(
             id: id,
@@ -27,7 +28,8 @@ struct TodoListViewModelTests {
             isCompleted: isCompleted,
             isFavorite: isFavorite,
             dueDate: dueDate,
-            createdAt: createdAt
+            createdAt: createdAt,
+            sortIndex: sortIndex
         )
     }
 
@@ -282,6 +284,39 @@ struct TodoListViewModelTests {
         #expect(sorted[2].title == "No date")
     }
 
+    @Test("Manual sort orders by sortIndex ascending (drag-to-reorder)")
+    func sortManualBySortIndex() {
+        let viewModel = TodoListViewModel()
+        viewModel.sortOrder = .manual
+
+        let todos = [
+            makeTodo(title: "Third", sortIndex: 2),
+            makeTodo(title: "First", sortIndex: 0),
+            makeTodo(title: "Second", sortIndex: 1),
+        ]
+
+        let sorted = viewModel.filteredTodos(from: todos)
+        #expect(sorted.map(\.title) == ["First", "Second", "Third"])
+    }
+
+    @Test("Manual sort breaks sortIndex ties by newest first")
+    func sortManualTieBreaksByCreatedAt() {
+        let viewModel = TodoListViewModel()
+        viewModel.sortOrder = .manual
+
+        let older = Date().addingTimeInterval(-1000)
+        let newer = Date()
+
+        // Both brand-new todos share the default sortIndex 0.
+        let todos = [
+            makeTodo(title: "Older", createdAt: older, sortIndex: 0),
+            makeTodo(title: "Newer", createdAt: newer, sortIndex: 0),
+        ]
+
+        let sorted = viewModel.filteredTodos(from: todos)
+        #expect(sorted.map(\.title) == ["Newer", "Older"])
+    }
+
     // MARK: - Statistics Tests
 
     @Test("incompleteCount returns count of incomplete todos")
@@ -383,7 +418,7 @@ struct TodoFilterTests {
 struct TodoSortOrderTests {
     @Test("All cases are iterable")
     func allCases() {
-        #expect(TodoSortOrder.allCases.count == 6)
+        #expect(TodoSortOrder.allCases.count == 7)
     }
 
     @Test("Each sort order has a display name")
@@ -394,6 +429,7 @@ struct TodoSortOrderTests {
         #expect(TodoSortOrder.titleDescending.displayName == "Title Z-A")
         #expect(TodoSortOrder.dueDateAscending.displayName == "Due Date (Earliest)")
         #expect(TodoSortOrder.dueDateDescending.displayName == "Due Date (Latest)")
+        #expect(TodoSortOrder.manual.displayName == "Manual")
     }
 
     @Test("Each sort order has unique id based on rawValue")

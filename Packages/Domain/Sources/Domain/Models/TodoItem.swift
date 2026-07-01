@@ -69,6 +69,14 @@ public final class TodoItem {
     /// 更新で発火しないため、更新側 (TodoService 等) で明示的に触る方針。
     public var modifiedAt: Date = Date()
 
+    /// User-defined manual ordering index (drag-to-reorder).
+    ///
+    /// Default `0` keeps this CloudKit-safe and lets SwiftData perform a
+    /// lightweight migration (no `VersionedSchema` needed). Only consulted when the
+    /// list's sort order is `.manual`; `TodoService.reorderTodos(orderedIDs:)`
+    /// assigns it by position.
+    public var sortIndex: Int = 0
+
     /// The category this todo belongs to (optional for CloudKit compatibility).
     @Relationship(deleteRule: .nullify, inverse: \Category.todos)
     public var category: Category?

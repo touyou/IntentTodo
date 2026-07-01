@@ -310,3 +310,56 @@ private var displayImage: DisplayRepresentation.Image {
     }
 }
 ```
+
+## WWDC 2026 / SDK 27 SwiftUI 新 API 採用（`xcode27` ブランチ）
+
+> deployment target は 26.0 のまま。27+ 限定 API は **`#available` ガード**で導入し、
+> 26 では従来動作にフォールバックする（この「新 OS だけ強化・旧 OS は据え置き」の
+> ガード方式自体の検証も兼ねる）。ビルドは複数 destination で green（B 深度）、実機
+> ジェスチャ確認は R 深度で手動。
+
+### ドラッグ並べ替え（`reorderable()` / `reorderContainer(for:itemID:)`）
+
+`List`（や任意コンテナ）の `ForEach` に `.reorderable()`、コンテナに
+`.reorderContainer(for:itemID:)` を付けるとドラッグ並べ替えになる（iOS/macOS/visionOS/
+watchOS 27+、tvOS 不可）。本アプリは **手動ソート時のみ**有効化する。
+
+- **永続化**: `TodoItem.sortIndex: Int = 0`（デフォルト値付き＝CloudKit 安全 + SwiftData
+  軽量マイグレーション、`VersionedSchema` 不要）を追加。`TodoAppEntity.sortIndex` に写像し、
+  `TodoSortOrder.manual`（新規 case）が `sortIndex` 昇順で並べる（同値は createdAt 新しい順で tie-break）。
+- **アクションは Intent**: 並べ替えは `ReorderTodosIntent`（`.background` / `isDiscoverable=false`）
+  として定義し、ロジックは `TodoService.reorderTodos(orderedIDs:)` に集約。ただし**ドラッグ確定は
+  `Button(intent:)` に載せられない**ため、View 側は同じ `TodoService` を直接呼ぶ（`modelContext.container`
+  から生成 → `@Query` と同一 context に書く）。Intent と UI がロジックを共有するので二重実装にならない。
+- **`ReorderDifference` の適用**: 単一コレクションは
+  `ReorderDifference<String, ReorderableSingleCollectionIdentifier>` を受け、`sources` を抜いて
+  `destination.position`（`.before(id)` / `.end`）へ差し込む拡張（`@available(iOS 27,…)` で
+  ガード）で新 id 順を算出 → 上記 Intent 経路へ。
+- **`#available` の当て方**: `.reorderable()` は `ForEach` の型を変えるので、`List` builder 内で
+  `if #available(iOS 27, macOS 27, visionOS 27, *), isReorderable { ForEach…​.reorderable() } else { ForEach… }`
+  と条件分岐（availability + bool を 1 つの `if` で結合可）。`.reorderContainer` は `ViewModifier`
+  に切り出して同じガードを 1 箇所に閉じ込め、`body` を読みやすく保つ。
+
+### ツールバー最小化（`toolbarMinimizeBehavior(_:for:)`）
+
+スクロールでナビゲーションバーを最小化。`.onScrollDown` は **iOS 限定**なので `#if os(iOS)` +
+`if #available(iOS 27, *)` の二重ガードを `ViewModifier` に閉じ込めて適用。macOS/visionOS は
+`.automatic` しか無いため、本アプリでは iOS のみ採用。
+
+### 該当なしだった新 API（調査記録）
+
+- **`AsyncImage(request:)` / `asyncImageURLSession`**: プロジェクトに `AsyncImage` 使用箇所ゼロ
+  （リモート画像を扱わない）→ 採用対象なし。
+- **`confirmationDialog`/`alert` の `item:` オーバーロード**: `confirmationDialog` / `.alert(` の
+  使用箇所ゼロ。削除確認は SwiftUI ダイアログではなく **App Intent の `requestConfirmation`** 経由
+  （Siri/Shortcuts でも一貫）なので、この新オーバーロードの当て先が無い → 採用対象なし。
+- **`swipeActionsContainer()`**: メインリストは既に `List` で `.swipeActions` が動作済み。新 API は
+  `List` 以外（`LazyVStack` 等）向けなので不要。
+
+### 落とし穴
+
+- **`@State` のマクロ化（SDK 27）**: 今回の変更では未遭遇だが、`@State` 絡みで
+  "used before being initialized" 等が出たら **init 代入順の入れ替えは誤り**。`swiftui-whats-new-27`
+  skill の `state-macro.md` を参照。
+- **`TodoSortOrder` に case 追加 → allCases 前提のテストが赤**: `TodoSortOrderTests.allCases()` の
+  期待値（6→7）と displayName テストを更新。enum の網羅 switch（ViewModel の `sortTodos`）も要追随。

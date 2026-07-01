@@ -94,6 +94,14 @@ public final class TodoListViewModel {
             return todos.sorted { compareDueDates($0.dueDate, $1.dueDate, ascending: true) }
         case .dueDateDescending:
             return todos.sorted { compareDueDates($0.dueDate, $1.dueDate, ascending: false) }
+        case .manual:
+            // Drag-to-reorder order, persisted on the model as `sortIndex`.
+            // Ties (e.g. brand-new todos still at 0) fall back to newest-first.
+            return todos.sorted {
+                $0.sortIndex != $1.sortIndex
+                    ? $0.sortIndex < $1.sortIndex
+                    : $0.createdAt > $1.createdAt
+            }
         }
     }
 
@@ -149,6 +157,9 @@ public enum TodoSortOrder: String, CaseIterable, Identifiable, Sendable {
     case titleDescending
     case dueDateAscending
     case dueDateDescending
+    /// User's drag-to-reorder order (persisted as `TodoItem.sortIndex`). Enables
+    /// the reorderable list (WWDC 2026, iOS/macOS/visionOS 27+).
+    case manual
 
     public var id: String { rawValue }
 
@@ -160,6 +171,7 @@ public enum TodoSortOrder: String, CaseIterable, Identifiable, Sendable {
         case .titleDescending: return "Title Z-A"
         case .dueDateAscending: return "Due Date (Earliest)"
         case .dueDateDescending: return "Due Date (Latest)"
+        case .manual: return "Manual"
         }
     }
 }

@@ -23,6 +23,7 @@ public struct TodoListView: View {
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
     @Environment(NavigationModel.self) private var navigationModel
+    @Environment(\.modelContext) private var modelContext
 
     // MARK: - Computed Properties
 
@@ -58,7 +59,12 @@ public struct TodoListView: View {
                 } else {
                     TodoListSidebar(
                         todos: filteredTodos,
-                        selection: $navigationModel.selectedTodo
+                        selection: $navigationModel.selectedTodo,
+                        // Drag-to-reorder is only meaningful when the list is showing
+                        // the user's manual order (WWDC 2026 reorderable containers,
+                        // 27+; gated inside the sidebar).
+                        isReorderable: viewModel.sortOrder == .manual,
+                        onReorder: persistReorder
                     )
                 }
             }
@@ -69,6 +75,11 @@ public struct TodoListView: View {
             .searchable(text: $viewModel.searchText, prompt: "Search todos")
             // sidebar 既定幅は TodoRowView には狭いため ideal を広めに固定 (iPad/macOS)。
             .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 480)
+            #if os(iOS)
+            // WWDC 2026: shrink the nav bar as the person scrolls the list down.
+            // `.onScrollDown` is iOS-only, so it's gated; older OSes keep the bar.
+            .modifier(NavigationBarMinimizeOnScroll())
+            #endif
         } detail: {
             if let selected = navigationModel.selectedTodo {
                 TodoDetailView(todo: selected)
@@ -100,6 +111,15 @@ public struct TodoListView: View {
         viewModel.searchText = term
         navigationModel.pendingSearchText = nil
     }
+
+    /// Persists a drag-to-reorder result. The reorder gesture can't be a
+    /// `Button(intent:)`, so it calls the same `TodoService` the canonical
+    /// `ReorderTodosIntent` runs — no logic is duplicated. `modelContext.container`
+    /// is the app's shared container, so the write lands in the `@Query`'s context.
+    private func persistReorder(_ orderedIDs: [String]) {
+        let service = TodoService.swiftDataBacked(container: modelContext.container)
+        try? service.reorderTodos(orderedIDs: orderedIDs)
+    }
 }
 
 // MARK: - Sidebar
@@ -107,6 +127,9 @@ public struct TodoListView: View {
 private struct TodoListSidebar: View {
     let todos: [TodoAppEntity]
     @Binding var selection: TodoAppEntity?
+    let isReorderable: Bool
+    /// Receives the new, fully-ordered list of todo ids after a drag.
+    let onReorder: ([String]) -> Void
 
     var body: some View {
         // SwiftData @Query の delta 検出により List の行挿入/削除は標準で animate
@@ -114,12 +137,14 @@ private struct TodoListSidebar: View {
         // body 評価のたびに `[String]` 配列を再アロケートしていたため、件数が増える
         // ほどスクロールがカクついていた。
         List(selection: $selection) {
-            ForEach(todos, id: \.id) { todo in
-                TodoRowView(todo: todo)
-                    .tag(todo)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        DeleteButton(todo: todo)
-                    }
+            // `.reorderable()` (WWDC 2026) turns any container into a drag-to-reorder
+            // one. It's 27+ only, so gate it; on older OSes (or non-manual sort) the
+            // rows render exactly as before.
+            if #available(iOS 27, macOS 27, visionOS 27, *), isReorderable {
+                ForEach(todos, id: \.id) { row($0) }
+                    .reorderable()
+            } else {
+                ForEach(todos, id: \.id) { row($0) }
             }
         }
         // Collection onscreen (WWDC 2026 #343): advertise every visible row's
@@ -129,8 +154,76 @@ private struct TodoListSidebar: View {
         .appEntityIdentifier(forSelectionType: TodoAppEntity.self) { todo in
             EntityIdentifier(for: TodoAppEntity.self, identifier: todo.id)
         }
+        .modifier(ReorderContainer(enabled: isReorderable, todos: todos, onReorder: onReorder))
+    }
+
+    @ViewBuilder
+    private func row(_ todo: TodoAppEntity) -> some View {
+        TodoRowView(todo: todo)
+            .tag(todo)
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                DeleteButton(todo: todo)
+            }
     }
 }
+
+// MARK: - Reorder wiring (WWDC 2026 reorderable containers)
+
+/// Attaches `.reorderContainer(for:itemID:)` to the list when manual reordering is
+/// active and the OS supports it. Kept as a `ViewModifier` so the `#available`
+/// gate lives in one place and the list body stays readable.
+private struct ReorderContainer: ViewModifier {
+    let enabled: Bool
+    let todos: [TodoAppEntity]
+    let onReorder: ([String]) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 27, macOS 27, visionOS 27, *), enabled {
+            content.reorderContainer(for: TodoAppEntity.self, itemID: \.id) { difference in
+                onReorder(difference.newOrder(from: todos))
+            }
+        } else {
+            content
+        }
+    }
+}
+
+@available(iOS 27, macOS 27, visionOS 27, *)
+private extension ReorderDifference
+where ItemID == String, CollectionID == ReorderableSingleCollectionIdentifier {
+    /// Applies this single-collection reorder to `current` and returns the new,
+    /// fully-ordered list of ids. The moved ids keep their relative order.
+    func newOrder(from current: [TodoAppEntity]) -> [String] {
+        let moving = Set(sources)
+        var ids = current.map(\.id)
+        let moved = ids.filter { moving.contains($0) }
+        ids.removeAll { moving.contains($0) }
+        switch destination.position {
+        case .before(let anchor):
+            let index = ids.firstIndex(of: anchor) ?? ids.endIndex
+            ids.insert(contentsOf: moved, at: index)
+        case .end:
+            ids.append(contentsOf: moved)
+        }
+        return ids
+    }
+}
+
+// MARK: - Toolbar minimize (WWDC 2026)
+
+#if os(iOS)
+/// Minimizes the navigation bar as the person scrolls down. `.onScrollDown` is
+/// iOS-only and 27+, so this gates it and no-ops on older OSes.
+private struct NavigationBarMinimizeOnScroll: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 27, *) {
+            content.toolbarMinimizeBehavior(.onScrollDown, for: .navigationBar)
+        } else {
+            content
+        }
+    }
+}
+#endif
 
 // MARK: - Empty View
 

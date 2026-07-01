@@ -256,6 +256,26 @@ public final class TodoService {
         return UrgentTodoToggleResult(id: id, title: title, isNowCompleted: item.isCompleted)
     }
 
+    /// Persists a manual ordering by assigning each todo's `sortIndex` to its
+    /// position in `orderedIDs`. Only the todos whose index actually changes are
+    /// written (cheap, avoids needless CloudKit churn). Ids not present are left
+    /// untouched. Backs both `ReorderTodosIntent` and the drag-to-reorder UI
+    /// (WWDC 2026 reorderable containers).
+    public func reorderTodos(orderedIDs: [String]) throws {
+        defer { WidgetReloader.reloadAllWidgets() }
+        let byID = Dictionary(
+            try repository.fetchAll().map { ($0.id.uuidString, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let now = Date()
+        for (index, id) in orderedIDs.enumerated() {
+            guard let item = byID[id], item.sortIndex != index else { continue }
+            item.sortIndex = index
+            item.modifiedAt = now
+            try repository.update(item)
+        }
+    }
+
     // MARK: - Read (no widget reload)
 
     public func listTodos(filter: TodoFilterType) throws -> [TodoAppEntity] {

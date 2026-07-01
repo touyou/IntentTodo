@@ -68,6 +68,11 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     /// The creation date of the todo item.
     public var createdAt: Date
 
+    /// User-defined manual ordering index, mirrored from the model. Not exposed to
+    /// Siri / Shortcuts (no `@Property`); it only drives the UI's `.manual` sort and
+    /// drag-to-reorder. Included in `==` so a reorder invalidates the list.
+    public var sortIndex: Int
+
     /// The category this todo belongs to, if any. Exposed as a related entity so
     /// Siri / Shortcuts can filter or navigate todos by category.
     @Property(title: "Category")
@@ -186,6 +191,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     public init(from todoItem: TodoItem) {
         self.id = todoItem.id.uuidString
         self.createdAt = todoItem.createdAt
+        self.sortIndex = todoItem.sortIndex
         self.title = todoItem.title
         self.todoDescription = todoItem.todoDescription
         self.isCompleted = todoItem.isCompleted
@@ -210,6 +216,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         isFavorite: Bool = false,
         dueDate: Date? = nil,
         createdAt: Date = Date(),
+        sortIndex: Int = 0,
         category: CategoryAppEntity? = nil,
         estimatedDuration: Duration? = nil,
         assigneeName: String? = nil,
@@ -217,6 +224,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     ) {
         self.id = id
         self.createdAt = createdAt
+        self.sortIndex = sortIndex
         self.title = title
         self.todoDescription = todoDescription
         self.isCompleted = isCompleted
@@ -243,6 +251,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
             && lhs.isFavorite == rhs.isFavorite
             && lhs.dueDate == rhs.dueDate
             && lhs.createdAt == rhs.createdAt
+            && lhs.sortIndex == rhs.sortIndex
             && lhs.category == rhs.category
             && lhs.estimatedDuration == rhs.estimatedDuration
             && lhs.assigneeName == rhs.assigneeName
