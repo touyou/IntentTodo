@@ -684,12 +684,13 @@ Xcode 27 beta 2 で Mac に import 可能になったため、macOS でも成立
   （`OpenIntent` を持つ）**必要がある。`TodoVisualIntelligenceQuery` は `TodoOrCategory` union を返すため、
   `TodoAppEntity`（`OpenTodoIntent`）に加え **`CategoryAppEntity` にも `OpenIntent` が必要**。
   Mac ビルドで `result type 'CategoryAppEntity' that is not openable ... must be associated with an OpenIntent`
-  エラーになる（**iOS シミュレータ / iPhone ビルドでは出ず、Mac Catalyst でのみ発火**）。
+  エラーになる（**iOS シミュレータ / iPhone ビルドでは出ず、macOS destination でのみ発火**。本プロジェクトの
+  Mac は Catalyst ではなく native macOS（`SUPPORTS_MACCATALYST` 無し・`macosx` SDK）で、そのビルドで確認）。
 - **解決**: `OpenCategoryIntent`（`OpenIntent`、`target: CategoryAppEntity`）を新設。カテゴリ専用画面は無いので
   `perform()` は `navigateToRoot()`（アプリを開く）だけ。**openable にすること自体が目的**で、これで union が
   全メンバ openable になり Mac ビルドが通る（AppShortcut 未登録なので 10 件枠に影響なし）。
 - **教訓**: 「プラットフォーム限定」は当時の SDK 制約に過ぎない場合がある。SDK 更新時は `#if canImport` ガードを
-  外して**本当に不可能か**を実ビルドで確かめる。iOS だけでなく **macOS(My Mac=Catalyst) / visionOS の複数
+  外して**本当に不可能か**を実ビルドで確かめる。iOS だけでなく **macOS(My Mac) / visionOS の複数
   destination をフルビルド**して初めて分かる差異がある（`indexingKey` #43 と同じ教訓）。
 
 ### EventKit / Contacts 連携は別軸（記録のみ）

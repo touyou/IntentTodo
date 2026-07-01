@@ -453,7 +453,7 @@ struct TodoEntity: AppEntity, IndexedEntity {
 
 ### マルチプラットフォーム
 - [x] iOS/iPadOS メインアプリ
-- [x] macOS（Catalyst対応）
+- [x] macOS ネイティブアプリ（Catalyst ではない）
 - [x] watchOS アプリ + コンプリケーション
 - [x] visionOS 空間UI
 - [x] ホーム画面ウィジェット（Small/Medium/Large）
