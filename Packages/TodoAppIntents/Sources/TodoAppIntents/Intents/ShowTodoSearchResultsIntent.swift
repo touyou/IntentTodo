@@ -11,7 +11,12 @@
 //  as a `@UnionValue` list (`[TodoOrCategory]`). The schema intent here *navigates*:
 //  it pushes the term into the list's `.searchable` field via `NavigationModel`.
 //
+//  The `.system.search` schema is unavailable on watchOS (Xcode 27 beta 2), and the
+//  watch app has no in-app search surface to route into, so the intent is excluded
+//  there entirely.
+//
 
+#if !os(watchOS)
 import AppIntents
 import Foundation
 
@@ -31,3 +36,4 @@ struct ShowTodoSearchResultsIntent: ShowInAppSearchResultsIntent {
         return .result()
     }
 }
+#endif

@@ -482,6 +482,14 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
 - **小スキーマは素直**: `CategoryAppEntity` を `@AppEntity(schema: .reminders.list)` に適合（`id` / `name` /
   `type: TodoListType`）、`TodoListType` を `@AppEnum(schema: .reminders.listType)` に。マクロが
   `typeDisplayRepresentation` を生成するので手書きは削除、`Hashable` はマクロ backing が非 Hashable のため明示実装。
+- **落とし穴（watchOS 非対応 / Xcode 27 beta 2）**: beta 2 で `reminders` ドメインの assistant schema が
+  **watchOS で unavailable** になった（`'reminders' is unavailable in watchOS` / `'list' is unavailable in watchOS`）。
+  `TodoAppIntents` は watchOS でもコンパイルされるため、`CategoryAppEntity`（`.reminders.list`）と
+  `TodoListType`（`.reminders.listType`）を `#if os(watchOS)` で素の `AppEntity` / `AppEnum` にフォールバックした。
+  **マクロ付き宣言は `#if` で頭（属性＋宣言行）と本体を分割できない**（`Expected '}' in struct` になる）ため、
+  型を2系統まるごと書き分ける必要がある。watchOS では Siri / Apple Intelligence のスキーマルーティングを
+  使わないので機能損失はない。**iOS destination のビルドや `XcodeRefreshCodeIssuesInFile` では露見せず、
+  watchOS を含むフルビルドで初めて出る**（`indexingKey:` の #43 と同じ「複数 destination を回せ」教訓）。
 - **大スキーマ（`.reminders.reminder`）の落とし穴**: スキーマが `dueDate: DateComponents?`（`Date?` と衝突）、
   非 optional `list`、再帰 `subtasks: [Self]`、`images`/`tags`/`urls`/`recurrence`/`section`/`locationTrigger`
   等を要求。さらに **マクロ生成 init は `EntityProperty<T>` 引数**を取り、`section`/`locationTrigger` 等の
@@ -782,6 +790,11 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   こちらは検索 UI へ **遷移** する。スキーマの意味（"take the person to search results"）が異なるため統合せず別 Intent にした。
 - 低優先項目（#47）: `OwnershipProvidingEntity`（shared/public/private の出し分け）/ `$param.requestValue`（perform 途中の聞き返し）
   は個人利用主体では優先度低として **未採用**（必要時に追加）。
+- **落とし穴（watchOS 非対応 / Xcode 27 beta 2）**: `.system` ドメインのスキーマも beta 2 で **watchOS で unavailable**
+  （`'system' is unavailable in watchOS` / `'search' is unavailable in watchOS`）。watch アプリには検索遷移先の UI が
+  無いため、`ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外した（`NavigationModel` / `TodoListView`
+  からの参照はコメントのみで実害なし）。`.visualIntelligence.*`（#297）は元々 `#if canImport(VisualIntelligence)` で
+  iOS 限定ガード済みのため watchOS には来ない。
 
 ### reminder 本体スキーマ適合の優先度再考（#240 Group Lab / #48）
 

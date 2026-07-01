@@ -116,6 +116,10 @@
   - ✅ xcode27 を iOS 27 世代へ引き上げ（`.reminders` は iOS 27+ 限定のため）`ed22d80`
   - ✅ `TodoListType` → `@AppEnum(schema: .reminders.listType)` `ed22d80`
   - ✅ `CategoryAppEntity` → `@AppEntity(schema: .reminders.list)`（Category = reminders のリスト）`25d1d61`
+  - ⚠️ **Xcode 27 beta 2 追従**: `reminders` / `system` ドメインの assistant schema が **watchOS で unavailable** に
+    なったため、`CategoryAppEntity`（`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)`
+    で素の `AppEntity`/`AppEnum` にフォールバック、`ShowTodoSearchResultsIntent`（`.system.search`, #47）は
+    `#if !os(watchOS)` で除外。watchOS はスキーマルーティング非使用のため機能損失なし。詳細は insights/03。
   - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**（#48 で優先度再考 → 据え置き）。
     判明事項（probe 検証）: reminder スキーマはマクロ生成 init が `EntityProperty<T>` 引数を取り、
     さらに `section` / `locationTrigger` 等の **入れ子サブエンティティを再帰的に要求**するため、
