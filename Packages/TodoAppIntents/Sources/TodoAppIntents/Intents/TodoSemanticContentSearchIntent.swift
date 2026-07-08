@@ -12,7 +12,7 @@
 //  (see TodoVisualIntelligenceQuery for the openability requirement that enables it).
 //
 
-#if canImport(VisualIntelligence)
+#if canImport(VisualIntelligence) && !os(visionOS)
 import AppIntents
 import VisualIntelligence
 

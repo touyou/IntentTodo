@@ -14,7 +14,7 @@
 //  (`OpenTodoIntent` / `OpenCategoryIntent`).
 //
 
-#if canImport(VisualIntelligence)
+#if canImport(VisualIntelligence) && !os(visionOS)
 import AppIntents
 import VisualIntelligence
 
