@@ -49,7 +49,7 @@ public final class TodoLiveActivityManager {
     public func updateActivities() async {
         for activity in Activity<TodoDeadlineActivityAttributes>.activities
             where activity.content.state.isCompleted {
-            await activity.end(dismissalPolicy: .immediate)
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
     }
 
@@ -57,14 +57,14 @@ public final class TodoLiveActivityManager {
     public func endActivity(for todoId: String) async {
         for activity in Activity<TodoDeadlineActivityAttributes>.activities
             where activity.attributes.todoId == todoId {
-            await activity.end(dismissalPolicy: .immediate)
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
     }
 
     /// Ends all activities.
     public func endAllActivities() async {
         for activity in Activity<TodoDeadlineActivityAttributes>.activities {
-            await activity.end(dismissalPolicy: .immediate)
+            await activity.end(nil, dismissalPolicy: .immediate)
         }
     }
 }

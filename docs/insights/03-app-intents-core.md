@@ -826,11 +826,11 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   （iOS 27、`import AppIntents`）。画面外でも Siri が通知の文脈を理解する。**永続 AppEntity 必須**（TransientAppEntity 不可）。
   `ControlNotificationHelper.sendToggledNotification` に `todoId` を足し、`UrgentTodoToggleResult` に `id` を持たせて配線。
 
-### `.system.search`（in-app 検索スキーマ、#343 / #47）
+### `.system.searchInApp`（in-app 検索スキーマ、#343 / #47）
 
-`@AppIntent(schema: .system.search)` + `ShowInAppSearchResultsIntent` で、Siri / Apple Intelligence が検索語を
-**アプリ自身の検索 UI** に流して結果を出せる（issue は「`.system.searchInApp`」表記だが **SDK の正式名は `.system.search`**。
-`ShowInAppSearchResultsIntent` 自体は iOS 16 からの型で、スキーママクロ形が新）。
+`@AppIntent(schema: .system.searchInApp)` + `ShowInAppSearchResultsIntent` で、Siri / Apple Intelligence が検索語を
+**アプリ自身の検索 UI** に流して結果を出せる（`ShowInAppSearchResultsIntent` 自体は iOS 16 からの型で、スキーママクロ形が新）。
+**スキーマ名の変遷**: beta 2 では `.system.search` が正式名だったが、**Xcode 27 beta 3 で `.system.search` は deprecated となり `.system.searchInApp` にリネーム**された（`'search' is deprecated: Use .system.searchInApp instead`）。issue #47 当初の `.system.searchInApp` 表記が結果的に正しかった。2026-07-08 に追従。
 
 - 形: `static let searchScopes: [StringSearchScope] = [.general]` + `var criteria: StringSearchCriteria`（マクロが
   `@Parameter` を注入、`criteria.term` で検索語）。`title` / `supportedModes` はスキーマが供給。
@@ -861,6 +861,6 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   入れ子再帰**を要求し、モデルから組み立てる自前 init と衝突（`self.images used before being initialized`、SDK 27 の
   `@State` マクロ化と同根の初期化規約問題）。サブエンティティ追加では解消しない。
 - **新 Siri 連携は本体適合なしでも成立**（#48 のフォールバック検証）: `CategoryAppEntity` の `.reminders.list` 適合 +
-  discoverable な自前 Intent 群（Add / Update(#45) / Toggle / Show / `.system.search`(#47)）+ `OpenIntent` / `DeleteIntent` +
+  discoverable な自前 Intent 群（Add / Update(#45) / Toggle / Show / `.system.searchInApp`(#47)）+ `OpenIntent` / `DeleteIntent` +
   `IndexedEntity` セマンティック index(#43) で、意味理解・検索・遷移は機能する。**本体適合は SDK のスキーママクロ init 規約が
   扱いやすくなるのを待つ独立タスク**として据え置く。
