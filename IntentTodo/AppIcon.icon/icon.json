@@ -1,0 +1,82 @@
+{
+  "fill" : {
+    "automatic-gradient" : "display-p3:0.94922,0.94922,0.96875,1.00000"
+  },
+  "groups" : [
+    {
+      "blend-mode-specializations" : [
+        {
+          "value" : "darken"
+        },
+        {
+          "appearance" : "dark",
+          "value" : "normal"
+        },
+        {
+          "appearance" : "tinted",
+          "value" : "lighten"
+        }
+      ],
+      "blur-material" : 0.5,
+      "hidden" : false,
+      "layers" : [
+        {
+          "image-name" : "icon-foreground-color.png",
+          "name" : "icon-foreground-color",
+          "position" : {
+            "scale" : 1.2,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "lighting-specializations" : [
+        {
+          "value" : "individual"
+        },
+        {
+          "appearance" : "tinted",
+          "value" : "individual"
+        }
+      ],
+      "shadow-specializations" : [
+        {
+          "value" : {
+            "kind" : "layer-color",
+            "opacity" : 0.5
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "kind" : "layer-color",
+            "opacity" : 0.5
+          }
+        }
+      ],
+      "specular" : false,
+      "translucency-specializations" : [
+        {
+          "value" : {
+            "enabled" : true,
+            "value" : 0.5
+          }
+        },
+        {
+          "appearance" : "tinted",
+          "value" : {
+            "enabled" : true,
+            "value" : 0.5
+          }
+        }
+      ]
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "iOS"
+    ]
+  }
+}
