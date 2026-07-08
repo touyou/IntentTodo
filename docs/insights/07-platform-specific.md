@@ -240,6 +240,27 @@ Button(intent: OpenAddTodoIntent()) {
 - `ControlWidget` は Apple 公式 "Developing a WidgetKit strategy" の対応表で iPhone / iPad / Apple Watch / Mac 対応、visionOS のみ非対応と明記されているため、正しいガードは `#if !os(visionOS)`（以前の `#if os(iOS)` は macOS / watchOS で Control が消えてしまう誤り）。
 - `if #available(iOS 18.0, *)` は実行時版チェックでありコンパイル時の型解決は止められない。プラットフォーム非対応 API には条件付きコンパイル（`#if`）が必須。
 
+### `#if canImport(X)` だけに頼らない（新 SDK で実機ビルドが落ちる罠）
+
+`canImport(FrameworkX)` は「そのフレームワークが import 可能か」しか見ず、「その中の **API が当該プラットフォームで available か**」までは保証しない。SDK が更新されてフレームワーク自体はどのプラットフォームでも import 可能になったが、特定 API は一部プラットフォーム非対応、というケースで**シミュレータは通るのに実機ビルドだけ落ちる**という見えにくい失敗になる（2026-07-08 に visionOS で発生）。
+
+具体例: `VisualIntelligence`（Visual Intelligence / #297）。
+- **visionOS シミュレータ**: `canImport(VisualIntelligence)` が false → コード除外 → ビルド成功
+- **visionOS 実機 SDK**: `canImport` が true になり `.visualIntelligence.semanticContentSearch` スキーマ（visionOS 非対応 API）までコンパイル → `'visualIntelligence' is unavailable in visionOS` でビルド失敗
+
+```swift
+// ❌ import 可否しか見ていない → visionOS 実機で崩れる
+#if canImport(VisualIntelligence)
+
+// ✅ 非対応プラットフォームを明示的に外す
+#if canImport(VisualIntelligence) && !os(visionOS)
+```
+
+教訓:
+- `canImport` はあくまで「存在チェック」。API の対応プラットフォームが限定される機能では **`&& !os(...)` / `&& os(...)` を併用**する。
+- **シミュレータのビルド成功を「その OS で通る」根拠にしない**。Xcode Cloud / アーカイブは実機（device）SDK でビルドするので、実機向け（`Any <OS> Device`）でも確認する。両者で `canImport` の結果が変わりうる。
+- 機能が Intent + Query など複数ファイルの対で構成される場合、ガードは**全ファイルで揃える**（片方だけ外すと相互参照が dangling する）。
+
 ## `#Predicate` の Optional 比較回避
 
 `#Predicate<TodoItem> { $0.id == optionalUUID }` のように Optional を直接比較する式は visionOS 等でコンパイルが通らないことがある。回避策は:
