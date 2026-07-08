@@ -6,7 +6,6 @@
 import SwiftUI
 import AppIntents
 import Foundation
-import GeoToolbox
 import TodoAppIntents
 
 /// A view for adding a new todo item.
@@ -37,8 +36,11 @@ public struct AddTodoView: View {
 
     /// Dynamically generated intent based on current form state.
     ///
-    /// 所要時間 / 担当者 / 場所は、AddTodoIntent が受け取る App Intents ネイティブ型
-    /// (`Duration` / `PersonNameComponents` / `PlaceDescriptor`) へ橋渡しして渡す。
+    /// 所要時間 / 担当者は、AddTodoIntent が受け取る App Intents ネイティブ型
+    /// (`Duration` / `PersonNameComponents`) へ橋渡しして渡す。場所は SSU バグ
+    /// (`GeoToolbox.PlaceDescriptorEntity` の variable 名がドットで regex に落ちる) の
+    /// 暫定回避として `PlaceDescriptor` ではなく場所名の String をそのまま渡す。
+    /// 詳細は AddTodoIntent.location のコメント参照。
     private var addTodoIntent: AddTodoIntent {
         AddTodoIntent(
             title: title,
@@ -49,7 +51,7 @@ public struct AddTodoView: View {
                 ? .seconds(estimatedDurationMinutes * 60)
                 : nil,
             assignee: assigneeComponents,
-            location: locationDescriptor
+            location: trimmedLocation.isEmpty ? nil : trimmedLocation
         )
     }
 
@@ -62,10 +64,8 @@ public struct AddTodoView: View {
         return PersonNameComponentsFormatter().personNameComponents(from: trimmedAssignee)
     }
 
-    private var locationDescriptor: PlaceDescriptor? {
-        let trimmed = location.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return PlaceDescriptor(representations: [.address(trimmed)], commonName: trimmed)
+    private var trimmedLocation: String {
+        location.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     private var isValid: Bool {

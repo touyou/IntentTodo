@@ -5,7 +5,6 @@
 
 import AppIntents
 import Foundation
-import GeoToolbox
 
 /// An intent that creates a new todo item.
 ///
@@ -62,10 +61,17 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Assignee", description: "Person responsible for the todo")
     public var assignee: PersonNameComponents?
 
-    /// Location associated with the todo. Uses the App Intents native
-    /// `PlaceDescriptor` (GeoToolbox) type so Siri can resolve a place.
+    /// Location associated with the todo.
+    ///
+    /// NOTE: Xcode 27 beta 3 の AppIntentsSSUTraining（"Generate SSU asset files"）は、
+    /// `PlaceDescriptor` を @Parameter にすると裏側のシステム Entity 型名
+    /// `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、ドットを
+    /// 含むため正規表現 `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちてエラーを emit する
+    /// (ローカルは exit 0 だが Xcode Cloud は失敗扱い)。SDK 側バグの可能性が高いため、
+    /// 暫定で場所名の String に退避している。SDK 修正後にこのコミットを revert して
+    /// `PlaceDescriptor?` へ戻す。
     @Parameter(title: "Location", description: "Place associated with the todo")
-    public var location: PlaceDescriptor?
+    public var location: String?
 
     // MARK: - Dependencies
 
@@ -87,7 +93,7 @@ public struct AddTodoIntent: AppIntent {
         isFavorite: Bool = false,
         estimatedDuration: Duration? = nil,
         assignee: PersonNameComponents? = nil,
-        location: PlaceDescriptor? = nil
+        location: String? = nil
     ) {
         self.title = title
         self.todoDescription = todoDescription
@@ -109,9 +115,10 @@ public struct AddTodoIntent: AppIntent {
             isFavorite: isFavorite,
             estimatedDuration: estimatedDuration.map { Double($0.components.seconds) },
             assigneeName: assignee.map { PersonNameComponentsFormatter().string(from: $0) },
-            locationName: location.flatMap { TodoPlace.decompose($0).name },
-            locationLatitude: location.flatMap { TodoPlace.decompose($0).latitude },
-            locationLongitude: location.flatMap { TodoPlace.decompose($0).longitude }
+            locationName: location.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .flatMap { $0.isEmpty ? nil : $0 },
+            locationLatitude: nil,
+            locationLongitude: nil
         )
         // UI から呼ばれた場合は Add シートを閉じる。Siri / Shortcuts / Widget から
         // 呼ばれた場合は元から閉じているので no-op。@Query の件数差分でシートを

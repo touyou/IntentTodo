@@ -87,10 +87,15 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     @Property(title: "Assignee")
     public var assigneeName: String?
 
-    /// Associated location, exposed as the App Intents native `PlaceDescriptor`
-    /// (GeoToolbox) type. Bridged from the stored name + coordinate.
+    /// Associated location name.
+    ///
+    /// NOTE: 本来は App Intents ネイティブの `PlaceDescriptor` (GeoToolbox) を公開していたが、
+    /// Xcode 27 beta 3 の AppIntentsSSUTraining が Entity プロパティを SSU の variable 化する
+    /// 際に裏側の型名 `GeoToolbox.PlaceDescriptorEntity` をそのまま variable 名に使い、ドットで
+    /// regex `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちてビルドエラーを emit する（SDK バグの可能性大）。
+    /// 暫定で場所名の String に退避。SDK 修正後にこのコミットを revert して `PlaceDescriptor?` へ戻す。
     @Property(title: "Location")
-    public var location: PlaceDescriptor?
+    public var location: String?
 
     // MARK: - Derived Properties (WWDC 2026 property macros)
 
@@ -200,11 +205,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         self.category = todoItem.category.map(CategoryAppEntity.init(from:))
         self.estimatedDuration = todoItem.estimatedDuration.map { Duration.seconds($0) }
         self.assigneeName = todoItem.assigneeName
-        self.location = TodoPlace.descriptor(
-            name: todoItem.locationName,
-            latitude: todoItem.locationLatitude,
-            longitude: todoItem.locationLongitude
-        )
+        self.location = todoItem.locationName
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -220,7 +221,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         category: CategoryAppEntity? = nil,
         estimatedDuration: Duration? = nil,
         assigneeName: String? = nil,
-        location: PlaceDescriptor? = nil
+        location: String? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -290,10 +291,16 @@ extension TodoAppEntity: Transferable {
         })
 
         ValueRepresentation(exporting: { (todo: TodoAppEntity) -> PlaceDescriptor in
-            guard let location = todo.location else {
+            // `location` は SSU バグ回避のため String（場所名）に退避している。
+            // Transferable 経由の export はここで `PlaceDescriptor` に復元して従来どおり提供する。
+            guard let descriptor = TodoPlace.descriptor(
+                name: todo.location,
+                latitude: nil,
+                longitude: nil
+            ) else {
                 throw IntentError.notFound("Todo has no location to export")
             }
-            return location
+            return descriptor
         })
     }
 }
