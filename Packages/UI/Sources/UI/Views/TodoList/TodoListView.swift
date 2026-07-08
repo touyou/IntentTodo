@@ -217,7 +217,7 @@ where ItemID == String, CollectionID == ReorderableSingleCollectionIdentifier {
 private struct NavigationBarMinimizeOnScroll: ViewModifier {
     func body(content: Content) -> some View {
         if #available(iOS 27, *) {
-            content.toolbarMinimizeBehavior(.onScrollDown, for: .navigationBar)
+            content.toolbarMinimizationBehavior(.onScrollDown, for: .navigationBar)
         } else {
             content
         }

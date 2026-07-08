@@ -195,7 +195,7 @@ Apple は `AppShortcutsProvider.appShortcuts` の登録数を **10 件** に制�
 
 ### パッケージ内での定義
 
-`AppShortcutsProvider` も Swift Package 内に配置可能。パッケージ側に `AppIntentsPackage` を1つ宣言するだけで、そこに含まれる Intent と AppShortcutsProvider がアプリ全体で認識される。
+Intent / AppEntity / EntityQuery / AppEnum は Swift Package 内に置ける。パッケージ側に `AppIntentsPackage` を1つ宣言するだけで、そこに含まれるこれらの型がアプリ全体で認識される。
 
 ```swift
 // Packages/TodoAppIntents/Sources/TodoAppIntents/TodoAppIntents.swift
@@ -205,6 +205,34 @@ public struct TodoIntentsPackage: AppIntentsPackage {
 ```
 
 **重要**: メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を**重複宣言しない**こと。2026-04-13 の実機検証で、SPM 側の `AppIntentsPackage` 自動発見とメインアプリターゲットでの二重登録が重なると Shortcuts のルーティングが壊れる現象を確認した（エラーは `LNContextErrorDomain Code=2001`）。
+
+### ⚠️ `AppShortcutsProvider` は SPM パッケージに置いてはいけない（アプリターゲット必須）
+
+**`AppShortcutsProvider` を Swift Package 内に置くと、App Shortcuts はアプリに登録されない。** メインアプリターゲット直下（本プロジェクトでは `IntentTodo/IntentTodo/TodoAppShortcuts.swift`）に置くこと。
+
+**症状**: Siri / Shortcuts アプリ / Spotlight に App Shortcut が一切出てこない（ビルド・実行はエラー無しで成功するため気付きにくい）。
+
+**根拠（2026-07-08 検証、Xcode 27 beta 3 / toolchain 27A5218g）**: App Intents の実体はビルド時に生成される `Metadata.appintents` バンドル。DerivedData の `.appintents/extract.actionsdata`（JSON）を比較すると:
+
+| キー | パッケージ `TodoAppIntents.appintents` | アプリ `IntentTodo.app/Metadata.appintents` |
+|------|--------------------------------------|--------------------------------------------|
+| `actions`（Intent） | 20 | 20 ✅ 集約される |
+| `entities` | 3 | 3 ✅ 集約される |
+| `queries` | 3 | 3 ✅ 集約される |
+| **`autoShortcuts`（AppShortcut）** | **8** | **0 ❌ 集約されない** |
+
+`actions` / `entities` / `queries` は依存パッケージからアプリの統合メタデータへ集約されるが、**`autoShortcuts`（`AppShortcutsProvider.appShortcuts`）だけは集約されない**。システムが実際に読むのはアプリバンドル内の統合 `Metadata.appintents` 一つなので、そこで `autoShortcuts: 0` だと App Shortcut は存在しないのと同じ。
+
+`AppShortcutsProvider` をアプリターゲットへ移すと、同じ検証で `IntentTodo.app` 側の `autoShortcuts` が **0 → 8** になることを確認した。Intent 本体はパッケージ (`public`) のままでよく、`AppShortcutsProvider` から `import TodoAppIntents` で参照する。
+
+**検証手順（再確認したいとき）**:
+```bash
+# アプリバンドルの統合メタデータで AppShortcut 件数を見る
+python3 -c "import json; d=json.load(open('<DerivedData>/.../IntentTodo.app/Metadata.appintents/extract.actionsdata')); print('autoShortcuts:', len(d['autoShortcuts']))"
+```
+`XcodeRefreshCodeIssuesInFile` や通常ビルドの成否では**一切露見しない**（メタデータ抽出は成功扱いのまま件数だけ 0 になる）タイプの問題。App Shortcuts を触ったら統合メタデータの件数を直接見るのが唯一確実。
+
+> **補足（過去の誤記録の訂正）**: 以前この節には「`AppShortcutsProvider` も Swift Package 内に配置可能」と書いていたが、上記検証により誤りと判明。実行・ビルドが通り Intent 自体は動く（UI / Widget / Siri 直接呼び出しは Intent 集約経由で機能する）ため、App Shortcut フレーズだけが黙って欠落しており長く気付かれていなかった。
 
 > **一次ソース未確認**: Apple 公式 API リファレンスで「アプリあたり 1 つまで」と明文化されている記述は 2026-04-15 時点で確認できていない。`AppIntentsPackage` / `includedPackages` のドキュメントには duplicate registration に関する注意書きが見つからないため、実機観測ベースの知見として扱う。
 
@@ -482,8 +510,11 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
 - **小スキーマは素直**: `CategoryAppEntity` を `@AppEntity(schema: .reminders.list)` に適合（`id` / `name` /
   `type: TodoListType`）、`TodoListType` を `@AppEnum(schema: .reminders.listType)` に。マクロが
   `typeDisplayRepresentation` を生成するので手書きは削除、`Hashable` はマクロ backing が非 Hashable のため明示実装。
-- **落とし穴（watchOS 非対応 / Xcode 27 beta 2）**: beta 2 で `reminders` ドメインの assistant schema が
+- **落とし穴（watchOS 非対応 / Xcode 27 beta 2、beta 3 でも継続）**: beta 2 で `reminders` ドメインの assistant schema が
   **watchOS で unavailable** になった（`'reminders' is unavailable in watchOS` / `'list' is unavailable in watchOS`）。
+  **2026-07-08 に Xcode 27 beta 3 で再検証済み**: `TodoListType` の `#if os(watchOS)` フォールバックを一時無効化して watchOS
+  スキームをビルドしたところ `'reminders'/'listType' is unavailable in watchOS` が再現。**beta 3 でも制約は解消されておらず、
+  フォールバックは維持が必要**（[[verify-platform-limits-on-sdk-updates]] の方針で実ビルド確認）。
   `TodoAppIntents` は watchOS でもコンパイルされるため、`CategoryAppEntity`（`.reminders.list`）と
   `TodoListType`（`.reminders.listType`）を `#if os(watchOS)` で素の `AppEntity` / `AppEnum` にフォールバックした。
   **マクロ付き宣言は `#if` で頭（属性＋宣言行）と本体を分割できない**（`Expected '}' in struct` になる）ため、
@@ -810,7 +841,7 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   こちらは検索 UI へ **遷移** する。スキーマの意味（"take the person to search results"）が異なるため統合せず別 Intent にした。
 - 低優先項目（#47）: `OwnershipProvidingEntity`（shared/public/private の出し分け）/ `$param.requestValue`（perform 途中の聞き返し）
   は個人利用主体では優先度低として **未採用**（必要時に追加）。
-- **落とし穴（watchOS 非対応 / Xcode 27 beta 2）**: `.system` ドメインのスキーマも beta 2 で **watchOS で unavailable**
+- **落とし穴（watchOS 非対応 / Xcode 27 beta 2、beta 3 でも継続 — 2026-07-08 実ビルド確認）**: `.system` ドメインのスキーマも beta 2 で **watchOS で unavailable**
   （`'system' is unavailable in watchOS` / `'search' is unavailable in watchOS`）。watch アプリには検索遷移先の UI が
   無いため、`ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外した（`NavigationModel` / `TodoListView`
   からの参照はコメントのみで実害なし）。`.visualIntelligence.*`（#297）は `#if canImport(VisualIntelligence)` ガード

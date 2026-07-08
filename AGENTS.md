@@ -197,6 +197,8 @@ public struct TodoIntentsPackage: AppIntentsPackage { }
 
 メインアプリ側には何も宣言しなくてよい。パッケージの Intent は自動的にアプリの Intent として登録される。
 
+> **⚠️ 例外: `AppShortcutsProvider` はパッケージに置けない。** Intent / Entity / Query はパッケージから集約されるが、`AppShortcutsProvider`（App Shortcut のフレーズ登録）だけはアプリの統合メタデータに集約されず `autoShortcuts: 0` になる。App Shortcut がビルドエラー無しで Siri / Shortcuts / Spotlight に出ない、という形で顕在化する。**必ずアプリターゲット直下に置く**（本プロジェクトでは `IntentTodo/IntentTodo/TodoAppShortcuts.swift`、`import TodoAppIntents` で Intent を参照）。詳細と検証手順は `docs/insights/03-app-intents-core.md`。
+
 ### Primary / FromExtension 分離パターン
 
 同じアクションでも「**ユーザーがパラメータを直接選ぶか**」で Intent を 2 系統に分ける。

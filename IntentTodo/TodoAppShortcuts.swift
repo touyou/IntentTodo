@@ -1,15 +1,24 @@
 //
 //  TodoAppShortcuts.swift
-//  TodoAppIntents
+//  IntentTodo
 //
 //  Registers Primary intents as App Shortcuts so they appear in Siri, Shortcuts,
 //  and Spotlight. FromExtension variants are intentionally NOT registered.
 //
+//  IMPORTANT: `AppShortcutsProvider` must live in the app target, NOT in an SPM
+//  package. When declared inside a Swift Package, the shortcuts are extracted
+//  into that package's `.appintents` metadata but are dropped during the app
+//  target's metadata aggregation (`autoShortcuts: 0` in the shipped
+//  `IntentTodo.app/Metadata.appintents`), so Siri / Shortcuts / Spotlight never
+//  see them. Intents/entities/queries DO aggregate from packages; only
+//  `AppShortcutsProvider` does not. See docs/insights/03-app-intents-core.md.
+//
 
 import AppIntents
+import TodoAppIntents
 
-public struct TodoAppShortcuts: AppShortcutsProvider {
-    public static var appShortcuts: [AppShortcut] {
+struct TodoAppShortcuts: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
         // Create
         AppShortcut(
             intent: AddTodoIntent(),
