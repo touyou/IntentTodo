@@ -74,7 +74,7 @@
 
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
-| Entity の作り分け | `@AppEntity` `IndexedEntity` `TransientAppEntity` | Category/SubTask を Entity 化、検索用 Transient を試す | B/U | 🔨 |
+| Entity の作り分け | `@AppEntity` `IndexedEntity` `TransientAppEntity` | Category/SubTask を Entity 化、`TodoListSummaryEntity`（Transient）を `GetTodoSummaryIntent` で返す | B | ✅ |
 | Spotlight セマンティック | `CSSearchableIndex` `IndexedEntity` `@Property(indexingKey:)` | title→`\.title` / description→`\.contentDescription`（#43。iOS/macOS 限定 overload） | B | ✅ (#43) |
 | システムアクション Intent | `OpenIntent` `DeleteIntent`（system intent 群） | Open/Delete を system intent プロトコルへ | B | ✅ `375efd1`/`92221d0` |
 | IntentParameter.valueState | `$param.valueState`（`.set` / `.unset`） | `UpdateTodoIntent` で「新値 / 明示クリア / 据え置き」を区別 | B | ✅ (#45) |
@@ -86,7 +86,7 @@
 | 会話的ダイアログ | `ProvidesDialog` `IntentDialog(full:supporting:)` | Siri 応答を full/supporting で強化 | B/R | ✅(B) `1f4bbc7` |
 | 対話的な質問 | `requestConfirmation` `requestChoice` | 削除確認 / スヌーズ時間選択 | B/R | ✅(B) `27fc2db`/`db6efa3` |
 | ビジュアル応答 | `ShowsSnippetView` `DisplayRepresentation` | （済）Interactive Snippet | R | ✅ |
-| 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | Add/Complete を寄付、削除時 predicate | B/R | ⬜ |
+| 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | Add/Complete を寄付、削除時 predicate | B/R | ✅(B) `b4dbd63` |
 | セマンティック検索 | `IndexedEntity` `@Property(indexingKey:)` `.system.search` | indexingKey(#43) + in-app 検索スキーマ(#47) | B | ✅ (#43/#47) |
 | Onscreen（コレクション） | `.appEntityIdentifier(forSelectionType:)` | 一覧の各行を onscreen 提供 | B | ✅ (#46) |
 | 既存統合へのエンティティ付与 | `UNMutableNotificationContent.appEntityIdentifiers` | toggle 通知に entity を紐付け | B | ✅ (#46) |
@@ -105,13 +105,14 @@
 ## 実行フェーズ（順序）
 
 - **Phase 0 整地** ✅: `#2` を Intent 合成へ revert（`cab8e67`）、本計画を主眼に再焦点化。
-- **Phase 1 基盤 + ドメイン橋渡し** 🔨（大半完了）:
+- **Phase 1 基盤 + ドメイン橋渡し** ✅（完了）:
   - ✅ `TodoAppEntity` の主要属性を `@Property` 公開（`48348aa`）
   - ✅ Category / SubTask を AppEntity 化 + Query（`1ef65ec`）、Todo→Category 関係を公開
   - ✅ `Duration`（`002e6a9`）/ `PersonNameComponents`（`6ca1c09`）/ `PlaceDescriptor`（`5e3b4c7`）を
     ネイティブ型として `@Parameter` + `@Property` 検証（保存は CloudKit 互換 primitive、入力は system 型）
   - ✅ `ValueRepresentation`(→`IntentPerson` / `PlaceDescriptor`) を `Transferable` 経由で実装（#44）
-  - ⬜ 残: `TransientAppEntity` / `EntityPropertyQuery`（後続 or Phase 4 と統合）
+  - ✅ **Xcode 27 beta 4**: `TransientAppEntity`（`TodoListSummaryEntity` + `GetTodoSummaryIntent`）を実装。
+    `EntityPropertyQuery` は既存 `TodoEntityQuery`（`EntityStringQuery`）で十分なため不採用（#344）。
 - **Phase 2 App Schema（reminders）** ✅（list 階層で適合・検証）/ ⏳（reminder 本体は保留）:
   - ✅ xcode27 を iOS 27 世代へ引き上げ（`.reminders` は iOS 27+ 限定のため）`ed22d80`
   - ✅ `TodoListType` → `@AppEnum(schema: .reminders.listType)` `ed22d80`
@@ -185,6 +186,20 @@
 | Intent Modes `.foreground(.dynamic)`（OpensIntent 廃止を伴う） | Intent 合成を外す副作用 → 取り消し | ↩︎ revert | `cab8e67` |
 
 ---
+
+## Xcode 27 beta ごとの変更追跡
+
+| beta | 主な変更 | 対応コミット |
+|------|---------|------------|
+| beta 1 | iOS 27 世代へ引き上げ、`.reminders` schema 有効化 | `ed22d80` |
+| beta 2 | watchOS で assistant schema 非対応化 → `#if os(watchOS)` フォールバック追加、`VisualIntelligence` が Mac で import 可能に → `OpenCategoryIntent` 追加 | `9684418` `8ddc76f` |
+| beta 3 | `AppIntentsSSUTraining` が `GeoToolbox.PlaceDescriptorEntity` をドット付き変数名で SSU 化 → CI 赤。暫定回避として `PlaceDescriptor` を `@Parameter`/`@Property` から String に退避（`35d772f`）。`AppShortcutsProvider` をアプリターゲットへ移動（`3280bed`）。toolbar API 変更追従。 | `35d772f` `3280bed` |
+| beta 4 | SSU バグ（`PlaceDescriptor` 変数名正規表現エラー）**未修正**。ワークアラウンド継続。`TransientAppEntity` 動作確認 → `TodoListSummaryEntity` + `GetTodoSummaryIntent` を実装。 | *(このコミット)* |
+
+> **⚠️ beta 4 でも SSU バグ継続**: `AppIntentsSSUTraining` が `GeoToolbox.PlaceDescriptorEntity` を変数名に使い
+> `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちるエラーは **beta 4 でも再現**（DerivedData クリア後クリーンビルドで確認）。
+> `PlaceDescriptor` の `@Parameter`/`@Property` 退避（`35d772f`）は次 beta まで継続。
+> SDK 更新時は `35d772f` を revert + クリーンビルドで再確認する。
 
 ## availability 方針
 

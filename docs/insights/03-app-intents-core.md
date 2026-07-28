@@ -864,3 +864,83 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   discoverable な自前 Intent 群（Add / Update(#45) / Toggle / Show / `.system.searchInApp`(#47)）+ `OpenIntent` / `DeleteIntent` +
   `IndexedEntity` セマンティック index(#43) で、意味理解・検索・遷移は機能する。**本体適合は SDK のスキーママクロ init 規約が
   扱いやすくなるのを待つ独立タスク**として据え置く。
+
+## Phase 8: TransientAppEntity（Xcode 27 beta 4 / #344）
+
+### TransientAppEntity とは
+
+`TransientAppEntity` は WWDC 2026 #344 で紹介されたエンティティの派生型で、**永続化・クエリが不要な一時的なデータ**を App Intents の型システムで表現する。
+
+```
+AppEntity                       TransientAppEntity
+─────────────────────────────   ─────────────────────────────
+defaultQuery 必須（EntityQuery） defaultQuery 不要
+SwiftData/永続化と対応              計算済みスナップショット
+ID で Siri/Shortcuts が参照       Intent の戻り値としてのみ使う
+@Property で公開可能              @Property で公開可能
+```
+
+### 実装パターン
+
+```swift
+public struct TodoListSummaryEntity: TransientAppEntity {
+    public static let typeDisplayRepresentation: TypeDisplayRepresentation = "Todo List Summary"
+
+    @Property(title: "Pending Todos")
+    public var pendingCount: Int
+
+    @Property(title: "Overdue Todos")
+    public var overdueCount: Int
+
+    public var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(
+            title: "\(pendingCount) pending, \(overdueCount) overdue"
+        )
+    }
+
+    public init() {}
+
+    public init(pendingCount: Int, overdueCount: Int, ...) {
+        self.pendingCount = pendingCount
+        self.overdueCount = overdueCount
+    }
+}
+```
+
+**ポイント**:
+- `static let typeDisplayRepresentation` を `let`（非 `nonisolated(unsafe) var`）で宣言できる。
+- `@Property` は `AppEntity` と同じマクロが使える。`Int` 等の非 Optional もそのまま利用可能。
+- `init()` と値初期化 `init(...)` の 2 種を用意するのが定石（システムが `init()` を必要とする場合がある）。
+- `defaultQuery` は宣言不要（`TransientAppEntity` プロトコル要件には含まれない）。
+- `IndexedEntity` は適用不可（クエリ不可な型を Spotlight に載せる意味がない）。
+
+### 利用パターン（Shortcuts の条件分岐）
+
+```swift
+public struct GetTodoSummaryIntent: AppIntent {
+    public static var supportedModes: IntentModes { .background }
+
+    @Dependency var todoService: TodoService
+
+    @MainActor
+    public func perform() async throws -> some IntentResult
+        & ReturnsValue<TodoListSummaryEntity>
+        & ProvidesDialog {
+        let summary = try todoService.summarize()
+        return .result(
+            value: summary,
+            dialog: IntentDialog(
+                full: "You have \(summary.pendingCount) pending todos.",
+                supporting: "\(summary.pendingCount) pending."
+            )
+        )
+    }
+}
+```
+
+Shortcuts ユーザーは「If Get Todo Summary → Overdue Todos > 0 → 通知」のような条件分岐が書ける。
+個別の `TodoAppEntity` リストを `ShowTodosIntent` で取得する必要がなく、集計値だけほしい場面に最適。
+
+### beta 4 での動作確認
+
+Xcode 27 beta 4 で `RunCodeSnippet` + `BuildProject` の両方で成立を確認（B 深度）。

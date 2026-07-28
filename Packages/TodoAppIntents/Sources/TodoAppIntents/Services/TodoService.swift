@@ -297,6 +297,26 @@ public final class TodoService {
         try repository.incompleteCount()
     }
 
+    /// Returns a `TodoListSummaryEntity` snapshot computed from a single `fetchAll()`.
+    ///
+    /// Uses `TransientAppEntity` (WWDC 2026 #344) — the result is not persisted.
+    /// Exposed via `GetTodoSummaryIntent` for Shortcuts conditional branching.
+    public func summarize() throws -> TodoListSummaryEntity {
+        let all = try repository.fetchAll()
+        let now = Date()
+        let completed = all.filter { $0.isCompleted }
+        let pending = all.filter { !$0.isCompleted }
+        let overdue = pending.filter { $0.dueDate.map { $0 < now } ?? false }
+        let favorites = all.filter { $0.isFavorite }
+        return TodoListSummaryEntity(
+            totalCount: all.count,
+            completedCount: completed.count,
+            pendingCount: pending.count,
+            overdueCount: overdue.count,
+            favoriteCount: favorites.count
+        )
+    }
+
     // MARK: - Spotlight
 
     /// Populate Spotlight with every todo currently in the store. Call once on
