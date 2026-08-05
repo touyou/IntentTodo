@@ -485,10 +485,10 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 
 ## 年別サマリー
 
-| 年 | OS | キーワード | セッション数 |
-|---|---|---|---|
-| 2022 | iOS 16 | App Intents 初登場・App Shortcuts・DynamicOptionsProvider・SiriKit 後継 | 3 |
-| 2023 | iOS 17 | インタラクティブウィジェット・IntentParameterDependency・EnumerableEntityQuery・SPM 対応 | 3 |
-| 2024 | iOS 18 | Apple Intelligence・App Intent Domains・ControlWidget・Transferable | 4 |
-| 2025 | iOS 26 | Interactive Snippets・requestChoice・UndoableIntent・Visual Intelligence・supportedModes | 4 |
-| 2026 | iOS 27 | App Schemas・SyncableEntity・AppIntentsTesting・OwnershipProvidingEntity・TransientAppEntity | 6 (+1 Group Lab) |
+| 年 | OS | 一言テーマ | 何が変わったか | セッション数 |
+|---|---|---|---|---|
+| 2022 | iOS 16 | **宣言的フレームワークへの転換** | SiriKit（Info.plist + Intents Extension）を捨てて Swift struct + ビルド時自動抽出へ。フレーズ登録ゼロ設定・DynamicOptionsProvider でパラメータ動的化の基盤も整う | 3 |
+| 2023 | iOS 17 | **ウィジェットが動く＋パラメータ表現力向上** | `Button(intent:)` でウィジェットがインタラクティブに。`IntentParameterDependency` / `EnumerableEntityQuery` でパラメータ間依存や全件列挙が書けるようになった | 3 |
+| 2024 | iOS 18 | **Apple Intelligence との統合元年** | App Intent Domains（スキーマ）で Siri がアクションを意味的に理解。IndexedEntity で Spotlight セマンティック検索にも乗れるように。ControlWidget も追加 | 4 |
+| 2025 | iOS 26 | **Siri に見せ方と実行制御が備わった** | Interactive Snippets でリッチな返答、Visual Intelligence でカメラ連携、`supportedModes` で foreground/background の制御が整理。`requestChoice` / `UndoableIntent` もこの年が初出 | 4 |
+| 2026 | iOS 27 | **本格的なシステム市民へ** | App Schemas でクロスアプリ意味連携、SyncableEntity でデバイス間 ID 同期、AppIntentsTesting で Intent を実経路テスト可能に。API の厚みより「つながり」が主題の年 | 6 (+1 Group Lab) |
