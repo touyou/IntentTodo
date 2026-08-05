@@ -209,3 +209,6 @@
 
 ## 参考（iOS 26 ベースラインの土台）
 - wwdc2025/244「Get to know App Intents」/ wwdc2025/275「Explore new advances in App Intents」
+
+> WWDC 2022〜2026 のセッション一覧・要点・非推奨タイムラインは `docs/WWDC_APP_INTENTS_SESSIONS.md` を参照。
+
