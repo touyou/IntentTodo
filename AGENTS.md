@@ -442,16 +442,23 @@ struct TodoEntity: AppEntity, IndexedEntity {
 ### 基本機能
 - [x] Todo作成（AddTodoIntent）
 - [x] Todo完了/未完了の切り替え（ToggleTodoCompletionIntent）
-- [x] Todo削除（DeleteTodoIntent）
+- [x] Todo削除（DeleteTodoIntent / DeleteTodosIntent バルク）
 - [x] お気に入り機能（ToggleFavoriteIntent）
+- [x] 緊急フラグ（ToggleUrgentTodoIntent）
+- [x] スヌーズ（SnoozeTodoIntent — requestChoice でスヌーズ期間選択）
+- [x] バルク完了（CompleteTodosIntent — LongRunningIntent + CancellableIntent）
 
 ### 拡張機能
 - [x] 検索（TodoListView + .searchable）
+- [x] Todo + Category 横断検索（SearchEverythingIntent — @UnionValue）
 - [x] 期限設定（TodoItem.dueDate）
 - [x] ソート（TodoSortOrder）
-- [x] カテゴリ分類（Category model）
+- [x] 並び替え（ReorderTodosIntent — isDiscoverable=false, UI専用）
+- [x] カテゴリ分類（Category model / CategoryAppEntity）
 - [x] 詳細説明（TodoItem.todoDescription）
-- [x] サブタスク（SubTask model）
+- [x] サブタスク（SubTask model / SubTaskAppEntity）
+- [x] 統計情報取得（GetTodoSummaryIntent — TodoListSummaryEntity: TransientAppEntity）
+- [x] カテゴリを開く（OpenCategoryIntent — Visual Intelligence macOS対応で追加）
 
 ### マルチプラットフォーム
 - [x] iOS/iPadOS メインアプリ
@@ -481,6 +488,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 
 > 検証は `xcode27` ブランチ（26.x ベータ SDK 用、**main 未マージ**）。状態・コミット・残タスクは `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
 > **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（#48 で再評価 → マクロ生成 init + 入れ子サブエンティティの再設計が必要なため据え置き。list 適合 + 自前 Intent で新 Siri 連携は成立）、`OwnershipProvidingEntity` / `requestValue`（#47、個人利用主体で優先度低）、EventKit/Contacts 連携（別フレームワーク軸）。
+> **意図的不使用（API は把握済み・このアプリに不要と判断）**: `DynamicOptionsProvider` / `IntentParameterDependency`（パラメータ間の動的依存が発生するユースケースがない。選択肢は `AppEnum` ベースの静的リストで十分）、`UndoableIntent`（undo/redo サポート。未検討のため将来評価候補）。
 > **watchOS での assistant schema 非対応 (Xcode 27 beta 2)**: `reminders` / `system` ドメインの assistant schema は watchOS で unavailable。TodoAppIntents は watchOS でもコンパイルされるため、`@AppEntity(schema: .reminders.list)`（`CategoryAppEntity`）と `@AppEnum(schema: .reminders.listType)`（`TodoListType`）は `#if os(watchOS)` で素の `AppEntity`/`AppEnum` にフォールバック（マクロ付き宣言は `#if` で分割不可なので型を2系統で全書き）、`@AppIntent(schema: .system.search)`（`ShowTodoSearchResultsIntent`）は watchOS に検索遷移先が無いため `#if !os(watchOS)` で丸ごと除外。`.visualIntelligence.*` は元々 `#if canImport(VisualIntelligence)`（iOS 限定）で保護済み。
 
 ## 開発フロー（TDD）
