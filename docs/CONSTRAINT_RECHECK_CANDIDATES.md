@@ -8,6 +8,20 @@
 
 **進捗（2026-08-11 完了）**: 全項目（A-1〜A-5, B-1〜B-2, C-1〜C-9, 付録）を再検証・ドキュメント修正済み。各見出しに ✅ 済マークと結果概要を付記。詳細な差分は CLAUDE.md（実体は AGENTS.md）/ `docs/insights/03,04,05,06,07` / `docs/APP_INTENTS_CENTRIC_PLAN.md` / `docs/WWDC_APP_INTENTS_SESSIONS.md` を参照。
 
+**追加検証（2026-08-11 その2）**: コード修正を伴う項目のうち自動化可能なものは実施済み（下記「解消済み」）。一方で実機 / Siri 実行 / 大規模機能作業を要するものはこのセッションでは着手できず、残タスクとして以下に一覧化する。
+
+## 残タスク（実機検証 or 将来の機能作業が必要、このセッションでは未着手）
+
+- [ ] **A-1**: `includedPackages` 付き `AppIntentsPackage` を複数ターゲットへ重複宣言した場合の Siri/Shortcuts 実機ルーティング（`LNContextErrorDomain Code=2001` 系）未検証。ビルド/メタデータレベルの重複は無いことのみ確認済み。実機検証までは現状の非重複運用を維持。
+- [ ] **A-3**: Live Activity Extension プロセスで `TodoAppEntity`（`@Parameter`）の事前 entity 解決が走ると SwiftData が trap する件、現行 SDK での再現有無を実機未検証。Primary 版 Intent を LA ボタンに直結して実機実行し、trap の再現/非再現を確認する必要がある（再現しなければ FromExtension 分離を簡素化できる）。
+- [ ] **A-5**: `allowedExecutionTargets` 未指定の Widget/Control Intent（`ToggleUrgentTodoIntent` 等）について、実行プロセスと entity 解決プロセスの実機ログ確認は未実施（`CompleteTodosIntent` のみ `[.main]` 固定で対応済み）。
+- [ ] **C-1**: `.onAppIntentExecution` は現在プロジェクト内で未使用（`@Dependency` + `perform()` パターンへ移行済み）。再導入する際は cold start 失敗の3仮説（`@State path` 未構築 / activation conditions 未設定 / `supportedModes` 不足）を実機で検証する必要がある。
+- [ ] **C-5**: `_AppIntents_UIKit` が iOS で import 可能なことは `RunCodeSnippet` で実証済みだが、macOS 側は `.swiftinterface` の静的調査のみで実際の macOS ビルドでの `canImport` 結果は未確認。また `UISceneAppIntent` を使う具体的なマルチウィンドウ機能が無いため実装自体は保留中（機能要求が出たら着手）。
+- [ ] **C-6**: `TodoAppEntity` の `.reminders.reminder` スキーマ適合の再挑戦（wwdc2026-344 の CometCal パターン: 手書き init 無し + Query 側 populate + 入れ子は `TransientAppEntity`）。大規模な機能作業のため未着手、`docs/APP_INTENTS_CENTRIC_PLAN.md` #48 の出発点としてリードのみ記録済み。
+- [ ] **C-8**: `.controlWidgetStatus(_:)` を `ToggleUrgentTodoControl` に実装・シミュレータビルドで型/コンパイル確認済みだが、実機の Control Center での見た目確認、およびローカル通知運用との UX 比較検討は未実施。
+- [ ] **C-9**: `#Predicate` の Optional 比較制約について、visionOS/toolchain バージョン差による再現/非再現の実際の切り分けは優先度低のため未再検証。
+- [ ] **付録**: `docs/insights/05` L90 の「WWDC 2026 session 8017 SwiftData Group Lab」引用元がローカルアーカイブに存在せず（8011 のみ確認可能）、一次資料未確認のまま一次確認不能な伝聞として記録している。
+
 ---
 
 ## 優先度 A: WWDC の公式説明と矛盾している（最優先で再検証）
@@ -130,7 +144,7 @@
 
 ### C-5. 「`UISceneAppIntent` は Swift Package 内 Intent には利用不可（UIKit 依存で Package スコープ参照不可）」 ✅ 済（因果訂正）
 
-**結果**: SDK 調査で `UISceneAppIntent` は独立フレームワーク `_AppIntents_UIKit` に属し、これが **iOS / watchOS / visionOS には存在するがネイティブ macOS には存在しない**ことを確認（Package スコープの問題ではなく SDK レベルのプラットフォームギャップ）。`#if canImport(_AppIntents_UIKit)` でガードすれば Package 内でも使える可能性が高いと訂正（未検証・優先度低）。修正先: `docs/insights/04-ui-integration.md`。
+**結果**: SDK 調査で `UISceneAppIntent` は独立フレームワーク `_AppIntents_UIKit` に属し、これが **iOS / watchOS / visionOS には存在するがネイティブ macOS には存在しない**ことを確認（Package スコープの問題ではなく SDK レベルのプラットフォームギャップ）。`#if canImport(_AppIntents_UIKit)` でガードすれば Package 内でも使える可能性が高いと訂正。**2026-08-11 追記**: `RunCodeSnippet` で実際に iOS シミュレータ (iOS 27) コンテキストで `#if canImport(_AppIntents_UIKit)` を実行し `available` を確認、ガード方針が iOS 側で機能することを実証した（macOS 側は `.swiftinterface` の静的調査のみ）。ただし本プロジェクトには `UISceneAppIntent` を要する具体的なマルチウィンドウ機能が無いため、コード実装は見送り。修正先: `docs/insights/04-ui-integration.md`。
 
 - **記載箇所**: docs/insights/04 L206
 - **仮説**: SPM パッケージは `#if canImport(UIKit)` で UIKit を import 可能であり、理由付けが疑わしい。実際の障壁は TodoAppIntents が watchOS/macOS 向けにもコンパイルされるプラットフォームマトリクスで、ガードで解決できる可能性。
@@ -153,9 +167,9 @@
 - **ニュアンス**: wwdc2023-10028 (13:47): "As soon as your perform returns, the system will immediately initiate a reload of your widget timeline"（**Widget 内 `Button(intent:)` 起点は自動リロード保証**、10:02 "reloads initiated from an interaction are always guaranteed"）。手動 reload が必要なのはアプリ/Siri 側で変更したケースのみ。
 - **検証手順**: ルール自体は安全側なので維持でよいが、doc の理由説明を「Widget 起点は自動、それ以外の経路のために必要」と正確化。呼び出し重複による無駄リロードが気になる場合のみ最適化。
 
-### C-8. Control Widget のフィードバック: `.controlWidgetStatus(_:)` 未検討 ✅ 済（候補として記録、実装は未実施）
+### C-8. Control Widget のフィードバック: `.controlWidgetStatus(_:)` 未検討 ✅ 済（実装・ビルド確認済み）
 
-**結果**: `.controlWidgetStatus(_:)` を未検討の代替案として `docs/insights/06-control-widget-ios26.md` に明記。ローカル通知運用との比較検討は今後のタスクとして残す（コード変更は今回未実施）。
+**結果**: `ToggleUrgentTodoControl`（`IntentTodoWidget/Controls/ToggleUrgentTodoControl.swift`）のラベルに `.controlWidgetStatus(snapshot.isCompleted ? "Completed" : "Due soon")` を追加し、IntentTodo スキーム（iPhone 17 Pro Max シミュレータ, iOS 27）でビルド成功を確認した。ローカル通知（`ControlNotificationHelper`）運用はそのまま維持し、Control 自体の即時状態表示との併用とした。`TodoCountControl` はボタンの表示値がタップで変化しない（fire-and-forget）ため対象外とした。詳細は `docs/insights/06-control-widget-ios26.md`「Control Widget からの Intent では `.result(dialog:)` が表示されない」節。実機での見え方確認は未実施。
 
 - **記載箇所**: CLAUDE.md「Dialog vs 通知の使い分け」/ docs/insights/06 L92–100
 - **ニュアンス**: 「Dialog が表示されない → ローカル通知」という現運用に対し、Apple が Control 用に用意するフィードバック機構 `.controlWidgetStatus(_:)`（wwdc2024-10157）が未検討。

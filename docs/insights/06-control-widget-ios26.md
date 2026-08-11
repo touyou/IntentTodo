@@ -99,10 +99,14 @@ Intent を実行しても `.result(dialog:)` は UI に出ない。よってフ�
 > 提出は行わない**。Control 経由で完了メッセージを伝えたい場合は `ControlNotificationHelper`
 > 経由でローカル通知を送る運用に統一している (`ToggleUrgentTodoIntent` / `ShowTodoCountIntent` 参照)。
 >
-> **未検討（2026-08-11 候補追加）**: Apple は Control 専用のフィードバック機構 `.controlWidgetStatus(_:)`
-> （wwdc2024-10157）を用意している。ローカル通知はシステムの通知センターに残り続ける副作用があるため、
-> 一時的な状態表示が目的なら `.controlWidgetStatus(_:)` の方が UX 上適切な可能性がある。
-> `ToggleUrgentTodoIntent` / `ShowTodoCountIntent` で試して通知運用と比較検討する価値あり（未実施）。
+> **2026-08-11 実装・ビルド確認**: `ToggleUrgentTodoControl` のラベルに `.controlWidgetStatus(_:)`
+> （wwdc2024-10157）を追加し、`snapshot.isCompleted` に応じて "Completed" / "Due soon" を
+> Control 自体に一時表示するようにした（iOS シミュレータ向けビルドで型・コンパイルを確認済み）。
+> ローカル通知はシステムの通知センターに残り続ける副作用があるため、この一時的な状態表示は
+> 通知の完全な代替ではなく併用（Control 内の即時フィードバック + 通知による永続的な記録）という
+> 位置づけ。`TodoCountControl` は `ControlWidgetButton` がボタン（状態を持たない fire-and-forget）
+> でタップ後も表示値（未完了数）自体は変化しないため、`.controlWidgetStatus` の適用は見送った
+> （実機での見え方の比較は今後の課題）。
 
 ### visionOS 非対応: `#if !os(visionOS)` でガード
 

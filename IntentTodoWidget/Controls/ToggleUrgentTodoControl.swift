@@ -32,6 +32,10 @@ struct ToggleUrgentTodoControl: ControlWidget {
                         ? "checkmark.circle.fill"
                         : "clock.badge.exclamationmark")
                 }
+                // Control Center は dialog を出さないため通知でも結果を返しているが、
+                // このモディファイアで Control 自体にも即時の状態文字列を表示できる
+                // (wwdc2024-10157 16:08「controlWidgetStatus で瞬間的なステータスを表示」)。
+                .controlWidgetStatus(snapshot.isCompleted ? "Completed" : "Due soon")
             }
         }
         .displayName("Urgent Todo")
