@@ -4,20 +4,16 @@
 
 ### Button(intent:) の API 差異
 
-watchOS では iOS と同じ `Button(intent:role:)` シグネチャが利用できない。代わりに async パターンを使用する。
+**2026-08-11 訂正**: watchOS で利用できないのは `role:` 付きの `Button(intent:role:)` シグネチャのみで、`role:` 無しの `Button(intent:)` は watchOS でも問題なく使える。以前この節は「代わりに `Task { try? await intent.perform() }` の async パターンを使う」と誤って記録していたが、これは `04-ui-integration.md` の「直接 `perform()` を呼ばない」節が明記する通り `@Dependency` がゼロ初期化のままクラッシュする危険な実装であり、実際の `Packages/WatchUI` のコード（`WatchTodoRow.swift` / `WatchTodoDetailView.swift` / `WatchAddTodoView.swift`）も一貫して `role:` 無しの `Button(intent:)` を使っている。手動 `perform()` は誤記であり、真逆の指針が並存していた状態を本追記で解消する。
 
 ```swift
-// ❌ watchOS ではエラー
+// ❌ watchOS ではエラー（role: 付きシグネチャが無い）
 Button(intent: ToggleTodoCompletionIntent(todo: entity), role: .none) {
     Text("Complete")
 }
 
-// ✅ watchOS 対応パターン
-Button {
-    Task {
-        try? await ToggleTodoCompletionIntent(todo: entity).perform()
-    }
-} label: {
+// ✅ watchOS 対応パターン（role: を外すだけ。システム dispatch 経由なので @Dependency も正常解決される）
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
     Text("Complete")
 }
 ```
@@ -110,24 +106,33 @@ Live Activity から Activity の開始/更新/終了を伴うアクションを
   > "You can update or end a Live Activity while your app is in the background, but you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a `LiveActivityIntent`."
 - `LiveActivityIntent` の `perform()` は**アプリプロセス**で実行される:
   > "If you adopt the `LiveActivityIntent` or `AudioPlaybackIntent` protocol, the system runs the app intent in the app's process."
-- 対して通常の `AppIntent` を Widget/Live Activity から呼ぶ場合は **Widget Extension プロセス**で実行される:
+- 通常の `AppIntent` を Widget から呼ぶ場合は、その Intent をウィジェット Extension ターゲットとアプリターゲットの
+  両方に追加する必要がある:
   > "If you adopt the `AppIntent` protocol, add your custom app intent to your widget extension target and your app target."
+  この一文は**ターゲットメンバーシップ**（ビルド時にどのターゲットへ含めるか）についての要件であり、実行時に必ず
+  Widget Extension プロセスで動くと明言しているわけではない。**2026-08-11 再検証**: WWDC 2026 #345（15:59–16:55）による
+  と、共有パッケージの Intent がどのプロセスで実行されるかはシステムの**ヒューリスティクス**（アプリが起動中ならアプリを
+  優先、等）で決まり、固定するには `allowedExecutionTargets`（`.main`/`.appIntentsExtension`/`.widgetKitExtension`）を
+  明示する必要がある（詳細は `03-app-intents-core.md` の「`allowedExecutionTargets`」節）。「Widget から呼ぶと必ず
+  Widget Extension で実行される」という記述は過剰に固定的だったため、以下の表もヒューリスティクス前提に修正する。
 
-本プロジェクトでは `ToggleTodoCompletionIntent` と `SnoozeTodoIntent` を `#if os(iOS)` で `LiveActivityIntent` に条件付き準拠させ、Live Activity のボタン経由でアプリプロセス側で実行されるようにしている。
+本プロジェクトでは `ToggleTodoCompletionIntent` と `SnoozeTodoIntent` を `#if os(iOS)` で `LiveActivityIntent` に条件付き準拠させ、Live Activity のボタン経由で `perform()` がアプリプロセス側で実行されるようにしている。
 
 ### Intent種別の使い分け
 
 | Intent種別 | 用途 | 実行プロセス |
 |-----------|------|------------|
-| `AppIntent` | Siri/Shortcuts/UI/Widget | Siri/Shortcuts はアプリ、Widget は Widget Extension |
-| `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | アプリプロセス（公式保証） |
+| `AppIntent` | Siri/Shortcuts/UI/Widget | Siri/Shortcuts/UI はアプリ、Widget は `allowedExecutionTargets` 未指定ならヒューリスティクスで決定（アプリ起動中はアプリ優先）、指定すればそこに固定 |
+| `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | `perform()` はアプリプロセス（公式保証）。`AppEntity` パラメータの事前解決フェーズは別（後述） |
 | `ControlConfigurationIntent` | コントロールセンター設定値 | Extension 配置必須 |
 
 ### Live Activity Intent のパラメータは String ID にする（Entity を取らない）
 
 Live Activity ボタンから呼ぶ Intent は `@Parameter var todo: TodoAppEntity` ではなく `@Parameter var todoId: String` を使う。
 
-**理由**: App Intents は `AppEntity` パラメータを持つ Intent を実行する前に `TodoEntityQuery.entities(for:)` を呼んで entity を解決する。Live Activity Extension プロセスで解決処理が走ると SwiftData の内部 assertion に引っかかり `EXC_BREAKPOINT` で crash する（2026-04-14 の実機検証で判明）。呼出元の LA ボタンはすでに `context.attributes.todoId` を持っているため、Entity 解決は不要。
+**理由**: App Intents は `AppEntity` パラメータを持つ Intent の `perform()` 実行前に `TodoEntityQuery.entities(for:)` を呼んで entity を解決する。この解決処理中に SwiftData の内部 assertion に引っかかり `EXC_BREAKPOINT` で crash することが 2026-04-14 の実機検証で判明した。呼出元の LA ボタンはすでに `context.attributes.todoId` を持っているため、Entity 解決は不要。
+
+> **2026-08-11 追記（再検証）**: 「Live Activity Extension プロセスで解決処理が走ると」という原因記述は Apple の「`LiveActivityIntent` の `perform()` はアプリプロセスで実行される」という公式保証と厳密には矛盾しうるため、断定を取り下げた。`perform()` 前の entity 解決フェーズがどのプロセスで走るかは Apple 文書に明記が無く、`IntentTodoLiveActivityBundle.init()` が `AppDependencyManager` に何も登録していないことも絡んだ可能性が残る（未確定）。詳細と根拠のスタックトレースは `03-app-intents-core.md` の「Primary / FromExtension 分離パターン」節を参照。FromExtension 分離自体は結果的に安全なワークアラウンドとして機能しているため、コード変更は不要。
 
 ```swift
 public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
@@ -263,7 +268,7 @@ Button(intent: OpenAddTodoIntent()) {
 
 ## `#Predicate` の Optional 比較回避
 
-`#Predicate<TodoItem> { $0.id == optionalUUID }` のように Optional を直接比較する式は visionOS 等でコンパイルが通らないことがある。回避策は:
+`#Predicate<TodoItem> { $0.id == optionalUUID }` のように Optional を直接比較する式はコンパイルが通らないことがある。**2026-08-11 表現訂正**: 以前「visionOS 等で」とプラットフォーム限定の書き方をしていたが、`#Predicate` マクロの Optional 絡みの型推論制約は基本的に全プラットフォーム共通の問題で、visionOS 固有ではなく toolchain バージョン差で再現/非再現が分かれた可能性が高い（優先度低、未再検証）。回避策は:
 
 1. 非 Optional な定数を capture してから比較する（推奨）
    ```swift

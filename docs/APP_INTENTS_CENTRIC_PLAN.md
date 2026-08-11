@@ -47,6 +47,8 @@
 | ValueRepresentation | `AppEntity.ValueRepresentation` `IntentValueRepresentation(exporting:importing:)` | 担当者を `IntentPerson` / 場所を `PlaceDescriptor` へ export | B | ✅ (#44) |
 | RelevantEntities | `RelevantEntities.updateEntities(_:for:)` `AppEntityContext` | 「次の期限/緊急 Todo」を文脈寄付 | B/R | 🚫 不適合 |
 | EntityCollection | `EntityCollection<TodoAppEntity>` `resolvedEntities()` | バルク完了 Intent | U | ✅(B) `8e2d637` |
+<!-- 2026-08-11: `resolvedEntities()` は wwdc2026-345 の書き起こしには文字列として登場しない（セッションの口頭説明は `.identifiers` のみ）が、Xcode 27 beta 5 の AppIntents.swiftinterface で `public func resolvedEntities() async throws -> [Entity]` の実在を確認済み。SDK 由来の正当な API であり誤記ではない。 -->
+
 | ネイティブ Parameter 型 | `Duration` `PersonNameComponents` | 所要時間 / 担当者名を `@Parameter` | U | ✅ Phase 1 |
 | @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ✅ `099dae3` |
 | LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ✅(B) `8e2d637` |
@@ -131,6 +133,12 @@
     初期化規約）はサブエンティティを揃えても不変。**新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な
     自前 Intent 群 + `OpenIntent`/`DeleteIntent` + `.system.search`(#47) + `indexingKey`(#43)）と確認したため、本体適合は
     SDK のスキーママクロ init 規約が扱いやすくなるのを待つ独立タスクとして据え置く。詳細は insights/03「Phase 7」。
+    **2026-08-11 追記（新しいリード、未実施）**: wwdc2026-344 は同等にリッチな `calendar_event` スキーマ（`attendee`
+    は `TransientAppEntity` の入れ子、`location` は union）に**手書き init なし**で適合させている——Xcode の
+    スキーマ・コードスニペット機能で型の骨格を生成し、モデル→エンティティのマッピングは Query 側に持たせる流儀。
+    本プロジェクトが試した「自前 `init(from: TodoItem)` で順次代入」というスタイルがマクロ生成 backing storage と
+    衝突している可能性がある。#48 を再挑戦する際はこの CometCal パターン（スニペット生成 + Query 側 populate +
+    入れ子は TransientAppEntity）を先に試すこと。
 - **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
   - ✅ `requestConfirmation`（DeleteTodoIntent）`27fc2db`
   - ✅ `IntentDonationManager`（Add で donate / Delete で deleteDonations）`b4dbd63`
@@ -139,6 +147,8 @@
   - ✅ 会話ダイアログ `IntentDialog(full:supporting:)`（ShowTodosIntent）`1f4bbc7`
   - 🚫 `RelevantEntities`: **Todo/reminders ドメインに適合する `AppEntityContext` が存在しない**（`.audio(.nowPlaying)`
     と framework overlay の domain context のみ）ため適合不能。詳細は insights/03 参照。
+    *(2026-08-11 訂正: wwdc2026-345 の実例は `.audio(.nowPlaying)` ではなく `.audio(.workout(activityType: .running))`。
+    どちらの例でも todo ドメインに適合しないという結論は不変)*
 - **Phase 4 大量・実行制御** ✅（B 深度で完了。U/R は実機・一部テストが残る）: #345
   - ✅ `CompleteTodosIntent` で `EntityCollection` + `LongRunningIntent` + `CancellableIntent` を同時実装 `8e2d637`
   - ✅ `allowedExecutionTargets [.main]`。FromExtension 分離は entity 解決回避が目的でプロセス制御では**統合不可**と結論 `8e2d637`

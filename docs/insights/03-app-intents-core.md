@@ -72,17 +72,20 @@ public struct AddTodoIntent: AppIntent {
 
 ### 実行プロセスごとに登録が必要
 
-`AppDependencyManager.shared` は**プロセスごとに独立したインスタンス**。`supportedModes` によって `perform()` がどのプロセスで実行されるかが決まる。
+`AppDependencyManager.shared` は**プロセスごとに独立したインスタンス**。`supportedModes` は「フォアグラウンド遷移するか」を決めるだけで、実行プロセスそのものを固定しない。共有パッケージの Intent は複数ターゲットにリンクされていると、システムが**ヒューリスティクス**（アプリ起動中ならアプリを優先、等）でプロセスを選ぶ（[WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) 15:59–16:55）。固定したい場合は `allowedExecutionTargets`（後述 L611 付近）で明示する。
 
 | モード/呼出元 | 実行プロセス | 登録が必要な場所 |
 |--------------|-------------|----------------|
 | `.foreground(.immediate)` | メインアプリ（開かれる） | `App.init()` |
 | `.foreground` | メインアプリ | `App.init()` |
 | `.background` / Siri / Shortcuts | メインアプリ | `App.init()` |
-| `.background` / Widget ControlWidgetButton | Widget Extension | `WidgetBundle.init()` |
-| `LiveActivityIntent` | **メインアプリプロセス** (公式保証) | `App.init()` |
+| `.background` / Widget ControlWidgetButton（`allowedExecutionTargets` 未指定） | **ヒューリスティクスで決定**（アプリ起動中はメインアプリ優先、未起動なら Widget Extension） | **両方**（保険として `App.init()` と `WidgetBundle.init()`） |
+| 同上（`allowedExecutionTargets` で明示指定） | 指定したプロセスに固定 | 指定先のみ |
+| `LiveActivityIntent` | **メインアプリプロセス**（`perform()` のみ。公式保証） | `App.init()` |
 
-> `LiveActivityIntent` は Apple 公式 [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) が "the system runs the app intent in the app's process" と明言している。つまりメインアプリ側の `AppDependencyManager` に登録してあれば解決される（Extension 側の登録は不要）。
+> **2026-08-11 追記**: 上記「ヒューリスティクスで決定」の行は再検証で判明した内容。以前は「`.background` / Widget ControlWidgetButton は固定的に Widget Extension で実行」と記録していたが、`IntentExecutionTargets`（`.default`/`.main`/`.appIntentsExtension`/`.widgetKitExtension`）が `OptionSet` として存在し `.default` が「システムに委ねる」を表す独立ケースであること自体が、既定はヒューリスティクスであることの SDK 上の裏付け。`CompleteTodosIntent` は `allowedExecutionTargets = [.main]` を既に指定済み（詳細は下記「大量データ処理」節）。二重登録（`App.init()` + `WidgetBundle.init()`）は他の未指定 Intent がある限り撤廃できない。
+>
+> `LiveActivityIntent` については Apple 公式 [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) が "the system runs the app intent in the app's process" と明言しているが、これは `perform()` の実行プロセスについての保証であり、`@Parameter var todo: TodoAppEntity` のような entity パラメータの**事前解決フェーズ**（`entities(for:)`）がどこで走るかは別問題（下記「Primary / FromExtension 分離パターン」参照）。つまりメインアプリ側の `AppDependencyManager` に登録してあれば `perform()` 内の `@Dependency` は解決される（Extension 側の登録は不要）。
 
 Widget Extension 側での登録例:
 
@@ -204,7 +207,13 @@ public struct TodoIntentsPackage: AppIntentsPackage {
 }
 ```
 
-**重要**: メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を**重複宣言しない**こと。2026-04-13 の実機検証で、SPM 側の `AppIntentsPackage` 自動発見とメインアプリターゲットでの二重登録が重なると Shortcuts のルーティングが壊れる現象を確認した（エラーは `LNContextErrorDomain Code=2001`）。
+現在の運用は、メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を重複宣言しない形。2026-04-13 の実機検証で、SPM 側の `AppIntentsPackage` 自動発見とメインアプリターゲットでの二重登録が重なった際に Shortcuts のルーティングが壊れる現象（エラーは `LNContextErrorDomain Code=2001`）を確認したのが根拠だった。
+
+> **2026-08-11 追記（再検証、Xcode 27 beta 5）**: この制約を「重複宣言は絶対禁止」と断定するのは過剰だったと判明。アプリターゲット・Widget/LiveActivity/watchOS の全 Extension ターゲットに `AppIntentsPackage { includedPackages: [TodoIntentsPackage.self] }` を追加してビルドしても、`Metadata.appintents/extract.actionsdata` の `actions`/`entities`/`queries` 件数は無宣言時と完全に同一（11/1/1、重複なし）だった。しかも Apple 公式 `AppIntentsPackage` ドキュメント（[developer.apple.com](https://developer.apple.com/documentation/appintents/appintentspackage)）や wwdc2025-244（23:29-24:00）・wwdc2025-275（25:50）は、まさにこの「利用側にも `includedPackages` 付き `AppIntentsPackage` を宣言する」パターンを標準手順として示している。
+>
+> `3f6d835`（2026-04-13 の当該コミット）を読み直すと、これは Intent routing 問題の解決・`@Dependency` パターンへの統一・重複 Intent の削除・プロパティリネームなどを一括で行った大きな PR で、「`AppIntentsPackage` 重複宣言そのもの」を単独で切り出して再現実験した記録は残っていなかった。デバッグログが示す当時の疑いは「Widget Extension が `TodoAppIntents` を import しているため Shortcuts が Widget Extension を intent provider として誤選択した」というもので、これは `AppIntentsPackage` の宣言方法とは別の話（実行プロセス選択の問題、「実行プロセスと登録先」節参照）である可能性が高い。
+>
+> **今回の検証はビルド/メタデータレベルに限られ、Siri/Shortcuts の実機ルーティング（`LNContextErrorDomain` 系エラー）の再現実験は行っていない。** 現状のドキュメント運用（重複宣言しない）自体は安全なので変更していないが、「絶対に壊れる」という断定は取り下げ、複数ターゲットでの型共有が本当に必要になった場面では実機で Siri 経由の呼び出しを確認してから採用する、という位置づけに改める。
 
 ### ⚠️ `AppShortcutsProvider` は SPM パッケージに置いてはいけない（アプリターゲット必須）
 
@@ -235,6 +244,8 @@ python3 -c "import json; d=json.load(open('<DerivedData>/.../IntentTodo.app/Meta
 > **補足（過去の誤記録の訂正）**: 以前この節には「`AppShortcutsProvider` も Swift Package 内に配置可能」と書いていたが、上記検証により誤りと判明。実行・ビルドが通り Intent 自体は動く（UI / Widget / Siri 直接呼び出しは Intent 集約経由で機能する）ため、App Shortcut フレーズだけが黙って欠落しており長く気付かれていなかった。
 
 > **一次ソース未確認**: Apple 公式 API リファレンスで「アプリあたり 1 つまで」と明文化されている記述は 2026-04-15 時点で確認できていない。`AppIntentsPackage` / `includedPackages` のドキュメントには duplicate registration に関する注意書きが見つからないため、実機観測ベースの知見として扱う。
+
+> **2026-08-11 追記（再検証）**: 本制約は上記「パッケージ内での定義」節の `AppIntentsPackage` 重複宣言問題とは**独立**であることを確認済み。アプリ/Extension ターゲットに `includedPackages` 付き `AppIntentsPackage` を追加した状態でも `AppShortcutsProvider` がパッケージ内にある限り `autoShortcuts` は 0 のままで、パッケージ→アプリターゲットへ移動した時点でのみ 0→8 に変化した。よってこの節のルール（アプリターゲット直下必須）自体は変更不要。
 
 **注意**: アプリ内に `AppShortcutsProvider` が複数存在するとビルドエラーになる。
 
@@ -325,7 +336,9 @@ func perform() async throws -> some IntentResult {
 
 ### 背景
 
-App Intents が `TodoAppEntity` のような `AppEntity` をパラメータに取る Intent を実行すると、`perform()` 前に `TodoEntityQuery.entities(for:)` を呼んで ID から entity を再解決する。この解決処理が Live Activity Extension プロセスで SwiftData の内部 assertion を踏んで `EXC_BREAKPOINT` で crash することが実機で確認された（2026-04-14）。
+App Intents が `TodoAppEntity` のような `AppEntity` をパラメータに取る Intent を実行すると、`perform()` 前に `TodoEntityQuery.entities(for:)` を呼んで ID から entity を再解決する。この解決処理中に SwiftData の内部 assertion を踏んで `EXC_BREAKPOINT` で crash することが実機で確認された（2026-04-14、コミット `c37ee97`/`a234842`）。
+
+> **2026-08-11 追記（再検証）**: 「Live Activity Extension プロセスで」という当時の原因記述は要注意。Apple 公式ドキュメント（[Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action)）は「`LiveActivityIntent` の `perform()` はアプリプロセスで実行される」と明言しており、これは `TodoAppEntity`（Primary 版）が実際に `LiveActivityIntent` に準拠していれば `perform()` 自体はアプリプロセスで動くはずということを意味する。一方で `entities(for:)` のような**事前解決フェーズ**がどのプロセスで走るかは Apple 文書に明記が無く、上記スタックトレースは解決フェーズで発生している。加えて `IntentTodoLiveActivityBundle.init()` は現在も過去も `AppDependencyManager` への登録を一切行っていないため、解決フェーズが Extension 側で走った場合は `TodoEntityQuery` の `@Dependency var modelContainer` が解決できないはずだが、捕捉されたスタックトレースは `ModelContext.fetch` の内部まで進んでおり、「未登録 dependency」の `fatalError` 文言ではない。したがって真因を「Extension プロセスで解決されたから」と確定させることはできず、「事前解決フェーズのプロセスが未文書化かつ実際に crash 歴がある」という表現に留めるのが正確。FromExtension 分離は結果的に安全なワークアラウンドとして機能しているため、コード側の変更は不要。
 
 スタック:
 ```
@@ -583,9 +596,13 @@ App Intents は「開く」「削除する」等の共通アクションに **sy
 「次の期限/緊急 Todo」を文脈寄付する目的で `RelevantEntities.shared.updateEntities(_:for:)` を検討したが、
 **第二引数 `AppEntityContext` がドメイン固有のファクトリしか持たない**ことが判明（DocumentationSearch 確認）。
 
-- 提供される context は `.audio(.nowPlaying)`（`AudioContext`）と、framework overlay（HealthKit 等）が
-  定義する domain context のみ。**汎用 / reminders / todo 向けの context 値が存在しない**。
-- `.audio(.nowPlaying)` で todo を寄付するのは意味的に誤り（再生中メディア扱いになる）。
+- 提供される context は `.audio(.nowPlaying)`（`AudioContext`、Xcode 27 beta 5 SDK の swiftinterface で確認済み）と、
+  framework overlay（HealthKit 等）が定義する domain context のみ。**汎用 / reminders / todo 向けの context 値が
+  存在しない**。**2026-08-11 訂正**: wwdc2026-345 (3:57 前後) の実例は `.audio(.workout(activityType: .running))`
+  （ワークアウト開始時にプレイリストを提案する例）で、`.nowPlaying` ではない。ただし beta 5 SDK の
+  `AppIntents.swiftinterface` には `AudioContext.nowPlaying` のみが確認でき、`.workout(activityType:)` は
+  HealthKit 等のオーバーレイ側にもまだ見当たらない（beta 未実装の可能性、要再確認）。
+- どちらの context 例でも todo を寄付するのは意味的に誤り（再生中メディア/ワークアウト扱いになる）という結論は変わらない。
 - → **本アプリ（reminders ドメイン）では `RelevantEntities` は現状適合不能**。Apple が todo / reminders 向け
   `AppEntityContext` を追加するまで保留。`RelevantIntent` / `RelevantIntentManager`（WidgetConfigurationIntent
   ベースのウィジェット提案）は別軸の API なので、文脈提案が必要なら将来そちらを検討する。
@@ -622,8 +639,10 @@ extension, or a WidgetKit extension" と明記。型名は `AppIntent.ExecutionT
   バルク Intent は `[.main]` に固定した。
 - **⚠️ FromExtension 分離を `allowedExecutionTargets` で統合することはできない**（検証結論。`.widgetKitExtension`
   の存在を踏まえても結論は不変）:
-  - FromExtension（`todoId: String`）と Primary（`todo: TodoAppEntity`）の分離は、**Live Activity
-    Extension プロセスでの entity 解決クラッシュ回避が目的**（パラメータの「型」を変えて解決自体を避ける）。
+  - FromExtension（`todoId: String`）と Primary（`todo: TodoAppEntity`）の分離は、**entity 解決フェーズでの
+    crash 回避が目的**（パラメータの「型」を変えて解決自体を避ける。解決フェーズがどのプロセスで走るかは
+    Apple 未文書化、2026-08-11 再検証で「Live Activity Extension プロセスで」という原因断定は取り下げ済み。
+    「Primary / FromExtension 分離パターン」節参照）。
   - `allowedExecutionTargets` が制御するのは**どのプロセスが perform するか**であって、entity 解決の有無では
     ない。`.widgetKitExtension` を加えても Widget は対象になり得るだけで、**Live Activity Extension は依然
     対象外**であり、何より「entity を解決するか否か」は target 指定では変えられない。
@@ -690,6 +709,10 @@ public struct TodoVisualIntelligenceQuery: IntentValueQuery {
   `try await MainActor.run { try todoService.listTodos(...) }` でホップして取得し、以降は Sendable な
   `TodoAppEntity` 値で off-actor フィルタする。
 - **登録不要**: 他の query 同様、システムが自動発見（AppShortcut 不要）。
+- **未記録だった制約（2026-08-11 追記）**: wwdc2026-297 (11:39) は「`SemanticContentDescriptor` を受ける
+  `IntentValueQuery` はアプリに **1 つだけ**」と明言している。本アプリは `TodoVisualIntelligenceQuery` の
+  1 つのみなので現状は問題ないが、将来 2 つ目を追加しようとした場合は不可（`@UnionValue` で戻り値の型を
+  混在させて 1 つの query に集約する、が正しい対処）。
 
 ### `@AppIntent(schema: .visualIntelligence.semanticContentSearch)`（もっと見る）
 
@@ -711,12 +734,18 @@ visual search の「More results」に対応する intent。`@Parameter var sema
 「VisualIntelligence は iOS 専用」は SDK にフレームワークが無かった時点の制約で、**恒久的な不可能ではなかった**。
 Xcode 27 beta 2 で Mac に import 可能になったため、macOS でも成立させた。
 
-- **Mac 固有の追加バリデーション**: visual search の `IntentValueQuery` が返す entity は**すべて openable
-  （`OpenIntent` を持つ）**必要がある。`TodoVisualIntelligenceQuery` は `TodoOrCategory` union を返すため、
-  `TodoAppEntity`（`OpenTodoIntent`）に加え **`CategoryAppEntity` にも `OpenIntent` が必要**。
-  Mac ビルドで `result type 'CategoryAppEntity' that is not openable ... must be associated with an OpenIntent`
-  エラーになる（**iOS シミュレータ / iPhone ビルドでは出ず、macOS destination でのみ発火**。本プロジェクトの
-  Mac は Catalyst ではなく native macOS（`SUPPORTS_MACCATALYST` 無し・`macosx` SDK）で、そのビルドで確認）。
+- **openable 要件は全プラットフォーム共通、Mac 固有なのは「コンパイル時に強制される」点のみ**: visual search の
+  `IntentValueQuery` が返す entity は**すべて openable（`OpenIntent` を持つ）**必要があるが、これは
+  wwdc2025-275 (9:19) が "This `OpenIntent` must exist, otherwise your app won't show up" と明言する通り
+  全プラットフォーム共通のルール（openable でない entity はそもそも Visual Intelligence の結果に出てこない、
+  という仕様）。**2026-08-11 表現訂正**: 以前この節を「Mac 固有の追加バリデーション」と書いていたが、正確には
+  「ルールは共通だが、macOS destination のビルドだけがコンパイル時エラーとして enforce する」という**enforce
+  のされ方の違い**であり、ルール自体が Mac 限定というわけではない。`TodoVisualIntelligenceQuery` は
+  `TodoOrCategory` union を返すため、`TodoAppEntity`（`OpenTodoIntent`）に加え **`CategoryAppEntity` にも
+  `OpenIntent` が必要**。Mac ビルドで `result type 'CategoryAppEntity' that is not openable ... must be
+  associated with an OpenIntent` エラーになる（**iOS シミュレータ / iPhone ビルドではコンパイルエラーとして
+  出ず、macOS destination でのみ発火**。本プロジェクトの Mac は Catalyst ではなく native macOS
+  （`SUPPORTS_MACCATALYST` 無し・`macosx` SDK）で、そのビルドで確認）。
 - **解決**: `OpenCategoryIntent`（`OpenIntent`、`target: CategoryAppEntity`）を新設。カテゴリ専用画面は無いので
   `perform()` は `navigateToRoot()`（アプリを開く）だけ。**openable にすること自体が目的**で、これで union が
   全メンバ openable になり Mac ビルドが通る（AppShortcut 未登録なので 10 件枠に影響なし）。
@@ -738,6 +767,12 @@ Xcode 27 beta 2 で Mac に import 可能になったため、macOS でも成立
 UI テスティングバンドルに置く」**。本プロジェクトは既存の `IntentTodoUITest`（UIテストターゲット）に
 追加した（新規ターゲット不要）。SPM の Testing パッケージでは動かない（アプリプロセス + 登録済み
 `AppDependencyManager` が要るため）。
+
+> **未記録だった要件（2026-08-11 追記）**: wwdc2026-295 (2:54) は "AppIntentsTesting requires the test runner
+> and the app to use the same development team for code signing" と明言している。テストランナー（UI テスト
+> ターゲット）とアプリ本体で**同じ development team** の code signing でなければ動かない。CI 環境や複数
+> Apple ID を切り替える環境でこの設定がずれると原因不明の失敗になりやすいので、テスト追加時は署名チームの
+> 一致を最初に確認する。
 
 ```swift
 import AppIntentsTesting
@@ -779,8 +814,16 @@ UIテストターゲットは synchronized folder ではないため、**ファ�
 Spotlight のセマンティックインデックスのキーへ宣言的にマップし、意味ベース検索 / Q&A の対象にできる。
 
 - `TodoAppEntity.title` → `\.title`、新設 `todoDescription` → `\.contentDescription`。
-- **`textContent` は SDK に露出していない**（`title` / `contentDescription` / `textContentSummary`(read-only) を確認）。
-  自然文の本文は `contentDescription` に載せるのが妥当。
+- **訂正（2026-08-11 再検証）**: 「`textContent` は SDK に露出していない」は誤り。`CSSearchableItemAttributeSet_Messaging.h`
+  に `NSString *textContent`（macOS 10.11 / iOS 9〜、tvOS・watchOS 対象外）として存在する（wwdc2026-240 のコード例、
+  wwdc2024-10131 2:41 が言及する通り）。さらに `EntityProperty.init(indexingKey:)` は `PartialKeyPath<CSSearchableItemAttributeSet>`
+  を取るだけでローカルプロパティの型とキーパスの値型を静的に対応付けないため、`String?` でも `AttributedString?` でも同一の
+  `indexingKey:` オーバーロードが使える（SDK の `swiftinterface` 上、`Value.ValueType == String` と
+  `Value.ValueType == AttributedString` の両方に同シグネチャの `indexingKey:` init 群があることを実ビルドで確認済み）。
+  「`textContent` は `AttributedString?` 専用」という仮説も誤り。
+  それでも `todoDescription` は `contentDescription`（`CSDocuments` カテゴリ、「アイテムの説明文」の意味）にマップし続けるのが
+  妥当という結論は変わらない。`textContent`（`CSMessaging` カテゴリ、メール/メッセージ本文全文を想定した意味）よりも
+  Todo の詳細説明というユースケースに近いため——これは型の制約ではなく意味の制約による選択。
 - **落とし穴（プラットフォーム）**: `indexingKey:` オーバーロードは **iOS / macOS でしか vend されない**。
   visionOS / watchOS では `Extra argument 'indexingKey'` + `Cannot infer key path type` でビルド失敗するため、
   既存の `IndexedEntity` 拡張と同じ `#if os(iOS) || os(macOS)` で分岐し、他プラットフォームは素の `@Property`

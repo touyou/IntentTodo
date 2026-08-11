@@ -36,7 +36,7 @@ App Intents フレームワークが SiriKit の後継として導入された�
 | `DisplayRepresentation` | Entity の Siri / Shortcuts UI 上の表示文字列・アイコン |
 | `TypeDisplayRepresentation` | Entity 型全体の表示名（ピッカーの見出しなど） |
 | `IntentResult` / `.result()` 系 | 実行結果の返却。`.result()` / `.result(value:)` / `.result(dialog:)` / `.result(value:dialog:)` |
-| `IntentDialog` | Siri が読み上げる・表示するダイアログ文字列。`full:` と `supporting:` を分けて指定可 |
+| `IntentDialog` *(実例の出典訂正: `full:`/`supporting:` を分けて指定する具体例は 10032 に登場せず、wwdc2026-343 (2:45) が出典。`IntentDialog` 型自体は 10032 に登場する)* | Siri が読み上げる・表示するダイアログ文字列。`full:` と `supporting:` を分けて指定可 |
 | `AppEnum` プロトコル | パラメータ・結果に使える列挙型。`caseDisplayRepresentations` で各 case の表示名を定義 |
 | `ReturnsValue<T>` | Intent が値を返すことを宣言するプロトコル合成型 |
 | `ProvidesDialog` | Intent がダイアログを返すことを宣言するプロトコル合成型 |
@@ -101,7 +101,7 @@ UX ガイドラインが中心だが、以下の概念・API が言及される�
 | `Button(intent:)` | SwiftUI ウィジェット内から Intent を直接実行。アプリ起動なしでアクション完結 |
 | `Toggle(isOn:intent:)` | ウィジェット内のトグルを Intent にバインド |
 | `@Parameter(optionsProvider:)` の実用例 | `DynamicOptionsProvider` 準拠型を渡してウィジェット内の選択肢を動的に提供 |
-| ウィジェットの即時リロード | Intent 実行後にウィジェットを自動リロードする `invalidatableContent()` モディファイア |
+| ウィジェットの即時リロード *(内容訂正: 自動リロードは `perform()` 完了時のシステム挙動であり、"reloads initiated from an interaction are always guaranteed"（10:02）／"As soon as your perform returns, the system will immediately initiate a reload"（13:47）による。`invalidatableContent()` は無効化中（データ更新待ち）の視覚効果を制御するモディファイアで、自動リロード自体を担うものではない)* | Intent 実行後にウィジェットを自動リロード。`invalidatableContent()` は無効化中の見た目を制御 |
 | `@Parameter` のみ永続化 | Widget Extension プロセス内では `@Parameter` アノテーション付きプロパティのみが保持される |
 
 ### 新機能（10102 Spotlight your app with App Shortcuts）
@@ -126,7 +126,7 @@ UX ガイドラインが中心だが、以下の概念・API が言及される�
 |-----------|------|
 | `DynamicOptionsProvider` プロトコル | `results() async throws` を実装してパラメータの動的な選択肢を提供。`@Parameter(optionsProvider:)` で指定 |
 | `IntentParameterDependency<Intent>` | `DynamicOptionsProvider` や EntityQuery の中で別パラメータの現在値を参照するプロパティラッパー（`@IntentParameterDependency<MyIntent>(\.$param)` の形で使用） |
-| `IntentProjection<Intent>` | `IntentParameterDependency` を使って non-optional の参照を返すラッパー |
+| `IntentProjection<Intent>` *(出典訂正: 10103 には登場せず、API ドキュメント由来の知見)* | `IntentParameterDependency` を使って non-optional の参照を返すラッパー |
 | `EnumerableEntityQuery` | `allEntities() async throws -> [Entity]` を実装して全件返す新プロトコル。Shortcuts のフィルタ・ソートが自動生成される |
 | `WidgetConfigurationIntent` | `AppIntent` サブプロトコル。ウィジェットの構成 Intent を定義する |
 | `AppIntentConfiguration` | `WidgetConfigurationIntent` を使ったウィジェット TimelineProvider の設定型 |
@@ -134,11 +134,12 @@ UX ガイドラインが中心だが、以下の概念・API が言及される�
 | `needsToContinueInForegroundError()` | `perform()` を中断してフォアグラウンド遷移を要求するエラーを生成 |
 | `requestToContinueInForeground()` | ユーザーの許可を得てからフォアグラウンドで処理を再開するメソッド |
 | `ProgressReportingIntent` | `progress.totalUnitCount` / `progress.completedUnitCount` で進捗を Siri UI に表示 |
-| `IntentDonationManager` | `donate(_:)` でアクション履歴を寄付し Siri 提案の学習を強化 |
-| `PredictableIntent` | 実行タイミングを予測して Shortcuts に提案するための準拠プロトコル |
+| `IntentDonationManager` *(出典訂正: 10103 には登場せず、API ドキュメント由来の知見)* | `donate(_:)` でアクション履歴を寄付し Siri 提案の学習を強化 |
+| `PredictableIntent` *(出典訂正: 同上、API ドキュメント由来)* | 実行タイミングを予測して Shortcuts に提案するための準拠プロトコル |
 | `RelevantIntent` | 状況に応じた Intent を Shortcuts に提案 |
 | `RelevantIntentManager` | `RelevantIntent` の登録・削除を管理するマネージャ |
 | `RelevantContext` | ウィジェット提案用の文脈（INDailyRoutine / INInteraction 相当）を指定する型 |
+| ※ `RelevantIntent` / `RelevantIntentManager` / `RelevantContext` は 10103 に実際に登場することを確認済み（`IntentDonationManager` / `PredictableIntent` とは異なり誤帰属ではない） |
 | `IntentDescription` の `resultValueName` | Intent の戻り値の名称を Shortcuts 上で「マジック変数」ラベルとして表示 |
 | `IntentDescription` の `findIntentDescription` | Query 型の「検索」アクション説明文を指定するプロパティ |
 | `isDiscoverable` | `false` にすると Siri / Shortcuts に Intent が表示されなくなる（内部専用 Intent に使用） |
@@ -168,8 +169,8 @@ App Intent Domains（アシスタントスキーマ）導入で Siri の AI 機�
 | App Intent Domains（12 ドメイン） | Photos / Mail / Books / Camera / Spreadsheets 等 12 ドメインが iOS 18 時点で利用可能 |
 | `IndexedEntity` | `CSSearchableIndex` を使った Spotlight セマンティックインデックス対応 |
 | `CSSearchableItemAttributeSet` 統合 | `attributeSet` プロパティで Entity をカスタム Spotlight メタデータと紐付け |
-| `AppEntityContext` | 現在の文脈（再生中・閲覧中など）を指定して `RelevantEntities` に渡す |
-| `RelevantEntities.shared.updateEntities(_:for:)` | 文脈に応じた Entity を寄付し Siri が状況を把握できるようにする |
+| `AppEntityContext` *(誤帰属訂正: 10133 には登場せず、wwdc2026-345 で導入)* | 現在の文脈（再生中・閲覧中など）を指定して `RelevantEntities` に渡す |
+| `RelevantEntities.shared.updateEntities(_:for:)` *(誤帰属訂正: 同上、wwdc2026-345 が出典)* | 文脈に応じた Entity を寄付し Siri が状況を把握できるようにする |
 | Apple Intelligence 統合 | 端末内 AI（Apple Intelligence）が App Intents を介してアプリのアクションを理解・実行 |
 | セマンティック検索 | `IndexedEntity` を通じ「ペット」と言うと犬・猫・蛇の写真を発見するような意味理解検索 |
 
@@ -190,7 +191,7 @@ App Intent Domains（アシスタントスキーマ）導入で Siri の AI 機�
 | `associateAppEntity(_:)` | `CSSearchableItem` に AppEntity を紐付けて Spotlight へドネート |
 | `indexAppEntities(_:)` on `CSSearchableIndex` | Entity 群を Spotlight のセマンティックインデックスへ一括登録 |
 | Spotlight Indexing 強化 | `IndexedEntity` の `attributeSet` に複数フィールドを設定してより豊かなインデックス |
-| Framework サポート（Xcode 16） | Static Library / Swift Package 内でも Entity を定義可能に（Intent はアプリ/Extension 側必須） |
+| Framework サポート（Xcode 16） *(内容訂正: 10134 は逆の内容を述べている。"Only frameworks are supported at this time. Libraries outside of a framework are not." — つまりこの時点では Static Library や無印 Swift Package では非対応で、Framework 形態のみ対応。SPM パッケージでの Entity/Intent 定義が正式に拡充されたのは wwdc2025-244 / 275)* | Framework 形態でのみ Entity 定義に対応（Static Library・無印パッケージは未対応） |
 | パラメータタイトル自動生成（Xcode 16） | Xcode 16 がパラメータ名から `@Parameter` タイトルを自動補完 |
 
 ### 新機能（10157 Extend your app's controls across the system）
@@ -200,12 +201,12 @@ App Intent Domains（アシスタントスキーマ）導入で Siri の AI 機�
 | `ControlWidget` | コントロールセンターに表示するウィジェットの基底型 |
 | `StaticControlConfiguration` | ユーザー設定なしのシンプルなコントロール設定型 |
 | `AppIntentControlConfiguration` | `ControlConfigurationIntent` で設定可能なコントロール設定型 |
-| `ControlWidgetButton` | タップで Intent を実行するコントロールセンターボタン |
+| `ControlWidgetButton` *(誤帰属訂正: 10157 は Toggle のみで Button は登場せず、wwdc2024-10210 が出典。10210 自体が本表に未収録)* | タップで Intent を実行するコントロールセンターボタン |
 | `ControlWidgetToggle` | ON/OFF を切り替える Intent に紐付けたトグルコントロール |
 | `SetValueIntent` | `value: Bool` プロパティを要求する。`ControlWidgetToggle` と組み合わせて状態変更 Intent を定義 |
 | `ControlValueProvider` | コントロールの現在値（ON/OFF 状態・ラベルなど）をシステムに提供するプロトコル |
 | `AppIntentControlValueProvider` | `currentValue(configuration:)` / `previewValue(configuration:)` を要求。設定依存のコントロール値を提供 |
-| `ControlConfigurationIntent` | コントロールの設定画面で使うパラメータを定義する Intent |
+| `ControlConfigurationIntent` *(誤帰属訂正: 同上、wwdc2024-10210 が出典)* | コントロールの設定画面で使うパラメータを定義する Intent |
 | `.controlWidgetActionHint(_:)` | Action ボタン用のヒントテキスト（動詞フレーズ）を設定するモディファイア |
 | `.controlWidgetStatus(_:)` | コントロールセンターに一時的なステータス文字列を表示するモディファイア |
 | `ControlCenter.shared.reloadControls(ofKind:)` | アプリ側から特定のコントロールを強制リロード |
@@ -253,9 +254,9 @@ App Intent Domains（アシスタントスキーマ）導入で Siri の AI 機�
 | macOS Shortcuts フォルダ / Bluetooth / 時刻オートメーション | macOS 固有のトリガーから Intent を実行可能に |
 | macOS Spotlight 統合 | IndexedEntity を Spotlight for Mac でも検索可能に |
 | "Use Model" アクション連携 | Shortcuts から端末内モデル（FoundationModels）を呼び出すアクションとの連携 |
-| `assistantOnly` フラグ | `IntentDescription` のプロパティ。`true` にすると Shortcuts には非表示で Apple Intelligence のみが使用 |
-| `PredictableIntent` の Spotlight 活用 | 使用パターンを学習し Spotlight に「予測」として表示するためのプロトコル |
-| `NSUserActivity.appEntityIdentifier` / `appEntityIdentifiers` | 現在の画面コンテンツを表す Entity を Siri / ChatGPT に提供 |
+| `assistantOnly` フラグ *(出典訂正: 260 を含む全書き起こしに登場せず、API ドキュメント由来の知見)* | `IntentDescription` のプロパティ。`true` にすると Shortcuts には非表示で Apple Intelligence のみが使用 |
+| `PredictableIntent` の Spotlight 活用 *(誤帰属訂正: 260 には登場せず、wwdc2025-275 が出典)* | 使用パターンを学習し Spotlight に「予測」として表示するためのプロトコル |
+| `NSUserActivity.appEntityIdentifier` / `appEntityIdentifiers` *(誤帰属訂正: 260 には登場せず、275 / wwdc2026-343 が出典)* | 現在の画面コンテンツを表す Entity を Siri / ChatGPT に提供 |
 
 ### 新機能（275 Explore new advances in App Intents）
 
@@ -312,7 +313,7 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 |---|---|---|
 | 240 | [Build intelligent Siri experiences with App Schemas](https://developer.apple.com/videos/play/wwdc2026/240/) | App Schemas を使った Siri への高度なアプリ統合 |
 | 295 | [Validate your App Intents adoption with AppIntentsTesting](https://developer.apple.com/videos/play/wwdc2026/295/) | 新テストフレームワーク AppIntentsTesting の使い方 |
-| 297 | [Integrate your app with Visual Intelligence](https://developer.apple.com/videos/play/wwdc2026/297/) | カメラ・スクショ連携の Visual Intelligence 統合（macOS 対応含む） |
+| 297 | [Best practices for integrating visual intelligence in your app](https://developer.apple.com/videos/play/wwdc2026/297/) *(タイトル訂正 2026-08-11: 正式タイトルは "Best practices for integrating visual intelligence in your app")* | カメラ・スクショ連携の Visual Intelligence 統合（macOS 対応含む） |
 | 343 | [Explore advanced App Intents features for Siri and Apple Intelligence](https://developer.apple.com/videos/play/wwdc2026/343/) | Siri・Apple Intelligence 対応を磨くための高度テクニック |
 | 344 | [Code-along: Make your app available to Siri](https://developer.apple.com/videos/play/wwdc2026/344/) | 既存アプリを Siri 対応にするコードアロング（実践形式） |
 | 345 | [Discover new capabilities in the App Intents framework](https://developer.apple.com/videos/play/wwdc2026/345/) | ValueRepresentation・RelevantEntities・EntityCollection・SyncableEntity・長時間 Intent |
@@ -326,17 +327,17 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 | `@AppEnum(schema:)` | iOS 27 時点でのリネーム版（iOS 18 では `@AssistantEnum`）。AppEnum をドメイン定義に適合 |
 | `AppSchema` プロトコル | スキーマのドメイン契約を定義する基底プロトコル |
 | `AppSchemaDomain` | 関連スキーマのグルーピング（例: Messages ドメインに `sendMessage`・`draftMessage` 等） |
-| reminders ドメイン拡充 | `@AppEntity(schema: .reminders.list/.reminder)` / `@AppEnum(schema: .reminders.listType)` が iOS 27+ で利用可能に |
+| reminders ドメイン拡充 *(出典訂正: 240 のセッション内では明示されず、SDK 観測由来の知見)* | `@AppEntity(schema: .reminders.list/.reminder)` / `@AppEnum(schema: .reminders.listType)` が iOS 27+ で利用可能に |
 | `AppEntity.ValueRepresentation`（`IntentValueRepresentation`） | Entity を `IntentPerson` / `PlaceDescriptor` 等のシステム値型へ bridge してクロスアプリ共有 |
 | `IntentValueRepresentation(exporting:)` | `exporting:` クロージャまたはキーパスで export 方法を定義 |
 | `IntentValueRepresentation(exporting:importing:)` | `importing:` クロージャで他アプリ等からの受け取り方法を定義 |
 | `Transferable` + `ProxyRepresentation` | Entity をドラッグ&ドロップ・共有シートで送受信 |
 | `@Property(indexingKey:)` | `PartialKeyPath<CSSearchableItemAttributeSet>` を指定し Spotlight セマンティックキーへ宣言的マッピング |
-| Onscreen Entities（コレクション） | `.appEntityIdentifier(forSelectionType:)` View modifier で List / ScrollView 内の各行を onscreen Entity として提供 |
+| Onscreen Entities（コレクション） *(誤帰属訂正: `.appEntityIdentifier(forSelectionType:)` は 240 に登場せず、wwdc2026-343 が出典)* | `.appEntityIdentifier(forSelectionType:)` View modifier で List / ScrollView 内の各行を onscreen Entity として提供 |
 | `appEntityIdentifier(_:)` View modifier | 単一の View に Entity を紐付ける SwiftUI モディファイア |
 | `EntityIdentifier(for:identifier:)` | Entity 型と識別子 String / UUID から EntityIdentifier を生成するイニシャライザ |
 | `IntentValueQuery` for `[IntentPerson]` | `values(for input: [IntentPerson]) async throws -> [Entity]` で他アプリ由来の IntentPerson を Entity に解決 |
-| 通知への Entity 付与 | `UNMutableNotificationContent.appEntityIdentifiers` で通知に Entity を紐付け（iOS 27）|
+| 通知への Entity 付与 *(誤帰属訂正: `UNMutableNotificationContent.appEntityIdentifiers` は 240 に登場せず、wwdc2026-343 が出典)* | `UNMutableNotificationContent.appEntityIdentifiers` で通知に Entity を紐付け（iOS 27）|
 | Xcode Fix-Its | 関連スキーマが欠落している場合にコンパイル時にエラー + Fix-It でスキャフォールド生成 |
 
 ### 新機能（295 Validate your App Intents adoption with AppIntentsTesting）
@@ -355,7 +356,7 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 | 連鎖テスト | 複数の Intent を 1 テスト内で順序実行（Add → Show など） |
 | `isDiscoverable = false` + `#if DEBUG` | テスト専用 Intent を本番 Siri / Shortcuts に露出させない書き方 |
 
-### 新機能（297 Integrate your app with Visual Intelligence）
+### 新機能（297 Best practices for integrating visual intelligence in your app）
 
 | API / 機能 | 概要 |
 |-----------|------|
@@ -369,9 +370,9 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 
 | API / 機能 | 概要 |
 |-----------|------|
-| `requestConfirmation(_:confirmLabel:cancelLabel:)` | iOS 27 追加の拡張オーバーロード。確認・キャンセルボタンのラベルを個別指定できる |
+| `requestConfirmation(_:confirmLabel:cancelLabel:)` *(出典訂正: 343 には登場せず、API ドキュメント由来の知見)* | iOS 27 追加の拡張オーバーロード。確認・キャンセルボタンのラベルを個別指定できる |
 | `IntentDialog(full:supporting:)` | 音声専用（`full`）と視覚表示（`supporting`）でレスポンスを文脈に応じて出し分け |
-| `IntentDonationMatchingPredicate` | `deleteDonations(matching:)` で削除条件を絞り込み、関連 donate を一括解除 |
+| `IntentDonationMatchingPredicate` *(出典訂正: 343 には登場せず、API ドキュメント由来の知見。donation 削除系 API も同様)* | `deleteDonations(matching:)` で削除条件を絞り込み、関連 donate を一括解除 |
 | `.appEntityIdentifier(forSelectionType:)` | コレクション行ごとの onscreen Entity 提供（「3 番目のやつ」参照を実現） |
 | `UNMutableNotificationContent.appEntityIdentifiers` | 通知コンテンツへの Entity 紐付け（iOS 27）。画面外でも Siri が通知の文脈を理解 |
 | `MusicContent.appEntityIdentifiers` | Now Playing コンテンツへの Entity 紐付け（複数 Entity 対応、優先度順に並べる） |
@@ -383,7 +384,7 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 | `UICollectionViewAppIntentsDataSource` | UICollectionView の各セルに Entity を対応付ける UIKit データソース |
 | `appEntityUIElementProvider` | UIKit での onscreen Entity アノテーション提供メソッド |
 | `DisplayRepresentation.Components` | Siri が要求する表示コンポーネント（`.text` 等）を指定するための列挙型 |
-| view 付き `requestChoice(between:dialog:view:)` | iOS 26 の `requestChoice` に SwiftUI View を添付するオーバーロード（343 で詳解） |
+| view 付き `requestChoice(between:dialog:view:)` *(誤帰属訂正: このオーバーロード自体は wwdc2025-275 が出典。343 で新規に紹介されたものではない)* | iOS 26 の `requestChoice` に SwiftUI View を添付するオーバーロード |
 
 ### 新機能（344 Code-along: Make your app available to Siri）
 
@@ -392,11 +393,11 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 | `TransientAppEntity` | `defaultQuery` 不要の一時 Entity。永続化・クエリなしで Intent 戻り値としてのみ使う（Shortcuts 条件分岐に活用）|
 | `IntentParameter.valueState`（`$param.valueState`） | `.set(Value)` / `.unset` で「明示 nil クリア」と「未指定（据え置き）」を区別。部分更新 Intent に必須 |
 | `OpenIntent` プロトコル | `var target: Target`（`Target: AppEntity`）を要求。Spotlight タップ → アプリ起動などをシステムが意味解釈 |
-| `DeleteIntent`（`: SystemIntent`） | `var entities: [Entity]`（複数配列）を要求。system intent として「削除する」をシステムが意味解釈 |
-| `@AppIntent(schema: .system.searchInApp)` | `ShowInAppSearchResultsIntent` をスキーマ適合させ、Siri / Apple Intelligence からアプリ内検索 UI へ橋渡し |
+| `DeleteIntent`（`: SystemIntent`） *(誤帰属訂正: 344 で実際に示されるのは素の `DeleteIntent` プロトコルではなく、スキーマ版の `DeleteEventIntent` の実例)* | `var entities: [Entity]`（複数配列）を要求。system intent として「削除する」をシステムが意味解釈 |
+| `@AppIntent(schema: .system.searchInApp)` *(誤帰属訂正: 344 には登場せず、wwdc2026-343 が出典)* | `ShowInAppSearchResultsIntent` をスキーマ適合させ、Siri / Apple Intelligence からアプリ内検索 UI へ橋渡し |
 | `@AppIntent(schema: .system.open)` | エンティティを「開く」という意味でシステムが理解できる標準スキーマ |
-| `StringSearchCriteria` / `searchScopes` | `.system.searchInApp` スキーマが要求するプロパティ。`criteria.term` で検索語を取得 |
-| `EntityPropertyQuery` 実例 | プロパティ条件で Entity を検索するクエリ型（`EntityStringQuery` の高度版） |
+| `StringSearchCriteria` / `searchScopes` *(誤帰属訂正: 同上、wwdc2026-343 が出典)* | `.system.searchInApp` スキーマが要求するプロパティ。`criteria.term` で検索語を取得 |
+| `EntityPropertyQuery` 実例 *(誤帰属訂正: 344 の実例は `EnumerableEntityQuery` であり `EntityPropertyQuery` ではない)* | プロパティ条件で Entity を検索するクエリ型（`EntityStringQuery` の高度版） |
 | `Calendar.RecurrenceRule` | 繰り返し Event の設定に使う Foundation 型（daily / weekly / monthly / yearly）|
 | `IntentPerson` を使った Attendee Entity | `@AppEntity(schema: .calendar.attendee)` + `transferRepresentation` で IntentPerson と Bridge |
 
@@ -404,8 +405,8 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 
 | API / 機能 | 概要 |
 |-----------|------|
-| `@ComputedProperty` | 同期 getter で導出する Entity プロパティマクロ（外部アクセス不要の計算値）|
-| `@DeferredProperty` | 非同期 getter で遅延取得する Entity プロパティマクロ（本セッションで詳細仕様を提示）|
+| `@ComputedProperty` *(誤帰属訂正: 345 には登場せず、wwdc2025-275 が出典)* | 同期 getter で導出する Entity プロパティマクロ（外部アクセス不要の計算値）|
+| `@DeferredProperty` *(誤帰属訂正: 同上。345 で登場するのは `@DeferredProperty` ではなく `RelevantEntities` 等の拡張機能。詳細仕様は wwdc2025-275 が出典)* | 非同期 getter で遅延取得する Entity プロパティマクロ |
 | `Duration` / `PersonNameComponents` ネイティブ型 | `@Parameter` / `@Property` にシステム型をそのまま使えるネイティブ対応 |
 | `AppEntity.ValueRepresentation` | Entity を `IntentPerson` / `PlaceDescriptor` 等のシステム値型に bridge（#240 と共通）|
 | `RelevantEntities.updateEntities(_:for:)` 強化 | `.audio(.workout(activityType:))` など拡張された AppEntityContext に対応 |
@@ -416,7 +417,7 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 | `LongRunningIntent`（`: ProgressReportingIntent`） | `performBackgroundTask { }` でバックグラウンド 30 秒制限を超える長時間処理。`progress` を定期更新が必要 |
 | `CancellableIntent` | `performBackgroundTask(operation:onCancel:)` でグレースフルキャンセル対応。`Task.checkCancellation()` と組み合わせ |
 | `allowedExecutionTargets`（`IntentExecutionTargets`） | `.main` / `.appIntentsExtension` / `.widgetKitExtension` で `perform()` の実行プロセスを限定 |
-| `@UnionValue` 詳細仕様 | `typeDisplayRepresentation` / `caseDisplayRepresentations` の実装要件。`public enum` には `: Sendable` の明示が必要 |
+| `@UnionValue` 詳細仕様 | `typeDisplayRepresentation` / `caseDisplayRepresentations` の実装要件。*(出典訂正: 「`public enum` には `: Sendable` の明示が必要」はセッション内容ではなく本プロジェクトのビルド観測。「プロジェクト検証による」知見として区別する)* |
 | `SyncableEntity` | デバイス間 ID 一貫性の宣言。`String` / `UUID` id でそのまま適合可。Siri 会話のデバイス転送などで安定参照 |
 | `SyncableEntityIdentifier<Local, Stable>` | ローカル ID と安定 ID をペアで保持するジェネリック型（`init(local:stable:)` で初期化） |
 

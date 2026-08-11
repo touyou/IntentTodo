@@ -53,6 +53,8 @@ Button(intent: AddTodoIntent(title: title)) {
 
 アプリを開くだけの導線は **`Link(destination:)` を優先**する（Apple 公式推奨、詳細は「Widget への Button(intent:) 統合」節参照）。
 
+> watchOS でも同じ規則が適用される。以前 `07-platform-specific.md` には watchOS 向けに手動 `Task { try? await intent.perform() }` を推奨する誤った記述があったが、2026-08-11 に訂正済み（`role:` を外した `Button(intent:)` を使えば watchOS でも動く）。
+
 ---
 
 ## onAppIntentExecution（iOS 26+ / Intent → UI 連携）
@@ -93,6 +95,8 @@ NavigationStack {
 
 どちらも正しい。プロジェクトの規模や好みで選択する。macOS では `onAppIntentExecution` が使えないため `@Dependency` パターンが必須。
 
+> **2026-08-11 再検証（確認・変更不要）**: 「macOS では使えない」という記述自体は正しいと確認した。Xcode 27 beta 5 SDK の `.swiftinterface` を直接調べると、`onAppIntentExecution` は `_AppIntents_SwiftUI` フレームワークに実装されており、この配布は **iOS / macCatalyst / visionOS / watchOS には存在するが、ネイティブ macOS 向けには存在しない**（`MacOSX.sdk` 内では `System/iOSSupport`＝Mac Catalyst 配下にしか同フレームワークが無い）。一方 `TargetContentProvidingIntent`（プロトコル本体、`AppIntents.framework` 側）は macOS でも利用可能で、本プロジェクトの `#if os(iOS) || os(macOS) || os(visionOS)` による準拠は妥当（プロトコル準拠自体はできるが、SwiftUI 側のフック用モディファイアだけが無い、という切り分け）。よって半矛盾を疑ったが、コード側の `#if` 条件と実際の SDK 制約は整合しており修正不要。
+
 ### 実行順序
 
 [onAppIntentExecution 公式ドキュメント](https://developer.apple.com/documentation/SwiftUI/View/onAppIntentExecution(_:perform:)) の挙動記述によると:
@@ -107,6 +111,8 @@ NavigationStack {
 そのため本プロジェクトでは **`@Dependency var navigationModel` + `perform()` 内で NavigationModel に書き込む**パターンを基本とし、`onAppIntentExecution` 経路は補助的にしか使わない（詳細は本ドキュメントの「AppDependencyManager + perform()」セクション参照）。
 
 > **過去の理解**: 初期 iOS 26 (〜26.3) で cold start 失敗が確認され、Workshop PDF では 26.4 で修正と謳われたが、実機では完全には解消していない印象。Apple Feedback に提出するには再現性をさらに詰める必要あり。
+
+> **2026-08-11 追記（未解決の仮説、要再検証）**: 「OS バグ」と断定する前に切り分けるべき候補が3つ残っている: ①`.onAppIntentExecution` を付けた View の `@State path` がクロージャ実行時点でまだ構築されていない、②シーンの activation conditions（wwdc2025-275 23:52-24:09「どのシーンが intent をハンドルするかは activation conditions で決まる」）が未設定、③対象 Intent の `supportedModes` に foreground が無くタイムアウトする。ただし現状のコードベースを grep した限り `.onAppIntentExecution` は実際には**どこにも使われていない**（`LaunchAppIntent` が `TargetContentProvidingIntent` に準拠しているのみ）。本プロジェクトは既に `@Dependency var navigationModel` + `perform()` パターンへ完全移行済みで、この cold start 問題は現在アクティブなコードパスではない。上記3仮説の検証は、`.onAppIntentExecution` を実際に再導入する場面が来たときに行う。
 
 ### 関連API
 
@@ -203,7 +209,7 @@ static let supportedModes: IntentModes = [.foreground(.immediate)]
 
 ### UISceneAppIntent の制限
 
-`UISceneAppIntent` はSwift Package内で定義されたIntentには利用できない（`UISceneAppIntent`はUIKit依存のため、Packageスコープで参照不可）。マルチウィンドウでのシーン固有ルーティングが必要な場合は、メインアプリターゲット内でIntentを定義するか、`SceneDelegate`で`connectionOptions`を活用する。
+**2026-08-11 因果訂正**: 「Package スコープで参照不可」という理由付けは誤り。SPM パッケージは `#if canImport(UIKit)` で UIKit そのものを普通に import できる。実際の障壁は `UISceneAppIntent` が独立した `_AppIntents_UIKit` フレームワークに属し、**このフレームワークが SDK レベルで iOS / watchOS / visionOS には存在するが、ネイティブ macOS には存在しない**こと（Xcode 27 beta 5 SDK で確認: `_AppIntents_UIKit.framework` が macOS SDK 直下には無い）。`TodoAppIntents` は macOS 向けにもコンパイルされるプラットフォームマトリクスのため、`#if canImport(_AppIntents_UIKit)`（または `#if os(iOS) || os(watchOS) || os(visionOS)`）でガードすれば Package 内でも利用できる可能性が高い（未検証・優先度低、必要になったら試す）。マルチウィンドウでのシーン固有ルーティングが必要な場合の代替は変わらず、メインアプリターゲット内でIntentを定義するか、`SceneDelegate`で`connectionOptions`を活用する。
 
 ---
 

@@ -35,7 +35,7 @@ struct QuickAddTodoControl: ControlWidget {
 
 ### ControlValueProvider でデータを供給する
 
-値を表示するタイプの Control（カウント表示・次の期限など）は、`StaticControlConfiguration(kind:provider:)` に `ControlValueProvider` を渡し、body ではその値を受け取るだけにする。body の中で直接 SwiftData fetch すると、WidgetKit 側の更新タイミング制御と噛み合わず body が過剰に評価される恐れがある。
+値を表示するタイプの Control（カウント表示・次の期限など）は、`StaticControlConfiguration(kind:provider:)` に `ControlValueProvider` を渡し、body ではその値を受け取るだけにする。**2026-08-11 理由付け訂正**: 以前「body 過剰評価を避けるため」としていたが、Apple の説明（wwdc2024-10157 9:51 / 11:22）は非同期取得の分担を明確にしている——非同期でのデータ取得は `ControlValueProvider` の役割であり、reload 時にシステムが `ControlValueProvider` → `body` の順で実行する、という設計そのもの。body 内で直接 SwiftData fetch すると、この非同期取得と描画の分担モデルに沿わず（body は同期的に値を描くだけであるべき）、意図しない挙動やタイミング不整合につながる、というのが正確な理由。
 
 ```swift
 struct TodoCountControl: ControlWidget {
@@ -81,11 +81,11 @@ Apple 公式の全サンプル（[Creating controls to perform actions across th
 
 ### ControlConfigurationIntent と SetValueIntent
 
-`ControlConfigurationIntent` と `SetValueIntent` は同時準拠できない。トグル操作は `ControlWidgetButton(action:)` で実装する。
+**2026-08-11 表現訂正**: 「同時準拠できない」という制約表現は誤解を招く。wwdc2024-10157 のモデルでは configuration intent（設定パラメータ用）と action intent（`SetValueIntent` 等）はそもそも**別々の Intent** として設計されており、1 つの Intent に両方の役割を持たせようとした結果「同時に準拠できない」という制約に見えていただけ。本プロジェクトの Control 群（`ToggleUrgentTodoControl` / `QuickAddTodoControl` / `TodoCountControl`）は実際、カスタム `ControlConfigurationIntent` を持たず `StaticControlConfiguration` のみを使い、トグル操作は `ControlWidgetButton(action:)` に渡す独立した `AppIntent`（`SetValueIntent` 準拠ではない）で実装している。役割分離は既に達成できているので、コード変更は不要。
 
 ### ControlConfigurationIntent のモジュール境界
 
-Widget Extension 内で定義した `ControlConfigurationIntent` は、アプリ本体から参照できない（Swift のモジュール Name Mangling が原因）。`StaticControlConfiguration` を使用し、ConfigurationIntent を必要としない設計にする。
+**2026-08-11 因果訂正**: Widget Extension 内で定義した `ControlConfigurationIntent` がアプリ本体から参照できない真因は「Name Mangling」ではなく、単純な**ターゲット/モジュール境界**（Extension ターゲットの型は別モジュールなのでアプリ側から import できない、Swift の通常のアクセス制御と同じ話）。共有したい場合は SPM パッケージへ型を移すのが公式サポートされた方法（wwdc2025-244 22:34）。本プロジェクトは `StaticControlConfiguration` を使い ConfigurationIntent 自体を必要としない設計にしているため、この問題は実質発生しない。
 
 ### Control Widget からの Intent では `.result(dialog:)` が表示されない
 
@@ -98,6 +98,11 @@ Intent を実行しても `.result(dialog:)` は UI に出ない。よってフ�
 > 明文記述なし)。本プロジェクトでは by-design 相当として扱い、**Apple Feedback の
 > 提出は行わない**。Control 経由で完了メッセージを伝えたい場合は `ControlNotificationHelper`
 > 経由でローカル通知を送る運用に統一している (`ToggleUrgentTodoIntent` / `ShowTodoCountIntent` 参照)。
+>
+> **未検討（2026-08-11 候補追加）**: Apple は Control 専用のフィードバック機構 `.controlWidgetStatus(_:)`
+> （wwdc2024-10157）を用意している。ローカル通知はシステムの通知センターに残り続ける副作用があるため、
+> 一時的な状態表示が目的なら `.controlWidgetStatus(_:)` の方が UX 上適切な可能性がある。
+> `ToggleUrgentTodoIntent` / `ShowTodoCountIntent` で試して通知運用と比較検討する価値あり（未実施）。
 
 ### visionOS 非対応: `#if !os(visionOS)` でガード
 
@@ -116,7 +121,7 @@ import WidgetKit
 
 ## バックグラウンドアクションパターン
 
-Control Widget でアプリを開かずに処理だけ行いたい場合は `.background` モードの Intent を使う。**このとき `perform()` は Widget Extension プロセスで実行される** ので、Widget Extension 側でも `AppDependencyManager` に依存を登録する必要がある。
+Control Widget でアプリを開かずに処理だけ行いたい場合は `.background` モードの Intent を使う。**このとき `perform()` は既定ではヒューリスティクスでプロセスが決まる**（アプリが起動中ならアプリ本体を優先し、そうでなければ Widget Extension を起動。[WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) 15:59–16:55、`03-app-intents-core.md` の「実行プロセスごとに登録が必要」節参照）。`allowedExecutionTargets` を指定しない限りどちらのプロセスでも起動され得るため、Widget Extension 側でも `AppDependencyManager` に依存を登録しておく必要がある（固定したい場合は `allowedExecutionTargets = [.main]` 等を指定する）。
 
 ```swift
 // IntentTodoWidget/IntentTodoWidgetBundle.swift
@@ -154,7 +159,8 @@ public struct ToggleUrgentTodoIntent: AppIntent {
 |----------------|------------|---------|
 | Shortcuts / UI | メインアプリ | `App.init()` |
 | Widget `Button(intent:)` + `.foreground(.immediate)` | メインアプリ | `App.init()` |
-| Widget `ControlWidgetButton(action:)` + `.background` | **Widget Extension** | `WidgetBundle.init()` |
+| Widget `ControlWidgetButton(action:)` + `.background`（`allowedExecutionTargets` 未指定） | **ヒューリスティクスで決定**（アプリ起動中はアプリ優先、未起動なら Widget Extension） | **両方**（`App.init()` と `WidgetBundle.init()`、保険として） |
+| 同上（`allowedExecutionTargets` で明示指定） | 指定したプロセスに固定 | 指定先のみ |
 
 ### フィードバックはローカル通知で
 

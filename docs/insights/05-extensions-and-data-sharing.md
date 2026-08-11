@@ -87,7 +87,9 @@ watchOS と iOS は別デバイスのため、App Groups では直接データ�
 
 ### マイグレーションは 1 プロセス（アプリ本体）だけが担当する
 
-複数プロセス（アプリ本体 / Widget / LiveActivity）が同じ App Group 上の store を共有する場合、**スキーマのマイグレーションを走らせるプロセスを 1 つに固定する**必要がある。WWDC 2026 "SwiftData Group Lab" (session 8017) で明言された設計指針:
+複数プロセス（アプリ本体 / Widget / LiveActivity）が同じ App Group 上の store を共有する場合、**スキーマのマイグレーションを走らせるプロセスを 1 つに固定する**必要がある。WWDC 2026 "SwiftData Group Lab" (session 8017) で明言されたとされる設計指針:
+
+> **一次ソース未確認（2026-08-11 追記）**: `docs/references/wwdc/` のローカルアーカイブには session 8017 の書き起こしが存在せず（存在するのは `wwdc2026-8011-apple-intelligence-group-lab.md` のみで、これは別テーマの Group Lab）、以下の指針を一次資料で確認できていない。Group Lab はライブ Q&A で公式の書き起こしが提供されないことも多いため、伝聞ベースの知見として扱う。指針自体（マイグレーション担当プロセスを 1 つに固定する）は SwiftData のプロセス間共有の一般原則として妥当性が高く、実務上は維持してよいが、出典の再確認・補強が望ましい。
 
 > 複数プロセスから同じデータベースを触るなら、マイグレーションを担当するプロセスをひとつに決める。アプリ本体を担当にして、Widget や Extension はマイグレーション完了後のファイルを読み書きする構成にする。**新バージョンへの更新後、アプリ本体より先に Widget が動く場合もある**ため、Widget / Extension 側にはマイグレーションプランを含めない。必要ならアプリの起動を促す。
 
@@ -194,6 +196,8 @@ Widget Extension の `Button(intent:)` や `ControlWidgetButton(action:)` から
 
 Intentでデータを変更してもウィジェットは自動更新されない。明示的にタイムラインの再読み込みが必要。
 
+> **2026-08-11 追記（ニュアンス訂正）**: wwdc2023-10028 (13:47) は "As soon as your perform returns, the system will immediately initiate a reload of your widget timeline" と明言しており、**Widget 内の `Button(intent:)` から呼ばれた Intent はシステムが自動でリロードすることを保証**している（10:02 "reloads initiated from an interaction are always guaranteed"）。手動リロードが本当に必要なのは、アプリ本体 / Siri / Shortcuts 経由など**Widget 起点でない経路**でデータが変わったケース。全 Intent で無条件に `WidgetReloader.reloadAllWidgets()` を呼ぶ現在のルール自体は安全側なので変更不要だが、理由付けは「Widget 起点は自動、それ以外の経路のために必要」と正確化する。
+
 ### 解決策: WidgetReloader ヘルパー
 
 ```swift
@@ -217,4 +221,4 @@ try repository.update(todoItem)
 WidgetReloader.reloadAllWidgets()
 ```
 
-Extension内（LiveActivity, Control Widget）では`WidgetReloader`をimportできない場合があるため、`WidgetCenter.shared.reloadAllTimelines()` を直接呼び出す。
+**2026-08-11 訂正**: 「Extension 内では `WidgetReloader` を import できない場合がある」という記述は、`WidgetReloader` が `TodoAppIntents` パッケージ内にあり、`IntentTodoLiveActivity` / `IntentTodoWidget` の両 Extension ターゲットが実際には（Intent 型を使うために）既に `import TodoAppIntents` しているため、現状は当てはまらない。プラットフォーム制約ではなく Extension ターゲットの SPM 依存グラフに `WidgetReloader` の所在パッケージが含まれているかどうかの問題であり、本プロジェクトでは既に含まれている。実際、全 `WidgetReloader.reloadAllWidgets()` 呼び出しは `TodoService`（`TodoAppIntents` パッケージ内）に集約されており、Extension ターゲットのコードから直接 `WidgetCenter.shared.reloadAllTimelines()` を呼んでいる箇所は無い。依存が無いケースに遭遇したら、`WidgetReloader` の所在パッケージを Extension ターゲットの依存に追加すれば import できる。
