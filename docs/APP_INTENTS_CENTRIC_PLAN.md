@@ -194,12 +194,15 @@
 | beta 1 | iOS 27 世代へ引き上げ、`.reminders` schema 有効化 | `ed22d80` |
 | beta 2 | watchOS で assistant schema 非対応化 → `#if os(watchOS)` フォールバック追加、`VisualIntelligence` が Mac で import 可能に → `OpenCategoryIntent` 追加 | `9684418` `8ddc76f` |
 | beta 3 | `AppIntentsSSUTraining` が `GeoToolbox.PlaceDescriptorEntity` をドット付き変数名で SSU 化 → CI 赤。暫定回避として `PlaceDescriptor` を `@Parameter`/`@Property` から String に退避（`35d772f`）。`AppShortcutsProvider` をアプリターゲットへ移動（`3280bed`）。toolbar API 変更追従。 | `35d772f` `3280bed` |
-| beta 4 | SSU バグ（`PlaceDescriptor` 変数名正規表現エラー）**未修正**。ワークアラウンド継続。`TransientAppEntity` 動作確認 → `TodoListSummaryEntity` + `GetTodoSummaryIntent` を実装。 | *(このコミット)* |
+| beta 4 | SSU バグ（`PlaceDescriptor` 変数名正規表現エラー）**未修正**。ワークアラウンド継続。`TransientAppEntity` 動作確認 → `TodoListSummaryEntity` + `GetTodoSummaryIntent` を実装。 | `df4a2aa` |
+| beta 5 (27A5237l) | SSU バグ **未修正**（`35d772f` revert + DerivedData クリア後クリーンビルドで再現を確認 → revert 取り消し）。watchOS assistant schema も **依然 unavailable**（`.reminders.list` / `.reminders.listType` / `.system.searchInApp` のガードを外した実ビルドで `'reminders' is unavailable in watchOS` 等を確認 → フォールバック継続）。コード変更なし。 | *(このコミット)* |
 
-> **⚠️ beta 4 でも SSU バグ継続**: `AppIntentsSSUTraining` が `GeoToolbox.PlaceDescriptorEntity` を変数名に使い
-> `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちるエラーは **beta 4 でも再現**（DerivedData クリア後クリーンビルドで確認）。
+> **⚠️ beta 5 でも SSU バグ継続**: `AppIntentsSSUTraining` が `GeoToolbox.PlaceDescriptorEntity` を変数名に使い
+> `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちるエラーは **beta 5 でも再現**（DerivedData クリア後クリーンビルドで確認）。
 > `PlaceDescriptor` の `@Parameter`/`@Property` 退避（`35d772f`）は次 beta まで継続。
 > SDK 更新時は `35d772f` を revert + クリーンビルドで再確認する。
+> 注意: SSU タスクは incremental ビルドだと直前の失敗結果（stale エラー）をログ再表示するため、
+> 判定は必ず DerivedData クリア後のクリーンビルドで行う（beta 5 検証時にも誤検知を実際に観測）。
 
 ## availability 方針
 
