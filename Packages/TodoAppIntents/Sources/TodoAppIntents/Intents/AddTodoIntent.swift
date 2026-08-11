@@ -67,9 +67,8 @@ public struct AddTodoIntent: AppIntent {
     /// `PlaceDescriptor` を @Parameter にすると裏側のシステム Entity 型名
     /// `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、ドットを
     /// 含むため正規表現 `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちてエラーを emit する
-    /// (ローカルは exit 0 だが Xcode Cloud は失敗扱い)。SDK 側バグの可能性が高いため、
-    /// 暫定で場所名の String に退避している。SDK 修正後にこのコミットを revert して
-    /// `PlaceDescriptor?` へ戻す。
+    /// (ローカルは exit 0 だが Xcode Cloud は失敗扱い、SDK 側バグの可能性大)。
+    /// 暫定で場所名の String に退避している。SDK 修正後に `PlaceDescriptor?` へ戻す。
     @Parameter(title: "Location", description: "Place associated with the todo")
     public var location: String?
 

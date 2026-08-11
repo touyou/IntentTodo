@@ -23,8 +23,7 @@ public struct ToggleUrgentTodoIntent: AppIntent {
         guard let result = try todoService.toggleMostUrgentTodo() else {
             return .result()
         }
-        // Control Center では Dialog が表示されない (2026-04-14 検証済み) ため、
-        // 通知でフィードバックを返す。
+        // Control Center では Dialog が表示されないため、通知でフィードバックを返す。
         ControlNotificationHelper.sendToggledNotification(
             todoTitle: result.title,
             isCompleted: result.isNowCompleted,

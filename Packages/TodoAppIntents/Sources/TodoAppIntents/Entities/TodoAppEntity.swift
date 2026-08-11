@@ -89,11 +89,10 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
 
     /// Associated location name.
     ///
-    /// NOTE: 本来は App Intents ネイティブの `PlaceDescriptor` (GeoToolbox) を公開していたが、
-    /// Xcode 27 beta 3 の AppIntentsSSUTraining が Entity プロパティを SSU の variable 化する
-    /// 際に裏側の型名 `GeoToolbox.PlaceDescriptorEntity` をそのまま variable 名に使い、ドットで
-    /// regex `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちてビルドエラーを emit する（SDK バグの可能性大）。
-    /// 暫定で場所名の String に退避。SDK 修正後にこのコミットを revert して `PlaceDescriptor?` へ戻す。
+    /// NOTE: App Intents ネイティブの `PlaceDescriptor` (GeoToolbox) を使いたいが、Xcode 27 beta 3 の
+    /// AppIntentsSSUTraining が `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、
+    /// ドットが regex `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちてビルドエラーになる（SDK バグの可能性大）。
+    /// 暫定で場所名の String に退避。SDK 修正後に `PlaceDescriptor?` へ戻す。
     @Property(title: "Location")
     public var location: String?
 

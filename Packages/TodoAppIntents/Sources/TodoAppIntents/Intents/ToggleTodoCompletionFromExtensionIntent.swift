@@ -2,7 +2,8 @@
 //  ToggleTodoCompletionFromExtensionIntent.swift
 //  TodoAppIntents
 //
-//  ⚠️ Apple bug workaround (keep until Issue #30 A-3 is verified fixed).
+//  ⚠️ Apple bug workaround — keep until entity resolution in the Live Activity
+//  Extension process is verified fixed.
 //
 //  When an Intent with `@Parameter var todo: TodoAppEntity` runs inside the
 //  Live Activity Extension process, App Intents calls TodoEntityQuery.entities(for:)
@@ -11,8 +12,7 @@
 //
 //  This variant sidesteps that path by accepting the UUID string directly and
 //  skipping entity resolution. Delete this file (and its Snooze sibling) once
-//  Apple fixes the Extension-process entity resolution bug — do NOT introduce
-//  new FromExtension variants without re-checking Issue #30 A-3 first.
+//  Apple fixes the bug. Full investigation: docs/devlog/03-app-intents-core.md.
 //
 
 #if os(iOS)

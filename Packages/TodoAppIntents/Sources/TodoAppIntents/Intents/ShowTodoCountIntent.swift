@@ -20,7 +20,7 @@ public struct ShowTodoCountIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<Int> {
-        // Control Center は dialog を出さない (2026-04-14 検証済) ため通知で返す。
+        // Control Center は dialog を出さないため通知で返す。
         // fetch 失敗を `try? ?? 0` で握りつぶすと「全部完了!」と嘘表示するため、
         // エラー時は明示的にエラー通知 + throw で Siri / Shortcuts 側にも伝える。
         do {

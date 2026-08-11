@@ -35,7 +35,9 @@ struct QuickAddTodoControl: ControlWidget {
 
 ### ControlValueProvider でデータを供給する
 
-値を表示するタイプの Control（カウント表示・次の期限など）は、`StaticControlConfiguration(kind:provider:)` に `ControlValueProvider` を渡し、body ではその値を受け取るだけにする。**2026-08-11 理由付け訂正**: 以前「body 過剰評価を避けるため」としていたが、Apple の説明（wwdc2024-10157 9:51 / 11:22）は非同期取得の分担を明確にしている——非同期でのデータ取得は `ControlValueProvider` の役割であり、reload 時にシステムが `ControlValueProvider` → `body` の順で実行する、という設計そのもの。body 内で直接 SwiftData fetch すると、この非同期取得と描画の分担モデルに沿わず（body は同期的に値を描くだけであるべき）、意図しない挙動やタイミング不整合につながる、というのが正確な理由。
+値を表示するタイプの Control（カウント表示・次の期限など）は、`StaticControlConfiguration(kind:provider:)` に `ControlValueProvider` を渡し、body ではその値を受け取るだけにする。非同期でのデータ取得は `ControlValueProvider` の役割であり、reload 時にシステムが `ControlValueProvider` → `body` の順で実行する（wwdc2024-10157 9:51 / 11:22）。body 内で直接 SwiftData fetch すると、この非同期取得と描画の分担モデルに沿わない（body は同期的に値を描くだけであるべき）ため避ける。
+
+経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)
 
 ```swift
 struct TodoCountControl: ControlWidget {
@@ -81,17 +83,20 @@ Apple 公式の全サンプル（[Creating controls to perform actions across th
 
 ### ControlConfigurationIntent と SetValueIntent
 
-**2026-08-11 表現訂正**: 「同時準拠できない」という制約表現は誤解を招く。wwdc2024-10157 のモデルでは configuration intent（設定パラメータ用）と action intent（`SetValueIntent` 等）はそもそも**別々の Intent** として設計されており、1 つの Intent に両方の役割を持たせようとした結果「同時に準拠できない」という制約に見えていただけ。本プロジェクトの Control 群（`ToggleUrgentTodoControl` / `QuickAddTodoControl` / `TodoCountControl`）は実際、カスタム `ControlConfigurationIntent` を持たず `StaticControlConfiguration` のみを使い、トグル操作は `ControlWidgetButton(action:)` に渡す独立した `AppIntent`（`SetValueIntent` 準拠ではない）で実装している。役割分離は既に達成できているので、コード変更は不要。
+wwdc2024-10157 のモデルでは configuration intent（設定パラメータ用）と action intent（`SetValueIntent` 等）はそもそも**別々の Intent** として設計する。本プロジェクトの Control 群（`ToggleUrgentTodoControl` / `QuickAddTodoControl` / `TodoCountControl`）はカスタム `ControlConfigurationIntent` を持たず `StaticControlConfiguration` のみを使い、トグル操作は `ControlWidgetButton(action:)` に渡す独立した `AppIntent`（`SetValueIntent` 準拠ではない）で実装している。
+
+経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)
 
 ### ControlConfigurationIntent のモジュール境界
 
-**2026-08-11 因果訂正**: Widget Extension 内で定義した `ControlConfigurationIntent` がアプリ本体から参照できない真因は「Name Mangling」ではなく、単純な**ターゲット/モジュール境界**（Extension ターゲットの型は別モジュールなのでアプリ側から import できない、Swift の通常のアクセス制御と同じ話）。共有したい場合は SPM パッケージへ型を移すのが公式サポートされた方法（wwdc2025-244 22:34）。本プロジェクトは `StaticControlConfiguration` を使い ConfigurationIntent 自体を必要としない設計にしているため、この問題は実質発生しない。
+Widget Extension 内で定義した `ControlConfigurationIntent` はアプリ本体から参照できない。原因は単純な**ターゲット/モジュール境界**（Extension ターゲットの型は別モジュールなのでアプリ側から import できない、Swift の通常のアクセス制御と同じ話）。共有したい場合は SPM パッケージへ型を移すのが公式サポートされた方法（wwdc2025-244 22:34）。本プロジェクトは `StaticControlConfiguration` を使い ConfigurationIntent 自体を必要としない設計にしているため、この問題は実質発生しない。
+
+経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)
 
 ### Control Widget からの Intent では `.result(dialog:)` が表示されない
 
-2026-04-14 実機検証で確認: Control Center から `ControlWidgetButton(action:)` 経由で
-Intent を実行しても `.result(dialog:)` は UI に出ない。よってフィードバックは
-**視覚的状態変化 / システムハプティック / ローカル通知**で代替する必要がある。
+Control Center から `ControlWidgetButton(action:)` 経由で Intent を実行しても `.result(dialog:)` は UI に出ない。
+よってフィードバックは**視覚的状態変化 / システムハプティック / ローカル通知**で代替する必要がある。
 
 > **本プロジェクトの運用方針**: Control Widget はグラス風ミニマム UI が UX 設計語彙で、
 > dialog 表示はそもそも設計の一部として想定されていない可能性が高い (Apple 公式には
@@ -99,18 +104,20 @@ Intent を実行しても `.result(dialog:)` は UI に出ない。よってフ�
 > 提出は行わない**。Control 経由で完了メッセージを伝えたい場合は `ControlNotificationHelper`
 > 経由でローカル通知を送る運用に統一している (`ToggleUrgentTodoIntent` / `ShowTodoCountIntent` 参照)。
 >
-> **2026-08-11 実装・ビルド確認**: `ToggleUrgentTodoControl` のラベルに `.controlWidgetStatus(_:)`
-> （wwdc2024-10157）を追加し、`snapshot.isCompleted` に応じて "Completed" / "Due soon" を
-> Control 自体に一時表示するようにした（iOS シミュレータ向けビルドで型・コンパイルを確認済み）。
+> `ToggleUrgentTodoControl` のラベルには `.controlWidgetStatus(_:)`（wwdc2024-10157）を追加し、
+> `snapshot.isCompleted` に応じて "Completed" / "Due soon" を Control 自体に一時表示している。
 > ローカル通知はシステムの通知センターに残り続ける副作用があるため、この一時的な状態表示は
 > 通知の完全な代替ではなく併用（Control 内の即時フィードバック + 通知による永続的な記録）という
 > 位置づけ。`TodoCountControl` は `ControlWidgetButton` がボタン（状態を持たない fire-and-forget）
-> でタップ後も表示値（未完了数）自体は変化しないため、`.controlWidgetStatus` の適用は見送った
-> （実機での見え方の比較は今後の課題）。
+> でタップ後も表示値（未完了数）自体は変化しないため、`.controlWidgetStatus` の適用は見送った。
+
+経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)
 
 ### visionOS 非対応: `#if !os(visionOS)` でガード
 
-Apple 公式 [Developing a WidgetKit strategy](https://developer.apple.com/documentation/widgetkit/developing-a-widgetkit-strategy#Review-system-experiences-for-each-platform) の "Review system experiences for each platform" セクションにある対応表で、Controls は **iPhone / iPad / Apple Watch / Mac で Yes、Apple Vision Pro のみ No** と明記されている（2026-04-15 時点の iOS 26 ドキュメントで確認済）。
+Apple 公式 [Developing a WidgetKit strategy](https://developer.apple.com/documentation/widgetkit/developing-a-widgetkit-strategy#Review-system-experiences-for-each-platform) の "Review system experiences for each platform" セクションにある対応表で、Controls は **iPhone / iPad / Apple Watch / Mac で Yes、Apple Vision Pro のみ No** と明記されている。
+
+経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)
 
 ```swift
 #if !os(visionOS)

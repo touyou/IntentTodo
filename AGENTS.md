@@ -197,9 +197,9 @@ public struct TodoIntentsPackage: AppIntentsPackage { }
 
 メインアプリ側は何も宣言しなくても、パッケージの Intent は自動的にアプリの Intent として登録される（`actions`/`entities`/`queries` はアプリの統合メタデータに集約される。`AppShortcutsProvider` だけは集約されないので別扱い、後述）。
 
-> **2026-08-11 追記（再検証）**: 過去は「メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を重複宣言すると Shortcuts のルーティングが壊れる（`LNContextErrorDomain Code=2001`）」と記録していたが、Xcode 27 beta 5 で再検証した結果、アプリターゲット・Widget/LiveActivity/watchOS の全 Extension ターゲットに同パターン（`includedPackages: [TodoIntentsPackage.self]`）を追加してビルドしても `Metadata.appintents` の `actions`/`entities`/`queries` 件数は無宣言時と完全に同一（11/1/1）で、重複はメタデータ上確認できなかった。Apple 公式 `AppIntentsPackage` ドキュメントも「フレームワークの Intent を複数のアプリ/Extension で再利用する場合は利用側でも `includedPackages` を宣言する」という、まさにこのパターンを標準例として示している。過去の破損は 2026-04-13 の大規模リファクタ（コミット `3f6d835`、Intent routing 問題解決と `@Dependency` パターン統一を一括で行った PR）内で記録されたもので、`AppIntentsPackage` 重複宣言単体が原因と確定づける再現実験は行われていなかった。**ビルド/メタデータレベルでの重複は無いことを確認したが、Siri/Shortcuts の実機ルーティング（`LNContextErrorDomain` 系）は未再検証。** 現状は重複宣言しない運用を維持しつつ、複数ターゲットでの再利用パターンが本当に必要になった際は実機で Siri 経由の呼び出しを確認してから採用すること。詳細は `docs/insights/03-app-intents-core.md`。
+複数ターゲット（アプリ + Widget/LiveActivity/watchOS Extension）で同じパッケージを再利用する場合、Apple 公式ドキュメントは利用側でも `includedPackages` 付きで `AppIntentsPackage` を宣言するパターンを標準としている。本プロジェクトはビルド/メタデータレベルでの重複が無いことは確認済みだが、実機 Siri/Shortcuts ルーティングでの検証がまだのため、重複宣言はしない運用を維持している（経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
 
-> **⚠️ 例外: `AppShortcutsProvider` はパッケージに置けない。** Intent / Entity / Query はパッケージから集約されるが、`AppShortcutsProvider`（App Shortcut のフレーズ登録）だけはアプリの統合メタデータに集約されず `autoShortcuts: 0` になる。App Shortcut がビルドエラー無しで Siri / Shortcuts / Spotlight に出ない、という形で顕在化する。**必ずアプリターゲット直下に置く**（本プロジェクトでは `IntentTodo/IntentTodo/TodoAppShortcuts.swift`、`import TodoAppIntents` で Intent を参照）。これは上記の `AppIntentsPackage` 重複宣言の話とは独立した制約であることを 2026-08-11 に再確認済み（アプリ/Extension ターゲットに `AppIntentsPackage` を追加した状態でもパッケージ内に置いたままでは `autoShortcuts` は 0 のままで、アプリターゲットへ移動した時点でのみ 0→8 に変化した）。詳細と検証手順は `docs/insights/03-app-intents-core.md`。
+> **⚠️ 例外: `AppShortcutsProvider` はパッケージに置けない。** Intent / Entity / Query はパッケージから集約されるが、`AppShortcutsProvider`（App Shortcut のフレーズ登録）だけはアプリの統合メタデータに集約されず `autoShortcuts: 0` になる。App Shortcut がビルドエラー無しで Siri / Shortcuts / Spotlight に出ない、という形で顕在化する。**必ずアプリターゲット直下に置く**（本プロジェクトでは `IntentTodo/IntentTodo/TodoAppShortcuts.swift`、`import TodoAppIntents` で Intent を参照）。詳細は `docs/insights/03-app-intents-core.md`。
 
 ### Primary / FromExtension 分離パターン
 
@@ -210,7 +210,7 @@ public struct TodoIntentsPackage: AppIntentsPackage { }
 | **Primary** | Siri / Shortcuts / UI | `TodoAppEntity`（`@Parameter`） | `true` (default) | ✅ |
 | **FromExtension** | Live Activity / Widget（todoId を既に持っている） | `String`（UUID 文字列） | `false` | ❌ |
 
-**なぜ分けるか**: App Intents は `@Parameter var todo: TodoAppEntity` を持つ Intent の `perform()` 実行前に、別フェーズで `TodoEntityQuery.entities(for:)` を呼んで entity を解決する（[WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) 7:37 "Intent 実行前に entity 解決が走る"）。`LiveActivityIntent` 準拠が保証するのは `perform()` がアプリプロセスで実行されることのみで（後述）、この事前解決フェーズがどのプロセスで走るかは Apple 文書に明記が無い。実機では 2026-04-14、entity パラメータ版 Intent を LA ボタンに直結した状態で `TodoEntityQuery.entities(for:) → SwiftDataTodoRepository.fetch → ModelContext.fetch` の経路で `EXC_BREAKPOINT` が発生した（コミット `c37ee97`/`a234842`）。`IntentTodoLiveActivityBundle.init()` は `AppDependencyManager` に何も登録していないため、解決フェーズが Extension 側で走った場合 `@Dependency var modelContainer` が解決できない可能性も残る（2026-08-11 再検証、未確定）。呼出元が todoId を既に持っているケースでは、entity 解決自体を経由しない `String` パラメータ版で回避する。
+**なぜ分けるか**: App Intents は `@Parameter var todo: TodoAppEntity` を持つ Intent の `perform()` 実行前に、別フェーズで `TodoEntityQuery.entities(for:)` を呼んで entity を解決する（[WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) 7:37 "Intent 実行前に entity 解決が走る"）。`LiveActivityIntent` 準拠が保証するのは `perform()` がアプリプロセスで実行されることのみで（後述）、この事前解決フェーズがどのプロセスで走るかは Apple 文書に明記が無く、実機では entity パラメータ版 Intent を LA ボタンに直結すると `EXC_BREAKPOINT` で落ちた実績がある。呼出元が todoId を既に持っているケースでは、entity 解決自体を経由しない `String` パラメータ版で回避する（経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
 
 ```swift
 // Primary
@@ -244,7 +244,7 @@ Intent の実行結果をユーザーに伝える方法は呼出元で見え方�
 | Shortcuts | 結果欄に表示 ✅ | 表示 ✅ |
 | UI (`Button(intent:)`) | 表示なし | 表示 ✅ |
 | Widget `Button(intent:)` | 表示なし | 表示 ✅ |
-| **Control Widget (`ControlWidgetButton`)** | **表示なし** (2026-04-14 実機検証) | 表示 ✅ |
+| **Control Widget (`ControlWidgetButton`)** | **表示なし** | 表示 ✅ |
 
 使い分けルール:
 - **Control Center から呼ばれる Intent** (`ToggleUrgentTodoIntent`, `ShowTodoCountIntent`): **ローカル通知**でフィードバック (Dialog が表示されないため)
@@ -255,7 +255,7 @@ Intent の実行結果をユーザーに伝える方法は呼出元で見え方�
 
 データ変更があった Intent は、UI / Widget 反映のため末尾で `WidgetReloader.reloadAllWidgets()` を呼ぶ。
 
-> Widget 内の `Button(intent:)` から呼ばれた Intent は、システムが `perform()` 完了時に自動でタイムラインをリロードすることを保証している（wwdc2023-10028 13:47/10:02）。手動呼び出しが本当に必要なのは Siri / Shortcuts / アプリ UI など Widget 起点でない経路のケース。全 Intent で無条件に呼ぶ現在のルールは判定を省いた安全側の運用（呼び出し重複はコスト的に無視できる）。
+> Widget 内の `Button(intent:)` から呼ばれた Intent は、システムが `perform()` 完了時に自動でタイムラインをリロードすることを保証している（wwdc2023-10028 13:47/10:02）。手動呼び出しが本当に必要なのは Siri / Shortcuts / アプリ UI など Widget 起点でない経路のケース。全 Intent で無条件に呼ぶ現在のルールは判定を省いた安全側の運用（呼び出し重複はコスト的に無視できる。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
 
 ```swift
 try repository.update(item)
@@ -318,7 +318,7 @@ struct AddTodoIntent: AppIntent {
 | 同上 | `.background`（`allowedExecutionTargets` で明示指定、例: `[.main]`） | **指定したプロセスに固定** | 指定先のみで足りる |
 | Live Activity ボタン | `LiveActivityIntent` | `perform()` はアプリプロセス（Apple 公式）。ただし `TodoAppEntity` の事前 entity 解決 (`entities(for:)`) は別フェーズで実行プロセス未公式文書化、実機 crash 歴あり（上記「なぜ分けるか」参照） | アプリ側 (`App.init()`)。FromExtension 系は String パラメータで解決フェーズ自体を回避 |
 
-> **2026-08-11 追記（再検証）**: 本プロジェクトは大半の Widget/Control Intent で `allowedExecutionTargets` を未指定のままにしているため、二重登録（`App.init()` と `WidgetBundle.init()` の両方）は撤廃できない。`CompleteTodosIntent` のみ `[.main]` 固定済み（詳細は `docs/insights/03-app-intents-core.md`）。
+> 本プロジェクトは大半の Widget/Control Intent で `allowedExecutionTargets` を未指定のままにしているため、二重登録（`App.init()` と `WidgetBundle.init()` の両方）は撤廃できない。`CompleteTodosIntent` のみ `[.main]` 固定済み（詳細は `docs/insights/03-app-intents-core.md`、経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
 
 ```swift
 // Widget Extension 側でも同様に同期登録
@@ -534,6 +534,7 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/APP_INTENT_DRIVEN_DESIGN.md` - 関連概念の整理と比較
 - `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト（目次）
 - `docs/insights/` - インサイト個別ファイル（7トピック）
+- `docs/devlog/` - 各ドキュメントの現在のルールがどういう経緯で決まったか（調査・失敗・再検証の記録）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
 
 ## 設計思想の背景

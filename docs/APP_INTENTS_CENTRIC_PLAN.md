@@ -47,8 +47,6 @@
 | ValueRepresentation | `AppEntity.ValueRepresentation` `IntentValueRepresentation(exporting:importing:)` | 担当者を `IntentPerson` / 場所を `PlaceDescriptor` へ export | B | ✅ (#44) |
 | RelevantEntities | `RelevantEntities.updateEntities(_:for:)` `AppEntityContext` | 「次の期限/緊急 Todo」を文脈寄付 | B/R | 🚫 不適合 |
 | EntityCollection | `EntityCollection<TodoAppEntity>` `resolvedEntities()` | バルク完了 Intent | U | ✅(B) `8e2d637` |
-<!-- 2026-08-11: `resolvedEntities()` は wwdc2026-345 の書き起こしには文字列として登場しない（セッションの口頭説明は `.identifiers` のみ）が、Xcode 27 beta 5 の AppIntents.swiftinterface で `public func resolvedEntities() async throws -> [Entity]` の実在を確認済み。SDK 由来の正当な API であり誤記ではない。 -->
-
 | ネイティブ Parameter 型 | `Duration` `PersonNameComponents` | 所要時間 / 担当者名を `@Parameter` | U | ✅ Phase 1 |
 | @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ✅ `099dae3` |
 | LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ✅(B) `8e2d637` |
@@ -119,36 +117,26 @@
   - ✅ xcode27 を iOS 27 世代へ引き上げ（`.reminders` は iOS 27+ 限定のため）`ed22d80`
   - ✅ `TodoListType` → `@AppEnum(schema: .reminders.listType)` `ed22d80`
   - ✅ `CategoryAppEntity` → `@AppEntity(schema: .reminders.list)`（Category = reminders のリスト）`25d1d61`
-  - ⚠️ **Xcode 27 beta 2 追従**: `reminders` / `system` ドメインの assistant schema が **watchOS で unavailable** に
-    なったため、`CategoryAppEntity`（`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)`
-    で素の `AppEntity`/`AppEnum` にフォールバック、`ShowTodoSearchResultsIntent`（`.system.search`, #47）は
-    `#if !os(watchOS)` で除外。watchOS はスキーマルーティング非使用のため機能損失なし。詳細は insights/03。
+  - watchOS: `reminders` / `system` ドメインの assistant schema が unavailable なため、`CategoryAppEntity`
+    （`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)` で素の `AppEntity`/`AppEnum`
+    にフォールバック、`ShowTodoSearchResultsIntent`（`.system.search`, #47）は `#if !os(watchOS)` で除外。
+    watchOS はスキーマルーティング非使用のため機能損失なし。
   - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**（#48 で優先度再考 → 据え置き）。
-    判明事項（probe 検証）: reminder スキーマはマクロ生成 init が `EntityProperty<T>` 引数を取り、
-    さらに `section` / `locationTrigger` 等の **入れ子サブエンティティを再帰的に要求**するため、
-    モデルから組み立てる自前 init と相性が悪く深掘りが必要。連携面では list 適合で App Schema の
-    仕組み自体は検証済みのため、reminder 本体適合は独立タスクとして将来再挑戦する。
-    **#48 再評価**: 具体的前提（`.reminders.section` = name+list / `.reminders.locationTrigger` = place(PlaceDescriptor)+event /
-    `.reminders.locationTriggerEvent` = arrive/depart）を確認したが、コアブロッカー（生成 init の `EntityProperty<T>` +
-    初期化規約）はサブエンティティを揃えても不変。**新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な
-    自前 Intent 群 + `OpenIntent`/`DeleteIntent` + `.system.search`(#47) + `indexingKey`(#43)）と確認したため、本体適合は
-    SDK のスキーママクロ init 規約が扱いやすくなるのを待つ独立タスクとして据え置く。詳細は insights/03「Phase 7」。
-    **2026-08-11 追記（新しいリード、未実施）**: wwdc2026-344 は同等にリッチな `calendar_event` スキーマ（`attendee`
-    は `TransientAppEntity` の入れ子、`location` は union）に**手書き init なし**で適合させている——Xcode の
-    スキーマ・コードスニペット機能で型の骨格を生成し、モデル→エンティティのマッピングは Query 側に持たせる流儀。
-    本プロジェクトが試した「自前 `init(from: TodoItem)` で順次代入」というスタイルがマクロ生成 backing storage と
-    衝突している可能性がある。#48 を再挑戦する際はこの CometCal パターン（スニペット生成 + Query 側 populate +
-    入れ子は TransientAppEntity）を先に試すこと。
+    reminder スキーマはマクロ生成 init が `EntityProperty<T>` 引数と `section` / `locationTrigger` 等の
+    入れ子サブエンティティを再帰的に要求するため、モデルから組み立てる自前 init と相性が悪い。
+    **新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な自前 Intent 群 +
+    `OpenIntent`/`DeleteIntent` + `.system.search`(#47) + `indexingKey`(#43)）ため、本体適合は SDK の
+    スキーママクロ init 規約が扱いやすくなるのを待つ独立タスクとして据え置く。詳細は insights/03「Phase 7」。
+    経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
 - **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
   - ✅ `requestConfirmation`（DeleteTodoIntent）`27fc2db`
   - ✅ `IntentDonationManager`（Add で donate / Delete で deleteDonations）`b4dbd63`
   - ✅ `requestChoice`（SnoozeTodoIntent でスヌーズ時間選択）`db6efa3`
   - ✅ system intents: `OpenIntent`→`OpenTodoIntent` `375efd1` / `DeleteIntent`→`DeleteTodosIntent`（バルク）`92221d0`
   - ✅ 会話ダイアログ `IntentDialog(full:supporting:)`（ShowTodosIntent）`1f4bbc7`
-  - 🚫 `RelevantEntities`: **Todo/reminders ドメインに適合する `AppEntityContext` が存在しない**（`.audio(.nowPlaying)`
-    と framework overlay の domain context のみ）ため適合不能。詳細は insights/03 参照。
-    *(2026-08-11 訂正: wwdc2026-345 の実例は `.audio(.nowPlaying)` ではなく `.audio(.workout(activityType: .running))`。
-    どちらの例でも todo ドメインに適合しないという結論は不変)*
+  - 🚫 `RelevantEntities`: **Todo/reminders ドメインに適合する `AppEntityContext` が存在しない**（ドメイン固有の
+    framework overlay context のみ）ため適合不能。詳細は insights/03 参照。
+    経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
 - **Phase 4 大量・実行制御** ✅（B 深度で完了。U/R は実機・一部テストが残る）: #345
   - ✅ `CompleteTodosIntent` で `EntityCollection` + `LongRunningIntent` + `CancellableIntent` を同時実装 `8e2d637`
   - ✅ `allowedExecutionTargets [.main]`。FromExtension 分離は entity 解決回避が目的でプロセス制御では**統合不可**と結論 `8e2d637`
@@ -162,10 +150,10 @@
   - ✅ `TodoVisualIntelligenceQuery: IntentValueQuery`（`values(for: SemanticContentDescriptor)` → `[TodoOrCategory]`）`069aa48`
   - ✅ `TodoSemanticContentSearchIntent`（`@AppIntent(schema: .visualIntelligence.semanticContentSearch)`）`069aa48`
   - ✅ 結果タップ=`OpenTodoIntent` / 複数結果型=`@UnionValue TodoOrCategory` を再利用
-  - ✅ **Xcode 27 beta 2 で macOS 対応化**: 当初「iOS 専用」だったが beta 2 で `VisualIntelligence` が Mac に
-    import 可能に。Mac は visual search 結果 entity が全て openable であることを要求するため `OpenCategoryIntent`
-    （`CategoryAppEntity` 用 `OpenIntent`）を新設し、`#if canImport(VisualIntelligence)` のまま iOS+Mac で成立
-    （iOS/macOS/visionOS の 3 destination フルビルド green）。詳細 insights/03「beta 2 で macOS 対応」。
+  - ✅ Mac の visual search 要件（結果 entity が全て openable であること）を満たすため `OpenCategoryIntent`
+    （`CategoryAppEntity` 用 `OpenIntent`）を実装、`#if canImport(VisualIntelligence)` のまま iOS+Mac で成立
+    （iOS/macOS/visionOS の 3 destination フルビルド green）。詳細 insights/03「beta 2 で macOS 対応」/
+    経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
   - ⏭ EventKit/Contacts は別フレームワーク連携のため本ブランチ対象外（記録のみ）。詳細 insights/03。
 - **Phase 6 テスト基盤** ✅（B 深度で完了。実 run は手動/CI）: #295
   - ✅ `IntentTodoUITest`（UIテストバンドル必須）に AppIntentsTesting テストを追加 `be7cf2b`
@@ -203,16 +191,15 @@
 |------|---------|------------|
 | beta 1 | iOS 27 世代へ引き上げ、`.reminders` schema 有効化 | `ed22d80` |
 | beta 2 | watchOS で assistant schema 非対応化 → `#if os(watchOS)` フォールバック追加、`VisualIntelligence` が Mac で import 可能に → `OpenCategoryIntent` 追加 | `9684418` `8ddc76f` |
-| beta 3 | `AppIntentsSSUTraining` が `GeoToolbox.PlaceDescriptorEntity` をドット付き変数名で SSU 化 → CI 赤。暫定回避として `PlaceDescriptor` を `@Parameter`/`@Property` から String に退避（`35d772f`）。`AppShortcutsProvider` をアプリターゲットへ移動（`3280bed`）。toolbar API 変更追従。 | `35d772f` `3280bed` |
-| beta 4 | SSU バグ（`PlaceDescriptor` 変数名正規表現エラー）**未修正**。ワークアラウンド継続。`TransientAppEntity` 動作確認 → `TodoListSummaryEntity` + `GetTodoSummaryIntent` を実装。 | `df4a2aa` |
-| beta 5 (27A5237l) | SSU バグ **未修正**（`35d772f` revert + DerivedData クリア後クリーンビルドで再現を確認 → revert 取り消し）。watchOS assistant schema も **依然 unavailable**（`.reminders.list` / `.reminders.listType` / `.system.searchInApp` のガードを外した実ビルドで `'reminders' is unavailable in watchOS` 等を確認 → フォールバック継続）。コード変更なし。 | *(このコミット)* |
+| beta 3 | `PlaceDescriptor` の SSU training バグを回避し `String` へ退避、`AppShortcutsProvider` をアプリターゲットへ移動、toolbar API 追従 | `35d772f` `3280bed` |
+| beta 4 | SSU バグ未修正・ワークアラウンド継続。`TransientAppEntity` 実装（`TodoListSummaryEntity` + `GetTodoSummaryIntent`） | `df4a2aa` |
+| beta 5 (27A5237l) | SSU バグ・watchOS assistant schema unavailable ともに未解消を再確認。コード変更なし | `647acb6` |
 
-> **⚠️ beta 5 でも SSU バグ継続**: `AppIntentsSSUTraining` が `GeoToolbox.PlaceDescriptorEntity` を変数名に使い
-> `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちるエラーは **beta 5 でも再現**（DerivedData クリア後クリーンビルドで確認）。
-> `PlaceDescriptor` の `@Parameter`/`@Property` 退避（`35d772f`）は次 beta まで継続。
-> SDK 更新時は `35d772f` を revert + クリーンビルドで再確認する。
-> 注意: SSU タスクは incremental ビルドだと直前の失敗結果（stale エラー）をログ再表示するため、
-> 判定は必ず DerivedData クリア後のクリーンビルドで行う（beta 5 検証時にも誤検知を実際に観測）。
+> **既知の SDK 制約（beta 5 時点で未解消）**: `PlaceDescriptor` の SSU training バグ（`@Parameter`/`@Property` を
+> `String` へ退避するワークアラウンド継続中）と、watchOS での `reminders`/`system` assistant schema unavailable
+> （フォールバック継続中）。SDK 更新時は `35d772f` を revert + DerivedData クリア後クリーンビルドで再検証する
+> （SSU タスクは incremental ビルドだと stale エラーを再表示するため要注意）。
+> 経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
 
 ## availability 方針
 

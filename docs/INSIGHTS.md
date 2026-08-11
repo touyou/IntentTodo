@@ -1,7 +1,8 @@
 # IntentTodo 開発インサイト集
 
 このドキュメントは、IntentTodoアプリの開発中に得られた技術的なインサイトの目次です。
-各トピックの詳細は個別ファイルを参照してください。
+各トピックの詳細は個別ファイルを参照してください。各ルールがどういう経緯で決まったかは
+[docs/devlog/](devlog/README.md) を参照。
 
 ---
 
@@ -79,7 +80,4 @@
 
 ## 更新履歴
 
-- 2026-04-15 (2): `IntentDependencies` / `IntentAppState` 削除、`TodoEntityQuery` を `@Dependency` 化、Control Widgets を `ControlValueProvider` パターンに、`TodoItem.didSet` 撤去 + `TodoActions` で明示更新、AppShortcuts 8 件に整理、Widget/Complication `kind` の reverse-DNS 統一、通知タップの `NotificationHandler.navigationModel` 注入方式、主要 3 View を `private struct` 抽出。insights ドキュメントを全面的に最新化。
-- 2026-04-15: Extension 内の View を 3 パッケージ（`LiveActivity` / `WidgetUI` / `WatchUI`）に分離し、Extension はターゲット固有のスキャフォルドのみに絞る構成に移行。macOS native ビルド対応（`AppDelegate` / `MacAppDelegate` を `#if os(...)` で分離し `NotificationHandler` を共通化）。visionOS ビルド修復（`#Predicate` の Optional UUID 回避、`Button(intent:role:)` 引数順、ControlWidget の `#if !os(visionOS)` ガード）。`Domain.DueDateStatus` を導入して overdue/dueSoon 判定の重複を解消。
-- 2026-04-13: Shortcuts Intent ルーティング問題の根本原因（`IntentTodoAppIntentsPackage` のメインターゲット重複宣言）が判明。誤った知見（`.background + 通知ワークアラウンド`、`IntentAppState` フォールバック、`IntentDependencies.shared` パターン）を削除し、`@Dependency + AppDependencyManager` パターンを標準として記述更新。
-- 2026-03-19: 18セクションを7ファイルに分割・整理
+このドキュメント・insights/ 配下の再編の経緯は [docs/devlog/insights-changelog.md](devlog/insights-changelog.md) を参照。

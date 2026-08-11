@@ -3,8 +3,8 @@
 //  TodoAppIntents
 //
 //  ⚠️ Apple bug workaround — see ToggleTodoCompletionFromExtensionIntent.swift
-//  for the full rationale (Issue #30 A-3). Remove together with its sibling
-//  once the Extension-process entity resolution bug is verified fixed.
+//  for the full rationale. Remove together with its sibling once the
+//  Extension-process entity resolution bug is verified fixed.
 //
 
 #if os(iOS)
