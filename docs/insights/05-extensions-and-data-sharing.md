@@ -87,7 +87,9 @@ watchOS と iOS は別デバイスのため、App Groups では直接データ�
 
 ### マイグレーションは 1 プロセス（アプリ本体）だけが担当する
 
-複数プロセス（アプリ本体 / Widget / LiveActivity）が同じ App Group 上の store を共有する場合、**スキーマのマイグレーションを走らせるプロセスを 1 つに固定する**必要がある。WWDC 2026 "SwiftData Group Lab" (session 8017) で言及されたとされる設計指針（出典の一次資料は未確認。経緯は [docs/devlog/05-extensions-and-data-sharing.md](../devlog/05-extensions-and-data-sharing.md) 参照）:
+複数プロセス（アプリ本体 / Widget / LiveActivity）が同じ App Group 上の store を共有する場合、**スキーマのマイグレーションを走らせるプロセスを 1 つに固定する**必要がある。
+
+> **出典なしの伝聞**（2026-08-12 に追跡を打ち切り）: この指針はかつて「WWDC 2026 SwiftData Group Lab (session 8017)」由来として記録していたが、`docs/references/wwdc/` にも Apple の公開セッション一覧にも session 8017 は存在しない（Group Lab は 8011 の Apple Intelligence のみ）。一次資料を用意できないため出典表記を外し、**根拠は下記の理由付けのみ**として扱う。理由付け自体は妥当なので運用は維持する。経緯: [docs/devlog/05-extensions-and-data-sharing.md](../devlog/05-extensions-and-data-sharing.md)
 
 > 複数プロセスから同じデータベースを触るなら、マイグレーションを担当するプロセスをひとつに決める。アプリ本体を担当にして、Widget や Extension はマイグレーション完了後のファイルを読み書きする構成にする。**新バージョンへの更新後、アプリ本体より先に Widget が動く場合もある**ため、Widget / Extension 側にはマイグレーションプランを含めない。必要ならアプリの起動を促す。
 

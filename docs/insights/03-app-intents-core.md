@@ -803,16 +803,33 @@ import AppIntentsTesting
 - アプリターゲットを import せず文字列で参照するため、**多くの誤りはコンパイルではなく実行時**に出る。
   テストは一意タイトルで作成 → 操作 → 削除の**自己クリーンアップ設計**にしておく。
 
-### 実行して分かった落とし穴（2026-08-12、10 テストを実 run）
+### 実行して分かった落とし穴（2026-08-12、22 テストを実 run）
 
 - **dynamic member lookup で見えるのは `@Property` だけ**。`AnyAppEntity` の `entity.id` は
   `castingFailed(elementType: "NSNull", targetType: "String")` になる（`TodoAppEntity.id` は
   `@Property` ではないため）。id が要るときは **`entity.identifier.instanceIdentifier`**（型消去側が
   別に持っている）を使う。
-- **`setUp` で毎回 `app.launch()` しない**。`launch()` は起動中のアプリを terminate して再起動するため、
-  テスト数が増えるとシミュレータが `Simulator device failed to launch ... did not return a process handle
-  nor launch error` で散発的に落ちる。起動済みなら `activate()` に分岐すると安定した（3 テスト時は顕在化
-  せず、10 テストに増やして毎回どれかが落ちるようになった）。
+- **`setUp` で `app.launch()` を使わない。`app.activate()` にする**。`launch()` は起動中のアプリを
+  terminate して再起動するため、テスト数が増えるとシミュレータが `Simulator device failed to launch ...
+  did not return a process handle nor launch error` で散発的に落ちる。`activate()` は未起動なら起動、
+  起動済みなら前面化するだけ（3 テスト時は顕在化せず、10 テストに増やして毎回どれかが落ちるようになった）。
+- **アプリを入れ直した直後は待つ**。クリーンビルド後の最初のテストだけが
+  `AppIntentsServicesMetadataErrorDomain Code=400 "<bundle id> is not present"` で落ちる。App Intents の
+  メタデータサービスがまだ新しいアプリを認識していないため。`setUp` で軽いクエリ（`suggestedEntities()`）が
+  通るまでポーリングしてから本体に入ると解消する。
+- **`makeIntent(x: nil)` は `.set(nil)` ではなく `.unset`**（= パラメータを渡さなかった扱い）。
+  `IntentParameter.valueState` の「明示クリア」を表現したいときは、`Optional` 自身が
+  `IntentValueExpressing` に適合していることを使って**型付きの nil** を渡す:
+  ```swift
+  let explicitNull: any IntentValueExpressing = String?.none
+  try await intent("UpdateTodoIntent").makeIntent(todo: entity, todoDescription: explicitNull).run()
+  ```
+  これを知らないと「`.set(nil)` が効かない」というアプリ側のバグに見えてしまう（実際に一度そう誤診した）。
+- **`IntentValueQuery`（Visual Intelligence）は iOS シミュレータでテストできない**。
+  `VisualIntelligence.framework` は iOS 実機 SDK と macOS SDK にはあるが **iOS Simulator SDK には無い**
+  （Xcode 27 beta 5 で確認）。`#if canImport(VisualIntelligence)` がシミュレータでは false になり、
+  `TodoVisualIntelligenceQuery` 自体がビルドに含まれないため `definitions.valueQueries[...]` で参照できない。
+  この観点は実機テストか macOS destination に回すしかない。
 - **Spotlight の index は Intent の完了と非同期**。`spotlightQuery()` は `run()` 直後だと空を返しうるので、
   タイムアウト付きでポーリングする。
 - **`requestChoice` / `requestConfirmation` を使う Intent は run できない**（応答する相手が居ない）。
@@ -833,14 +850,20 @@ import AppIntentsTesting
 | `TransientAppEntity` | `intents["..."].run()` の `result.value.<prop>` | Shortcuts の条件分岐が壊れる |
 | ValueRepresentation | `AnyAppEntity.exported(as:)` | 他アプリへの受け渡しが壊れる |
 | Onscreen entity | `viewAnnotations()` | Siri が画面上の対象を認識しなくなる |
-| `IntentValueQuery` | `valueQueries["..."].values(for:)` | Visual Intelligence の結果が出なくなる |
+| 部分更新の三状態 | `valueState`（型付き nil で `.set(nil)`） | Shortcuts で項目を消せなくなる |
+| ナビゲーション | Intent 実行 → `XCUIApplication` で画面を確認 | 「アプリが開くだけ」になる |
+| `IntentValueQuery` | `valueQueries["..."].values(for:)` | Visual Intelligence の結果が出なくなる（**iOS シミュレータ不可**、下記参照） |
 
-### 落とし穴: ファイルのターゲット所属
+### ファイル追加とテストの分割
 
-UIテストターゲットは synchronized folder ではないため、**ファイルを置くだけでは target に入らない**
-（ビルドは通るが当該ファイルは無視される）。Xcode プロジェクトに登録する必要がある（本作業では
-`XcodeWrite` で追加 → `project.pbxproj` に反映）。`@MainActor override func setUp() async` にしないと
+`IntentTodoUITest` は現在 `PBXFileSystemSynchronizedRootGroup`（synchronized folder）なので、
+**ファイルを置けばそのままターゲットに入る**。サブフォルダも同様（本プロジェクトは
+`IntentTodoUITest/AppIntents/` 配下に分割: 共通基底 `AppIntentsTestCase` + 実行 / query /
+システム統合の 3 ファイル）。`@MainActor override func setUp() async` にしないと
 `XCUIApplication` の MainActor 隔離で Swift 6 エラーになる。
+
+> 以前ここには「synchronized folder ではないのでファイルを置くだけでは target に入らない」と
+> 書いていたが、現在の `project.pbxproj` では synchronized になっている（2026-08-12 に確認）。
 
 ## Phase 7: WWDC 2026 追加検証（#43–#48）
 

@@ -44,12 +44,12 @@
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
 | Entity プロパティマクロ | `@ComputedProperty` `@DeferredProperty` | `isOverdue` / `subtaskProgress` | U | ✅ |
-| ValueRepresentation | `AppEntity.ValueRepresentation` `IntentValueRepresentation(exporting:importing:)` | 担当者を `IntentPerson` / 場所を `PlaceDescriptor` へ export | B | ✅ (#44) |
+| ValueRepresentation | `AppEntity.ValueRepresentation` `IntentValueRepresentation(exporting:importing:)` | 担当者を `IntentPerson` / 場所を `PlaceDescriptor` へ export | B | ✅ U（2026-08-12 `exported(as: IntentPerson.self)` を実 run） |
 | RelevantEntities | `RelevantEntities.updateEntities(_:for:)` `AppEntityContext` | 「次の期限/緊急 Todo」を文脈寄付 | B/R | 🚫 不適合 |
-| EntityCollection | `EntityCollection<TodoAppEntity>` `resolvedEntities()` | バルク完了 Intent | U | ✅(B) `8e2d637` |
+| EntityCollection | `EntityCollection<TodoAppEntity>` `resolvedEntities()` | バルク完了 Intent | U | ✅ U（2026-08-12 `CompleteTodosIntent` を実 run） |
 | ネイティブ Parameter 型 | `Duration` `PersonNameComponents` | 所要時間 / 担当者名を `@Parameter` | U | ✅ Phase 1 |
-| @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ✅ `099dae3` |
-| LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ✅(B) `8e2d637` |
+| @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ✅ U（2026-08-12 `SearchEverythingIntent` を実 run） |
+| LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ✅ U（2026-08-12 実 run） |
 | CancellableIntent | `withIntentCancellationHandler` `IntentCancellationReason` | 上記のグレースフルキャンセル | B/U | ✅(B) `8e2d637` |
 | ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets` = `.main` / `.appIntentsExtension` / `.widgetKitExtension`） | FromExtension 整理可否を検証→当時は統合不可と結論。2026-08-12 に前提の crash が iOS 27 で再現しないと実測確認し**分離ごと撤去** | B | ✅ `8e2d637` |
 | SyncableEntity | `SyncableEntity`（`String`/`UUID` id でそのまま適合） | デバイス間 ID 同期 | B | ✅ `d347cb2` |
@@ -60,7 +60,7 @@
 |------|-------------|-------------------|---------|------|
 | App Schema 適合 | `@AppEntity(schema: .reminders.*)` `@AppIntent(schema:)` | Todo を reminders ドメインへ意味的適合 | B/R | ⬜ |
 | Transferable export | `Transferable` `ProxyRepresentation` `ValueRepresentation` | Entity を他アプリへエクスポート（title / IntentPerson / PlaceDescriptor） | B | ✅ (#44) |
-| Onscreen recognition | `userActivity` `appEntityIdentifier` | 詳細画面の単一 Todo（済）+ 一覧の `forSelectionType:`（#46） | R | ✅ |
+| Onscreen recognition | `userActivity` `appEntityIdentifier` | 詳細画面の単一 Todo（済）+ 一覧の `forSelectionType:`（#46） | R | ✅ U（2026-08-12 `viewAnnotations()` を実 run） |
 
 ### #295 AppIntentsTesting — https://developer.apple.com/jp/videos/play/wwdc2026/295/
 
@@ -77,7 +77,7 @@
 | Entity の作り分け | `@AppEntity` `IndexedEntity` `TransientAppEntity` | Category/SubTask を Entity 化、`TodoListSummaryEntity`（Transient）を `GetTodoSummaryIntent` で返す | B | ✅ |
 | Spotlight セマンティック | `CSSearchableIndex` `IndexedEntity` `@Property(indexingKey:)` | title→`\.title` / description→`\.contentDescription`（#43。iOS/macOS 限定 overload） | B | ✅ (#43) |
 | システムアクション Intent | `OpenIntent` `DeleteIntent`（system intent 群） | Open/Delete を system intent プロトコルへ | B | ✅ `375efd1`/`92221d0` |
-| IntentParameter.valueState | `$param.valueState`（`.set` / `.unset`） | `UpdateTodoIntent` で「新値 / 明示クリア / 据え置き」を区別 | B | ✅ (#45) |
+| IntentParameter.valueState | `$param.valueState`（`.set` / `.unset`） | `UpdateTodoIntent` で「新値 / 明示クリア / 据え置き」を区別 | B | ✅ U（2026-08-12 三状態を実 run。テスト側で `.set(nil)` を出すには型付き nil が要る） |
 
 ### #343 高度な App Intent 機能 — https://developer.apple.com/jp/videos/play/wwdc2026/343/
 
@@ -88,14 +88,14 @@
 | ビジュアル応答 | `ShowsSnippetView` `DisplayRepresentation` | （済）Interactive Snippet | R | ✅ |
 | 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | Add/Complete を寄付、削除時 predicate | B/R | ✅(B) `b4dbd63` |
 | セマンティック検索 | `IndexedEntity` `@Property(indexingKey:)` `.system.search` | indexingKey(#43) + in-app 検索スキーマ(#47) | B | ✅ (#43/#47) |
-| Onscreen（コレクション） | `.appEntityIdentifier(forSelectionType:)` | 一覧の各行を onscreen 提供 | B | ✅ (#46) |
+| Onscreen（コレクション） | `.appEntityIdentifier(forSelectionType:)` | 一覧の各行を onscreen 提供 | B | ✅ (#46)（詳細画面側は `viewAnnotations()` でテスト済み） |
 | 既存統合へのエンティティ付与 | `UNMutableNotificationContent.appEntityIdentifiers` | Control のエラー通知に entity を紐付け | B | ✅ (#46) |
 
 ### #297 Visual Intelligence 統合 — https://developer.apple.com/jp/videos/play/wwdc2026/297/
 
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
-| IntentValueQuery | `IntentValueQuery` `SemanticContentDescriptor` | カメラ/スクショ中の対象から該当 Todo | B/R | ✅(B) `069aa48` |
+| IntentValueQuery | `IntentValueQuery` `SemanticContentDescriptor` | カメラ/スクショ中の対象から該当 Todo | B/R | ✅(B) `069aa48`（**iOS シミュレータではテスト不可** — VisualIntelligence.framework が Simulator SDK に無く、ビルドから丸ごと除外されるため） |
 | 結果を開く | `OpenIntent` | タップで詳細へ | B | ✅ `375efd1`(OpenTodoIntent 再利用) |
 | 複数結果型 | `@UnionValue` | Todo / Category 混在結果 | B | ✅ `099dae3`(TodoOrCategory 再利用) |
 | システムストア連携 | EventKit / CNContactStore | 期限→カレンダー、担当者→連絡先 | B | ⏭ 別軸(記録のみ) |

@@ -290,3 +290,24 @@ todo の詳細説明というユースケースに近いため、型の制約で
 4. `requestChoice` を使う `SnoozeTodoIntent` は run できない（応答する相手が居ない）。対話しない `QuickSnoozeTodoIntent` を別に持っていたおかげでスヌーズの計算自体はテストできた。**対話版と非対話版を分けておくとテスト可能性が上がる**という、分離の思わぬ効能。
 
 **残る手作業**: 最終的にシステム UI の見え方に依存するもの（dialog の読み上げ、snippet の描画、Control の表示、Siri のルーティング）だけ。`viewAnnotations()` / `valueQueries` / `exported(as:)` はまだ未着手だが API はあるので寄せられる。
+
+## 2026-08-12: AppIntentsTesting を 22 テストへ拡張、ファイルを分割
+
+前項の方針の続き。1 ファイルに詰め込んでいたテストを `IntentTodoUITest/AppIntents/` 配下へ分割した（`IntentTodoUITest` は現在 synchronized folder なので、ファイルを置くだけでターゲットに入る。以前 insights に書いていた「synchronized folder ではない」は古い記述だったので訂正した）。
+
+- `AppIntentsTestCase.swift` — 共通基底（起動 / 後片付け / ヘルパー）
+- `TodoIntentExecutionTests.swift` — Intent 実行（作成・トグル・スヌーズ・部分更新・バルク・集計・連鎖）
+- `TodoEntityQueryTests.swift` — entity query（文字列一致・id 解決・allEntities・suggested・Spotlight・union 検索）
+- `TodoSystemIntegrationTests.swift` — アプリの外に届く部分（view annotation・ナビゲーション・ValueRepresentation）
+
+**新しく U 深度に上がった観点**: `viewAnnotations()`（onscreen entity, #46）、`exported(as: IntentPerson.self)`（ValueRepresentation, #44）、`valueState` の三状態（#45）、`CompleteTodosIntent`（LongRunningIntent + EntityCollection + `allowedExecutionTargets [.main]`）、`DeleteTodosIntent`、`SearchEverythingIntent`（`@UnionValue`）、Spotlight の de-index、`LaunchAppIntent` のナビゲーション（`@Dependency` + `perform()` パターン。`onAppIntentExecution` を使わない代替経路なので、これで C-1 の「再導入したら検証」以前に現行経路は押さえられた）。
+
+**詰まったところ 3 つ**:
+
+1. **`.set(nil)` が効かないように見えた**。`makeIntent(todoDescription: nil)` は `.set(nil)` ではなく **`.unset`**（引数を渡さなかった扱い）になる。最初これをアプリ側のバグと誤診しかけたが、`UpdateTodoIntent` の実装は正しかった。`Optional` 自身が `IntentValueExpressing` に適合しているので、`let explicitNull: any IntentValueExpressing = String?.none` のように**型付きの nil** を渡すと `.set(nil)` になり、期待どおりクリアされた。
+
+2. **クリーンビルド直後の最初のテストだけ `AppIntentsServicesMetadataErrorDomain Code=400 "dev.touyou.IntentTodo is not present"`**。App Intents のメタデータサービスが新しいアプリをまだ認識していないだけ。`setUp` で軽いクエリが通るまでポーリングしてから本体に入るようにして解消した。
+
+3. **`app.launch()` → `app.activate()`**。前項では「起動済みなら activate」と条件分岐にしていたが、クリーンビルド後は結局 `launch()` を通って落ちたので、無条件 `activate()`（未起動なら起動・起動済みなら前面化）に単純化した。`--uitesting` 起動引数はアプリ側で読んでいなかったので失うものは無い。
+
+**テストにできないと分かったもの**: `IntentValueQuery`（Visual Intelligence）。`VisualIntelligence.framework` は iOS **実機** SDK と macOS SDK にはあるが **iOS Simulator SDK には無い**ため、シミュレータビルドでは `#if canImport(VisualIntelligence)` が false になり `TodoVisualIntelligenceQuery` 自体がバイナリに入らない。`definitions.valueQueries[...]` で参照できないので、この観点だけは実機か macOS destination に回すしかない。
