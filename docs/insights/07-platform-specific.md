@@ -126,16 +126,16 @@ Live Activity から Activity の開始/更新/終了を伴うアクションを
 | Intent種別 | 用途 | 実行プロセス |
 |-----------|------|------------|
 | `AppIntent` | Siri/Shortcuts/UI/Widget | Siri/Shortcuts/UI はアプリ、Widget は `allowedExecutionTargets` 未指定ならヒューリスティクスで決定（アプリ起動中はアプリ優先）、指定すればそこに固定 |
-| `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | `perform()` はアプリプロセス（公式保証）。`AppEntity` パラメータの事前解決フェーズは別（後述） |
+| `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | `perform()` はアプリプロセス（公式保証）。`AppEntity` パラメータの事前解決も iOS 27 実測ではアプリプロセス（後述） |
 | `ControlConfigurationIntent` | コントロールセンター設定値 | Extension 配置必須 |
 
 ### Live Activity Intent のパラメータは String ID にする（Entity を取らない）
 
 Live Activity ボタンから呼ぶ Intent は `@Parameter var todo: TodoAppEntity` ではなく `@Parameter var todoId: String` を使う。
 
-**理由**: App Intents は `AppEntity` パラメータを持つ Intent の `perform()` 実行前に `TodoEntityQuery.entities(for:)` を呼んで entity を解決する。この解決処理中に SwiftData の内部 assertion に引っかかり `EXC_BREAKPOINT` で crash することが実機検証で確認されている。呼出元の LA ボタンはすでに `context.attributes.todoId` を持っているため、Entity 解決は不要。
+**理由（当時）**: App Intents は `AppEntity` パラメータを持つ Intent の `perform()` 実行前に `TodoEntityQuery.entities(for:)` を呼んで entity を解決する。この解決処理中に SwiftData の内部 assertion に引っかかり `EXC_BREAKPOINT` で crash することが確認されていた。呼出元の LA ボタンはすでに `context.attributes.todoId` を持っているため、Entity 解決は不要。
 
-`perform()` 前の entity 解決フェーズがどのプロセスで走るかは Apple 文書に明記が無く未確定（`perform()` 自体はアプリプロセスで実行されることが公式保証されている）。`IntentTodoLiveActivityBundle.init()` が `AppDependencyManager` に何も登録していないことも絡んだ可能性が残る。詳細と根拠のスタックトレースは `03-app-intents-core.md` の「Primary / FromExtension 分離パターン」節を参照。FromExtension 分離自体は結果的に安全なワークアラウンドとして機能している。
+> **⚠️ iOS 27 では再現しない（2026-08-12 実測）**。entity パラメータ版 Intent を LA のロック画面ボタンに直結して実行したところ、`entities(for:)` も `perform()` も**メインアプリプロセス**で走り crash しなかった。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠の素の `AppIntent` でも同じ。`IntentTodoLiveActivityBundle.init()` は今も `AppDependencyManager` に何も登録していないが、それでも問題にならない（解決がアプリ側で走るため）。**現行 SDK ではこのルールは必須ではない**。詳細は `03-app-intents-core.md` の「Primary / FromExtension 分離パターン」節。
 
 経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
 

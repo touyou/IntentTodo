@@ -10,13 +10,13 @@
 
 **追加検証（2026-08-11 その2）**: コード修正を伴う項目のうち自動化可能なものは実施済み（下記「解消済み」）。一方で実機 / Siri 実行 / 大規模機能作業を要するものはこのセッションでは着手できず、残タスクとして以下に一覧化する。
 
-**追加検証（2026-08-12）**: ビルド確認だけで決着できる C-5 / C-9 を実施し完了。副産物として B-2 の結論（2026-08-11 時点）が誤りだったことが判明し再訂正した。次は A-3 / A-5（実行プロセスの instrumentation）。
+**追加検証（2026-08-12）**: C-5 / C-9 をビルド確認で決着（副産物として B-2 の結論が誤りだったことが判明し再訂正）。続けて A-3 をシミュレータ実測で決着し、その副産物で A-5 も裏取り済みにした。**残タスクは A-1 / C-1 / C-6 / C-8 / C-9(深掘り不要) / 付録** のみ。
 
 ## 残タスク（実機検証 or 将来の機能作業が必要、このセッションでは未着手）
 
 - [ ] **A-1**: `includedPackages` 付き `AppIntentsPackage` を複数ターゲットへ重複宣言した場合の Siri/Shortcuts 実機ルーティング（`LNContextErrorDomain Code=2001` 系）未検証。ビルド/メタデータレベルの重複は無いことのみ確認済み。実機検証までは現状の非重複運用を維持。
-- [ ] **A-3**: Live Activity Extension プロセスで `TodoAppEntity`（`@Parameter`）の事前 entity 解決が走ると SwiftData が trap する件、現行 SDK での再現有無を実機未検証。Primary 版 Intent を LA ボタンに直結して実機実行し、trap の再現/非再現を確認する必要がある（再現しなければ FromExtension 分離を簡素化できる）。
-- [ ] **A-5**: `allowedExecutionTargets` 未指定の Widget/Control Intent（`SetTodoCompletionIntent` 等）について、実行プロセスと entity 解決プロセスの実機ログ確認は未実施（`CompleteTodosIntent` のみ `[.main]` 固定で対応済み）。
+- [x] **A-3**: **決着（2026-08-12）**。iOS 27 シミュレータで entity パラメータ版 Intent を LA ロック画面ボタンに直結して実測した結果、**crash は再現せず**、`entities(for:)` も `perform()` も**メインアプリプロセス**で走った。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠の素の `AppIntent` でも同じ（3 ケース）。→ 現行 SDK では FromExtension 分離は不要。ただし削除は別の設計判断を伴うため今回は撤去せず、ドキュメントに「現行 SDK では不要」と明記するに留めた。詳細: `docs/devlog/03-app-intents-core.md`。
+- [x] **A-5**: **裏取り済み（2026-08-12、A-3 の副産物）**。A-3 の検証中に採取したプロセス横断ログで、Widget のタイムライン描画時に `TodoEntityQuery.entities(for:)` が `IntentTodoWidgetExtension` プロセス（pid 48073 等）で走っていることを実測確認した。「Widget Extension 側でも `AppDependencyManager` 登録が必要」という現行の運用は正しい。なお 2026-08-12 の Control snippet 検証（`docs/devlog/06-control-widget-ios26.md`）で `allowedExecutionTargets = [.main]` を実際に適用しても動作したことも確認済み。残るのは Control 経由の `.background` Intent について「未指定時に実際どちらのプロセスが選ばれるか」のログ採取だけだが、ヒューリスティクスである以上どちらもあり得るため運用（両方に登録）は変わらない。
 - [ ] **C-1**: `.onAppIntentExecution` は現在プロジェクト内で未使用（`@Dependency` + `perform()` パターンへ移行済み）。再導入する際は cold start 失敗の3仮説（`@State path` 未構築 / activation conditions 未設定 / `supportedModes` 不足）を実機で検証する必要がある。
 - [x] **C-5**: **決着（2026-08-12）**。`My Mac` ビルドで `canImport(_AppIntents_UIKit)` = **false** を実測確認。さらに `TodoAppIntents` パッケージ内に `UISceneAppIntent` 準拠の probe を置いてビルドし、**Package スコープは障壁ではない**ことを確定（iOS 27 sim / My Mac / visionOS 27 sim の 3 destination でビルド成功）。ただし正しいガードは `#if canImport(_AppIntents_UIKit) && !os(watchOS)` — watchOS は framework が存在して `canImport` が true になるのに `UISceneAppIntent` 型が無く、`canImport` 単独だと Watch App ビルドが落ちる。probe は削除済み（機能要求が出たらこのガードで着手）。詳細: `docs/insights/04-ui-integration.md` / `docs/devlog/04-ui-integration.md`。
 - [x] **B-2 の再訂正（2026-08-12）**: C-5 の実測中に、B-2 の結論「`_AppIntents_SwiftUI` はネイティブ macOS SDK に存在しない」「`TargetContentProvidingIntent` は macOS でも利用可能」が**どちらも誤り**と判明。実際は framework は macOS SDK に実在（`canImport` = true）、`onAppIntentExecution` の宣言だけが macOS スライスに無い。`TargetContentProvidingIntent` は `@available(macOS, unavailable)` で、macOS 向けに準拠を書くとコンパイルエラー。「macOS では `onAppIntentExecution` が使えない」というルール自体は維持、理由と `#if` ガード例を訂正済み。前回の静的調査が別の Xcode（`/Applications/Xcode.app` = 26.x 系）を見ていた可能性が高い。
@@ -63,6 +63,8 @@
 - **調査対象**: `Packages/TodoAppIntents` の `TodoEntityQuery`、`IntentTodoLiveActivity/IntentTodoLiveActivityBundle.swift`（依存登録の有無）、`SharedModelContainer`、LA Extension の entitlements（App Group）、当時のコミット履歴。
 - **検証手順**: LA Extension プロセスへの登録・entitlements を整えた上で Primary 版（`TodoAppEntity` パラメータ）を LA ボタンから実機実行し、trap が再現するか確認。再現しなければ FromExtension 分離は簡素化できる。
 
+**2026-08-12 決着**: iOS 27 / Xcode 27 beta 5 のシミュレータで実施。probe Intent（`@Parameter var todo: TodoAppEntity`）を LA ロック画面ボタンに直結し、`entities(for:)` / `perform()` の `pid` / `processName` をログした。**3 ケースすべて crash 無し・両フェーズともメインアプリプロセス**（アプリ起動中 + `LiveActivityIntent` 準拠 / アプリ kill 済み + 準拠 / アプリ kill 済み + 非準拠）。3 ケース目により仮説 (a)「`LiveActivityIntent` 未準拠が原因」は現行 SDK では否定。仮説 (b)「LA Extension に `AppDependencyManager` 登録が無い」も、今も登録が無いまま動くので現行 SDK では無関係。FromExtension 分離は現行 SDK では不要だが、削除は別の設計判断のため据え置き。詳細: `docs/devlog/03-app-intents-core.md`。
+
 ### A-4. 「`\.textContent` は indexingKey として SDK に露出していない」 ✅ 済（誤りと確定、訂正）
 
 **結果**: 実ビルドで確認: `\.textContent` は `CSSearchableItemAttributeSet_Messaging.h` に実在し、`String?` でも `AttributedString?` でも同一の `indexingKey:` オーバーロードが使える（型で分岐しない）。「AttributedString 専用」仮説も誤り。`todoDescription` を `contentDescription` にマップする結論自体は変わらないが、理由を「型の制約」から「意味の制約（CSDocuments vs CSMessaging）」に訂正。修正先: `docs/insights/03-app-intents-core.md`「`@Property(indexingKey:)`」節。
@@ -84,6 +86,8 @@
 - **仮説**: 現在の「両プロセスで AppDependencyManager 登録」運用は動くが、表の前提（固定）が誤りなら `allowedExecutionTargets` 指定で登録要件を単純化できる。また FromExtension 分離の代替（entity 解決がプロセスに追随するか）は 03 L632 で「未検証」と自認済み。
 - **調査対象**: `TodoAppIntents` 内の `.background` Intent 群、`IntentTodoWidgetBundle.init()` の登録。
 - **検証手順**: `allowedExecutionTargets = [.main]` を付けた Intent を Widget / Control から実機実行し、実行プロセスと entity 解決プロセスをログで確認。
+
+**2026-08-12 裏取り**: A-3 の検証で採取したプロセス横断ログに `IntentTodoWidgetExtension[48073] TodoEntityQuery entities(for:)` が現れ、Widget のタイムライン描画では entity 解決が **Widget Extension プロセス**で走ることを実測確認。Live Activity ボタン経由（アプリプロセス）とは対照的で、「呼出元によって解決プロセスが変わる＝ヒューリスティクス」という訂正後の記述と整合する。両プロセスへの `AppDependencyManager` 登録を維持する現在の運用は正しい。
 
 ---
 

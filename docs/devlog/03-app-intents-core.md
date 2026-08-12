@@ -229,3 +229,25 @@ tvOS・watchOS 対象外）として存在する（wwdc2026-240 のコード例�
 結論自体は変わらない——`textContent`（`CSMessaging` カテゴリ、メール/メッセージ本文全文を想定）よりも
 todo の詳細説明というユースケースに近いため、型の制約ではなく意味の制約による選択だと整理し直した
 （コミット `3140e5b`）。
+
+## 2026-08-12: LA ボタンの entity 解決クラッシュは iOS 27 で再現しないと実測（A-3 決着）
+
+`docs/devlog/2026-08-11-constraint-recheck.md` の A-3 残タスク（「Primary 版 Intent を LA ボタンに直結して実機実行し、trap の再現/非再現を確認する」）を、iPhone 17 Pro Max シミュレータ（iOS 27 / Xcode 27 beta 5）で実施した。
+
+**仕込み**: `@Parameter var todo: TodoAppEntity` + `@Dependency var todoService` を持つ probe Intent を `TodoAppIntents` に置き、ロック画面 Live Activity と Dynamic Island の「Mark Complete」ボタンをそれに差し替えた。あわせて `TodoEntityQuery.entities(for:)` と probe の `perform()` に `pid` / `processName` を出すログを入れた。プロセスをまたぐログは Xcode の launch session では拾えないので、`simctl spawn <udid> log config --subsystem dev.touyou.IntentTodo --mode "level:debug,persist:debug"` で永続化してから `log show` で読んだ（アプリを kill する検証では launch session が切れるため、これが必須）。
+
+**結果**（3 ケースすべて crash 無し、entity 解決も `perform()` もメインアプリプロセス）:
+
+| ケース | `entities(for:)` | `perform()` |
+|---|---|---|
+| アプリ起動中 + `LiveActivityIntent` 準拠 | IntentTodo (pid 38962) | IntentTodo (同 pid) |
+| アプリ kill 済み + `LiveActivityIntent` 準拠 | IntentTodo (pid 47386, LA タップで起動) | IntentTodo (同 pid) |
+| アプリ kill 済み + `LiveActivityIntent` **非**準拠（素の `AppIntent`） | IntentTodo (pid 48600) | IntentTodo (同 pid) |
+
+3 ケース目が効いていて、**`LiveActivityIntent` 準拠の有無は entity 解決プロセスに影響しない**。2026-08-11 の A-3 で挙げた仮説 (a)「当時その Intent が `LiveActivityIntent` 未準拠だったのが原因」は、少なくとも現行 SDK では成立しない。仮説 (b)「LA Extension プロセスに `AppDependencyManager` 登録が無いこと」も、`IntentTodoLiveActivityBundle.init()` が今も何も登録していないまま動いているので現行 SDK では無関係。
+
+**副産物（A-5 の裏取り）**: 同じログに `IntentTodoWidgetExtension[48073] TodoEntityQuery entities(for:)` が出ていた。Widget のタイムライン描画では entity 解決が Widget Extension プロセスで走る。つまり「entity 解決は必ずアプリで走る」わけではなく、上の結論は **Live Activity ボタン経由に限った話**。Widget Extension 側の `AppDependencyManager` 登録は引き続き必要。
+
+**判断**: FromExtension 分離は現行 SDK では不要と分かったが、削除は別の設計判断（`isDiscoverable` の扱い、`endMatchingLiveActivity` の置き場所）を伴うので今回は撤去せず、ドキュメントに「現行 SDK では不要」と明記するに留めた。probe と一時ログは検証後に全て削除済み。
+
+**教訓**: プロセスをまたぐ検証では Xcode の launch session ログでは足りない。`simctl spawn ... log config --mode "persist:debug"` + `log show` にしておくと、アプリを kill した後の再起動や Extension 側のログまで一続きで読める。

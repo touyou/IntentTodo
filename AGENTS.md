@@ -210,7 +210,9 @@ public struct TodoIntentsPackage: AppIntentsPackage { }
 | **Primary** | Siri / Shortcuts / UI | `TodoAppEntity`（`@Parameter`） | `true` (default) | ✅ |
 | **FromExtension** | Live Activity / Widget（todoId を既に持っている） | `String`（UUID 文字列） | `false` | ❌ |
 
-**なぜ分けるか**: App Intents は `@Parameter var todo: TodoAppEntity` を持つ Intent の `perform()` 実行前に、別フェーズで `TodoEntityQuery.entities(for:)` を呼んで entity を解決する（[WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) 7:37 "Intent 実行前に entity 解決が走る"）。`LiveActivityIntent` 準拠が保証するのは `perform()` がアプリプロセスで実行されることのみで（後述）、この事前解決フェーズがどのプロセスで走るかは Apple 文書に明記が無く、実機では entity パラメータ版 Intent を LA ボタンに直結すると `EXC_BREAKPOINT` で落ちた実績がある。呼出元が todoId を既に持っているケースでは、entity 解決自体を経由しない `String` パラメータ版で回避する（経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
+**なぜ分けるか**: App Intents は `@Parameter var todo: TodoAppEntity` を持つ Intent の `perform()` 実行前に、別フェーズで `TodoEntityQuery.entities(for:)` を呼んで entity を解決する（[WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) 7:37 "Intent 実行前に entity 解決が走る"）。この事前解決中に SwiftData が `EXC_BREAKPOINT` で落ちた実績があり、entity 解決を経由しない `String` パラメータ版を分離することで回避した。
+
+> **⚠️ この crash は iOS 27 では再現しない（2026-08-12 実測）**。entity パラメータ版を LA のロック画面ボタンに直結してシミュレータで実行したところ、`entities(for:)` も `perform()` も**メインアプリプロセス**で走り crash しなかった。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠の素の `AppIntent` でも同じ。**現行 SDK では FromExtension 分離は不要**（残してあるが削除しても動く）。ただしこれは Live Activity ボタン経由に限った話で、Widget のタイムライン描画では `entities(for:)` が Widget Extension プロセスで走ることを同じ実測で確認している。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
 
 ```swift
 // Primary
@@ -318,7 +320,7 @@ struct AddTodoIntent: AppIntent {
 | Widget `Button(intent:)` | `.foreground(.immediate)` | **メインアプリ** | `App.init()` |
 | Widget `Button(intent:)` / ControlWidget | `.background`（`allowedExecutionTargets` 未指定） | **ヒューリスティクスで決定**（アプリ起動中はメインアプリ優先、未起動なら Widget Extension を起動） | **両方**（`App.init()` と `WidgetBundle.init()`、保険として） |
 | 同上 | `.background`（`allowedExecutionTargets` で明示指定、例: `[.main]`） | **指定したプロセスに固定** | 指定先のみで足りる |
-| Live Activity ボタン | `LiveActivityIntent` | `perform()` はアプリプロセス（Apple 公式）。ただし `TodoAppEntity` の事前 entity 解決 (`entities(for:)`) は別フェーズで実行プロセス未公式文書化、実機 crash 歴あり（上記「なぜ分けるか」参照） | アプリ側 (`App.init()`)。FromExtension 系は String パラメータで解決フェーズ自体を回避 |
+| Live Activity ボタン | `LiveActivityIntent` / 素の `AppIntent` | `perform()` はアプリプロセス（Apple 公式）。`TodoAppEntity` の事前 entity 解決 (`entities(for:)`) も**アプリプロセス**で走る（iOS 27 実測。cold start でも、`LiveActivityIntent` 非準拠でも同じ） | アプリ側 (`App.init()`) のみで足りる |
 
 > 本プロジェクトは大半の Widget/Control Intent で `allowedExecutionTargets` を未指定のままにしているため、二重登録（`App.init()` と `WidgetBundle.init()` の両方）は撤廃できない。`CompleteTodosIntent` のみ `[.main]` 固定済み（詳細は `docs/insights/03-app-intents-core.md`、経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
 
