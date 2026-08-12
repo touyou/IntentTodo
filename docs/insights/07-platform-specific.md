@@ -277,7 +277,19 @@ Button(intent: OpenAddTodoIntent()) {
 
 ## `#Predicate` の Optional 比較回避
 
-`#Predicate<TodoItem> { $0.id == optionalUUID }` のように Optional を直接比較する式はコンパイルが通らないことがある。この制約は全プラットフォーム共通の問題で、toolchain バージョンによって再現/非再現が分かれる可能性がある（優先度低、未再検証）。回避策は:
+`#Predicate<TodoItem> { $0.id == optionalUUID }` のように **非 Optional のプロパティを Optional の値と比較する**式はコンパイルが通らない（`value of optional type 'UUID?' must be unwrapped to a value of type 'UUID'`）。
+
+Xcode 27 beta 5 / iOS 27 で再検証した結果、これは**プラットフォーム差でも toolchain バージョン差でもなく `#Predicate` マクロ固有の制約**と確定した。素の Swift や普通のクロージャでは Optional の暗黙昇格が効いて `nonOptional == optional` が通るが、`#Predicate` の展開後は両辺の型が一致していることを要求するため昇格が働かない。落ちるのは 1 パターンだけ:
+
+| 式 | 結果 |
+|---|---|
+| 非 Optional プロパティ == Optional 値（`$0.id == optionalUUID`） | ❌ コンパイルエラー |
+| Optional プロパティ == Optional 値（`$0.dueDate == optionalDate`） | ✅ |
+| Optional プロパティ == 非 Optional 値（`$0.dueDate == date`） | ✅ |
+| Optional プロパティ != nil | ✅ |
+| 素の Swift / 普通のクロージャで `$0.id == optionalUUID` | ✅（`#Predicate` の外なら通る） |
+
+回避策は:
 
 1. 非 Optional な定数を capture してから比較する（推奨）
    ```swift

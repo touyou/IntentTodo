@@ -62,3 +62,28 @@ cold start（Intent が先、View が後）でも取りこぼさない。
 **教訓**: 画面ターゲットの `AppEnum` に case を足すのと、`perform()` でその状態を書き込むのは別作業。
 列挙が約束した遷移先は必ず状態書き込みとセットで実装する。`switch` の `default` / まとめ `case` +
 `break` は、この種の「宣言はあるが実装が無い」を静かに隠す。
+
+## 2026-08-12: macOS で `onAppIntentExecution` が使えない理由の説明が誤っていた（C-5 / B-2 再検証）
+
+`04-ui-integration.md` は 2026-08-11 の再検証（B-2）で「`onAppIntentExecution` を実装する `_AppIntents_SwiftUI` フレームワークはネイティブ macOS SDK に存在しない（`MacOSX.sdk` 内では Mac Catalyst 配下にしかない）」「一方 `TargetContentProvidingIntent` は macOS でも利用可能」と結論づけていた。どちらも誤りだった。
+
+`My Mac` destination で `RunCodeSnippet` を実行して実測したところ:
+
+- `#if canImport(_AppIntents_SwiftUI)` → **available**。`_AppIntents_SwiftUI.framework` は macOS 27 SDK の `System/Library/Frameworks/` 直下に実在する。前回の「0 件マッチ」は Xcode 27 beta 5 ではなく `/Applications/Xcode.app`（26.x 系）側を見ていた可能性が高い。
+- 同 SDK の macOS スライス `.swiftinterface` に `onAppIntentExecution` の宣言は無い（iOS スライスにはある）。
+- `TargetContentProvidingIntent` は macOS の `AppIntents.swiftinterface` に宣言はあるが `@available(macOS, unavailable)` / `@available(watchOS, unavailable)` 付き。実際に macOS ビルドで準拠を書くと `'TargetContentProvidingIntent' is unavailable in macOS` でコンパイルエラーになる。
+
+結論として「macOS では `onAppIntentExecution` が使えない」というルール自体は正しいままだが、理由は**フレームワークの有無ではなく API の availability**。ドキュメント中のガード例も `#if os(iOS) || os(macOS) || os(visionOS)` と macOS を含む誤った形になっていた（実コード `LaunchAppIntent.swift` は `#if os(iOS) || os(visionOS)` で正しい）ため訂正した。
+
+**教訓**: 複数の Xcode が並存する環境では、SDK の静的調査は「MCP / Xcode が実際に使っている Xcode.app」のパスで行う。`xcrun --sdk macosx --show-sdk-path` が返すのは `xcode-select` の指す Xcode であって、作業中の beta とは限らない。
+
+## 2026-08-12: `UISceneAppIntent` は Swift Package 内で定義できる（C-5 決着）
+
+「`UISceneAppIntent` は Swift Package 内 Intent には利用不可（UIKit 依存で Package スコープ参照不可）」という記述は、2026-08-11 に「障壁はパッケージスコープではなく `_AppIntents_UIKit` のプラットフォーム配布差」と因果を訂正済みだったが、パッケージ内に実際に置いてビルドする検証はしていなかった。
+
+今回 `Packages/TodoAppIntents/Sources/TodoAppIntents/` に `UISceneAppIntent` 準拠の probe を置いてビルドし、決着させた:
+
+1. `#if canImport(_AppIntents_UIKit)` だけのガードだと **watchOS ターゲットのビルドが落ちる**（`Cannot find type 'UISceneAppIntent' in scope` / `'UIScene' is unavailable in watchOS`）。watchOS SDK には `_AppIntents_UIKit.framework` が**存在する**ため `canImport` は true になるが、`UISceneAppIntent` は `TargetContentProvidingIntent` 経由で `@available(watchOS, unavailable)` を引き継いでおり型が無い。`IntentTodo` スキームは Watch App を同時にビルドするので iPhone destination のビルドで顕在化した。
+2. `#if canImport(_AppIntents_UIKit) && !os(watchOS)` に直すと iPhone 17 Pro Max（iOS 27）/ My Mac / Apple Vision Pro の 3 destination すべてでビルド成功。
+
+つまり Package スコープは障壁ではなく、正しいガードさえ書けば置ける。probe は検証後に削除した（`UISceneAppIntent` を要するマルチウィンドウ機能がまだ無いため実装は見送り）。これは `07-platform-specific.md` の「`#if canImport(X)` だけに頼らない」の 2 例目にあたる。

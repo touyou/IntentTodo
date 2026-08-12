@@ -10,17 +10,20 @@
 
 **追加検証（2026-08-11 その2）**: コード修正を伴う項目のうち自動化可能なものは実施済み（下記「解消済み」）。一方で実機 / Siri 実行 / 大規模機能作業を要するものはこのセッションでは着手できず、残タスクとして以下に一覧化する。
 
+**追加検証（2026-08-12）**: ビルド確認だけで決着できる C-5 / C-9 を実施し完了。副産物として B-2 の結論（2026-08-11 時点）が誤りだったことが判明し再訂正した。次は A-3 / A-5（実行プロセスの instrumentation）。
+
 ## 残タスク（実機検証 or 将来の機能作業が必要、このセッションでは未着手）
 
 - [ ] **A-1**: `includedPackages` 付き `AppIntentsPackage` を複数ターゲットへ重複宣言した場合の Siri/Shortcuts 実機ルーティング（`LNContextErrorDomain Code=2001` 系）未検証。ビルド/メタデータレベルの重複は無いことのみ確認済み。実機検証までは現状の非重複運用を維持。
 - [ ] **A-3**: Live Activity Extension プロセスで `TodoAppEntity`（`@Parameter`）の事前 entity 解決が走ると SwiftData が trap する件、現行 SDK での再現有無を実機未検証。Primary 版 Intent を LA ボタンに直結して実機実行し、trap の再現/非再現を確認する必要がある（再現しなければ FromExtension 分離を簡素化できる）。
 - [ ] **A-5**: `allowedExecutionTargets` 未指定の Widget/Control Intent（`SetTodoCompletionIntent` 等）について、実行プロセスと entity 解決プロセスの実機ログ確認は未実施（`CompleteTodosIntent` のみ `[.main]` 固定で対応済み）。
 - [ ] **C-1**: `.onAppIntentExecution` は現在プロジェクト内で未使用（`@Dependency` + `perform()` パターンへ移行済み）。再導入する際は cold start 失敗の3仮説（`@State path` 未構築 / activation conditions 未設定 / `supportedModes` 不足）を実機で検証する必要がある。
-- [ ] **C-5**: `_AppIntents_UIKit` が iOS で import 可能なことは `RunCodeSnippet` で実証済みだが、macOS 側は `.swiftinterface` の静的調査のみで実際の macOS ビルドでの `canImport` 結果は未確認。また `UISceneAppIntent` を使う具体的なマルチウィンドウ機能が無いため実装自体は保留中（機能要求が出たら着手）。
+- [x] **C-5**: **決着（2026-08-12）**。`My Mac` ビルドで `canImport(_AppIntents_UIKit)` = **false** を実測確認。さらに `TodoAppIntents` パッケージ内に `UISceneAppIntent` 準拠の probe を置いてビルドし、**Package スコープは障壁ではない**ことを確定（iOS 27 sim / My Mac / visionOS 27 sim の 3 destination でビルド成功）。ただし正しいガードは `#if canImport(_AppIntents_UIKit) && !os(watchOS)` — watchOS は framework が存在して `canImport` が true になるのに `UISceneAppIntent` 型が無く、`canImport` 単独だと Watch App ビルドが落ちる。probe は削除済み（機能要求が出たらこのガードで着手）。詳細: `docs/insights/04-ui-integration.md` / `docs/devlog/04-ui-integration.md`。
+- [x] **B-2 の再訂正（2026-08-12）**: C-5 の実測中に、B-2 の結論「`_AppIntents_SwiftUI` はネイティブ macOS SDK に存在しない」「`TargetContentProvidingIntent` は macOS でも利用可能」が**どちらも誤り**と判明。実際は framework は macOS SDK に実在（`canImport` = true）、`onAppIntentExecution` の宣言だけが macOS スライスに無い。`TargetContentProvidingIntent` は `@available(macOS, unavailable)` で、macOS 向けに準拠を書くとコンパイルエラー。「macOS では `onAppIntentExecution` が使えない」というルール自体は維持、理由と `#if` ガード例を訂正済み。前回の静的調査が別の Xcode（`/Applications/Xcode.app` = 26.x 系）を見ていた可能性が高い。
 - [ ] **C-6**: `TodoAppEntity` の `.reminders.reminder` スキーマ適合の再挑戦（wwdc2026-344 の CometCal パターン: 手書き init 無し + Query 側 populate + 入れ子は `TransientAppEntity`）。大規模な機能作業のため未着手、`docs/APP_INTENTS_CENTRIC_PLAN.md` #48 の出発点としてリードのみ記録済み。
 - [ ] **C-8**: Control のフィードバック設計は 2026-08-12 に見直し済み（Toggle 化 + 成功通知廃止 + `.controlWidgetStatus` 撤去、経緯は `docs/devlog/06-control-widget-ios26.md`）。残るのは**実機 Control Center での見え方の確認**（Toggle の on/off 表示、設定フローの `.promptsForUserConfiguration()`、失敗時のエラー通知）。
 - [x] **C-10**: **Control から実行した Intent の snippet は提示されない**ことを実機で確定（2026-08-12）。同一 Intent・同一 snippet を Spotlight から呼ぶと出て、Control から呼ぶと出ない（`allowedExecutionTargets = [.main]` 固定でも、Button / Toggle どちらの形でも出ない）。snippet 実装 / パラメータの有無 / 実行プロセス / `isDiscoverable` / メタデータ登録はすべて Spotlight 側で同条件のまま成立しているため、差分は呼出元のみ。詳細は `docs/devlog/06-control-widget-ios26.md`。出なかった場合の次の手（`allowedExecutionTargets = [.main]` → ボタン形状で再試行）は `docs/devlog/06-control-widget-ios26.md` 2026-08-12 の項に記載。
-- [ ] **C-9**: `#Predicate` の Optional 比較制約について、visionOS/toolchain バージョン差による再現/非再現の実際の切り分けは優先度低のため未再検証。
+- [x] **C-9**: **決着（2026-08-12）**。`RunCodeSnippet` で条件を絞り込んだ結果、toolchain 差でもプラットフォーム差でもなく **`#Predicate` マクロ固有の制約**と確定。落ちるのは「非 Optional のプロパティ == Optional 値」の 1 パターンのみで、Optional プロパティ側（`== Optional` / `== 非 Optional` / `!= nil`）は全て通る。同じ式を `#Predicate` の外（素のクロージャ）に書くと通るため、マクロ展開で Optional の暗黙昇格が効かないことが原因。詳細: `docs/insights/07-platform-specific.md` / `docs/devlog/07-platform-specific.md`。
 - [ ] **付録**: `docs/insights/05` L90 の「WWDC 2026 session 8017 SwiftData Group Lab」引用元がローカルアーカイブに存在せず（8011 のみ確認可能）、一次資料未確認のまま一次確認不能な伝聞として記録している。
 
 ---
@@ -95,9 +98,15 @@
 - **調査対象**: `Packages/WatchUI/Sources` の実装（どちらのパターンを実際に使っているか）、その Intent が `@Dependency` を持つか。
 - **検証手順**: 実装を確認し、watchOS 実機/シミュレータで両パターンを試して doc を一本化。
 
-### B-2. 「macOS では `onAppIntentExecution` が使えない」 ✅ 済（制約は正しいと確認、変更不要）
+### B-2. 「macOS では `onAppIntentExecution` が使えない」 ✅ 済（結論は維持、理由は 2026-08-12 に再訂正）
 
-**結果**: Xcode 27 beta 5 SDK の `.swiftinterface` を直接調査した結果、`onAppIntentExecution` を実装する `_AppIntents_SwiftUI` フレームワークは iOS / macCatalyst / visionOS / watchOS には存在するが、**ネイティブ macOS には存在しない**ことを確認（0件マッチ）。制約は正しかった。一方 `TargetContentProvidingIntent`（プロトコル本体）は macOS でも利用可能で、プロジェクトの `#if os(iOS) || os(macOS) || os(visionOS)` によるプロトコル準拠は妥当（半矛盾ではなく、プロトコル準拠とSwiftUI側モディファイアの利用可否が別問題だった）。修正先: `docs/insights/04-ui-integration.md` に確認済みの注記を追加（ルール自体は変更なし）。
+**結果（2026-08-11）**: Xcode 27 beta 5 SDK の `.swiftinterface` を直接調査した結果、`onAppIntentExecution` を実装する `_AppIntents_SwiftUI` フレームワークは iOS / macCatalyst / visionOS / watchOS には存在するが、**ネイティブ macOS には存在しない**ことを確認（0件マッチ）。制約は正しかった。一方 `TargetContentProvidingIntent`（プロトコル本体）は macOS でも利用可能で、プロジェクトの `#if os(iOS) || os(macOS) || os(visionOS)` によるプロトコル準拠は妥当（半矛盾ではなく、プロトコル準拠とSwiftUI側モディファイアの利用可否が別問題だった）。
+
+**再訂正（2026-08-12）**: 上記の「0件マッチ」と「`TargetContentProvidingIntent` は macOS でも利用可能」は**どちらも誤り**。`My Mac` destination での実測により:
+- `_AppIntents_SwiftUI.framework` は macOS 27 SDK の `System/Library/Frameworks/` に**実在**し `canImport` は true。macOS スライスの `.swiftinterface` に `onAppIntentExecution` の宣言だけが無い。
+- `TargetContentProvidingIntent` は `@available(macOS, unavailable)` / `@available(watchOS, unavailable)`。macOS 向けに準拠を書くと `'TargetContentProvidingIntent' is unavailable in macOS` でコンパイルエラー。
+
+「macOS では `onAppIntentExecution` が使えない」というルール自体は維持。前回の 0 件マッチは `/Applications/Xcode.app`（26.x 系）の SDK を見ていた可能性が高い（`xcode-select` が指す Xcode と MCP が使う beta が別）。修正先: `docs/insights/04-ui-integration.md`（理由の記述と `#if` ガード例）。
 
 - **記載箇所**: docs/insights/04 L94
 - **問題**: wwdc2025-275 (21:26–23:52) はプラットフォーム制限に言及なし。しかも同プロジェクトの `OpenAddTodoIntent` まわりの extension は `#if os(iOS) || os(macOS) || os(visionOS)` で macOS を含んでおり記述と半ば矛盾。メモリの方針（「プラットフォーム限定」は当時の制約かもしれない → SDK 更新時に実ビルドで確認）にも該当。
@@ -147,6 +156,8 @@
 
 **結果**: SDK 調査で `UISceneAppIntent` は独立フレームワーク `_AppIntents_UIKit` に属し、これが **iOS / watchOS / visionOS には存在するがネイティブ macOS には存在しない**ことを確認（Package スコープの問題ではなく SDK レベルのプラットフォームギャップ）。`#if canImport(_AppIntents_UIKit)` でガードすれば Package 内でも使える可能性が高いと訂正。**2026-08-11 追記**: `RunCodeSnippet` で実際に iOS シミュレータ (iOS 27) コンテキストで `#if canImport(_AppIntents_UIKit)` を実行し `available` を確認、ガード方針が iOS 側で機能することを実証した（macOS 側は `.swiftinterface` の静的調査のみ）。ただし本プロジェクトには `UISceneAppIntent` を要する具体的なマルチウィンドウ機能が無いため、コード実装は見送り。修正先: `docs/insights/04-ui-integration.md`。
 
+**2026-08-12 決着**: パッケージ内に `UISceneAppIntent` 準拠の probe を実際に置いてビルドし、**Package スコープが障壁ではない**ことを確定（iOS 27 sim / My Mac / visionOS 27 sim の 3 destination でビルド成功、probe は削除済み）。同時に「`#if canImport(_AppIntents_UIKit)` でガードすれば良い」も不十分と判明: watchOS SDK には framework が存在して `canImport` が true になるのに `UISceneAppIntent` 型が無く、`IntentTodo` スキームが同時ビルドする Watch App が `Cannot find type 'UISceneAppIntent' in scope` / `'UIScene' is unavailable in watchOS` で落ちた。正しいガードは `#if canImport(_AppIntents_UIKit) && !os(watchOS)`。また `My Mac` ビルドでの `canImport(_AppIntents_UIKit)` = false も実測確認済み。
+
 - **記載箇所**: docs/insights/04 L206
 - **仮説**: SPM パッケージは `#if canImport(UIKit)` で UIKit を import 可能であり、理由付けが疑わしい。実際の障壁は TodoAppIntents が watchOS/macOS 向けにもコンパイルされるプラットフォームマトリクスで、ガードで解決できる可能性。
 - **検証手順**: 必要になったら `#if canImport(UIKit)` ガード付きで試す（優先度低、理由付けの修正のみ先行可）。
@@ -177,9 +188,11 @@
 - **検証手順**: `ToggleUrgentTodoIntent` / `ShowTodoCountIntent` で `.controlWidgetStatus` を試し、通知運用と比較。
 - **後日談 (2026-08-12)**: 比較の結果、併用ではなく**通知（成功）と `.controlWidgetStatus` の両方を撤去**する結論になった。Control を `ControlWidgetToggle` 化して状態自体をコントロール面に出したため、どちらも「コントロールが既に伝えている情報」の重複表示になったため。Snippet で置き換える案も検討したが、Snippet は Siri / Spotlight / Shortcuts でしか描画されず Control では出ない。詳細: `docs/devlog/06-control-widget-ios26.md` 2026-08-12 の項。
 
-### C-9. 「`#Predicate` の Optional 直接比較は visionOS 等でコンパイル不可のことがある」 ✅ 済（表現を汎化）
+### C-9. 「`#Predicate` の Optional 直接比較は visionOS 等でコンパイル不可のことがある」 ✅ 済（2026-08-12 に実測で確定）
 
-**結果**: プラットフォーム限定の書き方を「全プラットフォーム共通の toolchain 依存問題」に汎化訂正（優先度低のため深掘りはせず）。修正先: `docs/insights/07-platform-specific.md`。
+**結果（2026-08-11）**: プラットフォーム限定の書き方を「全プラットフォーム共通の toolchain 依存問題」に汎化訂正（優先度低のため深掘りはせず）。修正先: `docs/insights/07-platform-specific.md`。
+
+**確定（2026-08-12）**: `RunCodeSnippet` で条件を絞り込み、**toolchain 依存でもなく `#Predicate` マクロ固有の制約**と確定。落ちるのは「非 Optional のプロパティ == Optional 値」（`$0.id == optionalUUID`）の 1 パターンのみ。Optional プロパティ側（`== Optional` / `== 非 Optional` / `!= nil`）は全て通り、同じ式を `#Predicate` の外（素のクロージャや `UUID == UUID?`）に書くと通る。素の `==` に効く Optional の暗黙昇格がマクロ展開後の型要求では働かないことが原因。
 
 - **記載箇所**: docs/insights/07 L265–275
 - **仮説**: `#Predicate` の Optional 制約は通常**全プラットフォーム共通**のマクロ/型推論問題で、「visionOS 等で」というプラットフォーム差は toolchain バージョン差の可能性。優先度低。

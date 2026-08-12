@@ -97,7 +97,13 @@ NavigationStack {
 
 どちらも正しい。プロジェクトの規模や好みで選択する。macOS では `onAppIntentExecution` が使えないため `@Dependency` パターンが必須。
 
-`onAppIntentExecution` は `_AppIntents_SwiftUI` フレームワークに実装されており、この配布は **iOS / macCatalyst / visionOS / watchOS には存在するが、ネイティブ macOS 向けには存在しない**（`MacOSX.sdk` 内では `System/iOSSupport`＝Mac Catalyst 配下にしか同フレームワークが無い）。一方 `TargetContentProvidingIntent`（プロトコル本体、`AppIntents.framework` 側）は macOS でも利用可能で、本プロジェクトの `#if os(iOS) || os(macOS) || os(visionOS)` による準拠はこの切り分けと整合している（プロトコル準拠自体はできるが、SwiftUI 側のフック用モディファイアだけが無い）。
+macOS で使えない理由は**フレームワークの有無ではなく API の availability**（Xcode 27 beta 5 / macOS 27 SDK で実測）:
+
+- `_AppIntents_SwiftUI.framework` は **ネイティブ macOS SDK にも存在する**。`My Mac` destination で `#if canImport(_AppIntents_SwiftUI)` は `true` になる。
+- ただし macOS スライスの `.swiftinterface` に `onAppIntentExecution` の宣言は**無い**（iOS スライスにはある）。
+- 前提となる `TargetContentProvidingIntent` 自体が `@available(macOS, unavailable)` / `@available(watchOS, unavailable)` で、iOS / tvOS / visionOS / macCatalyst 26.0+ のみ。macOS 向けに準拠を書くと `'TargetContentProvidingIntent' is unavailable in macOS` でコンパイルエラーになる。
+
+つまり `canImport` を根拠にしてはいけないケースで、正しい判定軸は `os(...)`。準拠のガードも `#if os(iOS) || os(visionOS)`（macOS と watchOS を外す）が正となる。
 
 経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)
 
@@ -125,24 +131,24 @@ NavigationStack {
 
 `onAppIntentExecution` を使用するためには、対象Intentが `TargetContentProvidingIntent` に準拠している必要がある。
 
-**重要**: `TargetContentProvidingIntent` はwatchOSでは利用不可。Swift Packageで定義する場合は条件付きextensionで準拠する:
+**重要**: `TargetContentProvidingIntent` は **macOS / watchOS では利用不可**（SDK 側で `@available(macOS, unavailable)` / `@available(watchOS, unavailable)`）。Swift Packageで定義する場合は条件付きextensionで準拠する:
 
 ```swift
 // Intent本体は全プラットフォーム共通（AppIntent として定義）
 public struct OpenAddTodoIntent: AppIntent { ... }
 
-// TargetContentProvidingIntent は watchOS 以外のみ追加準拠
+// TargetContentProvidingIntent は macOS / watchOS では unavailable なので除外
 // ※ TargetContentProvidingIntent は AppIntent を継承しているため、
 //    単独で宣言する場合は AppIntent を並べる必要はないが、
 //    後から extension で追加する場合はこのパターンが必要
-#if os(iOS) || os(macOS) || os(visionOS)
+#if os(iOS) || os(visionOS)
 extension OpenAddTodoIntent: TargetContentProvidingIntent {}
 extension OpenTodoListIntent: TargetContentProvidingIntent {}
 extension LaunchAppIntent: TargetContentProvidingIntent {}
 #endif
 ```
 
-同様に、View側の `onAppIntentExecution` も `#if !os(watchOS)` で囲む必要がある。
+同様に、View側の `onAppIntentExecution` も同じ条件で囲む必要がある。
 
 ---
 
@@ -232,9 +238,26 @@ static let supportedModes: IntentModes = [.foreground(.immediate)]
 
 ---
 
-### UISceneAppIntent の制限
+### UISceneAppIntent は Swift Package 内でも定義できる（ガードは `canImport` だけでは足りない）
 
-`UISceneAppIntent` は独立した `_AppIntents_UIKit` フレームワークに属し、**このフレームワークは SDK レベルで iOS / watchOS / visionOS には存在するが、ネイティブ macOS には存在しない**（Xcode 27 beta 5 SDK で確認: `_AppIntents_UIKit.framework` が macOS SDK 直下には無い）。SPM パッケージ自体は `#if canImport(UIKit)` で UIKit を普通に import できるため、障壁はパッケージスコープではなくこのフレームワーク配布の違いにある。`TodoAppIntents` は macOS 向けにもコンパイルされるプラットフォームマトリクスのため、`#if canImport(_AppIntents_UIKit)`（または `#if os(iOS) || os(watchOS) || os(visionOS)`）でガードすれば Package 内でも利用できる（iOS シミュレータの実行時確認で `_AppIntents_UIKit: available` を確認済み）。`TodoAppIntents` に `UISceneAppIntent` を使う具体的なマルチウィンドウ機能が無いため実装は見送り（機能要求が出たら本ガードで着手する）。マルチウィンドウでのシーン固有ルーティングが必要な場合の代替は変わらず、メインアプリターゲット内でIntentを定義するか、`SceneDelegate`で`connectionOptions`を活用する。
+`UISceneAppIntent` は独立した `_AppIntents_UIKit` フレームワークに属する。**Swift Package スコープであることは障壁ではない** — `TodoAppIntents` パッケージ内に `UISceneAppIntent` 準拠の Intent を置いて iOS シミュレータ / My Mac / visionOS シミュレータの 3 destination すべてでビルド成功することを実測で確認済み（Xcode 27 beta 5）。
+
+ただし**ガードの書き方を間違えると watchOS で落ちる**:
+
+| プラットフォーム | `_AppIntents_UIKit.framework` | `UISceneAppIntent` |
+|---|---|---|
+| iOS / visionOS | あり | 使える |
+| watchOS | **あり**（= `canImport` は true） | **無い**（`UIScene` も unavailable） |
+| macOS | 無し | — |
+
+`UISceneAppIntent` は `TargetContentProvidingIntent` を継承するため、その `@available(macOS, unavailable)` / `@available(watchOS, unavailable)` をそのまま引き継ぐ。watchOS は「フレームワークは import できるが型が無い」という組み合わせなので、`#if canImport(_AppIntents_UIKit)` 単独では watchOS ターゲットのビルドが `Cannot find type 'UISceneAppIntent' in scope` / `'UIScene' is unavailable in watchOS` で落ちる（実測）。これは本プロジェクトの「[`#if canImport(X)` だけに頼らない](07-platform-specific.md)」と同じ罠。
+
+```swift
+// ✅ watchOS を明示的に外す
+#if canImport(_AppIntents_UIKit) && !os(watchOS)
+```
+
+`TodoAppIntents` に `UISceneAppIntent` を要する具体的なマルチウィンドウ機能が無いため実装は見送り（機能要求が出たら上記ガードで着手する）。マルチウィンドウでのシーン固有ルーティングが必要な場合の代替は変わらず、メインアプリターゲット内でIntentを定義するか、`SceneDelegate`で`connectionOptions`を活用する。
 
 経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)
 

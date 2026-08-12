@@ -47,3 +47,20 @@ git 考古学でクラッシュ自体（スタックトレース）の実在は�
 `#Predicate<TodoItem> { $0.id == optionalUUID }` のコンパイル失敗について、`07-platform-specific.md` は当初「visionOS 等でコンパイルが通らないことがある」とプラットフォーム限定の書き方をしていた。
 
 `docs/devlog/2026-08-11-constraint-recheck.md` の全項目再検証（コミット `3140e5b`）でこの記述を洗い直したところ、`#Predicate` マクロの Optional 絡みの型推論制約は基本的に全プラットフォーム共通の問題であり、visionOS 固有ではなく toolchain バージョン差によって再現/非再現が分かれていた可能性が高いと判断した。優先度が低く再現条件の特定までは至らなかったため未再検証のままだが、「visionOS 等で」という誤ったスコープ限定の表現だけは訂正した。
+
+## 2026-08-12: `#Predicate` の Optional 比較制約を実測で確定（C-9 決着）
+
+2026-08-11 の再検証では「全プラットフォーム共通の toolchain 依存問題、優先度低のため未再検証」という書き方で保留していた。今回 `Packages/Domain/Sources/Domain/Models/TodoItem.swift` のコンテキストで `RunCodeSnippet` を回して、条件を絞り込んだ。
+
+| 式 | 結果 |
+|---|---|
+| `#Predicate<TodoItem> { $0.id == optionalUUID }`（非 Optional プロパティ == Optional 値） | ❌ `value of optional type 'UUID?' must be unwrapped to a value of type 'UUID'` |
+| `#Predicate<TodoItem> { $0.dueDate == optionalDate }` | ✅ |
+| `#Predicate<TodoItem> { $0.dueDate == concreteDate }` | ✅ |
+| `#Predicate<TodoItem> { $0.dueDate != nil }` | ✅ |
+| `let closure: (TodoItem) -> Bool = { $0.id == optionalUUID }`（`#Predicate` の外） | ✅ |
+| 素の `UUID == UUID?` | ✅ |
+
+同じ式が `#Predicate` の外なら通り、中だけ落ちる。よって **toolchain バージョン差でもプラットフォーム差でもなく `#Predicate` マクロ固有の制約**と確定した（Xcode 27 beta 5 / iOS 27 シミュレータ）。素の `==` に効く Optional の暗黙昇格が、マクロ展開後の型要求では働かないため。落ちるのは「非 Optional のプロパティを Optional の値と比較する」1 パターンだけで、Optional プロパティ側は全パターン通る。
+
+回避策（非 Optional な定数を capture してから比較する）は変更なし。
