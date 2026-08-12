@@ -4,7 +4,9 @@
 
 **使い方**: 別セッションでコード側の検証を進める際の作業リスト。各項目に「仮説」「調査対象ファイル」「検証手順」を記載。検証が済んだら該当ドキュメントを修正し、この項目に結果を追記する。
 
-> **方針（2026-08-12 追加）**: 手作業の実機/シミュレータ検証に行く前に、**AppIntentsTesting で押さえられないかを先に検討する**。テストに寄せられればデグレも同時に防げる。寄せられる観点の一覧は `docs/insights/03-app-intents-core.md`「AppIntentsTesting に寄せられる検証観点」を参照。手作業が必須なのは、最終的にシステム UI の見え方に依存するもの（dialog の読み上げ、snippet の描画、Control の表示、Siri のルーティング）だけ。
+> **方針（2026-08-12 追加）**: 手作業の実機/シミュレータ検証に行く前に、**AppIntentsTesting で押さえられないかを先に検討する**。テストに寄せられればデグレも同時に防げる。寄せられる観点の一覧は `docs/insights/03-app-intents-core.md`「AppIntentsTesting に寄せられる検証観点」を参照。
+>
+> これは Apple 自身が示す順序でもある（wwdc2026-240 24:13–25:57）: **AppIntentsTesting（分離）→ Shortcuts アプリ（intent の形）→ Spotlight（index）→ Siri（end-to-end）**。最後の Siri だけは自動化手段が無く（wwdc2026-295 24:46 "test your intents **manually** with Siri"、AppIntentsTesting の公開 API にもフレーズ系シンボルは 0 件）、**App Shortcut のフレーズ routing** と、システム UI の見え方（dialog の読み上げ、snippet の描画、Control の表示）だけが手作業必須。
 
 **検証日**: 2026-08-11（xcode27 ブランチ、Xcode 27 beta 5 時点のドキュメントに対して実施）
 

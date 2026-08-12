@@ -854,10 +854,26 @@ import AppIntentsTesting
   対話しない固定版を別 Intent として持っておくと、そちらはテストできる
   （本プロジェクトの `SnoozeTodoIntent` / `QuickSnoozeTodoIntent`）。
 
+### 検証の梯子（Apple が示す順序）
+
+wwdc2026-240 (24:13–25:57) が「progressive validation」として順序を明示している:
+
+1. **AppIntentsTesting** — ビジネスロジックを分離して検証。"entirely in isolation. **No Siri involved.**"
+2. **Shortcuts アプリ** — intent の形（パラメータ / parameter summary）
+3. **Spotlight** — コンテンツの index
+4. **Siri** — 自然言語・entity 解決・onscreen・cross-app を通した end-to-end
+
+**4 は自動化できない**。wwdc2026-295 (24:46) も "be sure to test your intents **manually** with Siri and
+the Shortcuts app" と手動を明示しており、`AppIntentsTesting` の公開 API にも `shortcut` / `phrase` /
+`siri` / `utterance` に相当するシンボルは 1 つも無い（swiftinterface 全文検索で 0 件）。
+`definitions.intents["..."]` と**型名**で引く設計なので、`AppShortcutsProvider` のフレーズ経路は
+構造上通らない。App Shortcut のフレーズが Siri / Spotlight に出るかは手で確かめるしかない。
+
 ### AppIntentsTesting に寄せられる検証観点
 
 「ビルドが通る」までしか見ていなかった項目のうち、次はテストで実測できる。手で Siri / Shortcuts を触る
-必要があるのは、最終的に**システム UI の見え方**（dialog の読み上げ、snippet の描画、Control の表示）だけ。
+必要があるのは、**App Shortcut のフレーズ routing** と、最終的に**システム UI の見え方**
+（dialog の読み上げ、snippet の描画、Control の表示）だけ。
 
 | 観点 | API | 落ちたときの症状（他のテストでは捕まらない） |
 |------|-----|------------------------------|
