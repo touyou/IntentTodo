@@ -201,7 +201,12 @@ public struct TodoIntentsPackage: AppIntentsPackage { }
 
 メインアプリ側は何も宣言しなくても、パッケージの Intent は自動的にアプリの Intent として登録される（`actions`/`entities`/`queries` はアプリの統合メタデータに集約される。`AppShortcutsProvider` だけは集約されないので別扱い、後述）。
 
-複数ターゲット（アプリ + Widget/LiveActivity/watchOS Extension）で同じパッケージを再利用する場合、Apple 公式ドキュメントは利用側でも `includedPackages` 付きで `AppIntentsPackage` を宣言するパターンを標準としている。本プロジェクトはビルド/メタデータレベルでの重複が無いことは確認済みだが、実機 Siri/Shortcuts ルーティングでの検証がまだのため、重複宣言はしない運用を維持している（経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
+複数ターゲット（アプリ + Widget/LiveActivity/watchOS Extension）で同じパッケージを再利用する場合、Apple 公式ドキュメントは利用側でも `includedPackages` 付きで `AppIntentsPackage` を宣言するパターンを標準としている。本プロジェクトは**宣言しない運用**を維持しているが、これは過去のベータで壊れた経験に基づくもので、現行 SDK では次まで確認済み（2026-08-12）:
+
+- 3 バンドル（アプリ / Widget / LiveActivity）の `Metadata.appintents` の件数が宣言の有無で**完全一致**（重複しない）
+- 宣言した状態で **AppIntentsTesting の全テストがグリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る）
+
+残る未検証は **App Shortcut の「フレーズ」ルーティング**のみ（AppIntentsTesting はフレーズ経路を通らない）。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
 
 > **⚠️ 例外: `AppShortcutsProvider` はパッケージに置けない。** Intent / Entity / Query はパッケージから集約されるが、`AppShortcutsProvider`（App Shortcut のフレーズ登録）だけはアプリの統合メタデータに集約されず `autoShortcuts: 0` になる。App Shortcut がビルドエラー無しで Siri / Shortcuts / Spotlight に出ない、という形で顕在化する。**必ずアプリターゲット直下に置く**（本プロジェクトでは `IntentTodo/IntentTodo/TodoAppShortcuts.swift`、`import TodoAppIntents` で Intent を参照）。詳細は `docs/insights/03-app-intents-core.md`。
 

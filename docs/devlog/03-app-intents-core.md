@@ -311,3 +311,23 @@ todo の詳細説明というユースケースに近いため、型の制約で
 3. **`app.launch()` → `app.activate()`**。前項では「起動済みなら activate」と条件分岐にしていたが、クリーンビルド後は結局 `launch()` を通って落ちたので、無条件 `activate()`（未起動なら起動・起動済みなら前面化）に単純化した。`--uitesting` 起動引数はアプリ側で読んでいなかったので失うものは無い。
 
 **テストにできないと分かったもの**: `IntentValueQuery`（Visual Intelligence）。`VisualIntelligence.framework` は iOS **実機** SDK と macOS SDK にはあるが **iOS Simulator SDK には無い**ため、シミュレータビルドでは `#if canImport(VisualIntelligence)` が false になり `TodoVisualIntelligenceQuery` 自体がバイナリに入らない。`definitions.valueQueries[...]` で参照できないので、この観点だけは実機か macOS destination に回すしかない。
+
+## 2026-08-12: A-1（`includedPackages` 重複宣言）を AppIntentsTesting で追い込む
+
+2026-08-11 の A-1 は「メタデータ件数が一致することは確認したが、実機 Siri/Shortcuts ルーティングは未検証」で止まっていた。AppIntentsTesting が「Siri / Shortcuts / Spotlight と同じインフラ」を通ることを利用して、実機を待たずにもう一段追い込んだ。
+
+**手順**: wwdc2025-244 (23:29–24:00) の公式手順どおり、アプリ / Widget / LiveActivity の 3 ターゲットに `includedPackages: [TodoIntentsPackage.self]` 付きの `AppIntentsPackage` を宣言 → ビルド → メタデータ件数を採取 → AppIntentsTesting の全 22 テストを実行 → 宣言を外して同じ件数を採取。
+
+**結果**:
+
+| バンドル | actions | entities | enums | queries | autoShortcuts |
+|---|---|---|---|---|---|
+| IntentTodo.app | 24 | 4 | 4 | 3 | 8 |
+| IntentTodoWidgetExtension.appex | 26 | 4 | 5 | 3 | 0 |
+| IntentTodoLiveActivityExtension.appex | 22 | 4 | 4 | 3 | 0 |
+
+**宣言あり / なしで全項目が完全一致**。加えて、宣言した状態で AppIntentsTesting 22 テストが全部グリーン（intent 実行 / entity の id 解決 / Spotlight クエリ / view annotation / ナビゲーションまで）。つまりビルド時のメタデータ集約でも、実行時の intent ルーティングでも壊れない。
+
+**残る穴**: App Shortcut の**フレーズ**ルーティング（`LNContextErrorDomain Code=2001` 系）。AppIntentsTesting は `definitions.intents[...]` を型名で引くので、`AppShortcutsProvider` のフレーズ経路は通らない。ここだけは実機 Siri / Spotlight で確かめるしかない。
+
+**判断**: 採用すれば Apple の公式手順に沿う形になるが、まだ埋まっていない穴が Siri のフレーズという最も見えにくい部分なので、今回は非重複運用のまま据え置き、probe は削除した。採用するなら実機でフレーズを 1 つ試すのが最短の確認になる。
