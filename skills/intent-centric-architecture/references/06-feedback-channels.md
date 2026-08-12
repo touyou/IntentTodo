@@ -1,89 +1,107 @@
-# 06 — Feedback channels: Dialog vs. notification
+# 06 — Feedback channels
 
-`.result(dialog:)` is read aloud by Siri, shown by Shortcuts — and silently swallowed by Control Widgets and most UI invocations. Choosing the right channel per surface is the difference between an Intent that feels finished and one that feels broken.
+The same intent tells the user what happened in different ways depending on **who called it**. Getting this wrong produces actions that feel broken while working perfectly.
 
-## The reality matrix
+## The matrix
 
-How `.result(dialog:)` and local notifications behave per caller:
+| Caller | `.result(dialog:)` | `snippetIntent:` | local notification |
+|---|---|---|---|
+| Siri | spoken ✅ | shown ✅ | shown ✅ |
+| Spotlight / Shortcuts | shown in result ✅ | shown ✅ | shown ✅ |
+| App UI `Button(intent:)` | — | — | shown ✅ |
+| Widget `Button(intent:)` | — | — | shown ✅ |
+| **Control Center (Button or Toggle)** | **—** [measured 2026-04-14] | **—** [measured 2026-08-12] | shown ✅ |
+| Live Activity button | — | — | shown ✅ |
 
-| Caller | `.result(dialog:)` | Local notification |
-|---|---|---|
-| Siri | Read aloud ✅ | Shown ✅ |
-| Shortcuts | Shown in result panel ✅ | Shown ✅ |
-| UI `Button(intent:)` | Not shown | Shown ✅ |
-| Widget `Button(intent:)` | Not shown | Shown ✅ |
-| **Control Widget (`ControlWidgetButton`)** | **Not shown** (verified on-device 2026-04) | Shown ✅ |
-| Live Activity button | Not shown | Shown ✅ |
+## How the control row was settled — and why the method matters
 
-Verify the row for any new caller before assuming — Apple has changed Control Widget behavior between iOS releases, and what is silent today may render tomorrow.
+Apple's positive lists say snippets appear in "Siri, Spotlight, and the Shortcuts app" [Apple: Visual presentation docs; wwdc2025-281 0:29]. They never say controls are excluded — and wwdc2025-275 (1:40–1:59) shows "I'll tap on the control that runs an App Intent […] the intent will show a snippet".
+
+Reading "not in the list" as "not supported" produced a wrong design here once. What settled it was **changing only the caller**:
+
+| Condition | Snippet |
+|---|---|
+| Spotlight → `ShowTodoCountIntent` → `TodoSummarySnippetIntent` | appears ✅ |
+| Control (Button) → same intent, same snippet | none ❌ |
+| same + `allowedExecutionTargets = [.main]` | none ❌ |
+| Control (Toggle, `SetValueIntent`) → snippet | none ❌ |
+
+Snippet implementation, parameters, execution process, `isDiscoverable` and metadata were all held constant and all worked from Spotlight. The only remaining difference was the caller. [measured 2026-08-12, iOS 27 / Xcode 27 beta 5]
+
+Cross-session evidence agrees: the Controls session (wwdc2024-10157) never mentions dialogs or snippets, the Snippets session (wwdc2025-281) never mentions controls, and wwdc2025-275 never uses the words "Control Center", "controls" or "ControlWidget" anywhere — that demo's "control" was an in-app button.
+
+**Generalise the method, not just the result:** hold everything constant, change the caller, run the same intent. Experiments that moved process, shape and implementation at once stayed unresolved for weeks.
 
 ## Routing rules
 
-- **Voice / Shortcuts is the primary surface** → ship `.result(dialog:)`. Optional notification.
-- **Control Center is the primary surface** → ship a **local notification**. Dialog will be silently lost.
-- **Widget `Button(intent:)` is the primary surface** → no dialog needed, no notification needed if the widget itself reflects the change. Add a notification only if the action has a delayed effect the user would otherwise miss.
-- **UI `Button(intent:)` is the primary surface** → no dialog, no notification. The UI updates immediately.
-- **Live Activity button is the primary surface** → update the Activity itself; add a notification only on terminal state changes (e.g. "Activity ended").
+- **Siri / Shortcuts is the primary surface** → return a dialog, optionally a snippet. Write it as a sentence someone is happy to hear aloud.
+- **Control Center is the primary surface** → the feedback is the **control redrawing itself** when `perform()` returns [Apple]. Do not return a dialog or snippet; they are dropped.
+- **Widget / app button** → the surface already updates. Nothing extra.
+- **Live Activity** → update or end the activity itself; notify only on terminal states.
 
-## Dialog snippets that actually help
+### Controls have exactly three channels
 
-When you do return a dialog, write it as a sentence the user is happy to hear out loud:
+1. **Automatic reload after `perform()` returns** — "the system automatically reloads it when the control's app intent's `perform()` function returns" [Apple].
+2. **`controlWidgetStatus(_:)`** — transient status text in Control Center. Apple: "Use status text sparingly and only in situations where important information isn't conveyed by the control." If the toggle state or the count already says it, this is noise.
+3. **`controlWidgetActionHint(_:)`** — the Action button hint. Verb-first ("Complete Todo").
+
+**Notify on failure only.** A failed control action redraws in the previous state, which is indistinguishable from "nothing happened". Success needs no notification: it would double up with the redraw and linger in Notification Center.
 
 ```swift
-return .result(dialog: "Added \"\(title)\" to your todos.")
+do {
+    try todoService.setCompletion(todoId: todoId, isCompleted: value)
+} catch {
+    ControlNotificationHelper.sendErrorNotification(
+        message: "Couldn't update the todo. Open the app to retry.",
+        todoId: todoId          // attaches appEntityIdentifiers — see below
+    )
+    throw error
+}
 ```
 
-Avoid:
+In a `ControlValueProvider`, **throw** rather than notify: "You can also throw an error to tell the system that the state couldn't be computed" [Apple: wwdc2024-10157 10:26]. Collapsing an error to `try? … ?? 0` displays a confident lie ("all done", "nothing due").
 
-- `.result(dialog: "Success")` — provides no information.
-- `.result(dialog: "Error: nil")` — exposes implementation detail.
-- Multi-paragraph dialogs — Siri will trail off; Shortcuts will hide the rest.
+If the point is to *read* something, a control is the wrong surface. Send the person to the right screen with a `.foreground(.immediate)` launch intent, and put the summary in Siri / Spotlight / Shortcuts where dialogs and snippets do render.
 
-For Shortcuts, you can also return `IntentResult & ReturnsValue<T>` so the next Shortcut step can chain on the result:
+## Writing dialogs
 
 ```swift
 return .result(value: entity, dialog: "Added \(title).")
 ```
 
-## Notification setup
+`IntentDialog(full:supporting:)` splits voice-only from visual-accompanied [Apple: wwdc2026-343 2:45]:
 
-A reusable helper avoids scattering `UNUserNotificationCenter` boilerplate.
-
-```swift
-@MainActor
-enum IntentFeedback {
-    static func notify(title: String, body: String? = nil) {
-        let content = UNMutableNotificationContent()
-        content.title = title
-        if let body { content.body = body }
-        let request = UNNotificationRequest(
-            identifier: UUID().uuidString,
-            content: content,
-            trigger: nil // immediate
-        )
-        UNUserNotificationCenter.current().add(request) { _ in }
-    }
-}
-```
-
-Use it in Control / Widget intents:
+- `full` — self-contained, for a screenless context. "You have 4 pending todos."
+- `supporting` — a short line next to the returned value on screen. "4 pending."
 
 ```swift
-struct ToggleUrgentTodoIntent: AppIntent {
-    static var supportedModes: IntentModes { .background }
-    @Dependency var todoService: TodoService
-
-    @MainActor
-    func perform() async throws -> some IntentResult {
-        let title = try todoService.toggleNextUrgent()
-        IntentFeedback.notify(title: "Marked urgent done", body: title)
-        return .result()
-    }
-}
+return .result(
+    value: entities,
+    dialog: IntentDialog(
+        full: "You have \(entities.count) incomplete todos.",
+        supporting: "Here are your incomplete todos."
+    )
+)
 ```
 
-## When in doubt
+Avoid: `"Success"` (says nothing), error text with implementation detail, and multi-paragraph dialogs (Siri trails off, Shortcuts truncates).
 
-- If the action has any visible side effect on a surface the user is currently looking at, that **is** the feedback. No dialog, no notification.
-- If the action is fired-and-forget from a glance surface (Control Center, complication), assume the user will not see Dialog. Use notification.
-- If the action is entirely voice-driven, Dialog is the whole feedback. Make it short and grammatical.
+Return `ReturnsValue<T>` alongside the dialog so the next Shortcuts step can chain on it.
+
+## Notifications that carry context
+
+Attach the entity so Siri understands what a notification is about even off-screen:
+
+```swift
+let content = UNMutableNotificationContent()
+content.title = "Couldn't update the todo"
+content.appEntityIdentifiers = [EntityIdentifier(for: TodoAppEntity.self, identifier: todoId)]
+```
+
+[Apple: wwdc2026-343, iOS 27, `import AppIntents`]. **Persistent `AppEntity` only** — `TransientAppEntity` is not allowed here [Apple: wwdc2026-343 21:38].
+
+## Rule of thumb
+
+- If the action visibly changes a surface the person is already looking at, **that is the feedback**.
+- If it was fired from a glance surface, assume dialogs and snippets are invisible.
+- If it was purely spoken, the dialog is the entire experience. Make it short and grammatical.

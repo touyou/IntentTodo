@@ -1,7 +1,7 @@
 {
   "name": "intent-centric-architecture",
-  "version": "0.1.0",
-  "description": "Design multi-platform Apple apps (iOS/iPadOS/macOS/watchOS/visionOS) where every user action is an AppIntent and every domain object is an AppEntity, then route the same surface across Shortcuts, Siri, widgets, Live Activities, Control Center, and Spotlight. Captures Action-Centered Design and iOS 26+ App Intents patterns (supportedModes, onAppIntentExecution, LiveActivityIntent, AppDependencyManager across processes, Primary+FromExtension intent split).",
+  "version": "0.2.0",
+  "description": "Design multi-platform Apple apps (iOS/iPadOS/macOS/watchOS/visionOS) where every user action is an AppIntent and every domain object is an AppEntity, then route that one surface across Shortcuts, Siri, widgets, controls, Live Activities, Spotlight and Visual Intelligence. Captures Action-Centered Design plus measured iOS 26/27 App Intents behaviour (supportedModes vs allowedExecutionTargets, AppDependencyManager per process, AppIntentsPackage/includedPackages and AppShortcutsProvider placement, per-caller feedback channels, entity APIs, AppIntentsTesting), with scripts that audit the code and inspect the built Metadata.appintents.",
   "author": {
     "name": "touyou",
     "url": "https://github.com/touyou"
@@ -25,6 +25,8 @@
     "live-activities",
     "control-center",
     "spotlight",
+    "visual-intelligence",
+    "appintentstesting",
     "action-centered-design",
     "liquid-glass"
   ]

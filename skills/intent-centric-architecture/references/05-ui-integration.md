@@ -1,115 +1,152 @@
-# 05 — UI integration: routing intents back into the scene
+# 05 — UI integration
 
-Most apps need *some* intents to drive the visible UI — open a detail, switch a tab, focus a list. iOS 26 provides three layered tools for this; pick the simplest one that works.
+How the app's own UI triggers intents, and how intents drive the app's navigation.
 
-## The three tools
-
-| API | Granularity | When to use |
-|---|---|---|
-| `onAppIntentExecution(_:perform:)` (iOS 26+) | Per-Intent, per-Scene | The cleanest option when targeting iOS 26.4+ on Scene-based apps |
-| `AppIntentSceneDelegate` (iOS 26+) | Per-Scene | When you need lifecycle hooks beyond a single intent (e.g. opening a new window per invocation) |
-| `AppDependencyManager` + `@Dependency` writes inside `perform()` | App-wide | Cold-start fallback; or when intent UI side effects need to survive Scene transitions |
-
-## `onAppIntentExecution` — the iOS 26+ default
-
-Attach a handler to a SwiftUI `Scene` for a specific Intent type. The closure runs whenever that Intent is invoked while the Scene is alive.
+## `Button(intent:)` is the execution path
 
 ```swift
-struct MyApp: App {
-    @State private var navigation = NavigationModel()
+import AppIntents   // required for Button(intent:)
 
-    var body: some Scene {
-        WindowGroup {
-            RootView()
-                .environment(navigation)
-        }
-        .onAppIntentExecution(ShowTodoDetailIntent.self) { intent in
-            navigation.path.append(.todo(intent.todo.id))
-        }
-        .onAppIntentExecution(OpenSectionIntent.self) { intent in
-            navigation.selectedTab = intent.section.toTab
-        }
-    }
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+    Label("Complete", systemImage: "checkmark.circle")
+}
+
+Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
+    Label("Delete", systemImage: "trash")
 }
 ```
 
-The Intent itself can be minimal:
+Same execution path as Siri and Shortcuts, no boilerplate, no duplicated logic.
+
+**Argument order: `role` comes first.** `Button(intent:role:)` resolves to a different init and fails with `"extraneous argument label 'intent:'"`. [measured — hit on a visionOS build] Note that `Button(role:intent:)` does not exist on watchOS; drop `role:` there, plain `Button(intent:)` works everywhere.
+
+### Never call `perform()` yourself
 
 ```swift
-struct ShowTodoDetailIntent: TargetContentProvidingIntent {
-    @Parameter(title: "Todo") var todo: TodoAppEntity
+// ❌ crashes: @Dependency is zero-initialised, the ModelContainer access traps
+Button { Task { try? await AddTodoIntent(title: t).perform() } } label: { … }
 
-    func perform() async throws -> some IntentResult { .result() }
-}
+// ✅ system dispatch resolves dependencies
+Button(intent: AddTodoIntent(title: t)) { … }
 ```
 
-`TargetContentProvidingIntent` inherits from `AppIntent`, so you don't write `: AppIntent` separately.
+`@Dependency` is injected by the system when it dispatches the intent. A manual call skips that entirely. `scripts/audit_intents.py` flags this (`manual-perform`).
 
-### Double-execution gotcha
+### ⚠️ Interactive intents cannot be called from a button
 
-If the Intent's `perform()` *also* mutates navigation state, the closure runs **after** `perform()`, and the user may see two transitions. Pick one place:
+An intent that calls `requestConfirmation` or `requestChoice` **fails when invoked from an in-app or widget button** — there is no surface to answer on. It fails with `LNPerformActionErrorCodeUnsupportedValueType`, **shows no error, and nothing happens**. [measured 2026-08-12]
 
-- **In the Scene closure** (`onAppIntentExecution`) for iOS 26.4+ — keeps `perform()` empty.
-- **In `perform()` via `@Dependency var navigationModel`** — works on iOS 26.0–26.3 too.
+This is nasty for three reasons: it looks like a dead button, the same intent succeeds through Siri / Shortcuts / AppIntentsTesting, and therefore **AppIntentsTesting cannot catch it** — only a UI test can. It hid a completely non-functional delete path in this project.
 
-Don't do both.
-
-## `AppIntentSceneDelegate` — when Scene lifecycle matters
-
-When you need intent execution to also influence Scene creation (multi-window apps, opening a new window per Intent), conform to `AppIntentSceneDelegate`. This is heavier than `onAppIntentExecution` and not needed for most cases.
-
-## Cold-start fallback for early iOS 26
-
-`onAppIntentExecution` works reliably on iOS 26.4+. On 26.0–26.3, cold-start invocations sometimes time out before the Scene's handler is registered, and the navigation appears to silently fail.
-
-The robust fallback is to write navigation state into a shared `@Dependency` model from inside `perform()`, and let the Scene observe it on appearance:
+The pattern:
 
 ```swift
-@MainActor @Observable
-public final class NavigationModel {
-    public var pendingTodoId: String?
-    public init() {}
-}
-
-struct ShowTodoDetailIntent: AppIntent {
-    static var supportedModes: IntentModes { .foreground(.immediate) }
-    @Parameter(title: "Todo") var todo: TodoAppEntity
-    @Dependency var navigation: NavigationModel
-
-    @MainActor
-    func perform() async throws -> some IntentResult {
-        navigation.pendingTodoId = todo.id
+// Siri / Shortcuts: the intent asks.
+public struct DeleteTodoIntent: AppIntent {
+    public func perform() async throws -> some IntentResult {
+        try await requestConfirmation(dialog: IntentDialog("Delete “\(todo.title)”?"))
+        try todoService.delete(todoId: todo.id)
         return .result()
     }
 }
 
-struct RootView: View {
-    @Environment(NavigationModel.self) private var navigation
-
-    var body: some View {
-        @Bindable var navigation = navigation
-        NavigationStack(path: $navigation.path) {
-            TodoListView()
-        }
-        .onChange(of: navigation.pendingTodoId, initial: true) { _, id in
-            guard let id else { return }
-            navigation.path.append(.todo(id))
-            navigation.pendingTodoId = nil
-        }
+// UI: SwiftUI asks, then runs the non-interactive twin (isDiscoverable = false).
+.confirmationDialog("Delete this todo?", isPresented: $showingDelete) {
+    Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
+        Text("Delete")
     }
 }
 ```
 
-This pattern survives Scene re-creation because the `NavigationModel` instance lives in `AppDependencyManager`, not in the Scene. It also unit-tests cleanly because you can read/write `pendingTodoId` from a test without a Scene.
+## Intent → UI navigation
 
-## Choosing between `.background` and `.foreground(.immediate)` for UI intents
+Two patterns, opposite directions of knowledge. Both are valid.
 
-If the Intent is meant to *open* the app (e.g. show a detail), use `.foreground(.immediate)` so the system brings the app forward before `perform()` runs. If you only want to update background data and let the user discover changes the next time they open the app, use `.background` and skip the navigation write.
+| Pattern | Who knows whom | Notes |
+|---|---|---|
+| `@Dependency var navigationModel` written in `perform()` | the intent knows app state | works everywhere including macOS/watchOS, survives cold start |
+| `.onAppIntentExecution(MyIntent.self)` on a `Scene` | the app knows the intent | declarative, iOS/visionOS only |
 
-Mixing the two is fine: `[.background, .foreground(.dynamic)]` lets the same Intent decide at runtime based on user context (see `03-supported-modes.md`).
+### `@Dependency` + `NavigationModel` (the default here)
 
-## Reference
+```swift
+@MainActor @Observable
+public final class NavigationModel {
+    public var showingAddTodo = false
+    public var pendingFilter: TodoFilterType?
+    public var pendingSearchText: String?
+    public init() {}
+}
 
-- <https://developer.apple.com/documentation/appintents/targetcontentprovidingintent>
-- <https://developer.apple.com/documentation/swiftui/scene/onappintentexecution(_:perform:)>
-- <https://developer.apple.com/documentation/appintents/appintentscenedelegate>
+struct LaunchAppIntent: AppIntent {
+    static let supportedModes: IntentModes = [.foreground(.immediate)]
+    @Dependency var navigationModel: NavigationModel
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        navigationModel.showAddTodo()
+        return .result()
+    }
+}
+```
+
+`perform()` runs in the intent's own context, so it can write before any scene exists; the `@Observable` change is picked up when the scene appears. Register the *same* instance in `AppDependencyManager` and pass it to views via `.environment()`.
+
+#### Pending-value handshake
+
+For "open **in this state**", write a `pending…` value, let the view transfer it into its own state, then clear it. Handling both `.onChange` and `.onAppear` is what makes cold start reliable — the intent may run before the view exists.
+
+```swift
+.onChange(of: navigationModel.pendingFilter) { _, new in applyPendingFilter(new) }
+.onAppear { applyPendingFilter(navigationModel.pendingFilter) }
+
+private func applyPendingFilter(_ filter: TodoFilterType?) {
+    guard let filter else { return }
+    viewModel.filter = TodoFilter(filter)
+    navigationModel.pendingFilter = nil      // always clear, or it reapplies
+}
+```
+
+> Adding a case to the target enum is only half the work. If `perform()`'s `switch` has no branch writing the state, the intent just opens the app. Two filter cases sat in a `break` for months, so "show my favourites" from Siri and the count control both silently opened an unfiltered list. [measured 2026-08-12]
+
+### `onAppIntentExecution` — iOS/visionOS only
+
+```swift
+struct ShowTodoDetailIntent: TargetContentProvidingIntent {   // already an AppIntent
+    @Parameter(title: "Todo") var todo: TodoAppEntity
+    func perform() async throws -> some IntentResult { .result() }
+}
+
+WindowGroup { RootView() }
+    .onAppIntentExecution(ShowTodoDetailIntent.self) { intent in
+        navigation.path.append(.todo(intent.todo.id))
+    }
+```
+
+Constraints worth knowing before choosing it:
+
+- **The closure runs *before* `perform()`.** "If the app intent implements a `perform()` method, it will be called after the action closure." [Apple] Navigating in both places double-navigates — pick one.
+- **macOS and watchOS cannot use it.** `TargetContentProvidingIntent` is `@available(macOS, unavailable)` / `@available(watchOS, unavailable)` [measured, Xcode 27 beta 5]. Guard conformance with `#if os(iOS) || os(visionOS)`.
+- **`canImport` is the wrong test.** `_AppIntents_SwiftUI.framework` *does* exist in the macOS SDK, so `canImport` is true there; only the `onAppIntentExecution` declaration is missing from the macOS slice. An earlier conclusion based on `canImport` was wrong in both directions. [measured 2026-08-12]
+- **Cold start is still shaky.** Even with the "fixed in iOS 26.4" note in Apple's workshop material, cold-start navigation through this path did not complete reliably on device [measured]. This project uses the `@Dependency` pattern as the primary route for that reason.
+
+```swift
+#if os(iOS) || os(visionOS)
+extension LaunchAppIntent: TargetContentProvidingIntent {}
+#endif
+```
+
+### `UISceneAppIntent` (multi-window)
+
+`UISceneAppIntent` lives in `_AppIntents_UIKit` and **works fine inside a Swift package** — verified by building a probe for iOS simulator, My Mac and visionOS simulator [measured 2026-08-12]. The guard is the subtle part: watchOS *has* the framework (so `canImport` is true) but not the type.
+
+```swift
+#if canImport(_AppIntents_UIKit) && !os(watchOS)
+```
+
+## View structure
+
+- Extract sections into `private struct: View`, not computed `some View` properties. A computed property is not a diffing unit, so the parent `body` re-evaluates wholesale.
+- `@Observable` classes are `@MainActor`; never `ObservableObject`.
+- Business logic (CRUD, search execution) belongs to intents/Service. View models hold **UI** state only: filter, sort order, search text.
+- Share derived domain logic (a "due soon / overdue" rule, say) as a `Domain` value type rather than reimplementing thresholds per platform.
