@@ -4,11 +4,9 @@
 //
 //  Control Center toggle for a todo the person configures.
 //
-//  Replaces the previous "toggle the most urgent todo" button. A toggle needs a
-//  boolean state that survives reloads (Apple: "Toggles are controls that have two
-//  states"), and "the most urgent todo" isn't one — completing it makes the provider
-//  return a *different*, incomplete todo, so the on state never persisted. Pinning
-//  the control to a chosen todo makes on/off mean what it says.
+//  The todo is fixed by configuration because a toggle's `isOn` must survive
+//  reloads. An action whose target moves (e.g. "the most urgent todo") can't be a
+//  toggle — see docs/insights/06-control-widget-ios26.md.
 //
 
 #if !os(visionOS)

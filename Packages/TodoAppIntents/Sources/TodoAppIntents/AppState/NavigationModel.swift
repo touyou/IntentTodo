@@ -2,8 +2,8 @@
 //  NavigationModel.swift
 //  TodoAppIntents
 //
-//  Single source of truth for app navigation state.
-//  Replaces NavigationViewModel — lives here so Intents can access it via @Dependency.
+//  Single source of truth for app navigation state. Lives in this package so
+//  Intents can reach it via @Dependency.
 //
 //  Register in App.init():
 //    let nav = NavigationModel()

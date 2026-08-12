@@ -140,9 +140,8 @@ public final class TodoService {
     /// Sets a todo's completion to an explicit value. Idempotent — writing the
     /// value it already holds is a no-op.
     ///
-    /// Backs `SetTodoCompletionIntent`, where the system supplies the control
-    /// toggle's new state as `value`. A toggle must converge on the state the
-    /// system asked for, so this takes an absolute value rather than flipping
+    /// Backs `SetTodoCompletionIntent`: a control toggle must converge on the state
+    /// the system asked for, so this takes an absolute value rather than flipping
     /// (unlike `toggleCompletion`, whose result depends on the current state).
     @discardableResult
     public func setCompletion(todoId: String, isCompleted: Bool) throws -> TodoAppEntity {

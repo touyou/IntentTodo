@@ -4,11 +4,9 @@
 //
 //  Local notifications used by Control Center intents to report *failures*.
 //
-//  成功時のフィードバックは通知ではなくコントロール自身の再描画で行う
-//  (Apple: perform() が返ると system が control をリロードする)。数や完了状態は
-//  コントロール面に既に出ているので、成功通知は二重表示になるうえ通知センターに
-//  残り続ける。失敗だけは他に伝える手段が無い (dialog も snippet も Control では
-//  表示されない) ため通知に残している。詳細は docs/insights/06-control-widget-ios26.md。
+//  成功は perform() 完了時の自動リロードでコントロール自身が伝えるので通知しない
+//  (二重表示になるうえ通知センターに残る)。失敗だけは他に伝える手段が無い
+//  (dialog も snippet も Control では表示されない)。
 //
 
 import AppIntents

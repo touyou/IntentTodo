@@ -5,9 +5,7 @@
 //  Interactive snippet for list-level results (counts / summary). Presented from
 //  `ShowTodoCountIntent` and `GetTodoSummaryIntent` via `snippetIntent:`.
 //
-//  Snippets appear in Siri, Spotlight and the Shortcuts app — not in Control
-//  Center — so this is the payoff for moving count feedback off the control path
-//  and back onto the assistant surfaces (see docs/insights/06-control-widget-ios26.md).
+//  Renders in Siri / Spotlight / Shortcuts, not in Control Center.
 //
 
 import AppIntents

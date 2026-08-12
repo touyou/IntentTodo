@@ -2,15 +2,10 @@
 //  ShowTodoCountIntent.swift
 //  TodoAppIntents
 //
-//  Reports the current incomplete todo count to Siri / Shortcuts / Spotlight.
+//  Reports the current incomplete todo count to Siri / Shortcuts / Spotlight,
+//  showing the breakdown (overdue / completed / total) via dialog + snippet.
 //
-//  dialog + `TodoSummarySnippetIntent` で内訳（期限切れ / 完了 / 総数）を見せる。
-//  Spotlight で snippet が出ることは実機確認済み。
-//
-//  Control からは呼ばない。以前は結果をローカル通知で返していたが未完了数は
-//  コントロール面に既に出ていて二重表示、かつ Control は dialog も snippet も
-//  提示しないことを実機で確認したため（docs/devlog/06-control-widget-ios26.md）、
-//  `TodoCountControl` は一覧を開く `LaunchAppIntent` に接続している。
+//  Control からは呼ばない (Control は dialog も snippet も提示しない)。
 //
 
 import AppIntents

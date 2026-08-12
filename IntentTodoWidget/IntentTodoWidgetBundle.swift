@@ -22,11 +22,9 @@ struct IntentTodoWidgetBundle: WidgetBundle {
             let todoService = TodoService.swiftDataBacked(container: sharedWidgetModelContainer)
             AppDependencyManager.shared.add(dependency: todoService)
 
-            // SnippetIntent (TodoSnippetIntent / TodoSummarySnippetIntent) と
-            // TodoAppEntity の deferred property は @Dependency を使えないため
-            // TodoEntityStore からコンテナを読む。アプリ側 (IntentTodoApp.init) しか
-            // 登録していないと、Extension プロセスで解決されたときに中身が空になり
-            // 「Todo not found」を描いてしまうので、こちらでも登録しておく。
+            // SnippetIntent と TodoAppEntity の deferred property は @Dependency を
+            // 使えず TodoEntityStore から読むため、こちらの登録も別途必要
+            // (無いと Extension プロセスでの解決時に中身が空になる)。
             TodoEntityStore.register(container: sharedWidgetModelContainer)
         }
     }

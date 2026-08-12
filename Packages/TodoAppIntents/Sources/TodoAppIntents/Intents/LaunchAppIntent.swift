@@ -66,9 +66,8 @@ public struct LaunchAppIntent: AppIntent {
             navigationModel.navigateToRoot()
             navigationModel.showAddTodo()
         case .todoList, .incompleteTodos, .favoriteTodos:
-            // 以前はここが `break` で、リスト系のターゲットは root に戻すだけだった。
-            // その結果「未完了だけ見せる」つもりのコントロール / Siri 応答が
-            // 「アプリを開くだけ」になっていたため、filter を明示的に伝える。
+            // 列挙が約束した遷移先は、必ず対応する状態書き込みまでやること。
+            // ここを `break` にすると「アプリを開くだけ」になる。
             navigationModel.showList(filter: Self.listFilter(for: target))
         }
         return .result()

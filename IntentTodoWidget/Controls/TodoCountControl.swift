@@ -18,14 +18,9 @@ private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoC
 /// Control widget showing incomplete todo count.
 /// Tapping opens the app's incomplete list.
 ///
-/// 「その場でサマリを見せる」ために `ShowTodoCountIntent`（dialog + snippet）を
-/// 直結する案を実機で試したが、**Control は snippet を提示しない**ことが分かった
-/// （Spotlight では同じ Intent の同じ snippet が出る。`allowedExecutionTargets = [.main]`
-/// でも変わらず）。タップしても無反応になるため一覧を開く形に戻している。
-/// 経緯: docs/devlog/06-control-widget-ios26.md
-///
-/// 未完了数はコントロール面に既に出ているので、タップでそれを再表示する
-/// （旧実装のローカル通知）のは二重表示。グランスは数字、タップはドリルイン。
+/// 未完了数はコントロール面に出ているので、タップでそれを見せ直しても二重表示に
+/// なるだけ（Control は dialog も snippet も提示しない）。グランスは数字、
+/// タップはドリルイン。
 struct TodoCountControl: ControlWidget {
     static let kind = "dev.touyou.IntentTodo.IntentTodoWidget.TodoCountControl"
 

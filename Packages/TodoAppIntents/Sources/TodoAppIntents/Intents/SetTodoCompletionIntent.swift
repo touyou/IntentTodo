@@ -58,9 +58,8 @@ public struct SetTodoCompletionIntent: SetValueIntent {
             )
             throw error
         }
-        // snippet は返さない。Control は snippet を提示しないことを実機で確認済み
-        // (docs/devlog/06-control-widget-ios26.md)。フィードバックは perform() 完了時の
-        // 自動リロードによるトグル自身の再描画で行う。
+        // snippet は返さない (Control では提示されない)。フィードバックは
+        // perform() 完了時の自動リロードによるトグル自身の再描画。
         return .result()
     }
 }

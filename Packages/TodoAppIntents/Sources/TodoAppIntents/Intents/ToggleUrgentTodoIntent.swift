@@ -4,10 +4,7 @@
 //
 //  Auto-selects the most urgent (earliest-due) incomplete todo and toggles it.
 //
-//  Siri / Shortcuts only. Control Center used to call this and report the result
-//  by local notification; it now uses `SetTodoCompletionIntent` against a todo the
-//  person configured, so the control's own state is the feedback. Here — where
-//  dialog and snippets do render — the result is reported through both.
+//  Siri / Shortcuts only — surfaces where dialog and snippets both render.
 //
 
 import AppIntents
