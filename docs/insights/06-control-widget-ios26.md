@@ -51,7 +51,7 @@ struct ToggleTodoControl: ControlWidget {
 実装上の注意点:
 
 - **action Intent は絶対値で受ける**。`SetValueIntent` の `value` はシステムが「トグルが移った先の状態」で埋める（"Don't set or manage the value parameter"）。Toggle はその状態に収束しなければならないので、flip する `toggleCompletion` ではなく `TodoService.setCompletion(todoId:isCompleted:)` のような絶対値 API を呼ぶ。
-- **パラメータは `todoId: String`**。`TodoAppEntity` パラメータにすると Extension プロセスでの事前 entity 解決フェーズを踏む（`03-app-intents-core.md` の Primary / FromExtension 分離パターンと同じ理由）。呼出元が id を知っているので解決自体が不要。
+- **パラメータは `todoId: String`**。呼出元（コントロール）が id を知っているので、`perform()` 前の entity 解決フェーズを踏む必要がない。
 - **configuration の entity スナップショットは古い**。選んだ時点の値しか持たないので、`currentValue(configuration:)` で id からストアを引き直して title / isCompleted を取る。設定後に削除されていたら未設定表示に戻す。
 - **ConfigurationIntent の置き場所**は、アプリ本体から参照する必要が無いなら Widget Extension 内でよい（SPM に置くと watchOS / visionOS を含む全ターゲットでコンパイルされる）。共有が必要になったときだけ SPM へ移す（後述「モジュール境界」）。
 

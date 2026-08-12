@@ -251,3 +251,17 @@ todo の詳細説明というユースケースに近いため、型の制約で
 **判断**: FromExtension 分離は現行 SDK では不要と分かったが、削除は別の設計判断（`isDiscoverable` の扱い、`endMatchingLiveActivity` の置き場所）を伴うので今回は撤去せず、ドキュメントに「現行 SDK では不要」と明記するに留めた。probe と一時ログは検証後に全て削除済み。
 
 **教訓**: プロセスをまたぐ検証では Xcode の launch session ログでは足りない。`simctl spawn ... log config --mode "persist:debug"` + `log show` にしておくと、アプリを kill した後の再起動や Extension 側のログまで一続きで読める。
+
+## 2026-08-12: FromExtension 分離を撤去（1 アクション 1 Intent へ）
+
+前項の実測で分離の根拠が消えたため、`ToggleTodoCompletionFromExtensionIntent` と `SnoozeTodoFromExtensionIntent` を削除した。
+
+**Toggle**: `ToggleTodoCompletionIntent`（`@Parameter var todo: TodoAppEntity`）に一本化。FromExtension 側にしか無かった「完了したら対応する Live Activity を畳む」副作用を `perform()` に移し、`#if os(iOS)` で `LiveActivityIntent` に準拠させた（`activity.end` を触るため、`perform()` がアプリプロセスで走る公式保証を得ておく）。`LiveActivityMonitor` の reconcile は `TodoListView` が画面に居るときしか走らないので、この副作用を落とすとロック画面から完了させた Live Activity が出っぱなしになる。
+
+**Snooze**: 一本化**しなかった**。`SnoozeTodoIntent` は `requestChoice` で期間を選ばせるが、Live Activity のボタンは背景実行で問い合わせ先の UI が無いため、期間固定の変種が要る。ただし残す理由は「entity 解決の回避」ではなく「対話できるかどうか」なので、名前を `QuickSnoozeTodoIntent` に変え、パラメータも `todoId: String` → `todo: TodoAppEntity` に揃えた。
+
+**Live Activity View 側**: Activity が持つのは id と title だけなので `TodoAppEntity(id:title:)` で組んで渡す。システムが `perform()` 前に id から再解決するため、他のフィールドは埋めなくても正しく動く（前項の実測どおり）。
+
+`SetTodoCompletionIntent`（Control 用、`SetValueIntent`）は `todoId: String` のまま。こちらも理由は「トグルではなく絶対値セット」という振る舞いの違いであって、プロセスの都合ではない。ドキュメント上の「FromExtension convention に従う」という説明だけ書き換えた。
+
+**残った教訓**: 呼出元プロセスの都合で Intent を複製すると、副作用（LA を畳む / 更新する）が片方にしか無い状態が生まれ、統合するときに拾い直しが要る。分けるなら**振る舞いが違うとき**だけにする。

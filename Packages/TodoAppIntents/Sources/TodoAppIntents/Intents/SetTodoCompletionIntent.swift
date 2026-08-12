@@ -11,10 +11,9 @@ import AppIntents
 
 /// Sets a specific todo's completion state to an absolute value.
 ///
-/// Takes the todo id as a `String` rather than a `TodoAppEntity` parameter,
-/// following the FromExtension convention: the caller (a control) already knows
-/// which todo it acts on, so there is no reason to pay for — or risk — the
-/// pre-`perform()` entity resolution phase in an extension process.
+/// Takes the todo id as a `String` rather than a `TodoAppEntity` parameter:
+/// the caller (a control) already knows which todo it acts on, so there is no
+/// reason to pay for the pre-`perform()` entity resolution phase.
 public struct SetTodoCompletionIntent: SetValueIntent {
     public static let title: LocalizedStringResource = "Set Todo Completion"
     public static let description = IntentDescription("Marks a specific todo as completed or incomplete")

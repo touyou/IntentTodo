@@ -2,8 +2,8 @@
 //  SnoozeTodoIntent.swift
 //  TodoAppIntents
 //
-//  Primary variant: runs in the main app process via @Dependency.
-//  For Live Activity context, use SnoozeTodoFromExtensionIntent.
+//  requestChoice で期間を選ばせる対話版。問い合わせ先の UI が無い呼出元
+//  (Live Activity のボタン) には QuickSnoozeTodoIntent を使う。
 //
 
 import AppIntents

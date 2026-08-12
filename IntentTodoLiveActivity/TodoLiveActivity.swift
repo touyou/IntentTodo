@@ -46,14 +46,21 @@ struct TodoDeadlineLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
+                    // Activity が持つのは id と title だけだが、システムが perform() 前に
+                    // TodoEntityQuery.entities(for:) で id から再解決するのでこれで足りる。
+                    let todoEntity = TodoAppEntity(
+                        id: context.attributes.todoId,
+                        title: context.state.title
+                    )
+
                     HStack(spacing: 16) {
-                        Button(intent: ToggleTodoCompletionFromExtensionIntent(todoId: context.attributes.todoId)) {
+                        Button(intent: ToggleTodoCompletionIntent(todo: todoEntity)) {
                             Label("Complete", systemImage: "checkmark.circle.fill")
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.green)
 
-                        Button(intent: SnoozeTodoFromExtensionIntent(todoId: context.attributes.todoId)) {
+                        Button(intent: QuickSnoozeTodoIntent(todo: todoEntity)) {
                             Label("Snooze", systemImage: "clock.arrow.circlepath")
                         }
                         .buttonStyle(.bordered)

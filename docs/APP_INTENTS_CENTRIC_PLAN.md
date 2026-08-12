@@ -51,7 +51,7 @@
 | @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ✅ `099dae3` |
 | LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ✅(B) `8e2d637` |
 | CancellableIntent | `withIntentCancellationHandler` `IntentCancellationReason` | 上記のグレースフルキャンセル | B/U | ✅(B) `8e2d637` |
-| ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets` = `.main` / `.appIntentsExtension` / `.widgetKitExtension`） | FromExtension 整理可否を検証→**統合不可と結論**（#42 で `.widgetKitExtension` の存在を反映、結論不変） | B | ✅ `8e2d637` |
+| ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets` = `.main` / `.appIntentsExtension` / `.widgetKitExtension`） | FromExtension 整理可否を検証→当時は統合不可と結論。2026-08-12 に前提の crash が iOS 27 で再現しないと実測確認し**分離ごと撤去** | B | ✅ `8e2d637` |
 | SyncableEntity | `SyncableEntity`（`String`/`UUID` id でそのまま適合） | デバイス間 ID 同期 | B | ✅ `d347cb2` |
 
 ### #240 App Schema による Siri 体験 — https://developer.apple.com/jp/videos/play/wwdc2026/240/
@@ -139,7 +139,7 @@
     経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
 - **Phase 4 大量・実行制御** ✅（B 深度で完了。U/R は実機・一部テストが残る）: #345
   - ✅ `CompleteTodosIntent` で `EntityCollection` + `LongRunningIntent` + `CancellableIntent` を同時実装 `8e2d637`
-  - ✅ `allowedExecutionTargets [.main]`。FromExtension 分離は entity 解決回避が目的でプロセス制御では**統合不可**と結論 `8e2d637`
+  - ✅ `allowedExecutionTargets [.main]`。FromExtension 分離は entity 解決回避が目的でプロセス制御では統合不可と結論 `8e2d637` → 2026-08-12、前提の crash が iOS 27 で再現しないと実測確認し**分離を撤去**
     （#42: 選択肢は `.main` / `.appIntentsExtension` / `.widgetKitExtension` の 3 種。`.widgetKitExtension` を踏まえても
     LA は target 対象外 + entity 解決の有無は target で変えられないため結論不変。entity 解決の実行先が `[.main]` で本体に
     寄るかは R 深度で未検証）
@@ -160,7 +160,7 @@
   - ✅ `makeIntent`/`run`(AddTodo) / `entities(matching:)` / Add→Show 連鎖。buildForTesting + live diagnostics 0件。
   - 自己クリーンアップ設計（一意タイトルで作成→削除）。詳細 insights/03。
 - **Phase 7 WWDC 2026 追加検証（#42–#48）** ✅（B 深度。iOS/visionOS/watchOS の 3 スキームで `BuildProject` グリーン）:
-  - ✅ #42: `allowedExecutionTargets` に `.widgetKitExtension` がある旨を記録訂正（FromExtension 統合不可の結論は不変）
+  - ✅ #42: `allowedExecutionTargets` に `.widgetKitExtension` がある旨を記録訂正（当時は FromExtension 統合不可の結論も不変。2026-08-12 に分離ごと撤去）
   - ✅ #43: `@Property(indexingKey:)` で title→`\.title` / 新設 description→`\.contentDescription`（iOS/macOS 限定 overload を `#if` 分岐）
   - ✅ #44: `TodoAppEntity: Transferable` + `ValueRepresentation` で title / `IntentPerson`(担当者) / `PlaceDescriptor`(場所) を export
   - ✅ #45: `UpdateTodoIntent` + `IntentParameter.valueState` + `TodoService.update`/`FieldUpdate`（新値/明示クリア/据え置きを区別）

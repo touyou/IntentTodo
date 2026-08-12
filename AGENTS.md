@@ -201,40 +201,24 @@ public struct TodoIntentsPackage: AppIntentsPackage { }
 
 > **⚠️ 例外: `AppShortcutsProvider` はパッケージに置けない。** Intent / Entity / Query はパッケージから集約されるが、`AppShortcutsProvider`（App Shortcut のフレーズ登録）だけはアプリの統合メタデータに集約されず `autoShortcuts: 0` になる。App Shortcut がビルドエラー無しで Siri / Shortcuts / Spotlight に出ない、という形で顕在化する。**必ずアプリターゲット直下に置く**（本プロジェクトでは `IntentTodo/IntentTodo/TodoAppShortcuts.swift`、`import TodoAppIntents` で Intent を参照）。詳細は `docs/insights/03-app-intents-core.md`。
 
-### Primary / FromExtension 分離パターン
+### 1 アクション 1 Intent が既定（呼出元ごとに複製しない）
 
-同じアクションでも「**ユーザーがパラメータを直接選ぶか**」で Intent を 2 系統に分ける。
+同じアクションは呼出元が違っても**同じ Intent を使う**。Live Activity のボタンも Siri も `ToggleTodoCompletionIntent(todo:)` を呼ぶ。Live Activity が持っているのが id と title だけでも、`TodoAppEntity(id:title:)` で組んで渡せばよい（システムが `perform()` 前に `TodoEntityQuery.entities(for:)` で id から再解決する）。
 
-| 区分 | 呼出元 | パラメータ型 | `isDiscoverable` | AppShortcuts 登録 |
-|------|-------|------------|------------------|--------------------|
-| **Primary** | Siri / Shortcuts / UI | `TodoAppEntity`（`@Parameter`） | `true` (default) | ✅ |
-| **FromExtension** | Live Activity / Widget（todoId を既に持っている） | `String`（UUID 文字列） | `false` | ❌ |
+> **経緯**: かつては「Primary（`TodoAppEntity` パラメータ）/ FromExtension（`String` パラメータ、`isDiscoverable = false`）」に分けていた。理由は entity の事前解決中に SwiftData が `EXC_BREAKPOINT` で落ちる実績があったこと。**2026-08-12 に iOS 27 で再現しないことを実測確認**（`entities(for:)` も `perform()` もメインアプリプロセスで走る。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠でも同じ）し、分離を撤去した。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
 
-**なぜ分けるか**: App Intents は `@Parameter var todo: TodoAppEntity` を持つ Intent の `perform()` 実行前に、別フェーズで `TodoEntityQuery.entities(for:)` を呼んで entity を解決する（[WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) 7:37 "Intent 実行前に entity 解決が走る"）。この事前解決中に SwiftData が `EXC_BREAKPOINT` で落ちた実績があり、entity 解決を経由しない `String` パラメータ版を分離することで回避した。
+**別 Intent に分けてよいのは「振る舞いが違う」場合だけ**。現存する分岐は次の 2 つで、どちらも呼出元プロセスの都合ではなく**対話できるかどうか**が理由:
 
-> **⚠️ この crash は iOS 27 では再現しない（2026-08-12 実測）**。entity パラメータ版を LA のロック画面ボタンに直結してシミュレータで実行したところ、`entities(for:)` も `perform()` も**メインアプリプロセス**で走り crash しなかった。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠の素の `AppIntent` でも同じ。**現行 SDK では FromExtension 分離は不要**（残してあるが削除しても動く）。ただしこれは Live Activity ボタン経由に限った話で、Widget のタイムライン描画では `entities(for:)` が Widget Extension プロセスで走ることを同じ実測で確認している。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
+| Intent | 分けている理由 |
+|--------|--------------|
+| `SnoozeTodoIntent` / `QuickSnoozeTodoIntent` | 前者は `requestChoice` で期間を選ばせる。Live Activity のボタンは背景実行で問い合わせ先の UI が無いため、後者が既定 30 分で即実行する |
+| `ToggleTodoCompletionIntent` / `SetTodoCompletionIntent` | 前者はトグル、後者は絶対値セット（`SetValueIntent`）。Control の `ControlWidgetToggle` は on/off を渡してくるのでトグルでは表現できない |
 
-```swift
-// Primary
-public struct ToggleTodoCompletionIntent: AppIntent {
-    @Parameter(title: "Todo") public var todo: TodoAppEntity
-    @Dependency var modelContainer: ModelContainer
-    // ...
-}
+内部用（`isDiscoverable = false`）の Intent は AppShortcuts に登録しない。
 
-// FromExtension (LA ボタン用)
-public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
-    public static let isDiscoverable = false
-    @Parameter(title: "Todo ID") public var todoId: String
-    @Dependency var todoService: TodoService
-    // ...
-}
-#if os(iOS)
-extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
-#endif
-```
+Live Activity の状態を触る Intent（`activity.end` / `activity.update`）は `#if os(iOS)` で `LiveActivityIntent` に準拠させる（`perform()` がアプリプロセスで走ることの公式保証を得るため）。
 
-ビジネスロジックは両者で共通のため `Services/TodoService.swift` (`@MainActor final class`) に集約し、両 Intent が `@Dependency var todoService: TodoService` で参照する。
+ビジネスロジックは `Services/TodoService.swift` (`@MainActor final class`) に集約し、各 Intent が `@Dependency var todoService: TodoService` で参照する。
 
 ### Dialog vs 通知の使い分け
 
@@ -266,7 +250,7 @@ try repository.update(item)
 WidgetReloader.reloadAllWidgets()
 ```
 
-対象: `AddTodoIntent`, `DeleteTodoIntent`, `ToggleTodoCompletionIntent`, `ToggleFavoriteIntent`, `SnoozeTodoIntent`, `ToggleUrgentTodoIntent`, `SetTodoCompletionIntent` と FromExtension 系。
+対象: `AddTodoIntent`, `DeleteTodoIntent`, `ToggleTodoCompletionIntent`, `ToggleFavoriteIntent`, `SnoozeTodoIntent`, `QuickSnoozeTodoIntent`, `ToggleUrgentTodoIntent`, `SetTodoCompletionIntent`。
 
 ### @Dependency + AppDependencyManager パターン
 
@@ -427,7 +411,7 @@ struct CompleteTodoFromActivityIntent: LiveActivityIntent {
 さらに [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) が明記する実行プロセスの差：
 > "If you adopt the `LiveActivityIntent` or `AudioPlaybackIntent` protocol, the system runs the app intent in the app's process. [...] If you adopt the `AppIntent` protocol, add your custom app intent to your widget extension target and your app target."
 
-つまり `LiveActivityIntent` の `perform()` はアプリプロセスで実行される。通常の `AppIntent` を Widget 経由で呼ぶ場合の実行プロセスは固定ではなくヒューリスティクスで決まる（「実行プロセスと登録先」節参照）。なお `LiveActivityIntent` が保証するのは `perform()` の実行プロセスのみで、`TodoAppEntity` のような `@Parameter` の事前 entity 解決フェーズがどこで走るかは別問題（「Primary / FromExtension 分離パターン」参照）。
+つまり `LiveActivityIntent` の `perform()` はアプリプロセスで実行される。通常の `AppIntent` を Widget 経由で呼ぶ場合の実行プロセスは固定ではなくヒューリスティクスで決まる（「実行プロセスと登録先」節参照）。なお `LiveActivityIntent` が公式に保証するのは `perform()` の実行プロセスだが、`TodoAppEntity` の事前 entity 解決も iOS 27 の実測ではアプリプロセスで走る（「1 アクション 1 Intent」参照）。
 
 | Intent種別 | 用途 | 特徴 |
 |-----------|------|------|

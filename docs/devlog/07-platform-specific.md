@@ -64,3 +64,11 @@ git 考古学でクラッシュ自体（スタックトレース）の実在は�
 同じ式が `#Predicate` の外なら通り、中だけ落ちる。よって **toolchain バージョン差でもプラットフォーム差でもなく `#Predicate` マクロ固有の制約**と確定した（Xcode 27 beta 5 / iOS 27 シミュレータ）。素の `==` に効く Optional の暗黙昇格が、マクロ展開後の型要求では働かないため。落ちるのは「非 Optional のプロパティを Optional の値と比較する」1 パターンだけで、Optional プロパティ側は全パターン通る。
 
 回避策（非 Optional な定数を capture してから比較する）は変更なし。
+
+## 2026-08-12: 「LA ボタンの Intent は String ID パラメータにする」ルールを撤回
+
+`07-platform-specific.md` の「Live Activity Intent のパラメータは String ID にする（Entity を取らない）」節は、entity の事前解決中に SwiftData が `EXC_BREAKPOINT` で落ちる実績を根拠にしていた。同日の A-3 実測（`docs/devlog/03-app-intents-core.md` 参照）でその crash が iOS 27 で再現しないと確定したため、ルールごと撤回し「LA ボタンにも entity パラメータの Intent をそのまま使う」に書き換えた。
+
+View 側は Activity が持つ id / title から `TodoAppEntity(id:title:)` を組んで渡す。他のフィールドを埋めなくてよいのは、システムが `perform()` 前に `TodoEntityQuery.entities(for:)` で id から再解決するため。
+
+`ToggleTodoCompletionFromExtensionIntent` / `SnoozeTodoFromExtensionIntent` は削除し、後者だけは「`requestChoice` を使えない呼出元向けの固定間隔版」という別の理由で `QuickSnoozeTodoIntent` として残した。

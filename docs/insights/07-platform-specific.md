@@ -129,35 +129,23 @@ Live Activity から Activity の開始/更新/終了を伴うアクションを
 | `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | `perform()` はアプリプロセス（公式保証）。`AppEntity` パラメータの事前解決も iOS 27 実測ではアプリプロセス（後述） |
 | `ControlConfigurationIntent` | コントロールセンター設定値 | Extension 配置必須 |
 
-### Live Activity Intent のパラメータは String ID にする（Entity を取らない）
+### Live Activity ボタンにも Entity パラメータの Intent をそのまま使う
 
-Live Activity ボタンから呼ぶ Intent は `@Parameter var todo: TodoAppEntity` ではなく `@Parameter var todoId: String` を使う。
-
-**理由（当時）**: App Intents は `AppEntity` パラメータを持つ Intent の `perform()` 実行前に `TodoEntityQuery.entities(for:)` を呼んで entity を解決する。この解決処理中に SwiftData の内部 assertion に引っかかり `EXC_BREAKPOINT` で crash することが確認されていた。呼出元の LA ボタンはすでに `context.attributes.todoId` を持っているため、Entity 解決は不要。
-
-> **⚠️ iOS 27 では再現しない（2026-08-12 実測）**。entity パラメータ版 Intent を LA のロック画面ボタンに直結して実行したところ、`entities(for:)` も `perform()` も**メインアプリプロセス**で走り crash しなかった。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠の素の `AppIntent` でも同じ。`IntentTodoLiveActivityBundle.init()` は今も `AppDependencyManager` に何も登録していないが、それでも問題にならない（解決がアプリ側で走るため）。**現行 SDK ではこのルールは必須ではない**。詳細は `03-app-intents-core.md` の「Primary / FromExtension 分離パターン」節。
-
-経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
+Live Activity のボタンは Siri / UI と同じ Intent を呼ぶ。Activity が持っているのは id と title だけだが、`TodoAppEntity(id:title:)` で組んで渡せばよい（システムが `perform()` 前に `TodoEntityQuery.entities(for:)` で id から再解決するため、他のフィールドは埋めなくても正しく動く）。
 
 ```swift
-public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
-    public static let isDiscoverable = false  // Shortcuts 非表示
-    @Parameter(title: "Todo ID") public var todoId: String
-    // ...
-}
-#if os(iOS)
-extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
-#endif
-
 // Live Activity View 側
-Button(intent: ToggleTodoCompletionFromExtensionIntent(
-    todoId: context.attributes.todoId
-)) {
+let todoEntity = TodoAppEntity(id: context.attributes.todoId, title: context.state.title)
+Button(intent: ToggleTodoCompletionIntent(todo: todoEntity)) {
     Label("Complete", systemImage: "checkmark.circle.fill")
 }
 ```
 
-Primary 系（Shortcuts / UI で呼ぶもの）は従来通り `@Parameter var todo: TodoAppEntity` のままで良い（そちらは entity 解決が正常に動く文脈で使われる）。詳細は `03-app-intents-core.md` の「Primary / FromExtension 分離パターン」参照。
+Activity の状態を触る Intent（`activity.end` / `activity.update`）は `#if os(iOS)` で `LiveActivityIntent` に準拠させる。
+
+> **経緯**: 以前は「LA ボタンから呼ぶ Intent は `@Parameter var todoId: String` にする」というルールだった。entity の事前解決中に SwiftData が `EXC_BREAKPOINT` で落ちる実績があったため。**2026-08-12 に iOS 27 で再現しないことを実測確認**（`entities(for:)` も `perform()` もメインアプリプロセスで走る。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠でも同じ）し、String 版（FromExtension 系）を撤去して 1 アクション 1 Intent に統一した。`IntentTodoLiveActivityBundle.init()` は今も `AppDependencyManager` に何も登録していないが、解決がアプリ側で走るため問題にならない。詳細: `03-app-intents-core.md`。
+
+経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
 
 ---
 

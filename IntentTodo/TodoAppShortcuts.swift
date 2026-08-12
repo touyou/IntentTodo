@@ -2,8 +2,9 @@
 //  TodoAppShortcuts.swift
 //  IntentTodo
 //
-//  Registers Primary intents as App Shortcuts so they appear in Siri, Shortcuts,
-//  and Spotlight. FromExtension variants are intentionally NOT registered.
+//  Registers user-facing intents as App Shortcuts so they appear in Siri,
+//  Shortcuts, and Spotlight. `isDiscoverable = false` の内部用 Intent
+//  (QuickSnoozeTodoIntent / SetTodoCompletionIntent 等) は登録しない。
 //
 //  IMPORTANT: `AppShortcutsProvider` must live in the app target, NOT in an SPM
 //  package. When declared inside a Swift Package, the shortcuts are extracted
