@@ -218,20 +218,58 @@ final class IntentTodoUITest: XCTestCase {
         let todoCell = findTodoCell(title: todoTitle)
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
 
-        // Swipe to delete
-        todoCell.swipeLeft()
+        // Swipe to delete。スワイプ対象は StaticText ではなく行のセル
+        // （StaticText を swipeLeft してもスワイプアクションは開かない）。
+        let row = app.cells.containing(.staticText, identifier: todoTitle).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "Row cell should exist")
+        row.swipeLeft()
 
         // Tap delete button
-        let deleteButton = app.buttons["Delete"]
-        if deleteButton.waitForExistence(timeout: 3) {
-            deleteButton.tap()
+        //
+        // 以前はこの一連を `if deleteButton.waitForExistence(...)` で包んでいたため、
+        // 削除が動かなくても何も assert されず緑のままだった。実際に
+        // `DeleteTodoIntent` の `requestConfirmation` がアプリ内ボタンから失敗して
+        // 削除できていなかったのを、このテストが見逃していた。
+        // `DeleteButton` は `.accessibilityLabel("Delete todo")` を付けているので、
+        // ラベルは "Delete" ではなく "Delete todo"。旧テストは "Delete" を探していて
+        // 常に見つからず、`if` で包まれていたため何も検証せず緑になっていた。
+        let deleteButton = app.buttons["Delete todo"].firstMatch
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Swipe should reveal a Delete action")
+        deleteButton.tap()
 
-            // Wait for deletion
-            sleep(1)
+        // Verify todo is deleted
+        XCTAssertTrue(
+            todoCell.waitForNonExistence(timeout: 5),
+            "Todo should be deleted"
+        )
+    }
 
-            // Verify todo is deleted
-            XCTAssertFalse(todoCell.exists, "Todo should be deleted")
-        }
+    // MARK: - Test: Delete Todo from the detail screen
+
+    /// 詳細画面の「Delete Todo」は確認ダイアログを挟んでから削除する。
+    /// この経路は `DeleteTodoIntent`（`requestConfirmation` 付き）を直接叩いていた頃、
+    /// `LNPerformActionErrorCodeUnsupportedValueType` で失敗して**何も起きなかった**。
+    @MainActor
+    func testDeleteTodoFromDetailView() throws {
+        let todoTitle = "Detail Delete Test \(Date().timeIntervalSince1970)"
+        addTodo(title: todoTitle)
+
+        let todoCell = findTodoCell(title: todoTitle)
+        XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
+        todoCell.tap()
+
+        let deleteButton = app.buttons["deleteTodoButton"]
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Detail view should offer Delete Todo")
+        deleteButton.tap()
+
+        let confirmButton = app.buttons["confirmDeleteTodoButton"].firstMatch
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: 5), "A confirmation dialog should appear")
+        confirmButton.tap()
+
+        XCTAssertTrue(
+            findTodoCell(title: todoTitle).waitForNonExistence(timeout: 5),
+            "Confirming should actually delete the todo"
+        )
     }
 
     // MARK: - Test: Search

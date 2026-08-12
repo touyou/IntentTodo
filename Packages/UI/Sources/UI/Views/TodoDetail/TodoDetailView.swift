@@ -341,6 +341,8 @@ private struct TodoDetailMetadataSection: View {
 private struct TodoDetailActionsSection: View {
     let entity: TodoAppEntity
 
+    @State private var isConfirmingDelete = false
+
     var body: some View {
         Group {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
@@ -350,9 +352,25 @@ private struct TodoDetailActionsSection: View {
                 )
             }
 
-            Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
+            // 確認はアプリ側で取る。`DeleteTodoIntent` の `requestConfirmation` は
+            // アプリ内ボタンからだと提示する面が無く失敗するため、確認後に
+            // 確認なし版の Intent を実行する。
+            Button(role: .destructive) {
+                isConfirmingDelete = true
+            } label: {
                 Label("Delete Todo", systemImage: "trash")
             }
+            .accessibilityIdentifier("deleteTodoButton")
+        }
+        .confirmationDialog(
+            "Delete “\(entity.title)”?",
+            isPresented: $isConfirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
+                Text("Delete")
+            }
+            .accessibilityIdentifier("confirmDeleteTodoButton")
         }
     }
 }

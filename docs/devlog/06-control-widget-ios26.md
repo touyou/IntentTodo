@@ -300,3 +300,34 @@ Apple のセッションは WidgetKit の Control を指すときは用語を明
 **残タスク**: `.promptsForUserConfiguration()`（対象 todo 未設定のときの設定フロー）と失敗時のエラー通知は、今回のシミュレータではコントロールが設定済みだったため通っていない。
 
 スクリーンショット: `.verification/2026-08-12-control-center/`（gitignore 対象）
+
+## 2026-08-12: C-8 の残り 2 項目を実測 → 削除ボタンが全く動いていないのを発見
+
+C-8 の残り（`.promptsForUserConfiguration()` の設定フロー / 失敗時のエラー通知）を iOS 27 シミュレータで確認しに行って、途中で**別の重大なバグ**を踏んだ。
+
+**`.promptsForUserConfiguration()`: 意図どおり動く**。Control Center の「コントロールを追加」ギャラリーから "Complete Todo" をタップすると、その場で設定シートが出る（タイトル "Complete Todo / Intento"、説明文、`Todo` パラメータの行）。対象 todo が決まっていないコントロールをそのまま置かせない、という狙いは達成できている。シート内のピッカーを開く操作はシミュレータの remote-process シートで階層が取れず、選択までは追えなかった（実機で確認するのが早い）。
+
+**エラー通知の確認中に発見: 詳細画面の「Delete Todo」が何も起きない**。設定済みコントロールが指す todo を消してエラー経路を作ろうとして、詳細画面の Delete Todo を押しても todo が消えなかった。コンソールに:
+
+```
+DeleteTodoIntent failed to execute with error: LNPerformActionErrorCodeUnsupportedValueType
+```
+
+原因は `DeleteTodoIntent.perform()` の `requestConfirmation(dialog:)`。**アプリ内の `Button(intent:)` には確認を提示する面が無いため、確認を要求した時点で失敗して削除まで到達しない**。Control で dialog / snippet が出ないのと同じ「呼出元に提示面が無い」系の問題で、こちらは失敗が無言なぶんタチが悪い。
+
+影響範囲は UI の削除経路すべて: `DeleteButton`（一覧のスワイプ）/ `TodoDetailView` / `VisionOSTodoView` / `WatchTodoDetailView` の 4 箇所。**Siri / Shortcuts / AppIntentsTesting 経由では成功する**（確認に応じる相手が居るため）ので、AppIntentsTesting のクリーンアップは今まで正常に動いていた。
+
+**なぜ気付かなかったか**: 既存の UI テスト `testDeleteTodo` が
+```swift
+if deleteButton.waitForExistence(timeout: 3) { ... XCTAssertFalse(todoCell.exists) }
+```
+と `if` で包まれていて、しかも探していたラベルが `"Delete"`（実際は `DeleteButton` の `.accessibilityLabel("Delete todo")`）だったため、**ボタンが見つからない → 中身が一度も実行されない → 緑**、という状態が続いていた。条件付き assert は「壊れていることを隠す」形で効く。
+
+**対応**:
+- 確認なしの `DeleteTodoImmediatelyIntent`（`isDiscoverable = false`）を追加。分ける理由は entity 解決の回避ではなく**対話の有無**で、`SnoozeTodoIntent` / `QuickSnoozeTodoIntent` と同じ構図
+- スワイプの `DeleteButton` は「スワイプして Delete を押す」自体が確認なので確認なし版を直接実行
+- 詳細画面（iOS / visionOS / watchOS）は SwiftUI の `.confirmationDialog` で確認してから確認なし版を実行。確認 UI がアプリ側に来たぶん、体験はむしろ標準的になった
+- `DeleteTodoIntent`（確認付き）は Siri / Shortcuts 用としてそのまま残す
+- テストを修正: `testDeleteTodo` の `if` を外して正しいラベルで assert、詳細画面用に `testDeleteTodoFromDetailView` を追加（確認ダイアログ → 削除まで）
+
+**教訓**: `requestConfirmation` / `requestChoice` を含む Intent は、**アプリ内 `Button(intent:)` から呼ぶと失敗する**。対話を伴う Intent は Siri / Shortcuts 専用と考え、UI からは確認なし版を用意して、確認は SwiftUI 側で取る。そして**条件付き assert（`if ... { XCTAssert }`）はテストを書いていないのと同じ**。

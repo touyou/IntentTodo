@@ -377,12 +377,15 @@ TodoEntityQuery.entities(for:)       ← parameter resolution 段階
 
 ### 現在: 別 Intent に分けるのは「振る舞いが違う」ときだけ
 
-呼出元プロセスの都合で複製しない。現存する分岐は次の 2 つで、どちらも理由は**対話できるかどうか**（または値の渡し方）であってプロセスではない。
+呼出元プロセスの都合で複製しない。現存する分岐は次の 3 つで、どれも理由は**対話できるかどうか**（または値の渡し方）であってプロセスではない。
 
 | Intent | 分けている理由 |
 |--------|--------------|
 | `SnoozeTodoIntent` / `QuickSnoozeTodoIntent` | 前者は `requestChoice` で期間を選ばせる。Live Activity のボタンは背景実行で問い合わせ先の UI が無いため、後者が既定 30 分で即実行する |
+| `DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` | 前者は `requestConfirmation` で確認を取る。アプリ内の `Button(intent:)` には確認を提示する面が無く**失敗して何も起きない**ため、UI は SwiftUI の `.confirmationDialog` で確認してから後者を実行する |
 | `ToggleTodoCompletionIntent` / `SetTodoCompletionIntent` | 前者はトグル、後者は絶対値セット（`SetValueIntent`）。Control の `ControlWidgetToggle` は on/off を渡してくるのでトグルでは表現できない |
+
+> **⚠️ `requestConfirmation` / `requestChoice` を含む Intent はアプリ内 `Button(intent:)` から呼べない**。応答する面が無いため `LNPerformActionErrorCodeUnsupportedValueType` で失敗し、**エラー表示も出ずに何も起きない**（2026-08-12 実測。詳細画面の削除ボタンが全く動いていなかった）。対話を伴う Intent は Siri / Shortcuts 専用と考え、UI からは対話なし版を用意して確認は SwiftUI 側で取る。Siri / Shortcuts / AppIntentsTesting 経由なら成功するので、AppIntentsTesting だけではこの不具合を検出できない — **UI テストが必要**。
 
 内部用は `isDiscoverable = false` にして AppShortcuts に登録しない。Live Activity の状態を触る Intent（`activity.end` / `activity.update`）は `#if os(iOS)` で `LiveActivityIntent` に準拠させる。
 

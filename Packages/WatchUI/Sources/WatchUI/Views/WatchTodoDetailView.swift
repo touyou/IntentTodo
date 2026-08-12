@@ -13,6 +13,7 @@ import TodoAppIntents
 public struct WatchTodoDetailView: View {
     @Query private var todoItems: [TodoItem]
     @Environment(\.dismiss) private var dismiss
+    @State private var isConfirmingDelete = false
 
     private var todo: TodoItem? { todoItems.first }
     private var entity: TodoAppEntity? { todo.map { TodoAppEntity(from: $0) } }
@@ -80,8 +81,21 @@ public struct WatchTodoDetailView: View {
                     )
                 }
 
-                Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
+                // 確認はアプリ側で取る（`DeleteTodoIntent` の `requestConfirmation` は
+                // アプリ内ボタンからだと提示する面が無く失敗する）。
+                Button(role: .destructive) {
+                    isConfirmingDelete = true
+                } label: {
                     Label("Delete", systemImage: "trash")
+                }
+                .confirmationDialog(
+                    "Delete “\(entity.title)”?",
+                    isPresented: $isConfirmingDelete,
+                    titleVisibility: .visible
+                ) {
+                    Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
+                        Text("Delete")
+                    }
                 }
             }
         }

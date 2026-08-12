@@ -143,10 +143,13 @@ IntentTodoWatchApp/                 # watchOS アプリ
 - **Unit Tests**: Testingフレームワーク使用（`@Test`構文）
 - **UI Tests**: XCTest使用
 - App Intents、UseCase、Repositoryは必ずユニットテストを作成
-- **App Intents の実経路は AppIntentsTesting で押さえる**（`IntentTodoUITest/AppIntentsTestingTests.swift`）。
+- **App Intents の実経路は AppIntentsTesting で押さえる**（`IntentTodoUITest/AppIntents/`）。
   entity の id 解決 / `allEntities` / `suggestedEntities` / Spotlight index / `TransientAppEntity` など、
   **落ちても他のテストでは捕まらない**経路を優先する。手作業の実機検証に行く前に、まずここで押さえられ
   ないかを検討する（詳細と落とし穴: `docs/insights/03-app-intents-core.md`）
+- **条件付き assert を書かない**。`if element.waitForExistence(...) { XCTAssert... }` は、要素が
+  見つからないと中身が一度も実行されず緑になる。実際にこの形で「削除がまったく動いていない」のを
+  長期間見逃した（経緯: `docs/devlog/06-control-widget-ios26.md` 2026-08-12）
 
 ### Swift/SwiftUI ガイドライン
 
@@ -229,7 +232,10 @@ struct IntentTodoAppIntentsPackage: AppIntentsPackage {
 | Intent | 分けている理由 |
 |--------|--------------|
 | `SnoozeTodoIntent` / `QuickSnoozeTodoIntent` | 前者は `requestChoice` で期間を選ばせる。Live Activity のボタンは背景実行で問い合わせ先の UI が無いため、後者が既定 30 分で即実行する |
+| `DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` | 前者は `requestConfirmation` で確認を取る。UI は SwiftUI の `.confirmationDialog` で確認してから後者を実行する |
 | `ToggleTodoCompletionIntent` / `SetTodoCompletionIntent` | 前者はトグル、後者は絶対値セット（`SetValueIntent`）。Control の `ControlWidgetToggle` は on/off を渡してくるのでトグルでは表現できない |
+
+> **⚠️ `requestConfirmation` / `requestChoice` を含む Intent をアプリ内の `Button(intent:)` から呼んではいけない**。応答する面が無いため `LNPerformActionErrorCodeUnsupportedValueType` で失敗し、**エラー表示も出ずに何も起きない**（2026-08-12 実測）。Siri / Shortcuts / AppIntentsTesting 経由では成功するので、AppIntentsTesting では検出できず **UI テストが要る**。
 
 内部用（`isDiscoverable = false`）の Intent は AppShortcuts に登録しない。
 

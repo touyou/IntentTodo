@@ -501,6 +501,8 @@ private struct VisionOSDetailsSection: View {
 private struct VisionOSActionsSection: View {
     let entity: TodoAppEntity
 
+    @State private var isConfirmingDelete = false
+
     var body: some View {
         // visionOS は .buttonStyle(.glass) / .glassProminent を未サポートのため
         // .bordered のままで運用 (空間 UI の hover effect 側で interactivity を担保)。
@@ -515,13 +517,26 @@ private struct VisionOSActionsSection: View {
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
 
-            Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
+            // 確認はアプリ側で取る（`DeleteTodoIntent` の `requestConfirmation` は
+            // アプリ内ボタンからだと提示する面が無く失敗する）。
+            Button(role: .destructive) {
+                isConfirmingDelete = true
+            } label: {
                 Label("Delete", systemImage: "trash")
             }
             .buttonStyle(.bordered)
             .tint(.red)
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
+            .confirmationDialog(
+                "Delete “\(entity.title)”?",
+                isPresented: $isConfirmingDelete,
+                titleVisibility: .visible
+            ) {
+                Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
+                    Text("Delete")
+                }
+            }
         }
     }
 }
