@@ -35,6 +35,18 @@ Button(intent: DeleteTodoIntent(todo: entity)) {
 
 > **引数順の罠**: `Button(role:intent:)` は `role:` を**先に**書く。`Button(intent: X, role: .destructive)` の順だと別 init に解決されて `"extraneous argument label 'intent:'"` エラーになる（visionOS ビルドで実際に発生、詳細は `07-platform-specific.md` の「Button(intent:role:) の引数順」）。
 
+### 削除確認の現状（2026-08-12〜）
+
+`requestConfirmation` を含む Intent はアプリ内 `Button(intent:)` から呼べない（提示する面が無く `LNPerformActionErrorCodeUnsupportedValueType` で失敗し、**エラー表示も出ずに何も起きない**）。そのため確認は **SwiftUI 側で取り、実行は確認なし版の Intent** に渡す形へ移行済み。
+
+| 経路 | 確認の取り方 | 実行する Intent |
+|------|------------|----------------|
+| 詳細画面の削除ボタン（`TodoDetailView` / `VisionOSTodoView`） | `.confirmationDialog` + `@State var isConfirmingDelete` | `DeleteTodoImmediatelyIntent` |
+| リストのスワイプ削除（`DeleteButton`） | スワイプして Delete を押す操作自体が確認 | `DeleteTodoImmediatelyIntent` |
+| Siri / Shortcuts | Intent 内の `requestConfirmation` | `DeleteTodoIntent` |
+
+`DeleteTodoIntent`（確認付き）は Siri / Shortcuts 専用と考える。**AppIntentsTesting では検出できない**（Siri/Shortcuts 経路では成功するため）ので、UI 経路は UI テストで押さえる。経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)、詳細: [03-app-intents-core.md](03-app-intents-core.md)。
+
 ### 直接 `perform()` を呼ばない
 
 Intent の `@Dependency` はシステムが `Button(intent:)` 経由で dispatch した時にのみ `AppDependencyManager` から解決される。`Task { try? await intent.perform() }` のように手動で呼ぶと `@Dependency` がゼロ初期化状態になり、ModelContainer 利用時点でクラッシュする。
@@ -406,9 +418,11 @@ watchOS 27+、tvOS 不可）。本アプリは **手動ソート時のみ**有�
 
 - **`AsyncImage(request:)` / `asyncImageURLSession`**: プロジェクトに `AsyncImage` 使用箇所ゼロ
   （リモート画像を扱わない）→ 採用対象なし。
-- **`confirmationDialog`/`alert` の `item:` オーバーロード**: `confirmationDialog` / `.alert(` の
-  使用箇所ゼロ。削除確認は SwiftUI ダイアログではなく **App Intent の `requestConfirmation`** 経由
-  （Siri/Shortcuts でも一貫）なので、この新オーバーロードの当て先が無い → 採用対象なし。
+- **`confirmationDialog`/`alert` の `item:` オーバーロード**: 調査時点では使用箇所ゼロだったが、
+  **2026-08-12 に削除確認が SwiftUI 側へ移った**ため現状は当て先がある（下記「削除確認の現状」）。
+  ただし現在の 2 箇所はいずれも「詳細画面が対象 entity を 1 つだけ持つ」形で `isPresented:` +
+  `@State var isConfirmingDelete` で足りている。`item:` が効くのは「リストのどの行か」を
+  ダイアログ側に運ぶ必要があるケースなので、スワイプ削除に確認を足す等の変更が入ったら再検討する。
 - **`swipeActionsContainer()`**: メインリストは既に `List` で `.swipeActions` が動作済み。新 API は
   `List` 以外（`LazyVStack` 等）向けなので不要。
 
