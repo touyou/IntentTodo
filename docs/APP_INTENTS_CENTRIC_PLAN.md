@@ -66,9 +66,9 @@
 
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
-| Intent 実行テスト | `makeIntent()` `run()`（AppIntentsTesting） | `AddTodoIntent` を実経路で | U | ✅(B) `be7cf2b` |
-| Entity query テスト | 同上 | `entities(matching:)` | U | ✅(B) `be7cf2b` |
-| 複数 Intent 連鎖 | 同上 | Add → Show を 1 テストで | U | ✅(B) `be7cf2b` |
+| Intent 実行テスト | `makeIntent()` `run()`（AppIntentsTesting） | `AddTodoIntent` / `ToggleTodoCompletionIntent` / `QuickSnoozeTodoIntent` / `GetTodoSummaryIntent` を実経路で | U | ✅ U（2026-08-12 実 run 10 件グリーン） |
+| Entity query テスト | 同上 | `entities(matching:)` / `entities(identifiers:)` / `allEntities()` / `suggestedEntities()` / `spotlightQuery()` | U | ✅ U（2026-08-12） |
+| 複数 Intent 連鎖 | 同上 | Add → Show / Add → Toggle → Toggle を 1 テストで | U | ✅ U（2026-08-12） |
 
 ### #344 Code Along: アプリを Siri 対応 — https://developer.apple.com/jp/videos/play/wwdc2026/344/
 
@@ -156,7 +156,7 @@
     経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
   - ⏭ EventKit/Contacts は別フレームワーク連携のため本ブランチ対象外（記録のみ）。詳細 insights/03。
 - **Phase 6 テスト基盤** ✅（B 深度で完了。実 run は手動/CI）: #295
-  - ✅ `IntentTodoUITest`（UIテストバンドル必須）に AppIntentsTesting テストを追加 `be7cf2b`
+  - ✅ `IntentTodoUITest`（UIテストバンドル必須）に AppIntentsTesting テストを追加 `be7cf2b` → 2026-08-12 に 10 件へ拡張し実 run グリーン（id 解決 / allEntities / suggestedEntities / Spotlight index / Toggle 往復 / QuickSnooze / TransientAppEntity）
   - ✅ `makeIntent`/`run`(AddTodo) / `entities(matching:)` / Add→Show 連鎖。buildForTesting + live diagnostics 0件。
   - 自己クリーンアップ設計（一意タイトルで作成→削除）。詳細 insights/03。
 - **Phase 7 WWDC 2026 追加検証（#42–#48）** ✅（B 深度。iOS/visionOS/watchOS の 3 スキームで `BuildProject` グリーン）:

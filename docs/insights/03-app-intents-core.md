@@ -781,7 +781,13 @@ UI テスティングバンドルに置く」**。本プロジェクトは既存
 import AppIntentsTesting
 
 @MainActor override func setUp() async throws {
-    app = XCUIApplication(); app.launch()           // ← ライブ起動
+    app = XCUIApplication()
+    // 起動済みなら activate。毎回 launch() すると再起動が挟まりシミュレータが散発的に落ちる。
+    if app.state == .runningForeground || app.state == .runningBackground {
+        app.activate()
+    } else {
+        app.launch()
+    }
     definitions = IntentDefinitions(bundleIdentifier: "dev.touyou.IntentTodo")
 }
 ```
@@ -795,9 +801,39 @@ import AppIntentsTesting
   で entity query、`valueQueries["..."].values(for:)` で value query。戻り値は `AnyAppEntity` 等の型消去型で、
   **動的プロパティアクセス**（`try match.title` を `String` に代入）で値を取り出す。
 - アプリターゲットを import せず文字列で参照するため、**多くの誤りはコンパイルではなく実行時**に出る。
-  本ブランチは **buildForTesting + live diagnostics 0 件**まで（B 深度）。実 run はシミュレータ起動 +
-  実 SwiftData 変更を伴うため、テストは一意タイトルで作成 → 操作 → 削除の**自己クリーンアップ設計**にし、
-  実行自体は手動 / CI に委ねる。
+  テストは一意タイトルで作成 → 操作 → 削除の**自己クリーンアップ設計**にしておく。
+
+### 実行して分かった落とし穴（2026-08-12、10 テストを実 run）
+
+- **dynamic member lookup で見えるのは `@Property` だけ**。`AnyAppEntity` の `entity.id` は
+  `castingFailed(elementType: "NSNull", targetType: "String")` になる（`TodoAppEntity.id` は
+  `@Property` ではないため）。id が要るときは **`entity.identifier.instanceIdentifier`**（型消去側が
+  別に持っている）を使う。
+- **`setUp` で毎回 `app.launch()` しない**。`launch()` は起動中のアプリを terminate して再起動するため、
+  テスト数が増えるとシミュレータが `Simulator device failed to launch ... did not return a process handle
+  nor launch error` で散発的に落ちる。起動済みなら `activate()` に分岐すると安定した（3 テスト時は顕在化
+  せず、10 テストに増やして毎回どれかが落ちるようになった）。
+- **Spotlight の index は Intent の完了と非同期**。`spotlightQuery()` は `run()` 直後だと空を返しうるので、
+  タイムアウト付きでポーリングする。
+- **`requestChoice` / `requestConfirmation` を使う Intent は run できない**（応答する相手が居ない）。
+  対話しない固定版を別 Intent として持っておくと、そちらはテストできる
+  （本プロジェクトの `SnoozeTodoIntent` / `QuickSnoozeTodoIntent`）。
+
+### AppIntentsTesting に寄せられる検証観点
+
+「ビルドが通る」までしか見ていなかった項目のうち、次はテストで実測できる。手で Siri / Shortcuts を触る
+必要があるのは、最終的に**システム UI の見え方**（dialog の読み上げ、snippet の描画、Control の表示）だけ。
+
+| 観点 | API | 落ちたときの症状（他のテストでは捕まらない） |
+|------|-----|------------------------------|
+| entity の id 解決 | `entities(identifiers:)` | Live Activity / Widget のボタンが無反応になる |
+| `EnumerableEntityQuery` | `allEntities()` | Shortcuts の一覧が空になる |
+| 候補提示 | `suggestedEntities()` | パラメータ picker に何も出ない |
+| Spotlight index | `spotlightQuery(_:)` | 検索・Siri から消えるだけで他は正常に見える |
+| `TransientAppEntity` | `intents["..."].run()` の `result.value.<prop>` | Shortcuts の条件分岐が壊れる |
+| ValueRepresentation | `AnyAppEntity.exported(as:)` | 他アプリへの受け渡しが壊れる |
+| Onscreen entity | `viewAnnotations()` | Siri が画面上の対象を認識しなくなる |
+| `IntentValueQuery` | `valueQueries["..."].values(for:)` | Visual Intelligence の結果が出なくなる |
 
 ### 落とし穴: ファイルのターゲット所属
 

@@ -143,6 +143,10 @@ IntentTodoWatchApp/                 # watchOS アプリ
 - **Unit Tests**: Testingフレームワーク使用（`@Test`構文）
 - **UI Tests**: XCTest使用
 - App Intents、UseCase、Repositoryは必ずユニットテストを作成
+- **App Intents の実経路は AppIntentsTesting で押さえる**（`IntentTodoUITest/AppIntentsTestingTests.swift`）。
+  entity の id 解決 / `allEntities` / `suggestedEntities` / Spotlight index / `TransientAppEntity` など、
+  **落ちても他のテストでは捕まらない**経路を優先する。手作業の実機検証に行く前に、まずここで押さえられ
+  ないかを検討する（詳細と落とし穴: `docs/insights/03-app-intents-core.md`）
 
 ### Swift/SwiftUI ガイドライン
 

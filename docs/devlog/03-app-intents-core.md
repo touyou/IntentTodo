@@ -265,3 +265,28 @@ todo の詳細説明というユースケースに近いため、型の制約で
 `SetTodoCompletionIntent`（Control 用、`SetValueIntent`）は `todoId: String` のまま。こちらも理由は「トグルではなく絶対値セット」という振る舞いの違いであって、プロセスの都合ではない。ドキュメント上の「FromExtension convention に従う」という説明だけ書き換えた。
 
 **残った教訓**: 呼出元プロセスの都合で Intent を複製すると、副作用（LA を畳む / 更新する）が片方にしか無い状態が生まれ、統合するときに拾い直しが要る。分けるなら**振る舞いが違うとき**だけにする。
+
+## 2026-08-12: 検証観点を AppIntentsTesting に寄せる（B 深度 → U 深度）
+
+「制約の再検証」を実機・シミュレータの手作業で進めていたが、AppIntentsTesting で押さえられる観点はテストに寄せた方がデグレも防げる、という方針転換。`IntentTodoUITest/AppIntentsTestingTests.swift` を 3 テスト → 10 テストに拡張し、実 run でグリーンを確認した（従来は buildForTesting までの B 深度だった）。
+
+追加したのは、**落ちても他のテストでは捕まらない**観点を優先:
+
+| テスト | 押さえている経路 |
+|---|---|
+| `testEntityResolutionByIdentifier` | `TodoEntityQuery.entities(for:)`。A-3 で問題になった、LA / Widget のボタンが `perform()` 前に通る経路 |
+| `testEntityResolutionOfUnknownIdentifierReturnsEmpty` | 削除済み todo を指す古いボタンで throw しないこと |
+| `testAllEntitiesIncludesSuggestedIncompleteTodo` | `EnumerableEntityQuery.allEntities()` / `suggestedEntities()` |
+| `testNewTodoIsIndexedInSpotlight` | `IndexedEntity` + `@Property(indexingKey:)`。落ちると検索から消えるだけで他は正常に見える |
+| `testToggleCompletionRoundTrip` | FromExtension 撤去で副作用を寄せた `ToggleTodoCompletionIntent` |
+| `testQuickSnoozePushesDueDateByThirtyMinutes` | `QuickSnoozeTodoIntent` が 30 分ちょうど押すこと |
+| `testTodoSummaryReflectsNewTodo` | `TransientAppEntity`（`TodoListSummaryEntity`）のプロパティ名込み |
+
+**実行して初めて分かった落とし穴**（insights/03 にも記録）:
+
+1. `AnyAppEntity` の dynamic member lookup で見えるのは `@Property` だけ。`entity.id` は `castingFailed(elementType: "NSNull", targetType: "String")` になる。id は `entity.identifier.instanceIdentifier` から取る。
+2. `setUp` で毎回 `app.launch()` すると、テスト数を増やしたところで `Simulator device failed to launch ... did not return a process handle nor launch error` が散発するようになった。`launch()` は起動中のアプリを terminate して再起動するため。起動済みなら `activate()` に分岐して解消。3 テストの頃は顕在化していなかった。
+3. Spotlight の index は Intent 完了と非同期。`spotlightQuery()` はタイムアウト付きでポーリングする。
+4. `requestChoice` を使う `SnoozeTodoIntent` は run できない（応答する相手が居ない）。対話しない `QuickSnoozeTodoIntent` を別に持っていたおかげでスヌーズの計算自体はテストできた。**対話版と非対話版を分けておくとテスト可能性が上がる**という、分離の思わぬ効能。
+
+**残る手作業**: 最終的にシステム UI の見え方に依存するもの（dialog の読み上げ、snippet の描画、Control の表示、Siri のルーティング）だけ。`viewAnnotations()` / `valueQueries` / `exported(as:)` はまだ未着手だが API はあるので寄せられる。
