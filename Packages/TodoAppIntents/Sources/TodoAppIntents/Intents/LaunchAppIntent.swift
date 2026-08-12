@@ -61,14 +61,31 @@ public struct LaunchAppIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult {
         logger.info("LaunchAppIntent.perform() pid=\(ProcessInfo.processInfo.processIdentifier) processName=\(ProcessInfo.processInfo.processName) target=\(target.rawValue)")
-        navigationModel.navigateToRoot()
         switch target {
         case .addTodo:
+            navigationModel.navigateToRoot()
             navigationModel.showAddTodo()
         case .todoList, .incompleteTodos, .favoriteTodos:
-            break
+            // 以前はここが `break` で、リスト系のターゲットは root に戻すだけだった。
+            // その結果「未完了だけ見せる」つもりのコントロール / Siri 応答が
+            // 「アプリを開くだけ」になっていたため、filter を明示的に伝える。
+            navigationModel.showList(filter: Self.listFilter(for: target))
         }
         return .result()
+    }
+
+    /// 画面ターゲット → リストの絞り込み。`perform()` は `@Dependency` 解決の都合で
+    /// SPM テストから叩けないため、対応表は純関数として切り出して検証する
+    /// (`ShowTodosIntent.screenTarget(for:)` と同じ方針)。
+    static func listFilter(for target: AppScreenTarget) -> TodoFilterType {
+        switch target {
+        case .incompleteTodos:
+            return .incomplete
+        case .favoriteTodos:
+            return .favorites
+        case .todoList, .addTodo:
+            return .all
+        }
     }
 }
 

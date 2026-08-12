@@ -45,6 +45,18 @@ struct NavigationModelTests {
         #expect(navigation.path.isEmpty)
     }
 
+    @Test("showList returns to root and hands the filter to the list")
+    func showListSetsPendingFilter() {
+        let navigation = NavigationModel()
+        let entity = TodoAppEntity(id: UUID().uuidString, title: "sample", isCompleted: false)
+        navigation.showDetail(for: entity)
+
+        navigation.showList(filter: .incomplete)
+
+        #expect(navigation.path.isEmpty)
+        #expect(navigation.pendingFilter == .incomplete)
+    }
+
     @Test("navigateToRoot also clears showingAddTodo and selectedTodo")
     func navigateToRootClearsAllState() {
         let navigation = NavigationModel()

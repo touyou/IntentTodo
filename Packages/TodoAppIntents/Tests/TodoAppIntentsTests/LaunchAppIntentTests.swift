@@ -91,6 +91,18 @@ struct LaunchAppIntentTests {
         #expect(intent.target == .favoriteTodos)
     }
 
+    // MARK: - Target → Filter Mapping
+
+    // perform() 本体は @Dependency 解決が要るので直接叩けない。リスト系ターゲットが
+    // 「ただアプリを開くだけ」に戻らないよう、対応表だけ純関数として押さえておく。
+
+    @Test("List targets map to the filter they promise")
+    func listFilterMapping() {
+        #expect(LaunchAppIntent.listFilter(for: .incompleteTodos) == .incomplete)
+        #expect(LaunchAppIntent.listFilter(for: .favoriteTodos) == .favorites)
+        #expect(LaunchAppIntent.listFilter(for: .todoList) == .all)
+    }
+
     // MARK: - Metadata Tests
 
     @Test("LaunchAppIntent has foreground(.immediate) support mode")

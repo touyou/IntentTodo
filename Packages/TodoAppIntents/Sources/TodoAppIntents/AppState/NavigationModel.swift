@@ -38,6 +38,15 @@ public final class NavigationModel {
     /// Drives `ShowTodoSearchResultsIntent` (`.system.search`, WWDC 2026 #343/#47).
     public var pendingSearchText: String?
 
+    /// A list filter an intent wants the list to apply. Same handshake as
+    /// ``pendingSearchText``: the list view copies it into its own filter state,
+    /// then clears it back to nil.
+    ///
+    /// Drives `LaunchAppIntent`'s list targets, so opening the app from the Todo
+    /// Count control lands on exactly the todos the number referred to — rather
+    /// than just opening the app.
+    public var pendingFilter: TodoFilterType?
+
     // MARK: - Initialization
 
     public init() {}
@@ -80,6 +89,12 @@ public final class NavigationModel {
     public func showSearch(matching term: String) {
         navigateToRoot()
         pendingSearchText = term
+    }
+
+    /// Navigates to the root list and asks it to show only todos matching `filter`.
+    public func showList(filter: TodoFilterType) {
+        navigateToRoot()
+        pendingFilter = filter
     }
 
     /// Dismisses the add todo sheet.

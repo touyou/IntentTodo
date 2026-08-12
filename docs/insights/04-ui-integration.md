@@ -192,6 +192,29 @@ struct LaunchAppIntent: AppIntent {
 }
 ```
 
+### 遷移先の「状態」は pending 値で受け渡す
+
+「開く」だけでなく「**どういう状態で**開くか」を Intent が指定する場合、`NavigationModel` に `pending〜` を置き、View が `.onChange` / `.onAppear` で自分の state に転写してから nil に戻す、というハンドシェイクに統一している。`.onAppear` 側があることで cold start（Intent が先に走り、View が後から現れる）でも取りこぼさない。
+
+| pending 値 | 書き込む Intent | 転写先 |
+|-----------|----------------|--------|
+| `pendingSearchText: String?` | `ShowTodoSearchResultsIntent`（`.system.searchInApp`）| `viewModel.searchText` |
+| `pendingFilter: TodoFilterType?` | `LaunchAppIntent`（`.incompleteTodos` / `.favoriteTodos` / `.todoList`）| `viewModel.filter` |
+
+```swift
+// View 側 (TodoListView / VisionOSTodoListView に同じ形で実装)
+.onChange(of: navigationModel.pendingFilter) { _, newValue in applyPendingFilter(newValue) }
+.onAppear { applyPendingFilter(navigationModel.pendingFilter) }
+
+private func applyPendingFilter(_ filterType: TodoFilterType?) {
+    guard let filterType else { return }
+    viewModel.filter = TodoFilter(filterType)
+    navigationModel.pendingFilter = nil   // 再適用されないよう必ず nil に戻す
+}
+```
+
+> **注意**: 画面ターゲットの `AppEnum`（`AppScreenTarget`）に case を足しただけでは何も起きない。`perform()` の `switch` で対応する状態を書き込むところまでやって初めて意味を持つ。実際 `.incompleteTodos` / `.favoriteTodos` は長い間 `switch` の `break` に落ちており、Todo Count コントロールや Siri の「お気に入りの Todo を見せて」が**絞り込まれずにアプリを開くだけ**になっていた（経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)）。列挙が約束した遷移先は、必ず対応する状態書き込みとセットで実装する。
+
 ### supportedModes の選択
 
 ナビゲーション目的の Intent には `.foreground(.immediate)` が適切。アプリを即座にフォアグラウンドに持ってきてから `perform()` が実行される。

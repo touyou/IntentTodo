@@ -147,6 +147,19 @@ public enum TodoFilter: String, CaseIterable, Identifiable, Sendable {
         case .favorites: return "star"
         }
     }
+
+    /// Bridges the intent-facing filter (`TodoFilterType`, which Siri / Shortcuts
+    /// and `LaunchAppIntent` speak) to this UI-only filter. The two enums are kept
+    /// separate because this one also carries presentation details (display name,
+    /// symbol) that don't belong in the intents layer.
+    public init(_ filterType: TodoFilterType) {
+        switch filterType {
+        case .all: self = .all
+        case .incomplete: self = .incomplete
+        case .completed: self = .completed
+        case .favorites: self = .favorites
+        }
+    }
 }
 
 /// Sort options for the todo list.

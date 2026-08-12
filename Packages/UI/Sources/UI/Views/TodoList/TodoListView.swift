@@ -99,6 +99,12 @@ public struct TodoListView: View {
             applyPendingSearch(newValue)
         }
         .onAppear { applyPendingSearch(navigationModel.pendingSearchText) }
+        // Apply a filter pushed by LaunchAppIntent (Todo Count control, Siri "show
+        // my favorite todos", …) so the app lands on the list the caller asked for.
+        .onChange(of: navigationModel.pendingFilter) { _, newValue in
+            applyPendingFilter(newValue)
+        }
+        .onAppear { applyPendingFilter(navigationModel.pendingFilter) }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
@@ -110,6 +116,14 @@ public struct TodoListView: View {
         guard let term else { return }
         viewModel.searchText = term
         navigationModel.pendingSearchText = nil
+    }
+
+    /// Copies an intent-supplied filter into the list's filter state, then clears
+    /// the pending value so it isn't re-applied.
+    private func applyPendingFilter(_ filterType: TodoFilterType?) {
+        guard let filterType else { return }
+        viewModel.filter = TodoFilter(filterType)
+        navigationModel.pendingFilter = nil
     }
 
     /// Persists a drag-to-reorder result. The reorder gesture can't be a

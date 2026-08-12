@@ -25,3 +25,40 @@ App Intents ワークショップにて、アプリが kill されている状�
 ## 2026-08-11: UISceneAppIntent の iOS 実行時確認
 
 上記のガード方針を裏付けるため、`RunCodeSnippet` で `#if canImport(_AppIntents_UIKit)` を iOS シミュレータ（iOS 27）コンテキストで実行した結果、`_AppIntents_UIKit: available` と出力され、iOS では実際に import 可能なことを確認した（macOS 側は前述の `.swiftinterface` 静的調査のみで実行時確認はしていない）。ガード方針自体は妥当と裏付けられたが、`TodoAppIntents` に `UISceneAppIntent` を使う具体的なマルチウィンドウ機能が無いため実装は見送り（機能要求が出たら本ガードで着手する）。
+
+## 2026-08-12: `LaunchAppIntent` のリスト系ターゲットが「アプリを開くだけ」だった
+
+実機で Control Center を触っての指摘から発覚。Add コントロールは追加シートが開くのに、Todo Count
+コントロールは**ただアプリが開くだけ**で、押した数字（未完了数）との関係が UI に何も反映されない、
+という体験だった。
+
+原因は `LaunchAppIntent.perform()` の実装漏れ:
+
+```swift
+switch target {
+case .addTodo:
+    navigationModel.showAddTodo()
+case .todoList, .incompleteTodos, .favoriteTodos:
+    break        // ← 何もしていない
+}
+```
+
+`AppScreenTarget` には `.incompleteTodos` / `.favoriteTodos` が定義され、`caseDisplayRepresentations`
+にも「Incomplete Todos」「Favorite Todos」と表示されるので**列挙としては遷移先を約束している**のに、
+`perform()` 側は `navigateToRoot()` するだけだった。`NavigationModel` に filter を伝える口（`pendingSearchText`
+に相当するもの）が無かったのが根本。Control 経由だけでなく、Siri の「お気に入りの Todo を見せて」
+（`ShowTodosIntent` が `opensIntent: LaunchAppIntent(target:)` を返す経路）でも同じく絞り込まれずに
+開くだけになっていた。
+
+**対応**: `pendingSearchText` と同じハンドシェイクで `NavigationModel.pendingFilter: TodoFilterType?` を新設し、
+`LaunchAppIntent` が `showList(filter:)` で書き込み、`TodoListView` / `VisionOSTodoListView` が
+`.onChange` / `.onAppear` で `viewModel.filter` に転写してから nil に戻す。`.onAppear` があるので
+cold start（Intent が先、View が後）でも取りこぼさない。
+
+対応表 `LaunchAppIntent.listFilter(for:)` は純関数として切り出してテストした。`perform()` は `@Dependency`
+解決が要り SPM テストから叩けないため、同じ穴が再発しても最低限マッピングだけは検知できるようにする狙い
+（`ShowTodosIntent.screenTarget(for:)` と同じ方針）。
+
+**教訓**: 画面ターゲットの `AppEnum` に case を足すのと、`perform()` でその状態を書き込むのは別作業。
+列挙が約束した遷移先は必ず状態書き込みとセットで実装する。`switch` の `default` / まとめ `case` +
+`break` は、この種の「宣言はあるが実装が無い」を静かに隠す。

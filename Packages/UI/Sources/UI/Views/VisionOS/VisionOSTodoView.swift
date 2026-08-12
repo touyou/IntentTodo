@@ -47,6 +47,20 @@ public struct VisionOSTodoListView: View {
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             VisionOSAddTodoSheet()
         }
+        // Apply a filter pushed by LaunchAppIntent (Siri "show my favorite todos", …)
+        // so the app lands on the list the caller asked for, like TodoListView does.
+        .onChange(of: navigationModel.pendingFilter) { _, newValue in
+            applyPendingFilter(newValue)
+        }
+        .onAppear { applyPendingFilter(navigationModel.pendingFilter) }
+    }
+
+    /// Copies an intent-supplied filter into the list's filter state, then clears
+    /// the pending value so it isn't re-applied.
+    private func applyPendingFilter(_ filterType: TodoFilterType?) {
+        guard let filterType else { return }
+        viewModel.filter = TodoFilter(filterType)
+        navigationModel.pendingFilter = nil
     }
 }
 
