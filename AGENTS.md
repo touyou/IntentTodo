@@ -250,7 +250,7 @@ Intent の実行結果をユーザーに伝える方法は呼出元で見え方�
 
 ### データ更新 Intent は必ず `WidgetReloader.reloadAllWidgets()` を呼ぶ
 
-データ変更があった Intent は、UI / Widget 反映のため末尾で `WidgetReloader.reloadAllWidgets()` を呼ぶ。
+データ変更があった Intent は、UI / Widget 反映のため末尾で `WidgetReloader.reloadAllWidgets()` を呼ぶ。このヘルパーは `WidgetCenter.shared.reloadAllTimelines()` と `ControlCenter.shared.reloadAllControls()` の**両方**を呼ぶ（ホームウィジェットとコントロールは別 API で、前者だけではコントロールが更新されない）。
 
 > Widget 内の `Button(intent:)` から呼ばれた Intent は、システムが `perform()` 完了時に自動でタイムラインをリロードすることを保証している（wwdc2023-10028 13:47/10:02）。手動呼び出しが本当に必要なのは Siri / Shortcuts / アプリ UI など Widget 起点でない経路のケース。全 Intent で無条件に呼ぶ現在のルールは判定を省いた安全側の運用（呼び出し重複はコスト的に無視できる。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
 

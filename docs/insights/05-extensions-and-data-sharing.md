@@ -203,10 +203,24 @@ public enum WidgetReloader {
     public static func reloadAllWidgets() {
         #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
+        // ControlCenter は visionOS では unavailable。
+        #if !os(visionOS)
+        ControlCenter.shared.reloadAllControls()
+        #endif
         #endif
     }
 }
 ```
+
+> **⚠️ ホームウィジェットとコントロールは別 API**。`WidgetCenter.shared.reloadAllTimelines()` は
+> Control Center のコントロールを更新しない。システムが自動でリロードするのは「その Intent を
+> 実行したコントロール自身」だけなので、**別のコントロール**は明示的に
+> `ControlCenter.shared.reloadAllControls()` を呼ばないと古い値のままになる。
+>
+> 実測（2026-08-12、iOS 27 シミュレータの Control Center）: `ToggleTodoControl` で todo を完了に
+> すると、隣の `TodoCountControl`（未完了数）が `2` のまま止まっていた。上記の 1 行を足したら
+> トグルと同時に `1` へ更新されるようになった。アプリ本体 / Siri からデータを変えたときも同様に
+> コントロールだけ取り残されるので、`WidgetReloader` 側で両方呼ぶのが正しい。
 
 ### 全データ変更Intentで呼び出し
 

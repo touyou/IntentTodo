@@ -282,3 +282,21 @@ Apple のセッションは WidgetKit の Control を指すときは用語を明
 
 これで実測（Control では出ない / Spotlight では出る）と一次資料の整合が取れた。以後、この件は
 「実測 + セッション横断で裏付け済み」として扱う。
+
+## 2026-08-12: Control Center の見え方を実測 → 隣のコントロールが更新されないバグを発見
+
+制約再検証 C-8 の残タスク「実機 Control Center での見え方の確認」を、iOS 27 シミュレータの Control Center で実施した。
+
+**確認できたこと（意図どおり）**: `ControlWidgetToggle` の状態がコントロール面にちゃんと出る。アクセシビリティ階層で `ToggleTodoControl` の `value` が `To Do` ↔ `Completed, Selected` と切り替わり、タップに追随した。Toggle 化した狙い（フィードバックをコントロール自身の再描画に寄せる）は成立している。
+
+**見つかったバグ**: トグルで todo を完了にしても、隣の `TodoCountControl`（未完了数）が `2` のまま止まっていた。3 秒待っても、アプリを再インストールするまで直らない。
+
+原因は `WidgetReloader.reloadAllWidgets()` が `WidgetCenter.shared.reloadAllTimelines()` しか呼んでいなかったこと。**ホームウィジェットとコントロールは別 API** で、`WidgetCenter` はコントロールを更新しない。システムが自動でリロードするのは「その Intent を実行したコントロール自身」だけなので、他のコントロールは明示的に `ControlCenter.shared.reloadAllControls()` を呼ぶ必要がある（`ControlCenter` は iOS 18+ / macOS 26+ / watchOS 26+、visionOS では unavailable なので `#if !os(visionOS)` で保護）。
+
+修正後に再確認: トグル（Completed → To Do）と同時に `TodoCountControl` が `1` → `2` へ更新された。
+
+この不具合は「トグルは正しく動いているのに、隣の数字だけ嘘をつく」という形なので、アプリ本体の UI やテストでは一切引っかからない。アプリ本体 / Siri からデータを変えたときも同様にコントロールだけ取り残されるため、影響範囲はトグル経由に限らない。
+
+**残タスク**: `.promptsForUserConfiguration()`（対象 todo 未設定のときの設定フロー）と失敗時のエラー通知は、今回のシミュレータではコントロールが設定済みだったため通っていない。
+
+スクリーンショット: `.verification/2026-08-12-control-center/`（gitignore 対象）
