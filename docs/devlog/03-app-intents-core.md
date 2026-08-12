@@ -397,3 +397,28 @@ extension ProbeReminderSchemaEntity: AppEntity {}
 宣言前の baseline と全項目一致（重複していない）。ビルドは iOS シミュレータ / My Mac / visionOS シミュレータの 3 destination グリーン、AppIntentsTesting 22 テットを含む全 36 テストもグリーン。
 
 **残る唯一の未確認は App Shortcut の「フレーズ」ルーティング**（`LNContextErrorDomain Code=2001` 系）。AppIntentsTesting は型名で intent を引くのでフレーズ経路を通らない。実機で「Todo を追加して」のような登録フレーズを 1 回 Siri に言えば確認できる。壊れていた場合は 4 ファイルを消せば元に戻る（`*AppIntentsPackage.swift`）。
+
+## 2026-08-12: C-6 は SSU training バグでブロックと確定（クリーンビルドで実測）
+
+前項で「`.reminders.reminder` の `locationTrigger` が `PlaceDescriptor` を `@Property` に強制するので [[placedescriptor-ssu-workaround]] に衝突しそう」と書いた点を、DerivedData を消したクリーンビルドで確定させた。
+
+**probe 1: `@Parameter var placeProbe: PlaceDescriptor?` を `AddTodoIntent` に追加**（= `35d772f` が外したのと同じ形）
+
+```
+GeoToolbox.PlaceDescriptorEntity must match regular expression ^[a-zA-Z_][a-zA-Z_$0-9]*$ # variables.3.name
+Command AppIntentsSSUTraining emitted errors but did not return a nonzero exit code to indicate failure
+```
+
+**probe 2: `.reminders.locationTrigger` 適合 entity に `@Property var place: PlaceDescriptor`**（= C-6 で必須になる形）
+
+```
+GeoToolbox.PlaceDescriptorEntity must match regular expression ^[a-zA-Z_][a-zA-Z_$0-9]*$ # variables.1.name
+```
+
+variable の index が 3 → 1 と probe に応じて変わっているので、キャッシュではなく実際に再導出されている。**Xcode 27 beta 5 でも未修正**であり、`@Parameter` だけでなく **`@Property`（しかも入れ子の schema entity 側）でも同じく踏む**。
+
+**結論**: `.reminders.reminder` への適合は `locationTrigger` プロパティが必須で、その entity は `place: PlaceDescriptor` を要求する。つまり **C-6 は SSU バグが直るまで実質ブロック**（ローカルは exit 0 だが Xcode Cloud は emitted error を失敗扱いにするため）。`35d772f` の回避も引き続き必要。
+
+**副産物の注意点（今後の検証手順に効く）**: probe を消した直後のビルドで、まだ SSU エラーが出続けた。調べると `IntentTodo.app/Metadata.appintents/extract.actionsdata` に probe の痕跡（`AddTodoIntent.parameters/7` と `ProbeSSUPlaceEntity`）がそのまま残っていた。**SSU の `temp-dir` だけ消しても足りず、`Metadata.appintents` の再抽出まで走らせないと前の状態が残る**。ターゲットの build ディレクトリを部分的に消す程度では Xcode が「変更なし」と判断して再抽出しないので、判定は **DerivedData ごと消したクリーンビルド**で行うこと。
+
+クリーンな状態（probe 無し）での再確認: SSU エラー 0 件、`Metadata.appintents` に `PlaceDescriptorEntity` 0 件。**actions は 23 で、`Packages/TodoAppIntents/.../Intents/` の intent 型数 23 とちょうど一致**（`includedPackages` を 4 ターゲットに宣言した状態でも重複していない）。A-1 の「宣言あり / なしで件数一致」は incremental ビルドで採った値だったが、このクリーンビルドで独立に裏が取れた形になる。
