@@ -331,3 +331,50 @@ todo の詳細説明というユースケースに近いため、型の制約で
 **残る穴**: App Shortcut の**フレーズ**ルーティング（`LNContextErrorDomain Code=2001` 系）。AppIntentsTesting は `definitions.intents[...]` を型名で引くので、`AppShortcutsProvider` のフレーズ経路は通らない。ここだけは実機 Siri / Spotlight で確かめるしかない。
 
 **判断**: 採用すれば Apple の公式手順に沿う形になるが、まだ埋まっていない穴が Siri のフレーズという最も見えにくい部分なので、今回は非重複運用のまま据え置き、probe は削除した。採用するなら実機でフレーズを 1 つ試すのが最短の確認になる。
+
+## 2026-08-12: `.reminders.reminder` スキーマの要求仕様を洗い出した（C-6 / #48 の前提整理）
+
+据え置き中の C-6（コア `TodoAppEntity` を `@AppEntity(schema: .reminders.reminder)` に適合させる）について、**適合そのものは着手せず、スキーマが何を要求するのかだけを probe で確定させた**。エラーを 1 つずつ潰す形で回すと、ビルド時のスキーマ検証が要求プロパティ名・型・optional かどうかまで具体的に教えてくれる。
+
+**まず 1 つ前提が覆った**: 「マクロ生成の init が `EntityProperty<T>` 引数を要求するので自前 init と相性が悪い」という据え置き理由は**誤り**だった。マクロ展開を実際に読むと、生成されるのは
+
+```swift
+extension ProbeReminderSchemaEntity: AssistantSchemaEntity {
+    static let __appSchemaEntity = "reminders.reminder"
+}
+extension ProbeReminderSchemaEntity: AppEntity {}
+```
+
+の 2 つだけで、**init は生成されない**。自前 `init(from: TodoItem)` はそのまま使える。
+
+**`.reminders.reminder` の要求プロパティ（Xcode 27 beta 5 実測）**:
+
+| プロパティ | 型 | 備考 |
+|---|---|---|
+| `title` | `String` | |
+| `note` | `String?` | 本文。うちの `todoDescription` に対応 |
+| `dueDate` | `DateComponents?` | **`Date?` ではない** |
+| `isCompleted` | `Bool` | |
+| `completionDate` | `Date?` | 現状モデルに無い |
+| `creationDate` | `Date?` | **optional 必須**（非 optional だとエラー） |
+| `isFlagged` | `Bool?` | **optional 必須**。うちの `isFavorite` に対応 |
+| `tags` | `Set<String>` | **配列ではない**。現状モデルに無い |
+| `list` | `.reminders.list` 適合 entity | **非 optional 必須**。`CategoryAppEntity` が既に適合済み |
+| `recurrence` | `Calendar.RecurrenceRule?` | 現状モデルに無い |
+| `locationTrigger` | `.reminders.locationTrigger` 適合 entity（optional 可） | 下記 |
+| `urls` | `[URL]` | 現状モデルに無い |
+
+入れ子で 2 つ必要:
+
+- `@AppEntity(schema: .reminders.locationTrigger)` — `place: PlaceDescriptor` と `event: <.reminders.locationTriggerEvent 適合 enum>`
+- `@AppEnum(schema: .reminders.locationTriggerEvent)` — ケースは `arrive` / `depart`（`leave` だと `requires enum case 'depart'` で弾かれる）
+
+この形で probe はビルドが通った（= 適合自体は成立する）。probe は削除済み。
+
+**残る本当の障害は 3 つ**（#48 で着手するときの論点）:
+
+1. **`list` が非 optional**。`TodoItem.category` は CloudKit 要件で optional なので、「未分類」を表す既定の `CategoryAppEntity` を用意して埋める必要がある。
+2. **`dueDate` が `DateComponents`**。モデルは `Date?` なので相互変換が要る（`DateComponents` は「日付だけ / 時刻だけ」を表せるぶん、往復で情報が落ちうる）。
+3. **`locationTrigger` が `PlaceDescriptor` を `@Property` に強制する**。これは `35d772f` で SSU training エラー回避のために外したのと同じ型で、[[placedescriptor-ssu-workaround]] の制約に正面からぶつかる。`locationTrigger` 自体は optional だがプロパティの存在は必須なので逃げられない。**SSU バグが直るまで C-6 は実質ブロック**の可能性が高い（今回は incremental ビルドで SSU タスクが再実行されなかったため未確認。判定には DerivedData を消したクリーンビルドが要る）。
+
+`completionDate` / `tags` / `recurrence` / `urls` はモデル追加で埋まる（CloudKit 互換の primitive に落とせる）ので、障害としては軽い。

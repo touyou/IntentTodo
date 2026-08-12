@@ -122,8 +122,12 @@
     にフォールバック、`ShowTodoSearchResultsIntent`（`.system.search`, #47）は `#if !os(watchOS)` で除外。
     watchOS はスキーマルーティング非使用のため機能損失なし。
   - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**（#48 で優先度再考 → 据え置き）。
-    reminder スキーマはマクロ生成 init が `EntityProperty<T>` 引数と `section` / `locationTrigger` 等の
-    入れ子サブエンティティを再帰的に要求するため、モデルから組み立てる自前 init と相性が悪い。
+    **2026-08-12 に要求仕様を probe で全部洗い出した**（要求プロパティ・型・optional 可否・入れ子の
+    `locationTrigger` / `locationTriggerEvent`。probe はビルドが通る形まで到達）。据え置き理由だった
+    「マクロ生成 init が `EntityProperty<T>` 引数を要求して自前 init と衝突する」は**誤り**で、マクロは
+    conformance を 2 つ生やすだけで init を生成しない。残る障害は ①`list` が非 optional
+    ②`dueDate` が `DateComponents` ③`locationTrigger` が `PlaceDescriptor` を `@Property` に強制し
+    SSU training バグ（`35d772f`）に正面衝突、の 3 点。詳細: `docs/devlog/03-app-intents-core.md`。
     **新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な自前 Intent 群 +
     `OpenIntent`/`DeleteIntent` + `.system.search`(#47) + `indexingKey`(#43)）ため、本体適合は SDK の
     スキーママクロ init 規約が扱いやすくなるのを待つ独立タスクとして据え置く。詳細は insights/03「Phase 7」。
