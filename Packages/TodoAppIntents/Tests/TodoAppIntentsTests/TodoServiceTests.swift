@@ -93,6 +93,44 @@ struct TodoServiceTests {
         #expect(try repo.fetch(by: item.id)?.isCompleted == true)
     }
 
+    // MARK: - setCompletion
+
+    @Test("setCompletion writes the requested state regardless of the current one")
+    func setCompletionIsAbsolute() throws {
+        let item = TodoItem(title: "task")
+        let (service, repo) = makeService(seed: [item])
+
+        // A control toggle sends the state it moved to, so repeating the same
+        // value must converge rather than flip back.
+        _ = try service.setCompletion(todoId: item.id.uuidString, isCompleted: true)
+        _ = try service.setCompletion(todoId: item.id.uuidString, isCompleted: true)
+        #expect(try repo.fetch(by: item.id)?.isCompleted == true)
+
+        let reopened = try service.setCompletion(todoId: item.id.uuidString, isCompleted: false)
+        #expect(reopened.isCompleted == false)
+        #expect(try repo.fetch(by: item.id)?.isCompleted == false)
+    }
+
+    @Test("setCompletion leaves modifiedAt alone when the state already matches")
+    func setCompletionNoOpKeepsModifiedAt() throws {
+        let item = TodoItem(title: "task")
+        item.isCompleted = true
+        let originalModifiedAt = item.modifiedAt
+        Thread.sleep(forTimeInterval: 0.05)
+        let (service, _) = makeService(seed: [item])
+
+        _ = try service.setCompletion(todoId: item.id.uuidString, isCompleted: true)
+        #expect(item.modifiedAt == originalModifiedAt)
+    }
+
+    @Test("setCompletion throws for unknown id")
+    func setCompletionNotFound() {
+        let (service, _) = makeService()
+        #expect(throws: IntentError.self) {
+            _ = try service.setCompletion(todoId: UUID().uuidString, isCompleted: true)
+        }
+    }
+
     @Test("toggleCompletion bumps modifiedAt forward")
     func toggleCompletionBumpsModifiedAt() throws {
         let item = TodoItem(title: "task")
@@ -273,5 +311,35 @@ struct TodoServiceTests {
         done.isCompleted = true
         let (service, _) = makeService(seed: [open1, open2, done])
         #expect(try service.incompleteCount() == 2)
+    }
+
+    // MARK: - summarize
+
+    @Test("summarize tallies pending, completed, overdue and favorites")
+    func summarizeTallies() throws {
+        let now = Date()
+        let overdue = TodoItem(title: "overdue", dueDate: now.addingTimeInterval(-3600))
+        let upcoming = TodoItem(title: "upcoming", isFavorite: true, dueDate: now.addingTimeInterval(3600))
+        let noDue = TodoItem(title: "no due")
+        // 期限切れでも完了済みなら overdue に数えない。
+        let doneOverdue = TodoItem(title: "done", dueDate: now.addingTimeInterval(-7200))
+        doneOverdue.isCompleted = true
+        let (service, _) = makeService(seed: [overdue, upcoming, noDue, doneOverdue])
+
+        let summary = try service.summarize()
+        #expect(summary.totalCount == 4)
+        #expect(summary.pendingCount == 3)
+        #expect(summary.completedCount == 1)
+        #expect(summary.overdueCount == 1)
+        #expect(summary.favoriteCount == 1)
+    }
+
+    @Test("summarize on an empty store reports all zeros")
+    func summarizeEmpty() throws {
+        let (service, _) = makeService()
+        let summary = try service.summarize()
+        #expect(summary.totalCount == 0)
+        #expect(summary.pendingCount == 0)
+        #expect(summary.overdueCount == 0)
     }
 }

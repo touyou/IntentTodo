@@ -32,14 +32,15 @@ public struct GetTodoSummaryIntent: AppIntent {
     public init() {}
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<TodoListSummaryEntity> & ProvidesDialog {
+    public func perform() async throws -> some IntentResult & ReturnsValue<TodoListSummaryEntity> & ProvidesDialog & ShowsSnippetIntent {
         let summary = try todoService.summarize()
         return .result(
             value: summary,
             dialog: IntentDialog(
                 full: "You have \(summary.pendingCount) pending todo\(summary.pendingCount == 1 ? "" : "s"), \(summary.overdueCount) of which \(summary.overdueCount == 1 ? "is" : "are") overdue.",
                 supporting: "\(summary.pendingCount) pending, \(summary.overdueCount) overdue."
-            )
+            ),
+            snippetIntent: TodoSummarySnippetIntent()
         )
     }
 }

@@ -21,6 +21,13 @@ struct IntentTodoWidgetBundle: WidgetBundle {
         MainActor.assumeIsolated {
             let todoService = TodoService.swiftDataBacked(container: sharedWidgetModelContainer)
             AppDependencyManager.shared.add(dependency: todoService)
+
+            // SnippetIntent (TodoSnippetIntent / TodoSummarySnippetIntent) と
+            // TodoAppEntity の deferred property は @Dependency を使えないため
+            // TodoEntityStore からコンテナを読む。アプリ側 (IntentTodoApp.init) しか
+            // 登録していないと、Extension プロセスで解決されたときに中身が空になり
+            // 「Todo not found」を描いてしまうので、こちらでも登録しておく。
+            TodoEntityStore.register(container: sharedWidgetModelContainer)
         }
     }
 
@@ -32,7 +39,7 @@ struct IntentTodoWidgetBundle: WidgetBundle {
         #if !os(visionOS)
         QuickAddTodoControl()
         TodoCountControl()
-        ToggleUrgentTodoControl()
+        ToggleTodoControl()
         #endif
     }
 }

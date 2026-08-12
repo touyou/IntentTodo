@@ -89,7 +89,7 @@
 | 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | Add/Complete を寄付、削除時 predicate | B/R | ✅(B) `b4dbd63` |
 | セマンティック検索 | `IndexedEntity` `@Property(indexingKey:)` `.system.search` | indexingKey(#43) + in-app 検索スキーマ(#47) | B | ✅ (#43/#47) |
 | Onscreen（コレクション） | `.appEntityIdentifier(forSelectionType:)` | 一覧の各行を onscreen 提供 | B | ✅ (#46) |
-| 既存統合へのエンティティ付与 | `UNMutableNotificationContent.appEntityIdentifiers` | toggle 通知に entity を紐付け | B | ✅ (#46) |
+| 既存統合へのエンティティ付与 | `UNMutableNotificationContent.appEntityIdentifiers` | Control のエラー通知に entity を紐付け | B | ✅ (#46) |
 
 ### #297 Visual Intelligence 統合 — https://developer.apple.com/jp/videos/play/wwdc2026/297/
 
@@ -164,7 +164,7 @@
   - ✅ #43: `@Property(indexingKey:)` で title→`\.title` / 新設 description→`\.contentDescription`（iOS/macOS 限定 overload を `#if` 分岐）
   - ✅ #44: `TodoAppEntity: Transferable` + `ValueRepresentation` で title / `IntentPerson`(担当者) / `PlaceDescriptor`(場所) を export
   - ✅ #45: `UpdateTodoIntent` + `IntentParameter.valueState` + `TodoService.update`/`FieldUpdate`（新値/明示クリア/据え置きを区別）
-  - ✅ #46: 一覧に `.appEntityIdentifier(forSelectionType:)` / toggle 通知に `UNMutableNotificationContent.appEntityIdentifiers`
+  - ✅ #46: 一覧に `.appEntityIdentifier(forSelectionType:)` / Control のエラー通知に `UNMutableNotificationContent.appEntityIdentifiers`
   - ✅ #47: `ShowTodoSearchResultsIntent`（`@AppIntent(schema: .system.search)`）+ `NavigationModel.pendingSearchText` 配線。ownership/requestValue は未採用
   - ✅ #48: reminder 本体スキーマ適合は再評価のうえ据え置き（list 適合 + 自前 Intent で新 Siri 連携は成立を確認）
   - 詳細・落とし穴は insights/03「Phase 7」。R 深度（実機 Siri/Spotlight/Visual Intelligence）は手動。

@@ -12,6 +12,7 @@
 //
 
 import AppIntents
+import Domain
 import Foundation
 
 /// A snapshot of the current todo list statistics, returned from `GetTodoSummaryIntent`.
@@ -64,5 +65,22 @@ public struct TodoListSummaryEntity: TransientAppEntity {
         self.pendingCount = pendingCount
         self.overdueCount = overdueCount
         self.favoriteCount = favoriteCount
+    }
+
+    /// Computes the summary from a fetched set of todos.
+    ///
+    /// Kept here rather than inside `TodoService` so the same tally is shared by
+    /// `GetTodoSummaryIntent` (service-backed) and `TodoSummarySnippetIntent`
+    /// (store-backed, re-performed by the system after every snippet button tap).
+    @MainActor
+    public init(items: [TodoItem], now: Date = Date()) {
+        let pending = items.filter { !$0.isCompleted }
+        self.init(
+            totalCount: items.count,
+            completedCount: items.count - pending.count,
+            pendingCount: pending.count,
+            overdueCount: pending.filter { $0.dueDate.map { $0 < now } ?? false }.count,
+            favoriteCount: items.filter(\.isFavorite).count
+        )
     }
 }

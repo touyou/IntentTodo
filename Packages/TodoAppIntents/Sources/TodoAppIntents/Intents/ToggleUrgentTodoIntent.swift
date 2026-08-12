@@ -3,7 +3,11 @@
 //  TodoAppIntents
 //
 //  Auto-selects the most urgent (earliest-due) incomplete todo and toggles it.
-//  Designed for Control Center (no parameter picking available there).
+//
+//  Siri / Shortcuts only. Control Center used to call this and report the result
+//  by local notification; it now uses `SetTodoCompletionIntent` against a todo the
+//  person configured, so the control's own state is the feedback. Here — where
+//  dialog and snippets do render — the result is reported through both.
 //
 
 import AppIntents
@@ -19,16 +23,32 @@ public struct ToggleUrgentTodoIntent: AppIntent {
     public init() {}
 
     @MainActor
-    public func perform() async throws -> some IntentResult {
-        guard let result = try todoService.toggleMostUrgentTodo() else {
-            return .result()
-        }
-        // Control Center では Dialog が表示されないため、通知でフィードバックを返す。
-        ControlNotificationHelper.sendToggledNotification(
-            todoTitle: result.title,
-            isCompleted: result.isNowCompleted,
-            todoId: result.id
+    public func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetIntent {
+        let result = try todoService.toggleMostUrgentTodo()
+        // 片付けた直後は「残りどれだけか」が次に知りたい情報なので、個別 todo ではなく
+        // サマリ snippet を返す。対象が無かった場合も同じ型で返せる。
+        return .result(
+            dialog: dialog(for: result),
+            snippetIntent: TodoSummarySnippetIntent()
         )
-        return .result()
+    }
+
+    private func dialog(for result: UrgentTodoToggleResult?) -> IntentDialog {
+        guard let result else {
+            return IntentDialog(
+                full: "You have no todos with a due date left to do.",
+                supporting: "Nothing due."
+            )
+        }
+        if result.isNowCompleted {
+            return IntentDialog(
+                full: "Completed \(result.title).",
+                supporting: "Completed \(result.title)."
+            )
+        }
+        return IntentDialog(
+            full: "Reopened \(result.title).",
+            supporting: "Reopened \(result.title)."
+        )
     }
 }

@@ -52,12 +52,13 @@
 ### [06. Control Widget と iOS 26](insights/06-control-widget-ios26.md)
 
 - `supportedModes` の使い分け（`openAppWhenRun` と同等挙動の記述あり）
+- **Button と Toggle の使い分け**（Toggle には固定された対象と `SetValueIntent` が要る）
 - `ControlWidgetButton(action:)` + `.foreground(.immediate)` パターン
 - **`ControlValueProvider`** で値を供給するパターン（body 直 fetch より推奨）
 - `kind` は reverse-DNS 形式 (`dev.touyou.IntentTodo.<Target>.<WidgetName>`) に統一
-- `ControlConfigurationIntent` の制約
+- `ControlConfigurationIntent` の制約とモジュール境界
 - visionOS 非対応: `#if !os(visionOS)` ガード
-- `.background` モードによるバックグラウンドアクションとローカル通知フィードバック
+- **Control では dialog も snippet も出ない** → 成功はコントロール自身の再描画、失敗のみローカル通知
 
 ### [07. プラットフォーム固有の知見](insights/07-platform-specific.md)
 

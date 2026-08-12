@@ -95,7 +95,7 @@ IntentTodoWatchApp/                 # watchOS アプリ
 
 > **Widget でのアプリ起動**: [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) に "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`" と明記。アプリを開くだけの用途には `Button(intent:)` より `Link` が公式推奨。
 - **ライブアクティビティ**: Dynamic Island + ロック画面（期限1時間以内で自動表示、`LiveActivityIntent` 使用）
-- **コントロールセンター**: `ControlWidgetButton(action:)` で `LaunchAppIntent` / `.background` Intent を直接呼ぶ
+- **コントロールセンター**: アプリを開く / 単発アクションは `ControlWidgetButton(action:)`、2 状態の切り替えは `ControlWidgetToggle(isOn:action:)` + `SetValueIntent`（対象を固定するため `AppIntentControlConfiguration` で設定可能にする）
 
 #### 設計プロセス
 
@@ -238,17 +238,19 @@ extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
 
 Intent の実行結果をユーザーに伝える方法は呼出元で見え方が異なる:
 
-| 呼出元 | `.result(dialog:)` | ローカル通知 |
-|-------|------------------|------------|
-| Siri | 読み上げ ✅ | 表示 ✅ |
-| Shortcuts | 結果欄に表示 ✅ | 表示 ✅ |
-| UI (`Button(intent:)`) | 表示なし | 表示 ✅ |
-| Widget `Button(intent:)` | 表示なし | 表示 ✅ |
-| **Control Widget (`ControlWidgetButton`)** | **表示なし** | 表示 ✅ |
+| 呼出元 | `.result(dialog:)` | Snippet (`snippetIntent:`) | ローカル通知 |
+|-------|------------------|--------------------------|------------|
+| Siri | 読み上げ ✅ | 表示 ✅ | 表示 ✅ |
+| Spotlight / Shortcuts | 結果欄に表示 ✅ | 表示 ✅ | 表示 ✅ |
+| UI (`Button(intent:)`) | 表示なし | 表示なし | 表示 ✅ |
+| Widget `Button(intent:)` | 表示なし | 表示なし | 表示 ✅ |
+| **Control (`ControlWidgetButton` / `ControlWidgetToggle`)** | **表示なし** | **表示なし** | 表示 ✅ |
+
+> Control の 2 つの「表示なし」はいずれも**実機確認済み**（dialog: 2026-04-14 / snippet: 2026-08-12）。snippet は、同一 Intent・同一 snippet を Spotlight から呼ぶと出て Control から呼ぶと出ない、という比較で確定させた（実行プロセスを `[.main]` に固定しても、Button / Toggle どちらの形でも出ない）。**ドキュメントの肯定リストから「Control は非対応」と推論するのは禁止** — 一度その推論で設計を誤っており、wwdc2025-275 1:40–1:59 の "control" 実演とも矛盾する。判断は必ず「呼出元だけ変えて同じ Intent を走らせる」比較で行う。経緯: [docs/devlog/06-control-widget-ios26.md](docs/devlog/06-control-widget-ios26.md)
 
 使い分けルール:
-- **Control Center から呼ばれる Intent** (`ToggleUrgentTodoIntent`, `ShowTodoCountIntent`): **ローカル通知**でフィードバック (Dialog が表示されないため)
-- **Siri / Shortcuts 前提の Intent** (`ShowTodosIntent` 等): **Dialog** で結果を音声読み上げ / テキスト表示
+- **Control から呼ばれる Intent** (`SetTodoCompletionIntent` 等): フィードバックの主経路は `perform()` 完了時の自動リロードによる**コントロール自身の再描画**。dialog も snippet も出ないので返さない。**失敗時のみローカル通知** (`ControlNotificationHelper.sendErrorNotification`) — 失敗すると前の状態のまま再描画されて「何も起きなかった」と区別できないため。読ませたい情報が主目的なら `LaunchAppIntent` でアプリの該当画面に送る
+- **Siri / Shortcuts 前提の Intent** (`ShowTodosIntent`, `ShowTodoCountIntent`, `GetTodoSummaryIntent` 等): **Dialog + Snippet**。`IntentDialog(full:supporting:)` で音声単独用と視覚併用を分け、`snippetIntent:` でインタラクティブな結果表示を添える
 - **UI Button 経由が中心の Intent** (Add/Toggle/Delete 等): Dialog も通知も不要 (UI が即座に反映するため)
 
 ### データ更新 Intent は必ず `WidgetReloader.reloadAllWidgets()` を呼ぶ
@@ -262,7 +264,7 @@ try repository.update(item)
 WidgetReloader.reloadAllWidgets()
 ```
 
-対象: `AddTodoIntent`, `DeleteTodoIntent`, `ToggleTodoCompletionIntent`, `ToggleFavoriteIntent`, `SnoozeTodoIntent`, `ToggleUrgentTodoIntent` と FromExtension 系。
+対象: `AddTodoIntent`, `DeleteTodoIntent`, `ToggleTodoCompletionIntent`, `ToggleFavoriteIntent`, `SnoozeTodoIntent`, `ToggleUrgentTodoIntent`, `SetTodoCompletionIntent` と FromExtension 系。
 
 ### @Dependency + AppDependencyManager パターン
 

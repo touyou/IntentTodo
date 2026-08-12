@@ -425,7 +425,7 @@ public struct LaunchAppIntent: AppIntent {
 | Intent組み合わせ | 統合しない理由 |
 |-----------------|---------------|
 | `CompleteTodoFromActivityIntent` / `ToggleTodoCompletionIntent` | LiveActivity固有の終了処理が必要（`LiveActivityIntent` プロトコル準拠が別） |
-| Widget Extension 内の独自 Intent（`ToggleUrgentTodoIntent` 等） | Extension プロセスで動作するため SPM の Intent と分離する必要がある |
+| Control 用の `SetTodoCompletionIntent` / `ToggleTodoCompletionIntent` | Control の Toggle は `SetValueIntent`（システムが遷移先の状態を `value` に埋める絶対値）で、flip する Toggle 系 Intent とは意味論が違う。パラメータも `todoId: String`（Extension での事前 entity 解決を回避）|
 
 ### AppEnum
 
@@ -854,7 +854,8 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   （単一 entity 版 `.appEntityIdentifier(_:)` は既に詳細画面で使用済み）。
 - **通知へのエンティティ付与**: `UNMutableNotificationContent.appEntityIdentifiers = [EntityIdentifier(for:identifier:)]`
   （iOS 27、`import AppIntents`）。画面外でも Siri が通知の文脈を理解する。**永続 AppEntity 必須**（TransientAppEntity 不可）。
-  `ControlNotificationHelper.sendToggledNotification` に `todoId` を足し、`UrgentTodoToggleResult` に `id` を持たせて配線。
+  `ControlNotificationHelper.sendErrorNotification` の `todoId` に配線（当初は Control の成功通知に付けていたが、成功通知自体を
+  廃止したためエラー通知へ移動。経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)）。
 
 ### `.system.searchInApp`（in-app 検索スキーマ、#343 / #47）
 

@@ -14,11 +14,12 @@
 
 - [ ] **A-1**: `includedPackages` 付き `AppIntentsPackage` を複数ターゲットへ重複宣言した場合の Siri/Shortcuts 実機ルーティング（`LNContextErrorDomain Code=2001` 系）未検証。ビルド/メタデータレベルの重複は無いことのみ確認済み。実機検証までは現状の非重複運用を維持。
 - [ ] **A-3**: Live Activity Extension プロセスで `TodoAppEntity`（`@Parameter`）の事前 entity 解決が走ると SwiftData が trap する件、現行 SDK での再現有無を実機未検証。Primary 版 Intent を LA ボタンに直結して実機実行し、trap の再現/非再現を確認する必要がある（再現しなければ FromExtension 分離を簡素化できる）。
-- [ ] **A-5**: `allowedExecutionTargets` 未指定の Widget/Control Intent（`ToggleUrgentTodoIntent` 等）について、実行プロセスと entity 解決プロセスの実機ログ確認は未実施（`CompleteTodosIntent` のみ `[.main]` 固定で対応済み）。
+- [ ] **A-5**: `allowedExecutionTargets` 未指定の Widget/Control Intent（`SetTodoCompletionIntent` 等）について、実行プロセスと entity 解決プロセスの実機ログ確認は未実施（`CompleteTodosIntent` のみ `[.main]` 固定で対応済み）。
 - [ ] **C-1**: `.onAppIntentExecution` は現在プロジェクト内で未使用（`@Dependency` + `perform()` パターンへ移行済み）。再導入する際は cold start 失敗の3仮説（`@State path` 未構築 / activation conditions 未設定 / `supportedModes` 不足）を実機で検証する必要がある。
 - [ ] **C-5**: `_AppIntents_UIKit` が iOS で import 可能なことは `RunCodeSnippet` で実証済みだが、macOS 側は `.swiftinterface` の静的調査のみで実際の macOS ビルドでの `canImport` 結果は未確認。また `UISceneAppIntent` を使う具体的なマルチウィンドウ機能が無いため実装自体は保留中（機能要求が出たら着手）。
 - [ ] **C-6**: `TodoAppEntity` の `.reminders.reminder` スキーマ適合の再挑戦（wwdc2026-344 の CometCal パターン: 手書き init 無し + Query 側 populate + 入れ子は `TransientAppEntity`）。大規模な機能作業のため未着手、`docs/APP_INTENTS_CENTRIC_PLAN.md` #48 の出発点としてリードのみ記録済み。
-- [ ] **C-8**: `.controlWidgetStatus(_:)` を `ToggleUrgentTodoControl` に実装・シミュレータビルドで型/コンパイル確認済みだが、実機の Control Center での見た目確認、およびローカル通知運用との UX 比較検討は未実施。
+- [ ] **C-8**: Control のフィードバック設計は 2026-08-12 に見直し済み（Toggle 化 + 成功通知廃止 + `.controlWidgetStatus` 撤去、経緯は `docs/devlog/06-control-widget-ios26.md`）。残るのは**実機 Control Center での見え方の確認**（Toggle の on/off 表示、設定フローの `.promptsForUserConfiguration()`、失敗時のエラー通知）。
+- [x] **C-10**: **Control から実行した Intent の snippet は提示されない**ことを実機で確定（2026-08-12）。同一 Intent・同一 snippet を Spotlight から呼ぶと出て、Control から呼ぶと出ない（`allowedExecutionTargets = [.main]` 固定でも、Button / Toggle どちらの形でも出ない）。snippet 実装 / パラメータの有無 / 実行プロセス / `isDiscoverable` / メタデータ登録はすべて Spotlight 側で同条件のまま成立しているため、差分は呼出元のみ。詳細は `docs/devlog/06-control-widget-ios26.md`。出なかった場合の次の手（`allowedExecutionTargets = [.main]` → ボタン形状で再試行）は `docs/devlog/06-control-widget-ios26.md` 2026-08-12 の項に記載。
 - [ ] **C-9**: `#Predicate` の Optional 比較制約について、visionOS/toolchain バージョン差による再現/非再現の実際の切り分けは優先度低のため未再検証。
 - [ ] **付録**: `docs/insights/05` L90 の「WWDC 2026 session 8017 SwiftData Group Lab」引用元がローカルアーカイブに存在せず（8011 のみ確認可能）、一次資料未確認のまま一次確認不能な伝聞として記録している。
 
@@ -167,13 +168,14 @@
 - **ニュアンス**: wwdc2023-10028 (13:47): "As soon as your perform returns, the system will immediately initiate a reload of your widget timeline"（**Widget 内 `Button(intent:)` 起点は自動リロード保証**、10:02 "reloads initiated from an interaction are always guaranteed"）。手動 reload が必要なのはアプリ/Siri 側で変更したケースのみ。
 - **検証手順**: ルール自体は安全側なので維持でよいが、doc の理由説明を「Widget 起点は自動、それ以外の経路のために必要」と正確化。呼び出し重複による無駄リロードが気になる場合のみ最適化。
 
-### C-8. Control Widget のフィードバック: `.controlWidgetStatus(_:)` 未検討 ✅ 済（実装・ビルド確認済み）
+### C-8. Control Widget のフィードバック: `.controlWidgetStatus(_:)` 未検討 ✅ 済（→ 2026-08-12 に設計ごと見直し）
 
 **結果**: `ToggleUrgentTodoControl`（`IntentTodoWidget/Controls/ToggleUrgentTodoControl.swift`）のラベルに `.controlWidgetStatus(snapshot.isCompleted ? "Completed" : "Due soon")` を追加し、IntentTodo スキーム（iPhone 17 Pro Max シミュレータ, iOS 27）でビルド成功を確認した。ローカル通知（`ControlNotificationHelper`）運用はそのまま維持し、Control 自体の即時状態表示との併用とした。`TodoCountControl` はボタンの表示値がタップで変化しない（fire-and-forget）ため対象外とした。詳細は `docs/insights/06-control-widget-ios26.md`「Control Widget からの Intent では `.result(dialog:)` が表示されない」節。実機での見え方確認は未実施。
 
 - **記載箇所**: CLAUDE.md「Dialog vs 通知の使い分け」/ docs/insights/06 L92–100
 - **ニュアンス**: 「Dialog が表示されない → ローカル通知」という現運用に対し、Apple が Control 用に用意するフィードバック機構 `.controlWidgetStatus(_:)`（wwdc2024-10157）が未検討。
 - **検証手順**: `ToggleUrgentTodoIntent` / `ShowTodoCountIntent` で `.controlWidgetStatus` を試し、通知運用と比較。
+- **後日談 (2026-08-12)**: 比較の結果、併用ではなく**通知（成功）と `.controlWidgetStatus` の両方を撤去**する結論になった。Control を `ControlWidgetToggle` 化して状態自体をコントロール面に出したため、どちらも「コントロールが既に伝えている情報」の重複表示になったため。Snippet で置き換える案も検討したが、Snippet は Siri / Spotlight / Shortcuts でしか描画されず Control では出ない。詳細: `docs/devlog/06-control-widget-ios26.md` 2026-08-12 の項。
 
 ### C-9. 「`#Predicate` の Optional 直接比較は visionOS 等でコンパイル不可のことがある」 ✅ 済（表現を汎化）
 

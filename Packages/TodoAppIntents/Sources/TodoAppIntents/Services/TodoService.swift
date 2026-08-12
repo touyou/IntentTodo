@@ -137,20 +137,32 @@ public final class TodoService {
         return TodoToggleResult(entity: entity, isNowCompleted: item.isCompleted)
     }
 
-    /// Marks a todo as completed. Idempotent (unlike `toggleCompletion`): calling
-    /// it on an already-completed todo is a no-op. Used by bulk-completion intents
-    /// that operate over a collection of ids.
+    /// Sets a todo's completion to an explicit value. Idempotent — writing the
+    /// value it already holds is a no-op.
+    ///
+    /// Backs `SetTodoCompletionIntent`, where the system supplies the control
+    /// toggle's new state as `value`. A toggle must converge on the state the
+    /// system asked for, so this takes an absolute value rather than flipping
+    /// (unlike `toggleCompletion`, whose result depends on the current state).
     @discardableResult
-    public func markCompleted(todoId: String) throws -> TodoAppEntity {
+    public func setCompletion(todoId: String, isCompleted: Bool) throws -> TodoAppEntity {
         defer { WidgetReloader.reloadAllWidgets() }
         let item = try resolve(todoId: todoId)
-        if !item.isCompleted {
-            item.isCompleted = true
+        if item.isCompleted != isCompleted {
+            item.isCompleted = isCompleted
             item.modifiedAt = Date()
             try repository.update(item)
             reindexSpotlight(TodoAppEntity(from: item))
         }
         return TodoAppEntity(from: item)
+    }
+
+    /// Marks a todo as completed. Idempotent (unlike `toggleCompletion`): calling
+    /// it on an already-completed todo is a no-op. Used by bulk-completion intents
+    /// that operate over a collection of ids.
+    @discardableResult
+    public func markCompleted(todoId: String) throws -> TodoAppEntity {
+        try setCompletion(todoId: todoId, isCompleted: true)
     }
 
     public func toggleFavorite(todoId: String) throws -> TodoAppEntity {
@@ -302,19 +314,7 @@ public final class TodoService {
     /// Uses `TransientAppEntity` (WWDC 2026 #344) — the result is not persisted.
     /// Exposed via `GetTodoSummaryIntent` for Shortcuts conditional branching.
     public func summarize() throws -> TodoListSummaryEntity {
-        let all = try repository.fetchAll()
-        let now = Date()
-        let completed = all.filter { $0.isCompleted }
-        let pending = all.filter { !$0.isCompleted }
-        let overdue = pending.filter { $0.dueDate.map { $0 < now } ?? false }
-        let favorites = all.filter { $0.isFavorite }
-        return TodoListSummaryEntity(
-            totalCount: all.count,
-            completedCount: completed.count,
-            pendingCount: pending.count,
-            overdueCount: overdue.count,
-            favoriteCount: favorites.count
-        )
+        TodoListSummaryEntity(items: try repository.fetchAll())
     }
 
     // MARK: - Spotlight
