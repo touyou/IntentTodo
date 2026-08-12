@@ -378,3 +378,22 @@ extension ProbeReminderSchemaEntity: AppEntity {}
 3. **`locationTrigger` が `PlaceDescriptor` を `@Property` に強制する**。これは `35d772f` で SSU training エラー回避のために外したのと同じ型で、[[placedescriptor-ssu-workaround]] の制約に正面からぶつかる。`locationTrigger` 自体は optional だがプロパティの存在は必須なので逃げられない。**SSU バグが直るまで C-6 は実質ブロック**の可能性が高い（今回は incremental ビルドで SSU タスクが再実行されなかったため未確認。判定には DerivedData を消したクリーンビルドが要る）。
 
 `completionDate` / `tags` / `recurrence` / `urls` はモデル追加で埋まる（CloudKit 互換の primitive に落とせる）ので、障害としては軽い。
+
+## 2026-08-12: `includedPackages` 付き `AppIntentsPackage` を採用（A-1 決着）
+
+前項の検証結果を受けて、Apple 公式手順（wwdc2025-244）どおり**利用側の各ターゲットでも `includedPackages` 付きで宣言する**形に切り替えた。2026-04-13 に「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」として外して以来の方針転換。
+
+宣言先は 4 ターゲット: `IntentTodo` / `IntentTodoWidget` / `IntentTodoLiveActivity` / `IntentTodoWatchApp`（前項の probe では watch App を入れていなかったので、採用時に追加した）。
+
+**採用後の確認**:
+
+| バンドル | actions | entities | enums | queries | autoShortcuts |
+|---|---|---|---|---|---|
+| IntentTodo.app | 24 | 4 | 4 | 3 | 8 |
+| IntentTodoWidgetExtension.appex | 26 | 4 | 5 | 3 | 0 |
+| IntentTodoLiveActivityExtension.appex | 22 | 4 | 4 | 3 | 0 |
+| IntentTodoWatchApp.app | 23 | 4 | 4 | 3 | 0 |
+
+宣言前の baseline と全項目一致（重複していない）。ビルドは iOS シミュレータ / My Mac / visionOS シミュレータの 3 destination グリーン、AppIntentsTesting 22 テットを含む全 36 テストもグリーン。
+
+**残る唯一の未確認は App Shortcut の「フレーズ」ルーティング**（`LNContextErrorDomain Code=2001` 系）。AppIntentsTesting は型名で intent を引くのでフレーズ経路を通らない。実機で「Todo を追加して」のような登録フレーズを 1 回 Siri に言えば確認できる。壊れていた場合は 4 ファイルを消せば元に戻る（`*AppIntentsPackage.swift`）。

@@ -21,15 +21,15 @@
 | A-5 | A-3 の副産物で裏取り済み |
 | C-1 | `.onAppIntentExecution` は未使用のまま。現行のナビゲーション経路をテスト化して決着 |
 | 付録 | session 8017 は存在しないため出典表記を外し「伝聞」と明記して決着 |
-| A-1 | AppIntentsTesting で追い込み、残る穴を **App Shortcut のフレーズ routing のみ**に絞った |
+| A-1 | AppIntentsTesting で追い込み、**公式手順（`includedPackages`）を採用**。残る穴は App Shortcut のフレーズ routing のみ |
 | C-8 | シミュレータの Control Center で実測 → **バグを 1 件発見・修正**（`ControlCenter.shared.reloadAllControls()` 漏れ） |
 | C-6 | 適合は未着手だが**要求仕様を全部洗い出し**、据え置き理由の 1 つが誤りと判明 |
 
-**残るのは**: A-1 のフレーズ routing（実機 Siri）、C-6 の適合本体（SSU バグ待ちの可能性）、C-8 の `.promptsForUserConfiguration()` フロー。いずれも実機か SDK 更新待ち。
+**残るのは**: A-1 のフレーズ routing 確認（実機 Siri で 1 フレーズ言うだけ）、C-6 の適合本体（SSU バグ待ちの可能性）、C-8 の `.promptsForUserConfiguration()` フロー。いずれも実機か SDK 更新待ち。
 
 ## 残タスク（実機検証 or 将来の機能作業が必要、このセッションでは未着手）
 
-- [~] **A-1**: **2026-08-12 に大幅に前進**。アプリ + Widget + LiveActivity の 3 ターゲットへ `includedPackages` 付き `AppIntentsPackage` を宣言した状態で、(1) 3 バンドルすべての `Metadata.appintents` の件数が無宣言時と**完全一致**（重複なし）、(2) **AppIntentsTesting の全 22 テストがグリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る経路で intent 実行・entity 解決・Spotlight クエリ・view annotation がすべて成立）。残る未検証は **App Shortcut の「フレーズ」ルーティング**（`LNContextErrorDomain Code=2001` 系）のみ — AppIntentsTesting はフレーズ経路を通らないため。現状は非重複運用のまま（採用可否は要判断、probe は削除済み）。
+- [x] **A-1**: **採用して決着（2026-08-12）**。アプリ / Widget / LiveActivity / Watch App の 4 ターゲットに `includedPackages` 付き `AppIntentsPackage` を宣言する Apple 公式手順へ切り替えた。根拠: (1) 全バンドルの `Metadata.appintents` の件数が宣言の有無で**完全一致**（重複なし）、(2) 宣言した状態で **AppIntentsTesting 全テストがグリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る）。**残る未確認は App Shortcut の「フレーズ」ルーティングのみ** — AppIntentsTesting は型名で intent を引くためフレーズ経路を通らない。実機 Siri でフレーズを 1 つ試せば確認でき、壊れていれば `*AppIntentsPackage.swift` の 4 ファイルを消せば戻る。詳細: `docs/devlog/03-app-intents-core.md`。
 - [x] **A-3**: **決着（2026-08-12）**。iOS 27 シミュレータで entity パラメータ版 Intent を LA ロック画面ボタンに直結して実測した結果、**crash は再現せず**、`entities(for:)` も `perform()` も**メインアプリプロセス**で走った。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠の素の `AppIntent` でも同じ（3 ケース）。→ 現行 SDK では FromExtension 分離は不要と確定し、**同日中に撤去**（`ToggleTodoCompletionFromExtensionIntent` / `SnoozeTodoFromExtensionIntent` を削除、Snooze だけは `requestChoice` を使えない呼出元向けの固定間隔版として `QuickSnoozeTodoIntent` に改名して存続）。詳細: `docs/devlog/03-app-intents-core.md`。
 - [x] **A-5**: **裏取り済み（2026-08-12、A-3 の副産物）**。A-3 の検証中に採取したプロセス横断ログで、Widget のタイムライン描画時に `TodoEntityQuery.entities(for:)` が `IntentTodoWidgetExtension` プロセス（pid 48073 等）で走っていることを実測確認した。「Widget Extension 側でも `AppDependencyManager` 登録が必要」という現行の運用は正しい。なお 2026-08-12 の Control snippet 検証（`docs/devlog/06-control-widget-ios26.md`）で `allowedExecutionTargets = [.main]` を実際に適用しても動作したことも確認済み。残るのは Control 経由の `.background` Intent について「未指定時に実際どちらのプロセスが選ばれるか」のログ採取だけだが、ヒューリスティクスである以上どちらもあり得るため運用（両方に登録）は変わらない。
 - [x] **C-1**: `.onAppIntentExecution` は現在プロジェクト内で未使用（`@Dependency` + `perform()` パターンへ移行済み）。**現行経路は 2026-08-12 にテスト化済み**（`TodoSystemIntegrationTests.testLaunchIntentNavigatesToAddSheet` — `LaunchAppIntent` 実行 → 追加シートが実際に出ることを XCUI で確認）。`.onAppIntentExecution` を再導入する際は cold start 失敗の3仮説（`@State path` 未構築 / activation conditions 未設定 / `supportedModes` 不足）を検証すること。
@@ -45,9 +45,11 @@
 
 ## 優先度 A: WWDC の公式説明と矛盾している（最優先で再検証）
 
-### A-1. 「メインアプリターゲットに `includedPackages` 付き `AppIntentsPackage` を重複宣言してはいけない」 ✅ 済（断定を撤回）
+### A-1. 「メインアプリターゲットに `includedPackages` 付き `AppIntentsPackage` を重複宣言してはいけない」 ✅ 済（→ 2026-08-12 に公式手順を採用）
 
-**結果**: 実ビルドで再検証（アプリ+全Extensionターゲットに `includedPackages` 付き `AppIntentsPackage` を追加）した結果、`Metadata.appintents` の件数は無宣言時と完全に同一で重複は確認できなかった。「絶対禁止」という断定を撤回し、「ビルド/メタデータレベルでは問題ないが実機 Siri ルーティングは未確認」に改めた。修正先: AGENTS.md（CLAUDE.md 実体）「Swift Package内でのAppIntents」節、`docs/insights/03-app-intents-core.md`「パッケージ内での定義」節。
+**結果**: 実ビルドで再検証（アプリ+全Extensionターゲットに `includedPackages` 付き `AppIntentsPackage` を追加）した結果、`Metadata.appintents` の件数は無宣言時と完全に同一で重複は確認できなかった。「絶対禁止」という断定を撤回し、「ビルド/メタデータレベルでは問題ないが実機 Siri ルーティングは未確認」に改めた。
+
+**2026-08-12 決着**: AppIntentsTesting（Siri / Shortcuts / Spotlight と同じインフラ）の全テストが宣言状態でグリーンになることを確認し、**公式手順を採用**した（4 ターゲットに宣言）。残る未確認は App Shortcut の「フレーズ」ルーティングのみ。修正先: AGENTS.md（CLAUDE.md 実体）「Swift Package内でのAppIntents」節、`docs/insights/03-app-intents-core.md`「パッケージ内での定義」節。
 
 - **記載箇所**: CLAUDE.md「Swift Package内でのAppIntents」節 / docs/insights/03-app-intents-core.md L207 付近
 - **現在の主張**: アプリ全体で `AppIntentsPackage` は1つまで。アプリ側に `includedPackages` 付きで宣言すると二重扱いになり Shortcuts ルーティングが壊れる（`LNContextErrorDomain Code=2001`）。

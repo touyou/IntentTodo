@@ -209,7 +209,22 @@ public struct TodoIntentsPackage: AppIntentsPackage {
 }
 ```
 
-現在の運用は、メインアプリターゲットに `includedPackages` を持つ `AppIntentsPackage` を重複宣言しない形。複数ターゲットでの型共有パターンが本当に必要になった場面では、採用前に実機で Siri 経由の呼び出しを確認する。
+さらに、**そのパッケージを使う各ターゲットでも `includedPackages` 付きで宣言する**（Apple 公式手順。wwdc2025-244 23:29–24:00 "You must register each target as an App Intents Package to ensure proper indexing and validation."）。
+
+```swift
+// IntentTodo / IntentTodoWidget / IntentTodoLiveActivity / IntentTodoWatchApp に 1 つずつ
+struct IntentTodoAppIntentsPackage: AppIntentsPackage {
+    static var includedPackages: [any AppIntentsPackage.Type] {
+        [TodoIntentsPackage.self]
+    }
+}
+```
+
+> **2026-08-12 に「重複宣言しない」運用から切り替えた**。以前は「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」としていたが、現行 SDK で再検証したところ:
+> - 全バンドル（アプリ / Widget / LiveActivity / Watch App）の `Metadata.appintents` の件数が、宣言の有無で**完全一致**（重複しない）
+> - 宣言した状態で **AppIntentsTesting の全テストがグリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る経路で intent 実行・entity の id 解決・Spotlight クエリ・view annotation が成立）
+>
+> **未確認なのは App Shortcut の「フレーズ」ルーティングのみ**。AppIntentsTesting は `definitions.intents["..."]` と型名で引くため、`AppShortcutsProvider` のフレーズ経路は通らない。実機 Siri でフレーズを 1 つ試すのが最短の確認。
 
 経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
