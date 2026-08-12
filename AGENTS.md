@@ -217,7 +217,12 @@ struct IntentTodoAppIntentsPackage: AppIntentsPackage {
 
 宣言先: `IntentTodo` / `IntentTodoWidget` / `IntentTodoLiveActivity` / `IntentTodoWatchApp` の 4 ターゲット。
 
-> かつては「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」として意図的に外していたが、2026-08-12 の再検証で採用に切り替えた。根拠: (1) 全バンドルの `Metadata.appintents` の件数が宣言の有無で**完全一致**（重複しない）、(2) 宣言した状態で **AppIntentsTesting の全テストがグリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る）。**未確認なのは App Shortcut の「フレーズ」ルーティングのみ**（AppIntentsTesting は型名で intent を引くためフレーズ経路を通らない）— 実機 Siri でフレーズを 1 つ試せば確認できる。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
+> かつては「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」として意図的に外していたが、2026-08-12 の再検証で採用に切り替えた。根拠:
+> 1. 全バンドルの `Metadata.appintents` の件数が宣言の有無で**完全一致**（DerivedData ごと消したクリーンビルドでも `actions` 23 = intent 型数 23 で重複なし）
+> 2. 宣言した状態で **AppIntentsTesting の全テストがグリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る）
+> 3. **Shortcuts アプリで実機確認済み**（アクション一覧・パラメータ表示が壊れていない）
+>
+> **未確認なのは App Shortcut の「フレーズ」ルーティング（Siri）のみ**。AppIntentsTesting は型名で intent を引くためフレーズ経路を通らず、これは Apple の想定どおり手動確認の領域（上記「検証の梯子」）。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
 
 > **⚠️ 例外: `AppShortcutsProvider` はパッケージに置けない。** Intent / Entity / Query はパッケージから集約されるが、`AppShortcutsProvider`（App Shortcut のフレーズ登録）だけはアプリの統合メタデータに集約されず `autoShortcuts: 0` になる。App Shortcut がビルドエラー無しで Siri / Shortcuts / Spotlight に出ない、という形で顕在化する。**必ずアプリターゲット直下に置く**（本プロジェクトでは `IntentTodo/IntentTodo/TodoAppShortcuts.swift`、`import TodoAppIntents` で Intent を参照）。詳細は `docs/insights/03-app-intents-core.md`。
 

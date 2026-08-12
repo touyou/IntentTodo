@@ -422,3 +422,9 @@ variable の index が 3 → 1 と probe に応じて変わっているので、
 **副産物の注意点（今後の検証手順に効く）**: probe を消した直後のビルドで、まだ SSU エラーが出続けた。調べると `IntentTodo.app/Metadata.appintents/extract.actionsdata` に probe の痕跡（`AddTodoIntent.parameters/7` と `ProbeSSUPlaceEntity`）がそのまま残っていた。**SSU の `temp-dir` だけ消しても足りず、`Metadata.appintents` の再抽出まで走らせないと前の状態が残る**。ターゲットの build ディレクトリを部分的に消す程度では Xcode が「変更なし」と判断して再抽出しないので、判定は **DerivedData ごと消したクリーンビルド**で行うこと。
 
 クリーンな状態（probe 無し）での再確認: SSU エラー 0 件、`Metadata.appintents` に `PlaceDescriptorEntity` 0 件。**actions は 23 で、`Packages/TodoAppIntents/.../Intents/` の intent 型数 23 とちょうど一致**（`includedPackages` を 4 ターゲットに宣言した状態でも重複していない）。A-1 の「宣言あり / なしで件数一致」は incremental ビルドで採った値だったが、このクリーンビルドで独立に裏が取れた形になる。
+
+## 2026-08-12: `includedPackages` 採用後、Shortcuts アプリ側の実機確認 OK
+
+A-1 の採用後に、検証の梯子の 2 段目（Shortcuts アプリで intent の形を見る）を実機で確認した。アクション一覧とパラメータ表示は壊れていない。
+
+これで A-1 の根拠は 3 つになった: ①クリーンビルドでの metadata 件数一致（`actions` 23 = intent 型数 23、重複なし）②AppIntentsTesting 全テストグリーン ③Shortcuts アプリでの実機確認。残るのは Siri のフレーズ routing のみで、これは自動化手段が無く（前項の梯子参照）機会があるときに 1 フレーズ言えば済む。
