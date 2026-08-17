@@ -552,6 +552,7 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト（目次）
 - `docs/insights/` - インサイト個別ファイル（7トピック）
 - `docs/devlog/` - 各ドキュメントの現在のルールがどういう経緯で決まったか（調査・失敗・再検証の記録）
+- `docs/presentation/` - 登壇・発表用のスライド骨子と想定スクリプト（① WWDC 時系列での基本説明 / ② 実践で見えた制約と工夫）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
 
 ## 設計思想の背景
