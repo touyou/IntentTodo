@@ -26,6 +26,11 @@ public struct QuickSnoozeTodoIntent: AppIntent {
     public static let isDiscoverable = false
     public static let supportedModes: IntentModes = [.background]
 
+    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// iOS では `LiveActivityIntent` 準拠で実質アプリ実行だが、他プラットフォームには
+    /// その保証が無いので型で明示する。
+    public static let allowedExecutionTargets: IntentExecutionTargets = [.main]
+
     public static var parameterSummary: some ParameterSummary {
         Summary("Snooze \(\.$todo) by 30 minutes")
     }

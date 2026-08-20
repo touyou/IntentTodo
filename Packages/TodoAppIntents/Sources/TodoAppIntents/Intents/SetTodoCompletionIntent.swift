@@ -19,6 +19,10 @@ public struct SetTodoCompletionIntent: SetValueIntent {
     public static let description = IntentDescription("Marks a specific todo as completed or incomplete")
     public static let supportedModes: IntentModes = [.background]
 
+    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// Control から呼ばれるので、未指定だとアプリ未起動時に Widget Extension が書き手になる。
+    public static let allowedExecutionTargets: IntentExecutionTargets = [.main]
+
     /// Control-driven only; Siri / Shortcuts users get `ToggleTodoCompletionIntent`,
     /// which takes a real entity parameter and can be picked from a list.
     public static let isDiscoverable = false

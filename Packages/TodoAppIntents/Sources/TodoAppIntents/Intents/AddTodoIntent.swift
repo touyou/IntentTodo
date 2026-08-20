@@ -33,6 +33,9 @@ public struct AddTodoIntent: AppIntent {
     /// その時点で `.foreground(.dynamic)` を足す。
     public static var supportedModes: IntentModes { .background }
 
+    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
+
     public static var parameterSummary: some ParameterSummary {
         Summary("Add todo titled \(\.$title)")
     }

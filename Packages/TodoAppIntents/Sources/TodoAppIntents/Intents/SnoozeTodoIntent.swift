@@ -14,6 +14,9 @@ public struct SnoozeTodoIntent: AppIntent {
     public static let description = IntentDescription("Pushes back the due date by a duration you choose")
     public static let supportedModes: IntentModes = [.background]
 
+    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    public static let allowedExecutionTargets: IntentExecutionTargets = [.main]
+
     public static var parameterSummary: some ParameterSummary {
         Summary("Snooze \(\.$todo)")
     }

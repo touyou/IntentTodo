@@ -14,9 +14,14 @@ struct IntentTodoWidgetBundle: WidgetBundle {
         // Widget Extension プロセスで .background Intent が実行される場合、
         // メインアプリの AppDependencyManager 登録は引き継がれないので、
         // この Extension プロセス側でも依存関係を登録する。
+        //
+        // ただし書き込み系 Intent は全て `allowedExecutionTargets = [.main]` で
+        // アプリ本体に固定済み (WWDC 2026 #345)。このプロセスで実行され得るのは
+        // 読み取り系 (ShowTodoCountIntent / GetTodoSummaryIntent / SearchEverythingIntent 等)
+        // と entity 解決・snippet 描画だけで、SwiftData の書き手はアプリ本体のみ。
         AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
 
-        // Intent が TodoService を @Dependency で受け取れるよう登録。
+        // 読み取り系 Intent が TodoService を @Dependency で受け取れるよう登録。
         // WidgetBundle.init は main actor で評価されるため assumeIsolated で包む。
         MainActor.assumeIsolated {
             let todoService = TodoService.swiftDataBacked(container: sharedWidgetModelContainer)

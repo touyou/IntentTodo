@@ -14,6 +14,9 @@ public struct ToggleUrgentTodoIntent: AppIntent {
     public static let description = IntentDescription("Toggles completion of the most urgent todo")
     public static let supportedModes: IntentModes = [.background]
 
+    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    public static let allowedExecutionTargets: IntentExecutionTargets = [.main]
+
     @Dependency
     var todoService: TodoService
 
