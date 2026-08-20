@@ -87,7 +87,7 @@
 | 対話的な質問 | `requestConfirmation` `requestChoice` | 削除確認 / スヌーズ時間選択 | B/R | ✅(B) `27fc2db`/`db6efa3` |
 | ビジュアル応答 | `ShowsSnippetView` `DisplayRepresentation` | （済）Interactive Snippet | R | ✅ |
 | 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | Add/Complete を寄付、削除時 predicate | B/R | ✅(B) `b4dbd63` |
-| セマンティック検索 | `IndexedEntity` `@Property(indexingKey:)` `.system.search` | indexingKey(#43) + in-app 検索スキーマ(#47) | B | ✅ (#43/#47) |
+| セマンティック検索 | `IndexedEntity` `@Property(indexingKey:)` `.system.searchInApp` | indexingKey(#43) + in-app 検索スキーマ(#47) | B | ✅ (#43/#47) |
 | Onscreen（コレクション） | `.appEntityIdentifier(forSelectionType:)` | 一覧の各行を onscreen 提供 | B | ✅ (#46)（詳細画面側は `viewAnnotations()` でテスト済み） |
 | 既存統合へのエンティティ付与 | `UNMutableNotificationContent.appEntityIdentifiers` | Control のエラー通知に entity を紐付け | B | ✅ (#46) |
 
@@ -112,14 +112,19 @@
     ネイティブ型として `@Parameter` + `@Property` 検証（保存は CloudKit 互換 primitive、入力は system 型）
   - ✅ `ValueRepresentation`(→`IntentPerson` / `PlaceDescriptor`) を `Transferable` 経由で実装（#44）
   - ✅ **Xcode 27 beta 4**: `TransientAppEntity`（`TodoListSummaryEntity` + `GetTodoSummaryIntent`）を実装。
-    `EntityPropertyQuery` は既存 `TodoEntityQuery`（`EntityStringQuery`）で十分なため不採用（#344）。
+    `EntityPropertyQuery` は不採用（#344）。理由は `TodoEntityQuery` が `EnumerableEntityQuery` に
+    適合しており、**Shortcuts の Find アクションと絞り込みはそれだけで自動生成される**ため
+    （公式: "By implementing an `EnumerableEntityQuery`, you enable the Shortcuts app to generate a
+    Find action and do filtering automatically"）。`EntityPropertyQuery` が要るのは
+    "many thousands of entities" 規模で全件ロードが重くなったときで、個人利用の todo 件数では不要。
+    件数が増えたらここを再評価する。
 - **Phase 2 App Schema（reminders）** ✅（list 階層で適合・検証）/ ⏳（reminder 本体は保留）:
   - ✅ xcode27 を iOS 27 世代へ引き上げ（`.reminders` は iOS 27+ 限定のため）`ed22d80`
   - ✅ `TodoListType` → `@AppEnum(schema: .reminders.listType)` `ed22d80`
   - ✅ `CategoryAppEntity` → `@AppEntity(schema: .reminders.list)`（Category = reminders のリスト）`25d1d61`
   - watchOS: `reminders` / `system` ドメインの assistant schema が unavailable なため、`CategoryAppEntity`
     （`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)` で素の `AppEntity`/`AppEnum`
-    にフォールバック、`ShowTodoSearchResultsIntent`（`.system.search`, #47）は `#if !os(watchOS)` で除外。
+    にフォールバック、`ShowTodoSearchResultsIntent`（`.system.searchInApp`, #47）は `#if !os(watchOS)` で除外。
     watchOS はスキーマルーティング非使用のため機能損失なし。
   - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**（#48 で優先度再考 → 据え置き）。
     **2026-08-12 に要求仕様を probe で全部洗い出した**（要求プロパティ・型・optional 可否・入れ子の
@@ -131,7 +136,7 @@
     **ブロッカーと確定**（beta 5 でも未修正）。**SDK 修正待ちで着手不可**。
     詳細: `docs/devlog/03-app-intents-core.md`。
     **新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な自前 Intent 群 +
-    `OpenIntent`/`DeleteIntent` + `.system.search`(#47) + `indexingKey`(#43)）ため、本体適合は SDK の
+    `OpenIntent`/`DeleteIntent` + `.system.searchInApp`(#47) + `indexingKey`(#43)）ため、本体適合は SDK の
     スキーママクロ init 規約が扱いやすくなるのを待つ独立タスクとして据え置く。詳細は insights/03「Phase 7」。
     経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
 - **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
@@ -171,12 +176,30 @@
   - ✅ #44: `TodoAppEntity: Transferable` + `ValueRepresentation` で title / `IntentPerson`(担当者) / `PlaceDescriptor`(場所) を export
   - ✅ #45: `UpdateTodoIntent` + `IntentParameter.valueState` + `TodoService.update`/`FieldUpdate`（新値/明示クリア/据え置きを区別）
   - ✅ #46: 一覧に `.appEntityIdentifier(forSelectionType:)` / Control のエラー通知に `UNMutableNotificationContent.appEntityIdentifiers`
-  - ✅ #47: `ShowTodoSearchResultsIntent`（`@AppIntent(schema: .system.search)`）+ `NavigationModel.pendingSearchText` 配線。ownership/requestValue は未採用
+  - ✅ #47: `ShowTodoSearchResultsIntent`（`@AppIntent(schema: .system.searchInApp)`）+ `NavigationModel.pendingSearchText` 配線。ownership/requestValue は未採用
   - ✅ #48: reminder 本体スキーマ適合は再評価のうえ据え置き（list 適合 + 自前 Intent で新 Siri 連携は成立を確認）
   - 詳細・落とし穴は insights/03「Phase 7」。R 深度（実機 Siri/Spotlight/Visual Intelligence）は手動。
 
 > 各フェーズは機能単位の小コミット + `BuildProject` 確認で進める。R 深度（実機 Siri/Visual Intelligence）は
 > デバイス手動確認が必要なため、コード側は B/U まで到達させ、R は別途手動検証メモを残す。
+
+---
+
+## 未着手の候補（2026-08-21 の全ソース走査で拾ったもの）
+
+「ドキュメントには出てくるが、このリポジトリで一度も使っていない API」を `.swift` 全走査で洗い出した残り。
+**どれも不具合ではなく、着手すれば価値が出る候補**。判断が要るものは理由を添えてある。
+経緯: [docs/devlog/03-app-intents-core.md](devlog/03-app-intents-core.md)（2026-08-21）
+
+| 候補 | 何が得られるか | 見送っている理由 / 前提 |
+|------|--------------|----------------------|
+| `UndoableIntent`（iOS 26） | 削除 / 完了の取り消し。Siri・Shortcuts からの破壊的操作を戻せる | **機能追加**。`delete` が SwiftData から実体を消すので、undo するには id ごと復元できる形（ソフトデリート等）への設計変更が要る |
+| `SpotlightSearchTool` + `LanguageModelSession`（#246） | 自分の todo に対する会話型検索（RAG） | 前提の「Spotlight への entity 寄付」は済んでいる（`TodoSpotlightIndex`）。**残りは FoundationModels の導線と UI** なので独立タスク向き |
+| `systemExtraLargePortrait`（#277、iOS/macOS 27 新ファミリー） | iPad / Mac の縦長ウィジェット | (1) デプロイメントターゲットが iOS 26 なので `supportedFamilies` を `#available` で組み立てる必要 (2) `TodoWidgetEntryView` の `switch` は `default:` で Small にフォールバックするため専用 case とレイアウトが要る。**サイズ展開という設計判断** |
+| `requestValue` | Siri で不足パラメータを能動的に聞く | 非 optional パラメータはシステムが自動で聞き返すため、現状の Intent 構成では出番が薄い |
+| `EntityPropertyQuery` | Shortcuts の Find を自前実装 | **不要**。`EnumerableEntityQuery` が Find と絞り込みを自動生成する。必要になるのは "many thousands of entities" 規模（上の Phase 1 の記述参照） |
+| `relatedAppEntityIdentifier` | 子アイテム（添付等）を親 entity に紐づけ | todo に子の searchable item が無いので対象なし |
+| `widgetAccentedRenderingMode` | ティント表示時のウィジェット画像制御 | ウィジェットは SF Symbols のみなので実害が薄い |
 
 ---
 

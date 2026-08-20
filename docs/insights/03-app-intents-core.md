@@ -79,8 +79,8 @@ public struct AddTodoIntent: AppIntent {
 | `.foreground(.immediate)` | メインアプリ（開かれる） | `App.init()` |
 | `.foreground` | メインアプリ | `App.init()` |
 | `.background` / Siri / Shortcuts | メインアプリ | `App.init()` |
-| `.background` / Widget ControlWidgetButton（`allowedExecutionTargets` 未指定） | **ヒューリスティクスで決定**（アプリ起動中はメインアプリ優先、未起動なら Widget Extension） | **両方**（保険として `App.init()` と `WidgetBundle.init()`） |
-| 同上（`allowedExecutionTargets` で明示指定） | 指定したプロセスに固定 | 指定先のみ |
+| `.background` / Widget ControlWidgetButton（`allowedExecutionTargets` 未指定 = 読み取り系のみ） | **ヒューリスティクスで決定**（アプリ起動中はメインアプリ優先、未起動なら Widget Extension） | **両方**（`App.init()` と `WidgetBundle.init()`） |
+| 同上（`allowedExecutionTargets = [.main]` = 書き込み系すべて） | メインアプリに固定 | `App.init()` のみ |
 | Live Activity ボタン | **メインアプリプロセス**（`perform()` は公式保証。entity 事前解決も実測でメインアプリ） | `App.init()` |
 
 > `LiveActivityIntent` については Apple 公式 [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) が "the system runs the app intent in the app's process" と明言している。これは `perform()` についての保証だが、`@Parameter var todo: TodoAppEntity` の**事前解決フェーズ**（`entities(for:)`）についても、iOS 27 / Xcode 27 beta 5 の実測ではメインアプリプロセスで走ることを確認済み（アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠の素の `AppIntent` でも同じ。下記「1 アクション 1 Intent」参照）。よってメインアプリ側の `AppDependencyManager` に登録してあれば両フェーズとも解決される（LA Extension 側の登録は不要）。
@@ -135,6 +135,40 @@ public struct TodoAppEntity: AppEntity {
     }
 }
 ```
+
+### Spotlight: 名前付き index と `IndexedEntityQuery`（donate 側と受け側はセット）
+
+`IndexedEntity` 準拠 + `indexAppEntities` での donate だけでは片手落ちで、Apple 公式
+（Making app entities available in Spotlight）は受け側の実装も要求している:
+
+> If you donate app entities to a `CSSearchableIndex` using its `indexAppEntities(_:priority:)`
+> method, **implement the `IndexedEntityQuery` protocol** in your entity's query object to
+> handle reindexing.
+
+これが無いと、Spotlight 側が index を作り直したいときに応答先が無く、次にアプリが起動して
+全件 index するまで検索に出てこない。本アプリは `TodoEntityQuery` に
+`reindexEntities(for:indexDescription:)` / `reindexAllEntities(indexDescription:)` を実装した。
+
+落とし穴が 2 つ:
+
+1. **`@MainActor` を付けられない**。`CSSearchableIndexDescription` が non-Sendable なので、
+   MainActor 隔離した実装に渡せず `Non-Sendable parameter type 'CSSearchableIndexDescription'
+   cannot be sent from caller of protocol requirement` でコンパイルエラーになる。同じファイルの
+   `entities(for:)` などは `@MainActor` で問題ないので、ここだけ nonisolated にして内側で await する
+2. **単体テストで直接呼びにくい**。`CSSearchableIndexDescription` の public な init は `init(coder:)`
+   だけで、素直にインスタンスを作れない
+
+**index は名前付きにする**。同ドキュメントの Note:
+
+> When indexing your app's content, use a **named** `CSSearchableIndex` type and not the default
+> index. Use the default index only for prototyping and testing your code during development.
+
+`CSSearchableIndex.default()` から `CSSearchableIndex(name: "dev.touyou.IntentTodo.Todos")`
+（`TodoSpotlightIndex`）に移行済み。移行時は**旧 default index に残ったアイテムが二重に出る**ので、
+初回起動で 1 度だけ `CSSearchableIndex.default().deleteAllSearchableItems()` を実行して掃除する
+（default index にはこのアプリの todo しか入れていないので全消しで安全）。移行後も AppIntentsTesting の
+Spotlight テスト（`testNewTodoIsIndexedInSpotlight` / `testDeletedTodoIsRemovedFromSpotlight`）は
+グリーンなので、名前付き index でも検索からは見える。
 
 ### EntityQuery と EntityStringQuery
 
@@ -277,6 +311,44 @@ App Shortcut のフレーズに埋め込めるのは **AppEntity** と **AppEnum
 String 型パラメータを使いたい場合は、Siri がユーザーに後から入力を求めるフローを利用する。
 
 > **一次ソース未確認**: Apple 公式 API リファレンスではこの制約を明示的に書いた箇所を 2026-04-15 時点で発見できていない。コンパイラエラー挙動から観測した制約として扱う。将来的に緩和される可能性もあるため iOS / Xcode の major バージョン更新時には再確認が望ましい。
+
+### パラメータ入りフレーズと `updateAppShortcutParameters()`（セット）
+
+**パラメータをフレーズに埋めるだけでは動かない。** wwdc2023-10102 9:24–9:52:
+
+> Calling this method signals to the system that your App Shortcut parameters have changed
+> and will cause the system to call `suggestedEntities` on any relevant queries to re-fetch
+> them. [...] It's important to remember to also call this upon your app's **first launch**.
+> App Shortcut phrases referencing entity parameters **won't work until the system has
+> successfully fetched entities for the first time**.
+
+呼ぶタイミングは「entity の追加 / 削除 / `displayRepresentation` の変化（リネーム等）」＋初回起動。
+
+**⚠️ `suggestedEntities()` の件数がそのまま App Shortcut の件数になる。** wwdc2025-244 9:46:
+"Phrases can include up to one intent parameter. **If provided, an App Shortcut for each value of that
+type will be created.**" パラメータ入りフレーズを入れるなら、`suggestedEntities()` は「候補として妥当な
+少数」に絞ること（本アプリは直近の未完了 10 件。HIG の "not more than ten" に合わせた）。全件返す実装のまま
+フレーズだけパラメータ化すると、Shortcuts / Spotlight がそのアプリの自動生成 shortcut で埋まる。
+全件が要る用途は `allEntities()`（`EnumerableEntityQuery`）が担う。
+
+本アプリの配線（2026-08-21 採用）:
+
+| 場所 | 役割 |
+|---|---|
+| `TodoAppShortcuts.swift` | `"Complete \(\.$todo) in \(.applicationName)"` 等。**パラメータ無しのフレーズも各 shortcut に 1 つ残す**（同 8:14。Siri 側で聞き返せるようにするため） |
+| `AppShortcutParameterUpdater`（パッケージ） | アプリ側のクロージャを受け取る間接層。`updateAppShortcutParameters()` は provider の**具体型**に対する static なので、アプリターゲットにしか置けない型をパッケージから呼ぶにはこれが要る |
+| `TodoService.dataDidChange()` | 変更系メソッドの `defer` が通る唯一の後処理。ウィジェット/コントロールのリロードと並べて通知する |
+| `IntentTodoApp.init()` | ハンドラ登録 + 初回 1 回の通知 |
+
+守り方: `AppShortcutParameterUpdaterTests`（create / toggle / delete で通知が飛ぶことを数える）。通知を外すと落ちることを確認済み。
+
+### アプリ内の導線: `SiriTipView`（**macOS では unavailable**）
+
+App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、ユーザーが「言えること」を知らなければ使われない。HIG（App Shortcuts / Best practices）の "Make App Shortcuts discoverable in your app" に対応する標準部品が `SiriTipView(intent:isVisible:)` で、フレーズを View 側に複製せずに表示できる。
+
+- `isVisible` に `@AppStorage` を渡すと、閉じるボタンがそのまま永続化される
+- **`SiriTipView` / `SiriTipViewStyle` は `@available(macOS, unavailable)`**（Xcode 27 beta 5 の `_AppIntents_SwiftUI` swiftinterface で確認）。共有 UI パッケージから使うなら `#if os(macOS)` で分岐が要る。visionOS では利用可（実ビルドで確認）
+- Shortcuts アプリを開く導線が欲しい場合は `ShortcutsLink` / `ShortcutsUIButton`（未採用）
 
 ---
 
@@ -669,11 +741,32 @@ App Intents は「開く」「削除する」等の共通アクションに **sy
 選べるのは **`.main`（アプリ本体）/ `.appIntentsExtension`（App Intents Extension）/ `.widgetKitExtension`
 （WidgetKit Extension）** の 3 種（`IntentExecutionTargets` の公式 discussion が "the main app, an App Intents
 extension, or a WidgetKit extension" と明記。型名は `AppIntent.ExecutionTargets = IntentExecutionTargets`）。
+未指定時の値は `.default`（= どのターゲットでも可）で、`IntentExecutionTargets` は `OptionSet, Hashable,
+Equatable`（Xcode 27 beta 5 の swiftinterface で確認）なのでテストで等値比較できる。
+**`ExecutionTargets` は `EntityQuery` 側にも生えている**（公式: "ExecutionTargets is available on both
+`AppIntent` and `EntityQuery`"）。本アプリの entity 解決は読み取りのみなので `TodoEntityQuery` は未指定のまま。
 
 経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
-- 本アプリは App Intents Extension を持たず、バルク SwiftData 変更はアプリ本体が最も確実なので、新設の
-  バルク Intent は `[.main]` に固定した。
+**方針: SwiftData を書き換える Intent はすべて `[.main]`、読み取り系は未指定（`.default`）。**
+
+セッションが挙げる動機がこのアプリの構成そのものだった（wwdc2026-345 16:30 "My widget shares the data
+model with the app — but having two processes write to the same data store can cause conflicts. So I
+gave the widget read-only access and the main app handles all the writes."）。共有パッケージが Widget
+Extension にもリンクされているため、未指定だと**アプリ未起動時に Extension プロセスが同じストアの書き手に
+なり得る**。`docs/insights/05-extensions-and-data-sharing.md` の「アプリ更新直後は Extension が先に起動し
+得る」話と同じ危険。
+
+- 固定対象は 13 intent（`TodoService` の変更メソッドを呼ぶもの全部）。`ToggleTodoCompletionIntent` /
+  `QuickSnoozeTodoIntent` は iOS では `LiveActivityIntent` 準拠で実質アプリ実行だが、macOS / watchOS には
+  その保証が無いので同じく明示する。
+- 読み取り系（`ShowTodoCountIntent` / `GetTodoSummaryIntent` / `SearchEverythingIntent` 等）は**あえて固定
+  しない**。Extension で応答できたほうがアプリを起こさずに済んで速い。よって `WidgetBundle.init()` の
+  `TodoService` 登録は残す（読み取り専用の利用に用途が変わった）。二重登録は撤廃ではなく**役割の分離**。
+- 守り方: `Packages/TodoAppIntents/Tests/.../IntentExecutionTargetsTests.swift`。①13 intent の
+  `allowedExecutionTargets == [.main]` を個別に assert ②読み取り系が `.default` のままか ③`Intents/` の
+  ソースを走査して「`todoService` の変更メソッドを呼ぶのに `allowedExecutionTargets` を宣言していない
+  ファイル」を検出（新規 intent の宣言漏れ対策）。③ は probe intent を置いて**実際に落ちることを確認済み**。
 - **`allowedExecutionTargets` が制御するのは「どのプロセスが perform するか」だけ**で、entity 解決の有無は
   変えられない。かつて「だから FromExtension 分離は `allowedExecutionTargets` では統合できない」と結論して
   いたが、そもそもの前提（LA からの entity 解決が crash する）が iOS 27 で成立しなくなったため、この論点は

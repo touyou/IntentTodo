@@ -428,3 +428,156 @@ variable の index が 3 → 1 と probe に応じて変わっているので、
 A-1 の採用後に、検証の梯子の 2 段目（Shortcuts アプリで intent の形を見る）を実機で確認した。アクション一覧とパラメータ表示は壊れていない。
 
 これで A-1 の根拠は 3 つになった: ①クリーンビルドでの metadata 件数一致（`actions` 23 = intent 型数 23、重複なし）②AppIntentsTesting 全テストグリーン ③Shortcuts アプリでの実機確認。残るのは Siri のフレーズ routing のみで、これは自動化手段が無く（前項の梯子参照）機会があるときに 1 フレーズ言えば済む。
+
+## 2026-08-21: 書き込み系 Intent を `allowedExecutionTargets = [.main]` に固定
+
+`allowedExecutionTargets` は #345 の検証時に `CompleteTodosIntent` 1 件だけで「API を通した」状態で止まって
+いた。改めて見直すと、セッションが挙げている動機（16:21–16:38 のウィジェットの favorite ボタン）が**この
+アプリの構成そのまま**だった。共有パッケージ `TodoAppIntents` が Widget Extension にもリンクされていて、
+`WidgetBundle.init()` で**読み書きできる `TodoService`** を登録しているため、`.background` の変更系 Intent が
+アプリ未起動時に Extension プロセスへ振られると、そこが SwiftData の書き手になる。
+
+**やったこと**: `TodoService` の変更メソッドを呼ぶ 13 intent に `[.main]` を宣言。
+
+Add / Update / Delete(×3) / Complete(bulk) / ToggleCompletion / SetCompletion / ToggleFavorite /
+ToggleUrgent / Snooze / QuickSnooze / Reorder。
+
+- Extension UI から実際に呼ばれていて未固定だったのは `SetTodoCompletionIntent`（Control のトグル）、
+  `ToggleFavoriteIntent`、`DeleteTodoImmediatelyIntent`。残りは Extension UI からは呼ばれないが、
+  共有パッケージ経由でリンクされているため Siri / Shortcuts 要求が Extension に振られ得る。
+- `ToggleTodoCompletionIntent` / `QuickSnoozeTodoIntent` は iOS では `LiveActivityIntent` 準拠なので
+  `perform()` のアプリ実行が公式保証されているが、その準拠は `#if os(iOS)` の中。macOS / watchOS では素の
+  `AppIntent` なので、型で明示する意味がある。
+- 読み取り系は**あえて未指定のまま**（アプリを起こさず Extension で応答できるほうが速い）。よって
+  `WidgetBundle.init()` の `TodoService` 登録は残すが、用途が「読み取り専用」に変わったのでコメントを更新。
+
+**確認**:
+
+1. iOS ビルド + watchOS ビルド成功（watch は `.main` が「watch アプリ本体」を指すので、watch UI の
+   `Button(intent:)` が壊れないかが論点。ビルドは通ったが**実機/シミュレータでの watch からの追加は未確認**）
+2. AppIntentsTesting 22 件グリーン（`TodoIntentExecutionTests` / `TodoEntityQueryTests` /
+   `TodoSystemIntegrationTests`）。固定した状態でも Siri / Shortcuts と同じ経路で実行できている
+3. パッケージテスト 75 件グリーン（`swift test`）
+4. 新規ガードテストの**失敗確認**: `Intents/` に「`todoService.delete(` を呼ぶが宣言が無い」probe intent を
+   置くと `everyMutatingIntentDeclaresExecutionTargets` が落ちる → 条件付き assert の空回りではない
+
+**気づいた副産物**: `TodoAppIntents` のパッケージテスト（既存 7 ファイル + 今回の 1 ファイル）は
+`IntentTodo` スキームの Test アクションに入っていない（Testables は `IntentTodoUITest` だけ）。つまり
+`swift test` かパッケージ単体のスキームで走らせない限り**通常の Cmd+U では実行されない**。今回のテストも
+同じ場所に置いたので、スキームに testable を追加するか CI で `swift test` を回すかを別途決める必要がある。
+
+**未確認**: Control のトグルを**アプリ完全終了状態**で叩いたときの体感（アプリのバックグラウンド起動が
+挟まる）。dialog も snippet も出ない面なので、遅延が実用上問題になるかは実機で見るしかない。
+
+## 2026-08-21: App Shortcut のフレーズをパラメータ対応にし、Spotlight の受け口を塞いだ
+
+`allowedExecutionTargets` の見直しのついでに「ドキュメントには書いてあるのに採用していない API」を
+全ソース走査で洗い出した結果、4 件を採用した。
+
+### 1. パラメータ入りフレーズ + `updateAppShortcutParameters()`
+
+`TodoAppShortcuts` の 8 件はすべて `"Complete todo in \(.applicationName)"` 型で、**フレーズに
+パラメータが 1 つも入っていなかった**。`updateAppShortcutParameters()` の呼び出しもリポジトリ全体で
+0 件。`docs/insights/03-app-intents-core.md` には「フレーズのパラメータ型制限」として
+`"Show \(\.$filter) todos in ..."` という例まで書いてあったのに、実装が追いついていなかった形。
+
+- entity 版: ToggleCompletion / ToggleFavorite / Delete / Snooze に `\(\.$todo)` を追加
+- enum 版: ShowTodos に `\(\.$filter)` を追加（3 件に分けていた頃の "Show favorite todos" が、
+  今度はフレーズレベルのパラメータとして復活した形）
+- 各 shortcut にパラメータ無しのフレーズを 1 つ残す（wwdc2023-10102 8:14）
+
+`updateAppShortcutParameters()` は provider の具体型に対する static で、その具体型はアプリ
+ターゲットにしか置けない（`AppShortcutsProvider` をパッケージに置くと統合メタデータから落ちる件）。
+そこで `AppShortcutParameterUpdater`（パッケージ側のクロージャ受け）を挟み、
+`IntentTodoApp.init()` で `TodoAppShortcuts.updateAppShortcutParameters()` を登録 + 初回 1 回実行。
+変更契機は `TodoService.dataDidChange()` に集約した（後述）。
+
+### 2. `WidgetReloader.reloadAllWidgets()` → `TodoService.dataDidChange()`
+
+`WidgetReloader` の呼び出しは実際には `TodoService` の 9 箇所だけで、Intent 側は 1 つも呼んで
+いなかった（AGENTS.md の記述が実装とズレていた）。App Shortcut の通知を足すにあたって 9 箇所に
+2 行ずつ書くのは避け、`dataDidChange()`（ウィジェット/コントロールのリロード + App Shortcut の
+パラメータ更新）にまとめた。
+
+### 3. `IndexedEntityQuery` を `TodoEntityQuery` に実装
+
+`indexAppEntities` で donate している以上、Apple 公式が受け側の実装を要求している。実装時に
+`CSSearchableIndexDescription` が non-Sendable で `@MainActor` を付けられないことに当たった
+（詳細は insights）。要求された id のうち解決できなかったものは index から削除する。
+
+### 4. Spotlight を名前付き index へ
+
+`CSSearchableIndex.default()` は公式に "only for prototyping and testing" とされている。
+`TodoSpotlightIndex`（`dev.touyou.IntentTodo.Todos`）に移し、旧 default index は初回起動で
+1 度だけ全消しして二重表示を防ぐ。
+
+### 5. `SiriTipView` をリスト先頭に（macOS 除く）
+
+App Shortcut をアプリ内から知らせる導線が無かった。`SiriTipView(intent: AddTodoIntent(),
+isVisible:)` を `@AppStorage` 付きで追加。**`SiriTipView` は macOS で unavailable** だったため
+`#if os(macOS)` で分岐（[[verify-platform-limits-on-sdk-updates]] の逆パターンで、こちらは
+実際に SDK 側の制約だった。swiftinterface で確認 → 実ビルドで確定）。
+
+### 確認
+
+- ビルド: iOS / macOS / visionOS / watchOS すべて成功（macOS は `SiriTipView` のガードを入れる前に
+  実際に落ちた。ガード後に成功）
+- AppIntentsTesting: 22/22 グリーン。特に Spotlight の 2 件が通ったことで、名前付き index に
+  移しても検索から見えることが確かめられた
+- パッケージテスト: 77/77（`AppShortcutParameterUpdaterTests` 2 件を追加）。通知を外すと落ちることを
+  確認済み
+
+### 未確認
+
+- **Siri のフレーズ実機確認**。パラメータ入りフレーズが実際に解決されるか（"Complete 牛乳を買う in
+  IntentTodo"）は AppIntentsTesting では通らない経路。Xcode の Product > App Shortcuts Preview
+  （wwdc2023-10102 16:39）で先に見るのが安い
+- Spotlight の再インデックス要求（`reindexAllEntities`）が実際にシステムから呼ばれる状況の再現
+- `SiriTipView` の実際の表示（シミュレータ実行での目視）
+
+## 2026-08-21: 上記の変更を「もっと新しいセッション」と突き合わせた（レビュー）
+
+採用の根拠が古いセッションのものだったため、2025 / 2026 のセッションと Xcode 27 beta 5 の SDK で
+上書きされていないかを確認した。結果、**方向は全部合っていた**が 3 件の修正が出た。
+
+| 確認したこと | 結果 |
+|---|---|
+| `IndexedEntityQuery` | wwdc2026-343 12:19–12:35 が「Spotlight may need your app to reindex its entities. Your app can support reindexing by adopting the new `IndexedEntityQuery`」と**最新セッションで推奨**。同 12:35 に「Core Spotlight レベルの API で再インデックスに対応済みなら不要」という但し書きもあるが、本アプリは未対応なので必要 |
+| 名前付き Spotlight index | wwdc2026-343 のコードも `CSSearchableIndex(name: indexName)`。2024-10131 も同様。default index を使う例は無い |
+| パラメータ入りフレーズ | wwdc2025-244 9:46 で健在。`updateAppShortcutParameters()` も SDK 27 で deprecated ではない |
+| `SiriTipView` | SDK 27 で deprecated ではない（`@available(macOS, unavailable)` のみ） |
+| `allowedExecutionTargets` | wwdc2026-345 が初出で最新 |
+
+### 修正 1: `suggestedEntities()` に上限を入れた
+
+wwdc2025-244 9:46: "Phrases can include up to one intent parameter. **If provided, an App Shortcut for
+each value of that type will be created.**"
+
+`TodoEntityQuery.suggestedEntities()` は未完了 todo を**全件**返していた。パラメータ無しフレーズだけの
+頃は Shortcuts のピッカーに出るだけで害が無かったが、パラメータ入りフレーズを入れた瞬間に
+「未完了の数だけ App Shortcut が生成される」に意味が変わる。上限 10 件（HIG の "not more than ten"）に
+した。`fetchIncomplete()` は `createdAt` 降順なので、先頭 10 件＝直近の未完了になる。
+
+**パラメータ化とセットで見直すべき箇所**であり、フレーズだけ足して放置すると Shortcuts / Spotlight が
+その 1 アプリで埋まる。
+
+### 修正 2: `.system.search` → `.system.searchInApp`（ドキュメント側の追従漏れ）
+
+SDK 27 で `@available(anyAppleOS, deprecated: 27.0, message: "Use .system.searchInApp instead")`。
+コード（`ShowTodoSearchResultsIntent`）は既に `searchInApp` に追従していたが、AGENTS.md /
+APP_INTENTS_CENTRIC_PLAN.md / コード中のコメント 2 箇所が旧名のままだったので揃えた
+（wwdc2026-343 も "the system searchInApp schema (formerly system.search)" と書いている）。
+
+### 修正 3: `EntityPropertyQuery` 不採用の理由を書き直した
+
+「`EntityStringQuery` で十分」と記録していたが、Shortcuts の Find アクションを生やしているのは
+`EnumerableEntityQuery` の方（公式: "you enable the Shortcuts app to generate a Find action and do
+filtering automatically"）。`EntityPropertyQuery` の出番は "many thousands of entities" 規模の性能問題
+なので、結論は同じでも根拠が違う。件数が増えたら再評価、という条件付きに直した。
+
+### 見送り: `systemExtraLargePortrait`（#277 の新ファミリー）
+
+iOS 27 / macOS 27 で追加。採用するには (1) デプロイメントターゲットが iOS 26 なので
+`supportedFamilies` を `#available` で組み立てる (2) `TodoWidgetEntryView` の `switch` が
+`default:` で Small にフォールバックするため、専用の case とレイアウトが要る。
+「API の付け忘れ」ではなく**ウィジェットのサイズ展開という設計判断**なので、ここでは入れない。

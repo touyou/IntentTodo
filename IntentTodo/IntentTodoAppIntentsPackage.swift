@@ -7,11 +7,7 @@
 //  「You must register each target as an App Intents Package to ensure proper
 //  indexing and validation.」
 //
-//  かつては「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」として
-//  意図的に外していたが、2026-08-12 の再検証で (1) 各バンドルの
-//  Metadata.appintents の件数が宣言の有無で完全一致、(2) 宣言した状態で
-//  AppIntentsTesting 全テストがグリーン、を確認して採用した。
-//  経緯: docs/devlog/03-app-intents-core.md
+//  経緯: docs/devlog/03-app-intents-core.md（2026-08-12 の `includedPackages` 採用）
 //
 
 import AppIntents

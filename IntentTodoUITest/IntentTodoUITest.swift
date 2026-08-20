@@ -226,13 +226,11 @@ final class IntentTodoUITest: XCTestCase {
 
         // Tap delete button
         //
-        // 以前はこの一連を `if deleteButton.waitForExistence(...)` で包んでいたため、
-        // 削除が動かなくても何も assert されず緑のままだった。実際に
-        // `DeleteTodoIntent` の `requestConfirmation` がアプリ内ボタンから失敗して
-        // 削除できていなかったのを、このテストが見逃していた。
-        // `DeleteButton` は `.accessibilityLabel("Delete todo")` を付けているので、
-        // ラベルは "Delete" ではなく "Delete todo"。旧テストは "Delete" を探していて
-        // 常に見つからず、`if` で包まれていたため何も検証せず緑になっていた。
+        // **条件付き assert にしないこと**。`if deleteButton.waitForExistence(...)` で
+        // 包むと、要素が見つからないまま何も検証されず緑になる。
+        // ラベルは `DeleteButton` の `.accessibilityLabel` に合わせて "Delete todo"
+        // （"Delete" ではない）。
+        // 経緯: docs/devlog/06-control-widget-ios26.md（2026-08-12 の削除ボタン不動作）
         let deleteButton = app.buttons["Delete todo"].firstMatch
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Swipe should reveal a Delete action")
         deleteButton.tap()
