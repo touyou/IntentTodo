@@ -68,6 +68,17 @@ struct IntentTodoApp: App {
             await todoService.indexAllForSpotlight()
         }
 
+        // パラメータ入りの App Shortcut フレーズ ("Complete <todo> in IntentTodo") は、
+        // システムが一度 suggestedEntities を取得するまで機能しない。
+        // 更新契機はパッケージ側 (TodoService) から通知されるので、その入口を登録し、
+        // 起動時に 1 回自分で叩く (wwdc2023-10102 9:52)。
+        MainActor.assumeIsolated {
+            AppShortcutParameterUpdater.register {
+                TodoAppShortcuts.updateAppShortcutParameters()
+            }
+            AppShortcutParameterUpdater.notifyEntitiesChanged()
+        }
+
         // Same NavigationModel instance is stored in @State AND registered with
         // AppDependencyManager so intents can write navigation state via @Dependency.
         let navigation = NavigationModel()

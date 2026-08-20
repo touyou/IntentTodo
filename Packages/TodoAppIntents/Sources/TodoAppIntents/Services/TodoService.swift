@@ -6,8 +6,9 @@
 //  and resolved by intents through @Dependency. The repository is injected at
 //  construction time so intents do not need to instantiate it themselves.
 //
-//  Mutation-bearing methods automatically invoke WidgetReloader on exit via `defer`,
-//  eliminating per-intent reload bookkeeping.
+//  Mutation-bearing methods automatically invoke `dataDidChange()` on exit via `defer`
+//  (widget / control reload + App Shortcut パラメータ更新), eliminating per-intent
+//  bookkeeping.
 //
 
 #if os(iOS) || os(macOS)
@@ -108,7 +109,7 @@ public final class TodoService {
         guard !trimmed.isEmpty else {
             throw IntentError.validation("Todo title cannot be empty")
         }
-        defer { WidgetReloader.reloadAllWidgets() }
+        defer { Self.dataDidChange() }
         let item = TodoItem(
             title: trimmed,
             todoDescription: todoDescription,
@@ -127,7 +128,7 @@ public final class TodoService {
     }
 
     public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
-        defer { WidgetReloader.reloadAllWidgets() }
+        defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
         item.isCompleted.toggle()
         item.modifiedAt = Date()
@@ -145,7 +146,7 @@ public final class TodoService {
     /// (unlike `toggleCompletion`, whose result depends on the current state).
     @discardableResult
     public func setCompletion(todoId: String, isCompleted: Bool) throws -> TodoAppEntity {
-        defer { WidgetReloader.reloadAllWidgets() }
+        defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
         if item.isCompleted != isCompleted {
             item.isCompleted = isCompleted
@@ -165,7 +166,7 @@ public final class TodoService {
     }
 
     public func toggleFavorite(todoId: String) throws -> TodoAppEntity {
-        defer { WidgetReloader.reloadAllWidgets() }
+        defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
         item.isFavorite.toggle()
         item.modifiedAt = Date()
@@ -184,7 +185,7 @@ public final class TodoService {
         // 整合性が取れるので defer で unconditional に呼ぶ。
         defer {
             deindexSpotlight(id: todoId)
-            WidgetReloader.reloadAllWidgets()
+            Self.dataDidChange()
         }
         try repository.delete(by: uuid)
     }
@@ -193,7 +194,7 @@ public final class TodoService {
         todoId: String,
         by interval: TimeInterval = TodoService.defaultSnoozeInterval
     ) throws -> TodoSnoozeResult {
-        defer { WidgetReloader.reloadAllWidgets() }
+        defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
         guard let currentDueDate = item.dueDate else {
             throw IntentError.notFound("Todo has no due date")
@@ -226,7 +227,7 @@ public final class TodoService {
         estimatedDuration: FieldUpdate<TimeInterval?> = .unchanged,
         assigneeName: FieldUpdate<String?> = .unchanged
     ) throws -> TodoAppEntity {
-        defer { WidgetReloader.reloadAllWidgets() }
+        defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
 
         if case .set(let value) = title {
@@ -254,7 +255,7 @@ public final class TodoService {
     ///
     /// Used by `ToggleUrgentTodoIntent` (Control Center quick action).
     public func toggleMostUrgentTodo() throws -> UrgentTodoToggleResult? {
-        defer { WidgetReloader.reloadAllWidgets() }
+        defer { Self.dataDidChange() }
         guard let item = try repository.fetchMostUrgentIncomplete() else {
             return nil
         }
@@ -273,7 +274,7 @@ public final class TodoService {
     /// untouched. Backs both `ReorderTodosIntent` and the drag-to-reorder UI
     /// (WWDC 2026 reorderable containers).
     public func reorderTodos(orderedIDs: [String]) throws {
-        defer { WidgetReloader.reloadAllWidgets() }
+        defer { Self.dataDidChange() }
         let byID = Dictionary(
             try repository.fetchAll().map { ($0.id.uuidString, $0) },
             uniquingKeysWith: { first, _ in first }
@@ -321,12 +322,16 @@ public final class TodoService {
     /// Populate Spotlight with every todo currently in the store. Call once on
     /// app launch — `IndexedEntity` conformance alone is not enough for
     /// Spotlight to discover entities (it covers Apple Intelligence surfaces).
+    ///
+    /// Spotlight 側からの再インデックス要求には `TodoEntityQuery`
+    /// (`IndexedEntityQuery`) が応答する。こちらは起動時の初期投入専用。
     public func indexAllForSpotlight() async {
         #if os(iOS) || os(macOS)
+        await TodoSpotlightIndex.purgeLegacyDefaultIndexIfNeeded()
         do {
             let entities = try listTodos(filter: .all)
             spotlightLogger.info("indexAllForSpotlight start count=\(entities.count)")
-            try await CSSearchableIndex.default().indexAppEntities(entities)
+            try await TodoSpotlightIndex.index().indexAppEntities(entities)
             spotlightLogger.info("indexAllForSpotlight done count=\(entities.count)")
         } catch {
             spotlightLogger.error("indexAllForSpotlight failed: \(String(reflecting: error))")
@@ -335,6 +340,19 @@ public final class TodoService {
     }
 
     // MARK: - Private
+
+    /// データ変更後の共通後処理。
+    ///
+    /// 1. ウィジェット / コントロールのリロード（別 API なので `WidgetReloader` が両方叩く）
+    /// 2. App Shortcut のパラメータ候補の再取得要求。パラメータ入りフレーズ
+    ///    （"Complete \(todo) in IntentTodo"）は候補が古いと一致しなくなるため、
+    ///    entity の追加 / 削除 / 表示名の変化ごとに通知する（wwdc2023-10102 9:24）
+    ///
+    /// 変更系メソッドはすべて `defer { Self.dataDidChange() }` でここを通る。
+    private static func dataDidChange() {
+        WidgetReloader.reloadAllWidgets()
+        AppShortcutParameterUpdater.notifyEntitiesChanged()
+    }
 
     private func resolve(todoId: String) throws -> TodoItem {
         guard let uuid = UUID(uuidString: todoId) else {
@@ -361,7 +379,7 @@ public final class TodoService {
                 Task { @MainActor [weak self] in self?.inflightSpotlightTasks.removeValue(forKey: id) }
             }
             do {
-                try await CSSearchableIndex.default().indexAppEntities([entity])
+                try await TodoSpotlightIndex.index().indexAppEntities([entity])
                 if Task.isCancelled { return }
                 spotlightLogger.debug("reindex ok id=\(id)")
             } catch is CancellationError {
@@ -382,7 +400,7 @@ public final class TodoService {
                 Task { @MainActor [weak self] in self?.inflightSpotlightTasks.removeValue(forKey: id) }
             }
             do {
-                try await CSSearchableIndex.default().deleteAppEntities(
+                try await TodoSpotlightIndex.index().deleteAppEntities(
                     identifiedBy: [id],
                     ofType: TodoAppEntity.self
                 )

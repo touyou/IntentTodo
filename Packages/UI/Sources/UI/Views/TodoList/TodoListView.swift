@@ -94,7 +94,7 @@ public struct TodoListView: View {
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             AddTodoSheet()
         }
-        // Apply a search term pushed by ShowTodoSearchResultsIntent (.system.search).
+        // Apply a search term pushed by ShowTodoSearchResultsIntent (.system.searchInApp).
         .onChange(of: navigationModel.pendingSearchText) { _, newValue in
             applyPendingSearch(newValue)
         }
@@ -151,6 +151,8 @@ private struct TodoListSidebar: View {
         // body 評価のたびに `[String]` 配列を再アロケートしていたため、件数が増える
         // ほどスクロールがカクついていた。
         List(selection: $selection) {
+            SiriTipRow()
+
             // `.reorderable()` (WWDC 2026) turns any container into a drag-to-reorder
             // one. It's 27+ only, so gate it; on older OSes (or non-manual sort) the
             // rows render exactly as before.
@@ -178,6 +180,38 @@ private struct TodoListSidebar: View {
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 DeleteButton(todo: todo)
             }
+    }
+}
+
+// MARK: - Siri Tip
+
+/// App Shortcut の存在をアプリ内で知らせる 1 行。
+///
+/// App Shortcut は Spotlight / Siri / Shortcuts からは自動で見つかるが、**ユーザーが
+/// 「言えること」を知らない**限り使われない。HIG (App Shortcuts / Best practices) の
+/// "Make App Shortcuts discoverable in your app" に対応する標準コンポーネントが
+/// `SiriTipView` で、渡した Intent に対応するフレーズをそのまま表示してくれる
+/// (フレーズを View 側にハードコードしないので、`TodoAppShortcuts` を直せば追従する)。
+///
+/// 一度閉じたら出さない。`isVisible` に `@AppStorage` を渡しているので、
+/// `SiriTipView` の閉じるボタンがそのまま永続化される。
+///
+/// **macOS では出さない**: `SiriTipView` / `SiriTipViewStyle` は SDK で
+/// `@available(macOS, unavailable)`。Mac では Shortcuts アプリ側の一覧が導線になる。
+/// 詳細: docs/insights/03-app-intents-core.md
+private struct SiriTipRow: View {
+    @AppStorage("siriTip.addTodo.isVisible") private var isVisible = true
+
+    var body: some View {
+        #if os(macOS)
+        EmptyView()
+        #else
+        if isVisible {
+            SiriTipView(intent: AddTodoIntent(), isVisible: $isVisible)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+        }
+        #endif
     }
 }
 

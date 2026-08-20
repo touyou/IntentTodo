@@ -4,6 +4,9 @@
 //
 
 import AppIntents
+#if os(iOS) || os(macOS)
+import CoreSpotlight
+#endif
 import Foundation
 import os.log
 import Repository
@@ -44,10 +47,25 @@ public struct TodoEntityQuery: EntityQuery {
         }
     }
 
+    /// 直近の未完了 todo（最大 `suggestedEntityLimit` 件）。
+    ///
+    /// **全件返してはいけない**。パラメータ入りの App Shortcut フレーズ
+    /// （"Complete \(todo) in IntentTodo"）を使っている場合、システムはここで返した
+    /// **値 1 つにつき App Shortcut を 1 つ生成する**（wwdc2025-244 9:46 "If provided,
+    /// an App Shortcut for each value of that type will be created."）。未完了 todo が
+    /// 数十件あると Shortcuts / Spotlight がそれで埋まる。
+    ///
+    /// `fetchIncomplete()` は `createdAt` の降順なので、先頭から取ると「最近作った未完了」
+    /// になる。全件が必要な場面（Shortcuts の Find アクション等）は `allEntities()` が担う。
     @MainActor
     public func suggestedEntities() async throws -> [TodoAppEntity] {
-        try repository().fetchIncomplete().map { TodoAppEntity(from: $0) }
+        try repository().fetchIncomplete()
+            .prefix(Self.suggestedEntityLimit)
+            .map { TodoAppEntity(from: $0) }
     }
+
+    /// Siri / Spotlight に出す候補の上限。HIG の "not more than ten" に合わせている。
+    static let suggestedEntityLimit = 10
 }
 
 // MARK: - EntityStringQuery
@@ -70,3 +88,53 @@ extension TodoEntityQuery: EnumerableEntityQuery {
         try repository().fetchAll().map { TodoAppEntity(from: $0) }
     }
 }
+
+// MARK: - IndexedEntityQuery (Spotlight reindexing)
+
+#if os(iOS) || os(macOS)
+/// Spotlight からの**再インデックス要求**に応える口。
+///
+/// Apple 公式 (Making app entities available in Spotlight): "If you donate app entities
+/// to a `CSSearchableIndex` using its `indexAppEntities(_:priority:)` method, implement
+/// the `IndexedEntityQuery` protocol in your entity's query object to handle reindexing."
+/// 本アプリは `TodoService` が donate 側なので、この準拠が対応する受け側になる。
+///
+/// これが無いと、Spotlight 側の index が壊れて再構築を要求してきたときに応答先が無く、
+/// 次にアプリが起動して `indexAllForSpotlight()` が走るまで検索に出てこなくなる。
+///
+/// `indexDescription` は「どの index を更新するか」を判別するためのものだが、本アプリの
+/// index は `TodoSpotlightIndex` の 1 本だけなので参照しない。
+///
+/// **このファイルの他のメソッドと違い `@MainActor` を付けられない**（`CSSearchableIndexDescription`
+/// が non-Sendable のため）。nonisolated のまま、内側で `entities(for:)` などを await して
+/// MainActor へホップする。詳細: docs/insights/03-app-intents-core.md
+extension TodoEntityQuery: IndexedEntityQuery {
+    public func reindexEntities(
+        for identifiers: [TodoAppEntity.ID],
+        indexDescription: CSSearchableIndexDescription
+    ) async throws {
+        let entities = try await entities(for: identifiers)
+        if !entities.isEmpty {
+            try await TodoSpotlightIndex.index().indexAppEntities(entities)
+        }
+
+        // 要求された id のうち既に消えているものは index からも落とす
+        // (削除直後に要求が来た場合、放置すると Spotlight に幽霊が残る)。
+        let resolved = Set(entities.map(\.id))
+        let missing = identifiers.filter { !resolved.contains($0) }
+        if !missing.isEmpty {
+            try await TodoSpotlightIndex.index().deleteAppEntities(
+                identifiedBy: missing,
+                ofType: TodoAppEntity.self
+            )
+        }
+        logger.info("reindexEntities indexed=\(entities.count) deleted=\(missing.count)")
+    }
+
+    public func reindexAllEntities(indexDescription: CSSearchableIndexDescription) async throws {
+        let entities = try await allEntities()
+        try await TodoSpotlightIndex.index().indexAppEntities(entities)
+        logger.info("reindexAllEntities count=\(entities.count)")
+    }
+}
+#endif

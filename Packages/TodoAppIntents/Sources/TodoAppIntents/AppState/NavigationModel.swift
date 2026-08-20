@@ -35,7 +35,7 @@ public final class NavigationModel {
 
     /// A search term an intent wants the list to apply. The list view observes
     /// this, copies it into its `.searchable` field, then clears it back to nil.
-    /// Drives `ShowTodoSearchResultsIntent` (`.system.search`, WWDC 2026 #343/#47).
+    /// Drives `ShowTodoSearchResultsIntent` (`.system.searchInApp`, WWDC 2026 #343/#47).
     public var pendingSearchText: String?
 
     /// A list filter an intent wants the list to apply. Same handshake as
