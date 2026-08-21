@@ -78,6 +78,35 @@ For a destructive or surprising action, conforming buys the gesture people alrea
 
 Combines naturally with `requestChoice`: offer "Archive" as an alternative before deleting, and undo as the safety net after. Not exercised here [inferred for behaviour details] — verify the stack ordering before promising it.
 
+Apple's shape for a delete [Apple: CosmoTunes sample], and the two details that decide whether undo is real:
+
+```swift
+@AppIntent(schema: .clock.deleteAlarm)
+struct DeleteAlarmIntent: UndoableIntent {
+    var entities: [AlarmEntity]
+    @Dependency var model: ModelManager
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        // 1. Snapshot BEFORE mutating — afterwards the rows are gone.
+        let snapshots = try entities.compactMap { try model.snapshotAlarm(id: $0.id) }
+        for alarm in entities { try model.deleteAlarm(alarm.id) }
+
+        // 2. Restore with the SAME id, or Spotlight/AlarmKit identity is lost and the
+        //    "restored" row is a different object to every other system surface.
+        undoManager?.registerUndo(withTarget: model) { manager in
+            Task { @MainActor in snapshots.forEach { try? manager.restoreAlarm($0) } }
+        }
+        undoManager?.setActionName(
+            String(localized: "Delete ^[\(entities.count) Alarm](inflect: true)")
+        )
+        return .result()
+    }
+}
+```
+
+`setActionName` is what the undo affordance says out loud; without it the gesture is unlabelled. This is also why hard-deleting rows makes `UndoableIntent` a design change rather than a conformance: something has to be able to reconstruct the row under its original id ([07](07-data-and-side-effects.md)).
+
 ### `DeprecatedAppIntent`
 
 The retirement path. A shortcut someone built keeps a reference to your intent type, so deleting the type breaks their automation silently. `DeprecatedAppIntent` marks the action as retired and names its `ReplacementIntent`, so the system can tell them what to use instead. [Apple: app-intent-types] Same discipline as `AppEnum` raw values ([01](01-actions-and-entities.md)): the public surface is a contract with the user's automations, not just with the compiler.
@@ -184,4 +213,15 @@ List(todos) { … }
 - The activity type string must also be listed in `Info.plist` under `NSUserActivityTypes`, matching exactly.
 - `appEntityIdentifier` / `EntityIdentifier` come from `AppIntents` — `import AppIntents` in the view file.
 - The `forSelectionType:` form is what makes "the third one" work on long lists without mapping every id upfront.
-- Cover this with `viewAnnotations()` in AppIntentsTesting ([09](09-verification.md)).
+- **`forSelectionType:` is honoured only on a `List`** [Apple: CosmoTunes sample]. On a `ScrollView { VStack { ForEach } }` it is a silent no-op — annotate each row with the single-entity `.appEntityIdentifier(_:)` instead. Same result; the collection form is only an optimisation for long lists.
+- When the view **draws itself** (`Canvas`, a custom `Layout`), the hierarchy carries no bounds for the resolver to find. Return them explicitly:
+
+  ```swift
+  .appEntityUIElements { context in
+      [AppEntityUIElement(identifier: EntityIdentifier(for: SongEntity.self, identifier: id),
+                          bounds: context.bounds,
+                          state: .init(isSelected: false))]
+  }
+  ```
+
+- Cover **every** annotated screen with `viewAnnotations()` in AppIntentsTesting ([09](09-verification.md)). This is the failure class that looks perfectly fine in-app: nothing renders differently when the annotation is missing, mistyped, or attached to a container that ignores it.

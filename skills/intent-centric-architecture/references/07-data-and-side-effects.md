@@ -72,6 +72,23 @@ _ = try? await IntentDonationManager.shared.deleteDonations(
 )
 ```
 
+This cleanup is correct regardless of who ran the delete. **Donating** is not.
+
+## Donations belong to the app's UI, never to `perform()`
+
+Apple is explicit: "Restrict your donations to direct interactions with your app's interface, and **not to interactions started by Siri or the Shortcuts app**" [Apple: *Donations and discovery*]. The system already collects the Siri/Shortcuts runs itself, so donating them again is both redundant and against the documented rule.
+
+`perform()` cannot honour that split, because **it cannot tell who called it**: `systemContext` exposes `currentMode` and `isVoiceOnly`, and there is no invocation-source property. So `donate()` inside `perform()` always fires on the Siri/Shortcuts path too. `audit`: `donate-inside-perform`
+
+Two shapes that do honour it [Apple: sample code]:
+
+| Shape | Where the donation happens | Requires |
+|---|---|---|
+| `donateIntent:` flag on the service method (CometCal) | service, defaulting to `true`; intents pass `false` | the UI reaches the service **without** going through an intent |
+| a `DonationManager` called at each UI tap site (CosmoTunes) | the view's action closure | the same |
+
+**Both assume a non-intent UI path** — which an intent-centric app deliberately does not have. If every button is `Button(intent:)`, the honest options are (a) no donations, or (b) run the intent yourself at the specific UI sites worth donating, via `AppIntent.callAsFunction(donate:)` — "runs the intent's action after resolving any parameters, and optionally donates the intent to the system". Choose deliberately and write down which; the failure mode of guessing is a documented-rule violation that nothing in the build or the test suite will surface.
+
 ## Division of labour
 
 | Concern | Intent | Service |

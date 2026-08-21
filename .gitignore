@@ -33,6 +33,10 @@ firebase-debug.log
 # References (local documentation)
 docs/references/
 
+# Python
+__pycache__/
+*.pyc
+
 # Serena
 .serena/
 

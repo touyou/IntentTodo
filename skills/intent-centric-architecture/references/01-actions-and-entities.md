@@ -87,6 +87,32 @@ public struct TodoAppEntity: AppEntity, Identifiable {
 
 `id` itself is normally *not* a `@Property`. That is fine at runtime, but in AppIntentsTesting the type-erased `entity.id` then fails with `castingFailed(elementType: "NSNull")` — use `entity.identifier.instanceIdentifier` there ([09](09-verification.md)).
 
+### `displayRepresentation` is user-facing text, spoken text and match input at once
+
+The same three fields feed the Shortcuts picker, Siri disambiguation, Siri's *voice* output and Spotlight results. Five rules, all cheap:
+
+- **Pass runtime values by interpolation: `"\(title)"`, never `LocalizedStringResource(stringLiteral: title)`.** `stringLiteral:` treats the runtime string as a **localization key**, so every render is a lookup for a key no catalogue contains, and the string never gets extracted for translation. Apple's samples use the interpolated form throughout. `audit`: `localized-string-literal`
+- **Return `nil`, not `""`, when there is nothing to show.** `subtitle` is optional; an empty `LocalizedStringResource("")` is an empty-key lookup.
+- **Siri reads the subtitle aloud.** A positional format is read character by character — `"5:00"` becomes "five colon zero zero". Use `Duration.formatted(.units(width: .wide))` → "5 minutes" and `Date.FormatStyle` → "7:30 AM" instead of `DateComponentsFormatter` or a hand-built `"\(h):\(m)"` [Apple: CosmoTunes sample].
+- **`synonyms:` widens what Siri will match** without adding phrases — `synonyms: ["\(title) mix tape", "\(title) playlist"]`.
+- **Defer the image with the trailing-closure form.** The system materialises only the components a context needs, so a text-only request never pays for artwork.
+
+```swift
+public var displayRepresentation: DisplayRepresentation {
+    DisplayRepresentation(
+        title: "\(title)",                                   // interpolated, not stringLiteral:
+        subtitle: subtitle,                                  // LocalizedStringResource? — nil when empty
+        synonyms: ["todo \(title)", "task \(title)"]
+    ) {
+        DisplayRepresentation.Image(systemName: icon)         // resolved only if a context needs it
+    }
+}
+```
+
+Counts need inflection: `"^[\(count) todo](inflect: true)"`, not `"\(count) todos"`.
+
+For many identifiers at once, implement `EntityQuery.displayRepresentations(for:)` and build the representations from a relationship-free lightweight entity — Apple: "Return full representations; the system materializes only the components it needs (for example, dropping a deferred image when only text is required)." It avoids constructing N full entities to draw a picker.
+
 ### Check for a system shape before writing your own
 
 The framework already models several common entity shapes, and using one tells the system more than a hand-rolled equivalent: `UniqueAppEntity` for a value that only ever has one instance (global settings — no fake query over one row), `FileEntity` when the entity *is* a document, `TransientAppEntity` for a computed snapshot nobody queries back ([10](10-advanced-entity-apis.md)). The full list is in [12](12-surface-catalog.md).
@@ -127,6 +153,10 @@ public enum TodoFilterType: String, AppEnum {
 `suggestedEntities()` is what fills parameter pickers. Returning an empty default means "no suggestions" — users see an empty picker and assume the app is broken. If it is cheap, implement it.
 
 **`entities(for:)` is batched** — resolve the whole `[ID]` in one fetch, not in a loop.
+
+**Since you own the filtering in `entities(matching:)`, own it correctly.** The input is something a person said or typed, so compare with `localizedStandardContains(_:)` — `lowercased().contains()` is locale-independent and treats kana/katakana, diacritics and Turkish dotless I as different characters. `audit`: `locale-insensitive-entity-match`
+
+`EnumerableEntityQuery` makes Shortcuts synthesise a "Find X" action for free; give it `static var findIntentDescription: IntentDescription?` so that action arrives with a description, a `categoryName`, search keywords and a `resultValueName` instead of appearing bare.
 
 Queries *can* use `@Dependency`; entities cannot ([04](04-process-and-dependencies.md)).
 

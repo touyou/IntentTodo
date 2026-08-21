@@ -304,6 +304,24 @@ def rule(name: str, doc: str):
 REF = "references"
 
 
+def body_lines(f: SwiftFile, header: re.Pattern[str]) -> Iterable[tuple[int, str]]:
+    """Yield (0-based index, code line) for lines inside every body whose declaration
+    line matches `header`. Brace-counted, so a nested closure on the closing line is
+    still reported before the body is considered finished."""
+    depth: int | None = None
+    for i, ln in enumerate(f.code_lines):
+        if depth is None:
+            if header.search(ln):
+                depth = ln.count("{") - ln.count("}")
+                if depth <= 0:
+                    depth = None if "}" in ln else 0
+            continue
+        yield i, ln
+        depth += ln.count("{") - ln.count("}")
+        if depth <= 0:
+            depth = None
+
+
 @rule("shortcuts-provider-placement", "AppShortcutsProvider must live in the app target, never in a package")
 def r_shortcuts_placement(files: list[SwiftFile]) -> Iterable[Finding]:
     providers = [
@@ -770,6 +788,96 @@ def r_value_query_open_intent(files: list[SwiftFile]) -> Iterable[Finding]:
         "(wwdc2025-275 9:19). The requirement is enforced at compile time only on the macOS "
         f"destination, so an iOS-only build never tells you. See {REF}/11-interaction-and-scale.md",
     )
+
+
+@rule("donate-inside-perform", "Donate from the app's UI, never from perform() — it cannot tell callers apart")
+def r_donate_inside_perform(files: list[SwiftFile]) -> Iterable[Finding]:
+    rx = re.compile(r"\bdonate\s*\(|IntentDonationManager\.shared\.donate\b")
+    header = re.compile(r"\bfunc\s+perform\s*\(")
+    for f in files:
+        if f.is_test:
+            continue
+        for i, ln in body_lines(f, header):
+            m = rx.search(ln)
+            if m and "deleteDonations" not in ln:
+                yield Finding(
+                    "donate-inside-perform", "warn", f.path, i + 1,
+                    f"Donation issued inside perform(): {m.group(0).strip()}",
+                    'Apple: "Restrict your donations to direct interactions with your app\'s '
+                    'interface, and not to interactions started by Siri or the Shortcuts app." '
+                    "perform() cannot tell who called it (systemContext exposes only currentMode "
+                    "and isVoiceOnly), so this also donates the Siri/Shortcuts runs. Donate at the "
+                    f"UI site, or use callAsFunction(donate:). See {REF}/07-data-and-side-effects.md",
+                )
+
+
+@rule("localized-string-literal", "Runtime values go into LocalizedStringResource by interpolation, not stringLiteral:")
+def r_localized_string_literal(files: list[SwiftFile]) -> Iterable[Finding]:
+    # A literal argument is fine ("Done"); a variable/expression is the bug.
+    rx = re.compile(r"LocalizedStringResource\s*\(\s*stringLiteral\s*:\s*([^)]+)\)")
+    for f in files:
+        for i, ln in enumerate(f.code_lines):
+            m = rx.search(ln)
+            if not m:
+                continue
+            arg = m.group(1).strip()
+            if arg.startswith('"') and arg.endswith('"'):
+                continue
+            yield Finding(
+                "localized-string-literal", "warn", f.path, i + 1,
+                f"LocalizedStringResource(stringLiteral: {arg}) uses a runtime value as a "
+                "localization key.",
+                "Every render becomes a lookup for a key no catalogue contains, and the string is "
+                f'never extracted for translation. Write `"\\({arg})"` instead. '
+                f"See {REF}/01-actions-and-entities.md",
+            )
+
+
+@rule("spotlight-attribute-collision", "attributeSet must not write a CSSearchableItemAttributeSet key that @Property(indexingKey:) also maps")
+def r_spotlight_attribute_collision(files: list[SwiftFile]) -> Iterable[Finding]:
+    key_rx = re.compile(r"indexingKey\s*:\s*\\\.(\w+)")
+    assign_rx = re.compile(r"\b\w+\s*\.\s*(\w+)\s*=")
+    for f in files:
+        if f.is_test:
+            continue
+        mapped = {m.group(1) for m in key_rx.finditer(f.code)}
+        if not mapped:
+            continue
+        # Only look inside an attributeSet body.
+        for i, ln in body_lines(f, re.compile(r"\bvar\s+attributeSet\b")):
+            m = assign_rx.search(ln)
+            if m and m.group(1) in mapped:
+                key = m.group(1)
+                yield Finding(
+                    "spotlight-attribute-collision", "warn", f.path, i + 1,
+                    f"attributeSet writes `.{key}`, which a @Property(indexingKey: \\.{key}) "
+                    "already maps.",
+                    "Which side wins on a shared key is undocumented, so the value you meant to "
+                    "put into the semantic index can be silently replaced. Keep attributeSet to "
+                    "keys no indexingKey claims (dueDate, keywords, displayName) and express "
+                    f"status as keywords. See {REF}/10-advanced-entity-apis.md",
+                )
+
+
+@rule("locale-insensitive-entity-match", "entities(matching:) compares user input — use localizedStandardContains")
+def r_locale_insensitive_entity_match(files: list[SwiftFile]) -> Iterable[Finding]:
+    rx = re.compile(r"\.lowercased\s*\(\s*\)|\.uppercased\s*\(\s*\)")
+    for f in files:
+        if f.is_test:
+            continue
+        # `entities(matching string: String)` — the argument label is `matching`,
+        # the parameter name is arbitrary, so stop at the label.
+        header = re.compile(r"\bfunc\s+entities\s*\(\s*matching\b")
+        for i, ln in body_lines(f, header):
+            if rx.search(ln) and "contains" in ln.lower():
+                yield Finding(
+                    "locale-insensitive-entity-match", "warn", f.path, i + 1,
+                    "entities(matching:) folds case by hand before comparing.",
+                    "The input is what a person said or typed. lowercased().contains() is "
+                    "locale-independent and treats kana/katakana, diacritics and Turkish dotless I "
+                    "as different characters. Use localizedStandardContains(_:). "
+                    f"See {REF}/01-actions-and-entities.md",
+                )
 
 
 # ---------------------------------------------------------------------------

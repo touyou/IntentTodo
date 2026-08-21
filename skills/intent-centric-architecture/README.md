@@ -8,7 +8,7 @@ Apple プラットフォーム向けの **App Intent 中心設計** を、別プ
 
 iOS / iPadOS / macOS / visionOS / watchOS の App Intent 設計について、Claude Code が以下の判断を支援する:
 
-- **どのレベルから始めるか**（ターゲット 1 つのアプリなら守るべきルールは 4 つ。拡張やプラットフォームが増えた時点で何が増えるか）
+- **どのレベルから始めるか**（11 の原則のうち 3 つはプロセスが 2 つ以上ある場合だけ。ターゲット 1 つのアプリが守るのは残り 8 つ。拡張やプラットフォームが増えた時点で何が増えるか）
 - 既存アプリへの後付け（ViewModel / URL ハンドラ / メニューコマンドに散った「アクション」の棚卸しから）
 - 何を `AppIntent` にし、何を `AppEntity` にするか（verb-noun ルール、1 アクション 1 Intent、分けてよい 3 条件）
 - どのプラットフォーム / システムサーフェスに展開するか（Action-Centered Design マトリクス、サーフェスごとの正しい API、サーフェス一覧カタログ）
@@ -28,7 +28,7 @@ iOS / iPadOS / macOS / visionOS / watchOS の App Intent 設計について、Cl
 .claude/skills/intent-centric-architecture/
 ├── SKILL.md                  # ルーター: 適用レベル・原則・判断表・既知のダメな回避策・参照先
 ├── scripts/
-│   ├── audit_intents.py                 # 20 ルールの静的監査 + サーフェス到達状況レポート
+│   ├── audit_intents.py                 # 24 ルールの静的監査 + サーフェス到達状況レポート
 │   └── inspect_appintents_metadata.py   # ビルド成果物のメタデータ検査
 └── references/               # 必要になったときだけ読む詳細
     ├── 00-adoption-levels.md

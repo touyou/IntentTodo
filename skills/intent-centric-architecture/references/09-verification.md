@@ -114,6 +114,21 @@ Prioritise paths that **fail invisibly** — where nothing else goes red:
 
 If your UI test target is a synchronized folder in the Xcode project, adding files (including subfolders) is enough — no target-membership dance. `setUp` must be `@MainActor override func setUp() async` or `XCUIApplication`'s isolation trips Swift 6.
 
+Cover `viewAnnotations()` **per annotated screen**, not once. Apple's own samples carry one test per surface (detail sheet, each list segment, a `Canvas`, a card stack) because each uses a different annotation form and each fails independently ([11](11-interaction-and-scale.md)).
+
+### Getting to a known state
+
+Two approaches, and the trade is explicit:
+
+| | Ship-nothing (self-cleanup) | Seed intents |
+|---|---|---|
+| How | each test creates uniquely-titled fixtures and deletes them in teardown | `#if DEBUG` + `isDiscoverable = false` intents (`ResetTestDataIntent`, `SeedSampleEventsIntent`, `ClearSpotlightIntent`) run from `setUp()` [Apple: sample code] |
+| Adds to the shipping binary | nothing | nothing in release; the intents exist in debug builds |
+| Test independence | weaker — tests share whatever the store already holds | strong — every test starts from the same catalogue |
+| Enables | — | asserting on *absence* and on exact counts, and testing the reindex path by clearing Spotlight first |
+
+Seed intents are the only way to assert "exactly one result" reliably. Reach for them once assertions start needing `XCTAssertFalse(...isEmpty)` because a count would be flaky.
+
 ## Tests that lie
 
 **Never write a conditional assertion.**

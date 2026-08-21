@@ -19,7 +19,7 @@ Intent + Entity is the **atomic design unit**. UI and platform are later layers 
 
 ## Start at the smallest level that is true for this project
 
-Most of the hard rules below exist because of a second *process* or a second *platform*. A one-target app owes four of them. Find the level, apply that level's rules, and stop.
+Three of the hard rules below exist only because of a second *process*; a one-target app owes the other eight. Find the level, apply that level's rules, and stop.
 
 | Level | The project has | Rules that apply | Detail |
 |---|---|---|---|
@@ -32,7 +32,7 @@ A minimum viable adoption is one service, one intent, one `AppShortcutsProvider`
 
 ## Non-negotiables
 
-Ten rules that are cheap to follow and expensive to discover. **From** is the level at which each starts to apply; **audit** names the `audit_intents.py` rule that catches it, where one can.
+Eleven rules that are cheap to follow and expensive to discover. **From** is the level at which each starts to apply; **audit** names the `audit_intents.py` rule that catches it, where one can.
 
 | # | From | Rule | Why it bites | Detail |
 |---|---|---|---|---|
@@ -46,6 +46,7 @@ Ten rules that are cheap to follow and expensive to discover. **From** is the le
 | 8 | 0 | Interactive intents (`requestConfirmation` / `requestChoice`) are Siri/Shortcuts-only | From an in-app or widget button they fail with no error UI — *nothing happens* | [05](references/05-ui-integration.md) · audit `interactive-intent-from-button` |
 | 9 | 0 | Pick the feedback channel from the **caller**, not from the intent | Controls present neither dialog nor snippet; UI buttons present neither | [06](references/06-feedback-channels.md) · audit `control-feedback` |
 | 10 | 1 | A data mutation reloads timelines **and** controls | They are separate APIs; the system only auto-reloads the one control that ran the intent | [07](references/07-data-and-side-effects.md) · audit `widget-reload-coverage` |
+| 11 | 0 | Donate from the app's UI, never from `perform()` | Apple's rule is per-caller and `perform()` cannot see the caller, so a donation there always covers the Siri/Shortcuts runs it is meant to exclude | [07](references/07-data-and-side-effects.md) · audit `donate-inside-perform` |
 
 Rules 1, 2 and 4 are the ones no linter can check — they are design decisions, and they are also the three whose violation is most expensive to unwind.
 
@@ -111,6 +112,11 @@ Each of these looks like the obvious fix at the moment it occurs to you. Each on
 | adopting an adjacent schema domain "for the plumbing" | Siri becomes confidently wrong | no domain + `.system.searchInApp` ([13](references/13-schema-domains.md)) |
 | a custom URL scheme to open a detail screen | not understood by Spotlight, Siri or Shortcuts | `OpenIntent` ([11](references/11-interaction-and-scale.md)) |
 | a widget `Button(intent:)` whose only job is opening the app | Apple says use a link | `Link` / `widgetURL(_:)` ([02](references/02-multi-surface-mapping.md)) |
+| `donate()` at the end of `perform()` | also donates the Siri/Shortcuts runs, which Apple says not to donate — and `perform()` cannot tell callers apart | donate from the UI, or not at all ([07](references/07-data-and-side-effects.md)) |
+| `LocalizedStringResource(stringLiteral: entity.title)` | the runtime value becomes a localization *key*: a miss on every render, never extracted for translation | `"\(entity.title)"` ([01](references/01-actions-and-entities.md)) |
+| a hand-written `attributeSet` key that a `@Property(indexingKey:)` also maps | undocumented precedence; your semantic text can be replaced by a status string | disjoint key sets ([10](references/10-advanced-entity-apis.md)) |
+| `lowercased().contains()` in `entities(matching:)` | locale-independent: kana, diacritics and dotless I stop matching | `localizedStandardContains(_:)` ([01](references/01-actions-and-entities.md)) |
+| `.appEntityIdentifier(forSelectionType:)` on a `ScrollView`+`ForEach` | silent no-op; the app looks identical | it is `List`-only — annotate rows singly ([11](references/11-interaction-and-scale.md)) |
 
 ## Finding the right answer instead of inventing one
 
@@ -118,20 +124,24 @@ App Intents changes every cycle and the documentation is incomplete in ways that
 
 1. **Apple's own documentation search, scoped to `AppIntents`**, by the noun you want ("focus", "undo", "camera", "ownership", "schema domains"). In Xcode that is the `DocumentationSearch` MCP tool — fast, local, and newer than any model's training data; otherwise developer.apple.com. Most "App Intents can't do that" conclusions die here.
 2. **The framework's own catalogue pages** — `app-intent-types`, `app-entities`, `app-schema-domains` — when you need to know what *exists* rather than how one symbol works. New reach is usually a conformance on an intent you already have.
-3. **The WWDC transcripts** for behaviour that only a session states (execution process, reload guarantees, limits). Cite session + timestamp.
-4. **The build**, per destination, when the question is availability. `XcodeRefreshCodeIssuesInFile` sees one context only.
-5. **`inspect_appintents_metadata.py`**, when the question is "did the system actually get it".
-6. **A single-variable probe**, when nothing above answers it — then label the result `[measured]` with date and OS.
+3. **Apple's sample code**, when the question is "what does a correct adoption look like end to end". Prose documents one symbol at a time; the samples are the only place the *composition* is written down — which keys not to double-write, what Siri does with a subtitle, where a donation goes. Find them from the sample's documentation page; the downloadable archive URL lives in that page's JSON (`https://developer.apple.com/tutorials/data/<path>.json` → `sampleCodeDownload.action.identifier`, fetched from `https://docs-assets.developer.apple.com/published/<id>`). Keep them **outside** the project directory: an Xcode synchronized folder will pull a sample's `.xcodeproj` into your tracked `project.pbxproj`, which `.gitignore` cannot prevent.
+4. **The WWDC transcripts** for behaviour that only a session states (execution process, reload guarantees, limits). Cite session + timestamp.
+5. **The build**, per destination, when the question is availability. `XcodeRefreshCodeIssuesInFile` sees one context only.
+6. **`inspect_appintents_metadata.py`**, when the question is "did the system actually get it".
+7. **A single-variable probe**, when nothing above answers it — then label the result `[measured]` with date and OS.
 
-If you cannot get past step 6, the claim is `[inferred]`: write it down as a hypothesis and design around not knowing.
+If you cannot get past step 7, the claim is `[inferred]`: write it down as a hypothesis and design around not knowing.
+
+Samples are evidence, not authority. Apple's own ship deprecated API (`static let openAppWhenRun = true` where `supportedModes` is now the documented spelling) and patterns this skill argues against. Read them for composition; check each individual call against its own documentation page.
 
 ## Scripts
 
 Two scripts, three questions. `audit_intents.py` needs no build; `inspect_appintents_metadata.py` reads a built bundle. Both are standard-library Python and work in any project, whether or not this skill is installed.
 
 ```bash
-# 20 static rules: provider placement, package registration, interactive-intent misuse,
-# manual perform(), reload coverage, control feedback, platform guards, test shape…
+# 24 static rules: provider placement, package registration, interactive-intent misuse,
+# manual perform(), reload coverage, control feedback, donation placement, Spotlight key
+# collisions, localization keys, locale-sensitive matching, platform guards, test shape…
 python3 scripts/audit_intents.py . --fail-on error
 python3 scripts/audit_intents.py . --list-rules      # rule catalogue
 python3 scripts/audit_intents.py . --json            # machine-readable

@@ -80,6 +80,8 @@ AppShortcut(
 
 Skip a shortcut slot for anything a widget or control already reaches (a pure "open the app" intent, for instance). System intents (`OpenIntent`, `DeleteIntent`) are understood semantically without a shortcut entry too — see [11](11-interaction-and-scale.md).
 
+`AppShortcutsProvider` also carries `static let shortcutTileColor: ShortcutTileColor`, which sets the background of every tile the Shortcuts app draws for the app. One line, and the default is a colour nobody chose.
+
 ## Reuse rules
 
 - **Same intent, different surfaces.** Reuse before inventing. A different caller is not a different action ([01](01-actions-and-entities.md)).
