@@ -1,6 +1,8 @@
 # Code templates
 
-Copy and adapt. All templates assume intents live in a Swift package with `public` types, and dependencies are registered at every executing process's entry point ([04](04-process-and-dependencies.md)).
+Copy and adapt. All templates assume intents live in a Swift package with `public` types, and dependencies are registered at every executing process's entry point ([04](04-process-and-dependencies.md)) — that is, a level-1-or-above project.
+
+**Starting from nothing?** Take the single-file version in [00](00-adoption-levels.md) first: no package, no `public`, one registration. Then come back here when an extension appears and the shapes below start to earn their weight.
 
 ## Service (the only place with persistence)
 

@@ -2,6 +2,10 @@
 
 Where each intent and entity should appear, in what order to design them, and which API each surface expects.
 
+This file is about *choosing*. For the full inventory of surfaces an intent can reach — including ones this project never used (Focus filters, media and camera semantics, prediction, undo) — see [12](12-surface-catalog.md).
+
+> **This is a design order, not a build order.** "Start from the smallest surface" means *let the tightest surface tell you which action is essential* — it does not mean ship a complication first. Delivery order is in [00](00-adoption-levels.md): one intent reachable from Shortcuts, then the one glance surface that action deserves. Designing from the watch and building from the app are the same discipline seen from two ends.
+
 ## Design from the smallest surface outward
 
 The tightest surface is the clarifier: it forces you to name the *essential* action. Recommended order:
@@ -83,6 +87,8 @@ Skip a shortcut slot for anything a widget or control already reaches (a pure "o
 - **Only the output forks.** Dialog, snippet, notification, redraw — feedback is per-caller ([06](06-feedback-channels.md)); input and logic are not.
 
 ## A useful first pass
+
+Roughly a level-1 project ([00](00-adoption-levels.md)) — not a level-0 one, which is a single intent and no extension at all.
 
 - 1 open-app intent (`.foreground(.immediate)`).
 - 2–3 background action intents (add / toggle / delete).
