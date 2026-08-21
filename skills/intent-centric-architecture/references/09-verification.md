@@ -21,8 +21,11 @@ Below the ladder sit two static rungs that cost nothing:
 
 ```bash
 python3 scripts/audit_intents.py .                       # architectural rules
+python3 scripts/audit_intents.py . --coverage             # which surfaces exist at all
 python3 scripts/inspect_appintents_metadata.py --find MyProject   # what the system will read
 ```
+
+`--coverage` answers a different question from the rest of the ladder: not "does this work" but "does this exist". A declaration it reports as reached has still proved nothing about runtime behaviour.
 
 ## Rung 0: the metadata
 

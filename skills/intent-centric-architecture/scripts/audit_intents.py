@@ -692,6 +692,188 @@ def r_live_activity(files: list[SwiftFile]) -> Iterable[Finding]:
         )
 
 
+@rule("entity-no-properties", "An AppEntity with no @Property members is invisible to Shortcuts, Siri and Spotlight")
+def r_entity_no_properties(files: list[SwiftFile]) -> Iterable[Finding]:
+    prop_rx = r"@(?:Property|ComputedProperty|DeferredProperty)\b"
+    for f in files:
+        if f.is_test:
+            continue
+        # Schema macros infer @Property for the members the schema defines.
+        if f.has(r"@AppEntity\s*\("):
+            continue
+        if f.has(prop_rx):
+            continue
+        for d in f.decls:
+            if d.kind == "extension":
+                continue
+            if not ({"AppEntity", "TransientAppEntity"} & set(d.conformances)):
+                continue
+            yield Finding(
+                "entity-no-properties", "warn", f.path, d.line,
+                f"{d.name} exposes no @Property members.",
+                "Only @Property members reach the system: without them the entity cannot be "
+                "filtered in Shortcuts, read by Siri or indexed in Spotlight — it is a display-only "
+                "shell. Fine on purpose for a pure picker value; otherwise annotate the members the "
+                f"system should see. See {REF}/01-actions-and-entities.md",
+            )
+
+
+@rule("query-no-suggestions", "An EntityQuery with no suggestedEntities() leaves parameter pickers empty")
+def r_query_no_suggestions(files: list[SwiftFile]) -> Iterable[Finding]:
+    # Enumerable / property queries derive suggestions from their own required members.
+    exempt = {"EnumerableEntityQuery", "EntityPropertyQuery"}
+    candidates: dict[str, tuple[SwiftFile, Decl]] = {}
+    for f in files:
+        if f.is_test:
+            continue
+        for d in f.decls:
+            names = set(d.conformances)
+            if not (names & {"EntityQuery", "EntityStringQuery", "IndexedEntityQuery"}):
+                continue
+            if names & exempt:
+                continue
+            if d.kind == "extension":
+                continue
+            candidates.setdefault(d.name, (f, d))
+    for name, (f, d) in candidates.items():
+        # A conformance or the implementation may live in another file: look project-wide.
+        mentions = [g for g in files if name in g.code]
+        if any(g.has(r"\b(?:suggestedEntities|allEntities)\s*\(") for g in mentions):
+            continue
+        if any(set(g.conformance_names()) & exempt for g in mentions if name in g.code):
+            continue
+        yield Finding(
+            "query-no-suggestions", "warn", f.path, d.line,
+            f"{name} implements no suggestedEntities().",
+            "suggestedEntities() is what fills the parameter picker in Shortcuts and Siri. "
+            "Returning the empty default means people see a blank list and assume the app is "
+            f"broken. If it is cheap to compute, implement it. See {REF}/01-actions-and-entities.md",
+        )
+
+
+@rule("value-query-needs-open-intent", "Every entity a Visual Intelligence value query returns must be openable")
+def r_value_query_open_intent(files: list[SwiftFile]) -> Iterable[Finding]:
+    queries = [
+        (f, d) for f in files if not f.is_test
+        for d in f.decls if "IntentValueQuery" in d.conformances
+    ]
+    if not queries:
+        return
+    has_open = any("OpenIntent" in f.conformance_names() for f in files)
+    if has_open:
+        return
+    f, d = queries[0]
+    yield Finding(
+        "value-query-needs-open-intent", "warn", f.path, d.line,
+        f"{d.name} is an IntentValueQuery but the project declares no OpenIntent.",
+        "Apple: \"This OpenIntent must exist, otherwise your app won't show up\" "
+        "(wwdc2025-275 9:19). The requirement is enforced at compile time only on the macOS "
+        f"destination, so an iOS-only build never tells you. See {REF}/11-interaction-and-scale.md",
+    )
+
+
+# ---------------------------------------------------------------------------
+# surface coverage
+# ---------------------------------------------------------------------------
+
+# (label, detection pattern, what adopting it would take, reference)
+SURFACES: list[tuple[str, str, str, str]] = [
+    ("Shortcuts actions", r":\s*(?:[\w\s,]*\b)?AppIntent\b|@AppIntent\s*\(",
+     "any discoverable AppIntent is already a Shortcuts action", "00"),
+    ("Siri phrases", r"\bAppShortcutsProvider\b",
+     "AppShortcutsProvider in the APP target, <=10 entries", "04"),
+    ("App UI via intents", r"Button\s*\(\s*(?:role\s*:[^,]+,\s*)?intent\s*:",
+     "replace view-model calls with Button(intent:)", "05"),
+    ("Widget", r"\bTimelineProvider\b|\bAppIntentTimelineProvider\b|:\s*Widget\b",
+     "a widget extension + Button(intent:)/Link", "02"),
+    ("Control Center / Action button", r"\bControlWidget\b",
+     "ControlWidgetButton, or ControlWidgetToggle + SetValueIntent over a FIXED target", "02"),
+    ("Live Activity", r"\bLiveActivityIntent\b|\bActivityConfiguration\b",
+     "ActivityKit + LiveActivityIntent under #if os(iOS)", "02"),
+    ("Spotlight index", r"\bIndexedEntity\b",
+     "IndexedEntity + index incrementally on mutation", "10"),
+    ("Semantic Spotlight", r"indexingKey\s*:",
+     "@Property(title:indexingKey:) on iOS/macOS", "10"),
+    ("Interactive snippets", r"\bSnippetIntent\b",
+     "SnippetIntent returning SwiftUI, attached via snippetIntent:", "11"),
+    ("Onscreen entities", r"\bappEntityIdentifier\b",
+     "userActivity + appEntityIdentifier, or .appEntityIdentifier(forSelectionType:)", "11"),
+    ("Visual Intelligence", r"\bIntentValueQuery\b",
+     "one IntentValueQuery over SemanticContentDescriptor; entities must be openable", "11"),
+    ("Schema domain", r"@App(?:Intent|Entity|Enum)\s*\(\s*schema\s*:",
+     "adopt a domain that GENUINELY matches; check the tier first", "13"),
+    ("Open semantics", r"\bOpenIntent\b",
+     "OpenIntent on the main entity - prerequisite for Spotlight/VI results", "11"),
+    ("Delete semantics", r"\bDeleteIntent\b",
+     "DeleteIntent taking an ARRAY of entities", "11"),
+    ("Absolute setter", r"\bSetValueIntent\b",
+     "needed by ControlWidgetToggle; idempotent by construction", "07"),
+    ("In-app search from Siri", r"\bShowInAppSearchResultsIntent\b|\.system\.searchInApp",
+     "the cheapest schema for an app that fits no domain", "13"),
+    ("Find X where", r"\bEntityPropertyQuery\b",
+     "EntityPropertyQuery with properties/sortingOptions/comparators", "01"),
+    ("Proactive prediction", r"\bPredictableIntent\b",
+     "PredictableIntent + IntentPrediction descriptions", "12"),
+    ("Undo", r"\bUndoableIntent\b",
+     "UndoableIntent + register actions with the supplied undoManager", "11"),
+    ("Focus filters", r"\bSetFocusFilterIntent\b",
+     "SetFocusFilterIntent, if per-Focus behaviour is meaningful", "12"),
+    ("Media / camera semantics", r"\bAudio(?:Playback|Recording|Starting)Intent\b|\bCameraCaptureIntent\b|\bPlayVideoIntent\b",
+     "a conformance on an intent you already have", "12"),
+    ("Bulk / long-running", r"\bEntityCollection<|\bLongRunningIntent\b",
+     "EntityCollection + LongRunningIntent + CancellableIntent", "11"),
+    ("Cross-device entities", r"\bSyncableEntity\b",
+     "free if id is already stable across devices", "10"),
+    ("Export to other apps", r"\btransferRepresentation\b",
+     "Transferable + IntentValueRepresentation", "10"),
+    ("Retirement path", r"\bDeprecatedAppIntent\b",
+     "DeprecatedAppIntent + ReplacementIntent, before deleting an intent type", "12"),
+    ("Intent tests", r"\bIntentDefinitions\s*\(", "AppIntentsTesting in a UI TEST bundle", "09"),
+]
+
+REF_FILES = {
+    "00": "00-adoption-levels.md", "01": "01-actions-and-entities.md",
+    "02": "02-multi-surface-mapping.md", "04": "04-process-and-dependencies.md",
+    "05": "05-ui-integration.md", "07": "07-data-and-side-effects.md",
+    "09": "09-verification.md", "10": "10-advanced-entity-apis.md",
+    "11": "11-interaction-and-scale.md", "12": "12-surface-catalog.md",
+    "13": "13-schema-domains.md",
+}
+
+
+def coverage(root: str) -> list[dict]:
+    files = [f for f in load_files(root) if not f.is_test]
+    tests = [f for f in load_files(root) if f.is_test]
+    out = []
+    for label, pattern, hint, ref in SURFACES:
+        pool = files + tests if label == "Intent tests" else files
+        rx = re.compile(pattern)
+        hits = [f.path for f in pool if rx.search(f.code)]
+        out.append({
+            "surface": label,
+            "present": bool(hits),
+            "files": sorted(hits)[:3],
+            "next_step": hint,
+            "reference": f"{REF}/{REF_FILES[ref]}",
+        })
+    return out
+
+
+def print_coverage(rows: list[dict]) -> None:
+    present = [r for r in rows if r["present"]]
+    missing = [r for r in rows if not r["present"]]
+    print("Surfaces reached (a declaration exists — not proof it works; see "
+          f"{REF}/09-verification.md):\n")
+    for r in present:
+        print(f"  reached  {r['surface']}")
+    print("\nNot reached (adopt only what the app's actions actually justify — see "
+          f"{REF}/12-surface-catalog.md):\n")
+    for r in missing:
+        print(f"  --       {r['surface']}\n             {r['next_step']}  [{r['reference']}]")
+    print(f"\n{len(present)}/{len(rows)} surfaces. Coverage is not the goal: every surface can "
+          "show stale data,\nand every exposed intent is one a person can build an automation on.")
+
+
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
@@ -717,12 +899,22 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--only", default="", help="comma-separated rule names to run")
     ap.add_argument("--skip", default="", help="comma-separated rule names to skip")
     ap.add_argument("--list-rules", action="store_true", help="print the rule catalogue and exit")
+    ap.add_argument("--coverage", action="store_true",
+                    help="report which system surfaces the project reaches, and what the rest would take")
     ap.add_argument("--fail-on", choices=["error", "warn", "never"], default="error")
     args = ap.parse_args(argv)
 
     if args.list_rules:
         for name, doc in RULES.items():
             print(f"{name}\n    {doc}")
+        return 0
+
+    if args.coverage:
+        rows = coverage(args.root)
+        if args.json:
+            print(json.dumps({"root": os.path.abspath(args.root), "surfaces": rows}, indent=2))
+        else:
+            print_coverage(rows)
         return 0
 
     only = {s for s in args.only.split(",") if s}
