@@ -41,7 +41,7 @@ public struct CategoryAppEntity: AppEntity, Hashable {
 
     public var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
-            title: LocalizedStringResource(stringLiteral: name),
+            title: "\(name)",
             image: .init(systemName: "folder")
         )
     }
@@ -100,7 +100,7 @@ public struct CategoryAppEntity: Hashable {
 
     public var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
-            title: LocalizedStringResource(stringLiteral: name),
+            title: "\(name)",
             image: .init(systemName: "folder")
         )
     }

@@ -157,20 +157,23 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
 
     public var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
-            title: LocalizedStringResource(stringLiteral: title),
+            title: "\(title)",
             subtitle: subtitle,
             image: displayImage
         )
     }
 
-    private var subtitle: LocalizedStringResource {
+    /// Siri はこの subtitle を読み上げるので、時刻は位置指定表記（"14:30"）ではなく
+    /// 自然文表記で渡す。出す情報が無いときは空文字ではなく `nil`。
+    /// 詳細: docs/insights/03-app-intents-core.md
+    private var subtitle: LocalizedStringResource? {
         if isCompleted {
             return LocalizedStringResource("Completed", comment: "Todo completed status")
         }
         if let dueDate {
-            return LocalizedStringResource(stringLiteral: "Due: \(dueDate.formatted(date: .abbreviated, time: .omitted))")
+            return "Due: \(dueDate.formatted(date: .abbreviated, time: .omitted))"
         }
-        return LocalizedStringResource("", comment: "Empty")
+        return nil
     }
 
     private var displayImage: DisplayRepresentation.Image {
@@ -310,10 +313,13 @@ extension TodoAppEntity: Transferable {
 /// Spotlight integration for todo items.
 /// Allows users to search for todos via Spotlight with enhanced attributes.
 extension TodoAppEntity: IndexedEntity {
+    /// `@Property(indexingKey:)` が使っているキーはここで埋めない（どちらが勝つかは
+    /// 公式に未定義）。`contentDescription` は `todoDescription` のマップ先なので、
+    /// 完了状態は `keywords` 側で表現する。`displayName` は `.title` とは別キーで衝突しない。
+    /// 詳細: docs/insights/03-app-intents-core.md
     public var attributeSet: CSSearchableItemAttributeSet {
         let attributes = CSSearchableItemAttributeSet()
         attributes.displayName = title
-        attributes.contentDescription = isCompleted ? "Completed" : "Incomplete"
         if let dueDate {
             attributes.dueDate = dueDate
         }

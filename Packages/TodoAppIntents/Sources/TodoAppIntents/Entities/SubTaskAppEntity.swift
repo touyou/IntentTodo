@@ -41,7 +41,7 @@ public struct SubTaskAppEntity: AppEntity, Hashable {
 
     public var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
-            title: LocalizedStringResource(stringLiteral: title),
+            title: "\(title)",
             image: .init(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
         )
     }

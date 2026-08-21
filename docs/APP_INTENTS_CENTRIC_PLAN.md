@@ -193,13 +193,32 @@
 
 | 候補 | 何が得られるか | 見送っている理由 / 前提 |
 |------|--------------|----------------------|
-| `UndoableIntent`（iOS 26） | 削除 / 完了の取り消し。Siri・Shortcuts からの破壊的操作を戻せる | **機能追加**。`delete` が SwiftData から実体を消すので、undo するには id ごと復元できる形（ソフトデリート等）への設計変更が要る |
+| `UndoableIntent`（iOS 26） | 削除 / 完了の取り消し。Siri・Shortcuts からの破壊的操作を戻せる | **機能追加**。`delete` が SwiftData から実体を消すので、undo するには id ごと復元できる形（ソフトデリート等）への設計変更が要る。実装形は CosmoTunes `DeleteAlarmIntent` にある（消す前に snapshot → `undoManager?.registerUndo` → `setActionName`。**同じ id で復元**して Spotlight identity を保つ）。詳細: insights Phase 9 |
 | `SpotlightSearchTool` + `LanguageModelSession`（#246） | 自分の todo に対する会話型検索（RAG） | 前提の「Spotlight への entity 寄付」は済んでいる（`TodoSpotlightIndex`）。**残りは FoundationModels の導線と UI** なので独立タスク向き |
 | `systemExtraLargePortrait`（#277、iOS/macOS 27 新ファミリー） | iPad / Mac の縦長ウィジェット | (1) デプロイメントターゲットが iOS 26 なので `supportedFamilies` を `#available` で組み立てる必要 (2) `TodoWidgetEntryView` の `switch` は `default:` で Small にフォールバックするため専用 case とレイアウトが要る。**サイズ展開という設計判断** |
 | `requestValue` | Siri で不足パラメータを能動的に聞く | 非 optional パラメータはシステムが自動で聞き返すため、現状の Intent 構成では出番が薄い |
 | `EntityPropertyQuery` | Shortcuts の Find を自前実装 | **不要**。`EnumerableEntityQuery` が Find と絞り込みを自動生成する。必要になるのは "many thousands of entities" 規模（上の Phase 1 の記述参照） |
 | `relatedAppEntityIdentifier` | 子アイテム（添付等）を親 entity に紐づけ | todo に子の searchable item が無いので対象なし |
 | `widgetAccentedRenderingMode` | ティント表示時のウィジェット画像制御 | ウィジェットは SF Symbols のみなので実害が薄い |
+
+### 公式サンプル 4 本との突き合わせで出た候補（2026-08-21）
+
+WWDC26 サンプル（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）を読んで拾ったもの。
+実装形は [docs/insights/03-app-intents-core.md](insights/03-app-intents-core.md) の Phase 9 に、
+経緯は [docs/devlog/03-app-intents-core.md](devlog/03-app-intents-core.md)（2026-08-21）にある。
+
+| 候補 | 何が得られるか | 見送っている理由 / 前提 |
+|------|--------------|----------------------|
+| UI タップ由来の donation の再導入 | Siri の予測 / 提案の質。`perform()` 内 donate は規約違反なので 2026-08-21 に撤去し、**現在 donation はゼロ** | 本アプリは UI も `Button(intent:)` で Intent を走らせるため、CometCal の `donateIntent:` フラグ方式も CosmoTunes の UI タップ地点方式も直接は当てはまらない。`AppIntent.callAsFunction(donate:)` で一部 UI 経路を直接実行に変える判断が要る |
+| Spotlight の client state バッチ | 起動時の全件再インデックスを省略（現状 `indexAllForSpotlight()` は毎起動フル） | 実装形は CosmoTunes `CoreSpotlightWrapper` にある。id 集合の SHA-256（ソート後）で 250 バイト制限を満たす／`beginBatch()` を index 呼び出しの前に開く／全成功時のみ commit の 3 点が要 |
+| `DisplayRepresentation` の `synonyms:` と画像の遅延クロージャ | Siri のマッチ幅と、テキストのみ文脈での画像解決コスト削減 | 純粋な追加。`TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` が対象 |
+| `EntityQuery.displayRepresentations(for:)` | 候補一覧描画で entity 本体を組み立て直さずに済む | 現状の件数規模では体感差が出ない可能性。効果測定とセットで |
+| `EnumerableEntityQuery.findIntentDescription` | Shortcuts の "Find Todos" に説明 / カテゴリ / `resultValueName` が付く | 純粋な追加（低コスト） |
+| `AppShortcutsProvider.shortcutTileColor` | Shortcuts アプリのタイル配色 | 純粋な追加（低コスト） |
+| `AppIntentError(wrapping:)` + `CustomLocalizedStringResourceConvertible` | Siri が読み上げるエラー文言を意図して書ける | 現状 `IntentError` は `LocalizedError` ベース。Siri 経由の見え方を確認してから |
+| visionOS / watchOS の onscreen annotation | 「これ」の解決を iOS 以外でも成立させる | `VisionOSTodoListView` は `List` なので `forSelectionType:` がそのまま使える。watchOS は Siri 連携の優先度判断が先 |
+| リストのコレクション annotation のテスト | `.appEntityIdentifier(forSelectionType:)` が壊れても**アプリ内では正常に見える** | `viewAnnotations()` で検証可能（詳細画面版は既にある）。CosmoTunes は画面ごとに 6 本持っている |
+| `TodoListSummaryEntity` の複数形 inflection | `^[\(n) todo](inflect: true)` で言語ごとの複数形が正しくなる | 純粋な追加（低コスト） |
 
 ---
 

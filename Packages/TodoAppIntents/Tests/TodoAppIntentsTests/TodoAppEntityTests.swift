@@ -164,6 +164,16 @@ struct TodoAppEntityTests {
         #expect(representation.subtitle != nil)
     }
 
+    /// An empty `LocalizedStringResource("")` would become an empty localization key lookup,
+    /// so the subtitle has to be absent rather than blank.
+    @Test("DisplayRepresentation omits the subtitle when there is nothing to show")
+    func displayRepresentationOmitsEmptySubtitle() {
+        let entity = TodoAppEntity(id: "test-id", title: "Plain todo")
+        let representation = entity.displayRepresentation
+
+        #expect(representation.subtitle == nil)
+    }
+
     @Test("DefaultQuery is configured")
     func defaultQueryConfigured() {
         let query = TodoAppEntity.defaultQuery

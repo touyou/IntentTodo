@@ -128,9 +128,11 @@ public struct AddTodoIntent: AppIntent {
         // Intent 完了 = シート閉じるという 1 対 1 対応に集約した。
         navigationModel.dismissAddTodo()
 
-        // Donate the action so the system can predict / proactively suggest it
-        // (IntentDonationManager). Failures are non-fatal.
-        _ = try? await donate()
+        // ここで donate しない。公式 (Donations and discovery): "Restrict your donations to
+        // direct interactions with your app's interface, and not to interactions started by
+        // Siri or the Shortcuts app". `perform()` は呼出元を判別できないため、ここでの donate は
+        // Siri / Shortcuts 経由でも必ず走ってしまう。
+        // 詳細: docs/insights/03-app-intents-core.md
 
         // WWDC 2026: Siri / Shortcuts から呼ばれた場合は作成した Todo を
         // インタラクティブスニペットで提示し、その場で完了 / お気に入り操作を

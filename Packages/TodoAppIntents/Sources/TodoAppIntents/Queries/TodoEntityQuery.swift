@@ -71,11 +71,13 @@ public struct TodoEntityQuery: EntityQuery {
 // MARK: - EntityStringQuery
 
 extension TodoEntityQuery: EntityStringQuery {
+    /// ユーザー入力との比較は `localizedStandardContains(_:)`（`CategoryEntityQuery` と同じ）。
+    /// `lowercased().contains()` はロケール非依存で、かな/カナやダイアクリティカルマークを
+    /// 別物として扱ってしまう。
     @MainActor
     public func entities(matching string: String) async throws -> [TodoAppEntity] {
-        let lowercasedQuery = string.lowercased()
-        return try repository().fetchAll()
-            .filter { $0.title.lowercased().contains(lowercasedQuery) }
+        try repository().fetchAll()
+            .filter { $0.title.localizedStandardContains(string) }
             .map { TodoAppEntity(from: $0) }
     }
 }

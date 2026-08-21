@@ -492,6 +492,47 @@ struct TodoEntity: AppEntity, IndexedEntity {
 }
 ```
 
+`attributeSet` には **`@Property(indexingKey:)` で表現できない属性だけ**を書く。同じ
+`CSSearchableItemAttributeSet` キーを両方から埋めるとどちらが勝つかは公式に定義がなく、
+「セマンティック検索に載るはずの本文が固定文に置き換わる」形で静かに壊れる（2026-08-21 に
+`contentDescription` の二重書きを撤去）。詳細: `docs/insights/03-app-intents-core.md`
+
+### Entity の表示表現（実行時文字列・音声・検索一致）
+
+- **実行時の値は `"\(value)"` の補間形式で渡す**。`LocalizedStringResource(stringLiteral: todo.title)`
+  はランタイム文字列をそのままローカライズ**キー**として扱うため、存在しないキーの引きが毎回発生し
+  String Catalog の抽出対象にもならない。表示すべき subtitle が無いときは空文字ではなく `nil`
+- **Siri は subtitle を読み上げる**。`"5:00"` のような位置指定表記は「ご、コロン、ぜろ、ぜろ」と
+  読まれるので、`Duration.formatted(.units(width: .wide))` / `Date.FormatStyle` の自然文表記を使う
+- 件数を含む文言は `^[\(n) todo](inflect: true)` で inflection を効かせる
+- `EntityStringQuery.entities(matching:)` は**システムが絞り込んでくれない**（自分でフィルタする）。
+  比較は `localizedStandardContains(_:)`（`lowercased().contains()` はロケール非依存で、かな/カナや
+  ダイアクリティカルマークを別物として扱う）
+
+### donation はアプリ UI 起点の操作だけ（`perform()` の中では donate しない）
+
+公式 (Donations and discovery): "Restrict your donations to direct interactions with your app's
+interface, and **not to interactions started by Siri or the Shortcuts app**."
+
+`perform()` は呼出元を判別できない（`IntentSystemContext` にあるのは `currentMode` / `isVoiceOnly`
+だけで invocation source の API は無い）。よって `perform()` 内の donate は必ず Siri / Shortcuts
+経由でも走り、規約違反になる。**本アプリは現在 donation を行っていない**（UI も `Button(intent:)` で
+同じ Intent を走らせる設計のため、公式サンプルの 2 方式がそのままでは当てはまらない。再導入案は
+`docs/APP_INTENTS_CENTRIC_PLAN.md` の未着手候補）。
+
+一方 **`deleteDonations(matching:)` は呼出元に関係なく正しい**（消えた entity への提案を残さない
+後片付け）。削除経路には必ず入れる。
+
+### Onscreen annotation の適用先
+
+`.appEntityIdentifier(forSelectionType:)` は **`List` に付けたときだけ効く**（CosmoTunes
+`TimerView` のコメントで明言）。`ScrollView { VStack { ForEach } }` では行ごとの単一
+`.appEntityIdentifier(_:)` に落とす。`Canvas` などビュー階層から bounds を推測できない描画は
+`.appEntityUIElements { ... }` で明示する。
+
+壊れても**アプリ内では正常に見える**経路なので、`AppEntityDefinition.viewAnnotations()` で
+テストする（`IntentTodoUITest/AppIntents/TodoSystemIntegrationTests.swift`）。
+
 ## Todoアプリ機能要件
 
 ### 基本機能
@@ -586,6 +627,7 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/devlog/` - 各ドキュメントの現在のルールがどういう経緯で決まったか（調査・失敗・再検証の記録）
 - `docs/presentation/` - 登壇・発表用のスライド骨子と想定スクリプト（① WWDC 時系列での基本説明 / ② 実践で見えた制約と工夫）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
+- `~/Developer/Private/wwdc26-app-intents-samples/` - WWDC26 App Intents 公式サンプル 4 本（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）。**リポジトリ外に置く**（`docs/` 配下だと Xcode がサンプルの `.xcodeproj` を `project.pbxproj` へ書き込む）。取得元と突き合わせ結果は `docs/insights/03-app-intents-core.md` の Phase 9
 
 ## 設計思想の背景
 

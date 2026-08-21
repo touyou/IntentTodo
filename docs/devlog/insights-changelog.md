@@ -2,6 +2,7 @@
 
 `docs/INSIGHTS.md` と `docs/insights/` 配下がどう再編されてきたかの更新履歴。
 
+- 2026-08-21: WWDC26 の App Intents 公式サンプル 4 本（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）を `~/Developer/Private/wwdc26-app-intents-samples/` に取り込み、`03-app-intents-core.md` に「Phase 9: 公式サンプル 4 本との突き合わせ」を新設。実行時文字列の補間形式、Siri が subtitle を読み上げる制約、donation の置き場所（`perform()` 内は規約違反）、`attributeSet` と `indexingKey` のキー衝突、`.appEntityIdentifier(forSelectionType:)` が `List` 限定であること、`UndoableIntent` / Spotlight client state / `synonyms:` などの未着手候補を記載。
 - 2026-08-13: `04-ui-integration.md` の取り残しを訂正。「削除確認は App Intent の `requestConfirmation` 経由なので `confirmationDialog` / `alert` の使用箇所ゼロ」は 2026-08-12 の修正（`requestConfirmation` がアプリ内 `Button(intent:)` から失敗する件）で実態と食い違っていたため、「削除確認の現状」節を新設し、`item:` オーバーロードの評価も「当て先が無い」→「当て先はあるが現状 `isPresented:` で足りる」に更新。
 - 2026-04-15 (2): `IntentDependencies` / `IntentAppState` 削除、`TodoEntityQuery` を `@Dependency` 化、Control Widgets を `ControlValueProvider` パターンに、`TodoItem.didSet` 撤去 + `TodoActions` で明示更新、AppShortcuts 8 件に整理、Widget/Complication `kind` の reverse-DNS 統一、通知タップの `NotificationHandler.navigationModel` 注入方式、主要 3 View を `private struct` 抽出。insights ドキュメントを全面的に最新化。
 - 2026-04-15: Extension 内の View を 3 パッケージ（`LiveActivity` / `WidgetUI` / `WatchUI`）に分離し、Extension はターゲット固有のスキャフォルドのみに絞る構成に移行。macOS native ビルド対応（`AppDelegate` / `MacAppDelegate` を `#if os(...)` で分離し `NotificationHandler` を共通化）。visionOS ビルド修復（`#Predicate` の Optional UUID 回避、`Button(intent:role:)` 引数順、ControlWidget の `#if !os(visionOS)` ガード）。`Domain.DueDateStatus` を導入して overdue/dueSoon 判定の重複を解消。

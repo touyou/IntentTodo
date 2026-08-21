@@ -581,3 +581,64 @@ iOS 27 / macOS 27 で追加。採用するには (1) デプロイメントター
 `supportedFamilies` を `#available` で組み立てる (2) `TodoWidgetEntryView` の `switch` が
 `default:` で Small にフォールバックするため、専用の case とレイアウトが要る。
 「API の付け忘れ」ではなく**ウィジェットのサイズ展開という設計判断**なので、ここでは入れない。
+
+## 2026-08-21: WWDC26 公式サンプル 4 本を取り込んで実装を突き合わせた
+
+これまで参照していたのは WWDC のトランスクリプトと API ドキュメントだけで、「Apple 自身が書いた
+まとまったコード」を持っていなかった。WWDC26 の App Intents 系サンプル（CometCal / UnicornChat /
+CosmoTunes / PhotosDomainExample、計 240 Swift ファイル）を `~/Developer/Private/wwdc26-app-intents-samples/` に展開し、
+本プロジェクトの書き方と 1 項目ずつ突き合わせた。
+
+現在のルールは [docs/insights/03-app-intents-core.md](../insights/03-app-intents-core.md) の
+「Phase 9」に集約した。ここには**このとき何が間違っていたか**だけ残す。
+
+### 直したもの（4 件）
+
+1. **`AddTodoIntent.perform()` の中で `donate()` を呼んでいた**。公式 (Donations and discovery) は
+   "Restrict your donations to direct interactions with your app's interface, and not to interactions
+   started by Siri or the Shortcuts app" と明記していて、CosmoTunes の `DonationManager` も同じ注意を
+   コメントに書いている。`perform()` は呼出元を判別できない（`IntentSystemContext` にあるのは
+   `currentMode` / `isVoiceOnly` だけで invocation source は無いと確認）ため、この donate は Siri /
+   Shortcuts 経由でも必ず走っていた。撤去。
+   - 副作用として **UI タップ由来の donation がゼロになった**。本アプリは UI も `Button(intent:)` で
+     同じ Intent を走らせる設計なので、CometCal の `donateIntent:` フラグ方式（UI がサービスを直接
+     呼ぶ前提）も CosmoTunes の UI タップ地点方式もそのままでは使えない。`callAsFunction(donate:)` を
+     使う案を未着手候補として PLAN に起票した。
+   - なお `deleteDonations(matching:)` は呼出元に関係なく正しい後片付けなので delete 系 3 Intent は
+     そのまま。CosmoTunes も同じ形。
+
+2. **`LocalizedStringResource(stringLiteral: title)` でランタイム値を渡していた**（`TodoAppEntity` /
+   `CategoryAppEntity` ×2 / `SubTaskAppEntity`）。これはランタイム文字列をローカライズ**キー**として
+   扱うので、存在しないキーの引きが毎回発生し String Catalog にも載らない。サンプル 4 本はすべて
+   `"\(title)"` の補間形式。あわせて `TodoAppEntity.subtitle` の「情報が無いとき
+   `LocalizedStringResource("", comment: "Empty")` を返す」も `nil` へ変更（`subtitle` は optional）。
+
+3. **`attributeSet` が `@Property(indexingKey:)` と同じ Spotlight キーを上書きしていた**。
+   `todoDescription` を `indexingKey: \.contentDescription` でセマンティックインデックスへ
+   マップしているのに、`attributeSet` 側で `contentDescription = isCompleted ? "Completed" : "Incomplete"`
+   を書いていた。どちらが勝つかは公式に定義がなく、**セマンティック検索に載せたかった本文が固定文に
+   置き換わりうる**状態だった。`attributeSet` からは撤去し、完了状態は `keywords` で表現。
+   `displayName` は `.title` とは別キーなので残した。
+
+4. **`TodoEntityQuery.entities(matching:)` が `lowercased().contains()` だった**。ユーザー全体ルール
+   （`~/.claude/CLAUDE.md` 由来の AGENTS 規約）は `localizedStandardContains()` を指定していて、
+   `CategoryEntityQuery` は既にそちらを使っていた。`TodoEntityQuery` だけ取り残されていた。
+
+### 直さず「観点」として記録したもの
+
+`UndoableIntent`、Spotlight の client state バッチ、`synonyms:` / 画像の遅延クロージャ、
+`displayRepresentations(for:)`、`findIntentDescription`、`shortcutTileColor`、
+`AppIntentError(wrapping:)`、visionOS / watchOS の onscreen annotation 欠落、
+リストのコレクション annotation の未テスト、`#if DEBUG` seed Intent 方式。
+理由と前提は PLAN の「未着手の候補」に、実装形は insights の Phase 9 に書いた。
+
+### このとき分かった注意点
+
+- **サンプルは `docs/references/` の下に置いてはいけない**。当初 `docs/references/samples/` に展開したが、
+  Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）がサンプルの `.xcodeproj` を拾い、
+  **追跡下の `IntentTodo.xcodeproj/project.pbxproj` に project reference を 50 行書き込んだ**。
+  `docs/references/` は gitignore 済みでもこの差分は防げない（汚れるのは pbxproj 側）。
+  副作用としてワークスペースのスキーム一覧にもサンプル側の 5 スキームが混ざる。
+  リポジトリ外（`~/Developer/Private/wwdc26-app-intents-samples/`）へ移し、pbxproj は revert した。
+- サンプル側にも旧 API（`static let openAppWhenRun = true`）が残っている。Apple のサンプルだから
+  正しいとは限らないので、採用前に該当 API のドキュメントで現行の推奨を確認する。

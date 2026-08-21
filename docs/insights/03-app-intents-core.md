@@ -1181,3 +1181,229 @@ Shortcuts ユーザーは「If Get Todo Summary → Overdue Todos > 0 → 通知
 ### beta 4 での動作確認
 
 Xcode 27 beta 4 で `RunCodeSnippet` + `BuildProject` の両方で成立を確認（B 深度）。
+
+---
+
+## Phase 9: 公式サンプル 4 本との突き合わせ（WWDC26）
+
+WWDC26 の App Intents 系サンプルを取り込んで、本プロジェクトの書き方と 1 項目ずつ突き合わせた結果。
+サンプルは `~/Developer/Private/wwdc26-app-intents-samples/`（リポジトリ外）に展開してある。
+**`docs/references/` の下に置いてはいけない**: Xcode の同期グループがサンプルの `.xcodeproj` を
+拾い、追跡下の `project.pbxproj` に project reference として書き込んでしまう（gitignore は効かない）。
+取得元:
+
+| サンプル | アプリ名 | ドキュメント |
+|---------|---------|------------|
+| calendar | CometCal | `/documentation/appintents/integrating-your-calendar-app-with-apple-intelligence` |
+| messaging | UnicornChat | `/documentation/appintents/integrating-your-messaging-app-with-apple-intelligence` |
+| music | CosmoTunes | `/documentation/appintents/integrating-your-music-app-with-apple-intelligence` |
+| photo | PhotosDomainExample | `/documentation/appintents/integrating-your-photo-app-with-apple-intelligence` |
+
+zip の実 URL は各ページの JSON (`https://developer.apple.com/tutorials/data<path>.json` の
+`sampleCodeDownload.action.identifier`) から `https://docs-assets.developer.apple.com/published/<id>` で引ける。
+
+> セッション対応: 240（App Schemas / UnicornChat）、295（AppIntentsTesting / CometCal）、
+> 343（CosmoTunes + UnicornChat + CometCal）、344（Code-along / CometCal）。
+
+### 実行時の文字列は `"\(value)"` の補間で渡す（`LocalizedStringResource(stringLiteral:)` は使わない）
+
+`DisplayRepresentation(title:)` などが取るのは `LocalizedStringResource`。ここに
+`LocalizedStringResource(stringLiteral: todo.title)` を渡すと、**ランタイム文字列がそのまま
+ローカライズキーになる**。翻訳テーブルに存在しないキーの引きが毎回走り、String Catalog の
+抽出対象にもならない（キーが実行時に決まるため）。サンプル 4 本はすべて補間形式。
+
+```swift
+// ❌ ランタイム値をキーにしている
+DisplayRepresentation(title: LocalizedStringResource(stringLiteral: title))
+
+// ✅ 補間形式（キーは "%@"、title は引数として渡る）
+DisplayRepresentation(title: "\(title)")
+```
+
+同じ理由で、**表示すべき subtitle が無いときは空文字ではなく `nil`** を返す
+（`subtitle: LocalizedStringResource?`）。空の `LocalizedStringResource("")` は空キーの引きになる。
+
+### Siri は entity の subtitle を読み上げる → 位置指定の書式を避ける
+
+CosmoTunes の `TimerEntity` / `AlarmEntity` が明記している通り、`DisplayRepresentation` の
+subtitle は音声で読まれる。`"5:00"` のような位置指定表記は「ご、コロン、ぜろ、ぜろ」と読まれるため、
+`Duration.formatted(.units(width: .wide))` や `Date.FormatStyle` の自然文表記を使う。
+
+```swift
+// CosmoTunes/AppIntents/Clock/Timers/Entities/TimerEntity.swift より
+duration.formatted(.units(allowed: [.minutes, .seconds], width: .wide))  // "5 minutes"
+date.formatted(.dateTime.hour().minute())                                 // "7:30 AM"（ロケール依存）
+```
+
+本アプリの `TodoAppEntity.subtitle` は `dueDate.formatted(date: .abbreviated, time: .omitted)` で
+すでに自然文なので条件は満たしている。**今後 subtitle に時刻を足すときはこの制約を思い出すこと**。
+
+### donation は「アプリ UI 起点の操作」だけ。`perform()` の中では donate しない
+
+公式 (Donations and discovery): *"Restrict your donations to direct interactions with your app's
+interface, and **not to interactions started by Siri or the Shortcuts app**."*
+CosmoTunes の `DonationManager` も同じことを書いている（*"Avoid issuing donations from inside an
+intent's `perform()`, because the framework already donates intents invoked through Siri or
+Shortcuts."*）。
+
+`perform()` は呼出元を判別できない（`IntentSystemContext` が持つのは `currentMode` と
+`isVoiceOnly` だけ。invocation source の API は無い）。したがって `perform()` 内の donate は
+**必ず Siri / Shortcuts 経由でも走る = 規約違反になる**。
+
+サンプルが取っている形は 2 通り:
+
+1. **サービス層に `donateIntent:` フラグ**（CometCal）: `CalendarManager.createEvent(..., donateIntent: true)`
+   が既定で donate し、Intent 側は `donateIntent: false` を明示して抜ける。UI が Intent を通らず
+   サービスを直接呼ぶ設計でのみ成立する。
+2. **UI タップ地点から専用マネージャ経由で donate**（CosmoTunes `DonationManager`）。
+   `IntentDonationManager.shared.donate(intent:)` / `donate(intent:result:)` を呼ぶ薄いラッパ。
+
+**本アプリは UI も `Button(intent:)` で同じ Intent を走らせる設計**なので、上のどちらも
+そのままでは当てはまらない（サービス層に届く時点で常に Intent 経由）。現状は
+「規約違反になる donate を消す」を優先して `perform()` 内の donate を撤去した。UI タップ分を
+donate し直したい場合の選択肢は `AppIntent.callAsFunction(donate:)`
+（"Runs the intent's action after resolving any parameters, and optionally donates the intent"）で
+一部の UI 経路だけ `Button(intent:)` から直接実行へ切り替える形。未着手候補として
+`docs/APP_INTENTS_CENTRIC_PLAN.md` に置いてある。
+
+一方 **`deleteDonations(matching:)` は呼出元に関係なく正しい**（消えた entity への提案を残さない
+後片付け）。CosmoTunes も `EntityIdentifier(for:identifier:)` を集めて
+`deleteDonations(matching: .entityIdentifiers(...))` を呼ぶ形で、削除経路に必ず入れている。
+本アプリの delete 系 3 Intent は既にこの形。
+
+### `attributeSet` と `@Property(indexingKey:)` で同じ Spotlight キーを二重に埋めない
+
+`indexingKey:` はプロパティを `CSSearchableItemAttributeSet` のキーへマップする。同じキーを
+`IndexedEntity.attributeSet` 側でも埋めた場合、どちらが勝つかは公式に定義されていない。
+本アプリは `todoDescription → \.contentDescription` をマップしているのに `attributeSet` で
+`contentDescription = "Completed" / "Incomplete"` を上書きしていたため、**セマンティック検索に
+載せたかった本文が固定文に置き換わりうる**状態だった（2026-08-21 に撤去。完了状態は `keywords` で表現）。
+
+`attributeSet` には **`indexingKey:` で表現できない属性だけ**を書く（`dueDate`、`keywords` など）。
+`displayName` は Spotlight 結果セルの表示名で `.title` とは別キーなので衝突しない。
+
+### ユーザー入力との突き合わせは `localizedStandardContains(_:)`
+
+`EntityStringQuery.entities(matching:)` は**システムが絞り込んでくれない**（自分でフィルタする）。
+その比較に `lowercased().contains()` を使うとロケール非依存になり、かな/カナ、ダイアクリティカル
+マーク、トルコ語の I などを別物として扱う。サンプルは `localizedCaseInsensitiveContains`、
+本プロジェクトのユーザー全体ルールは `localizedStandardContains` を指定している。
+
+### `DisplayRepresentation` の `synonyms:` と画像の遅延クロージャ
+
+CosmoTunes は entity ごとに `synonyms:` を付けて Siri のマッチ幅を広げ、画像は**トレーリング
+クロージャ形**で渡して「テキストだけ必要な文脈では画像を解決させない」ようにしている。
+
+```swift
+DisplayRepresentation(
+    title: "\(title)",
+    subtitle: "^[\(trackCount) track](inflect: true)",
+    synonyms: ["\(title) mix tape", "\(title) playlist"]
+) {
+    DisplayRepresentation.Image(systemName: "music.note.list")
+}
+```
+
+複数形は `^[\(n) track](inflect: true)` で inflection を効かせる（本アプリの
+`TodoListSummaryEntity` はまだ素の文字列連結）。
+
+### `EntityQuery.displayRepresentations(for:)`（バッチ）
+
+公式: *"Return full representations; the system materializes only the components it needs (for
+example, dropping a deferred image when only text is required)."* CosmoTunes は全 query に実装し、
+関係グラフを読まない軽量版 entity から representation だけを作って返している。候補一覧の描画で
+entity 本体を N 回組み立てるコストを避けるための口。
+
+### `EnumerableEntityQuery.findIntentDescription`
+
+Shortcuts が自動生成する "Find X" アクションの説明・カテゴリ・`resultValueName` を指定できる。
+未指定だと説明なしのアクションとして並ぶ。本アプリの `TodoEntityQuery` / `CategoryEntityQuery` は
+`EnumerableEntityQuery` に準拠済みだが未指定。
+
+### `UndoableIntent`（削除系の具体実装が手に入った）
+
+CosmoTunes `DeleteAlarmIntent` が実装形を示している。要点は **snapshot を取る順序**と
+**同じ id で復元する**こと（Spotlight / AlarmKit の identity を保つため）。
+
+```swift
+@AppIntent(schema: .clock.deleteAlarm)
+struct DeleteAlarmIntent: UndoableIntent {
+    var entities: [AlarmEntity]
+    @Dependency var model: ModelManager
+
+    @MainActor
+    func perform() async throws -> some IntentResult {
+        // 1. 消す前に snapshot（同じ id で戻せるように）
+        let snapshots = try entities.compactMap { try model.snapshotAlarm(id: $0.id) }
+        for alarm in entities { try model.deleteAlarm(alarm.id) }
+
+        // 2. undo ハンドラ登録
+        undoManager?.registerUndo(withTarget: model) { manager in
+            Task { @MainActor in snapshots.forEach { try? manager.restoreAlarm($0) } }
+        }
+        // 3. 取り消しメニューに出る名前（inflection 付き）
+        undoManager?.setActionName(String(localized: "Delete ^[\(entities.count) Alarm](inflect: true)"))
+        return .result()
+    }
+}
+```
+
+### エラーは `AppIntentError(wrapping:)` + `CustomLocalizedStringResourceConvertible`
+
+CosmoTunes はドメインエラー enum に `CustomLocalizedStringResourceConvertible` を付けて Siri が
+読める文言を与え、throw の直前に `AppIntentError(wrapping:)` で包む。本アプリの `IntentError` は
+`LocalizedError` ベースなので、Siri 経由の文言を意識した見直し余地がある。
+
+### `AppShortcutsProvider.shortcutTileColor`
+
+Shortcuts アプリに並ぶタイルの背景色。UnicornChat / PhotosDomainExample が指定している
+（`static let shortcutTileColor: ShortcutTileColor = .blue`）。本アプリは未指定。
+
+### Onscreen annotation: `forSelectionType:` は `List` に付けたときだけ効く
+
+CosmoTunes `TimerView` のコメントが明言している:
+*"The collection-form `.appEntityIdentifier(forSelectionType:)` is only honored when applied to a
+`List`"*。`ScrollView { VStack { ForEach } }` では効かないので、**行ごとの単一 annotation**
+（`.appEntityIdentifier(EntityIdentifier(for:identifier:))`）に落とす。
+
+`Canvas` などビュー階層から bounds を推測できない描画は `.appEntityUIElements { context in ... }`
+で `AppEntityUIElement(identifier:bounds:state:)` を明示的に返す。
+
+本アプリの `TodoListView` は `List(selection:)` + `.tag(todo)` なので `forSelectionType:` が
+正しく効く形。ただし **visionOS の `VisionOSTodoListView`（`List` を使っているが annotation 無し）**
+と watchOS 側には annotation が無い。
+
+### テスト: `viewAnnotations()` と `#if DEBUG` の seed / reset Intent
+
+- `AppEntityDefinition.viewAnnotations()` で「いま画面が publish している entity」を検証できる。
+  CosmoTunes は Now Playing / Library の 4 セグメント / Canvas / Timer カードと**画面ごとに**
+  テストを持つ。本アプリは詳細画面 1 本だけで、**リストのコレクション annotation は未テスト**。
+- サンプルは `#if DEBUG` + `isDiscoverable = false` の `ResetTestDataIntent` /
+  `SeedSampleEventsIntent` / `ClearSpotlightIntent` をアプリターゲットに同梱し、`setUp()` で
+  `run()` して既知状態から始める。本アプリは「一意タイトルを作って最後に消す」自己クリーンアップ
+  方式で、こちらは出荷バイナリに何も足さない代わりにテスト間の独立性がやや弱い。
+- `IndexedEntityQuery` の reindex 経路を手で叩く方法もサンプルのコメントにある:
+  macOS は `mdutil -cr <bundle id>`、iOS は Settings → Developer → CoreSpotlight Testing。
+
+### Spotlight の全件再インデックスは client state で省略できる
+
+CosmoTunes `CoreSpotlightWrapper` は名前付き index の `beginBatch()` /
+`endBatch(withClientState:)` / `fetchLastClientState()` を使い、前回コミットしたダイジェストと
+一致すれば起動時の全件再インデックスを丸ごと飛ばす。実装上の注意点もコメントに残っている:
+
+- client state は 250 バイト上限なので、id 集合を SHA-256 で 32 バイトに畳む（`Set` の反復順に
+  依存しないよう **ソートしてから** hash する）
+- `beginBatch()` は index / delete 呼び出しの**前**に開く。空の no-op バッチで
+  `endBatch(withClientState:)` すると state が永続化されず毎回フル再インデックスになる
+- 全ての per-entity 呼び出しが成功したときだけ state をコミットする（中断された起動は前回の
+  state を残して次回リトライさせる）
+
+本アプリの `TodoService.indexAllForSpotlight()` は毎起動フル再インデックス。
+
+### サンプル側にも古い書き方は残っている（無批判に真似しない）
+
+- UnicornChat `DraftMessageIntent` / PhotosDomainExample の `DeleteAssetsIntent` /
+  `DeleteAlbumIntent` は `static let openAppWhenRun = true` を使っている。公式の
+  `supportedModes` ドキュメントでは `.foreground(.immediate)` と同等の旧 API 扱い。
+- CometCal の `EventEntity.displayRepresentation` は `DateFormatter` をその都度生成している
+  （本プロジェクトのユーザー全体ルールは `Date.FormatStyle` 側を優先）。
