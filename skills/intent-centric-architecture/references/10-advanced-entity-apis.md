@@ -149,7 +149,7 @@ What worked here:
 What did not work, and why it is worth knowing before you start:
 
 - **A rich core entity conforming to `.reminders.reminder` is still blocked here.** The requirements are knowable (nested `section` and `locationTrigger` sub-entities, `dueDate: DateComponents?`, non-optional `list`, recursive `subtasks`), and a conforming shape does compile. The blocker is elsewhere: the schema requires `locationTrigger`, whose entity requires `place: GeoToolbox.PlaceDescriptor` as a `@Property`, and adopting that emits an SSU training error (`GeoToolbox.PlaceDescriptorEntity must match regular expression …`) on a clean build [measured 2026-08-12]. That is an SDK bug, not a design problem — wait it out.
-- An earlier explanation ("the macro-generated init conflicts with a hand-written one") was **wrong**: the macro adds conformances, not an initialiser. Correcting a wrong cause is worth as much as finding a new fact.
+- The macro adds **conformances, not an initialiser**, so "the generated init clashes with mine" is not the obstacle it is often assumed to be.
 - Crucially, **the new Siri integration works without core-entity schema conformance**: a `.reminders.list` conformance, discoverable intents, `OpenIntent` / `DeleteIntent`, `.system.searchInApp` and semantic Spotlight indexing together deliver understanding, search and navigation. The same combination is the fallback for an app that fits no domain at all ([13](13-schema-domains.md)).
 
 Verify adoption with the metadata inspector — a schema that fails to register still leaves the macro-generated display name in place, so the source looks correct.

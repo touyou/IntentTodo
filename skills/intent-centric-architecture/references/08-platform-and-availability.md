@@ -36,7 +36,7 @@ Rules:
 - When a feature spans several files (intent + query + view), keep the guard **identical in all of them** — a mismatched guard leaves dangling references.
 - Build **every** destination (iOS, My Mac, visionOS, watchOS) before believing a platform claim. `XcodeRefreshCodeIssuesInFile` runs in one context and sees none of this.
 
-> Standing lesson: "platform-limited" is often a statement about the SDK *at the time it was written*. When an SDK updates, remove the guard and let the build tell you. That is how Visual Intelligence on macOS turned out to be possible after all.
+> Standing lesson: "platform-limited" is often a statement about the SDK *at the time it was written*. When an SDK updates, remove the guard and let the build tell you — a claim like "this framework is iOS-only" costs one build to re-test and can silently cost a platform for a year.
 
 ## watchOS
 

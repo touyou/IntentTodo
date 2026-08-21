@@ -17,7 +17,7 @@ The same intent tells the user what happened in different ways depending on **wh
 
 Apple's positive lists say snippets appear in "Siri, Spotlight, and the Shortcuts app" [Apple: Visual presentation docs; wwdc2025-281 0:29]. They never say controls are excluded — and wwdc2025-275 (1:40–1:59) shows "I'll tap on the control that runs an App Intent […] the intent will show a snippet".
 
-Reading "not in the list" as "not supported" produced a wrong design here once. What settled it was **changing only the caller**:
+So neither the documentation nor the demo settles it, and reading "not in the list" as "not supported" is not an argument. What settled it was **changing only the caller**:
 
 | Condition | Snippet |
 |---|---|
@@ -30,7 +30,7 @@ Snippet implementation, parameters, execution process, `isDiscoverable` and meta
 
 Cross-session evidence agrees: the Controls session (wwdc2024-10157) never mentions dialogs or snippets, the Snippets session (wwdc2025-281) never mentions controls, and wwdc2025-275 never uses the words "Control Center", "controls" or "ControlWidget" anywhere — that demo's "control" was an in-app button.
 
-**Generalise the method, not just the result:** hold everything constant, change the caller, run the same intent. Experiments that moved process, shape and implementation at once stayed unresolved for weeks.
+**Generalise the method, not just the result:** hold everything constant, change the caller, run the same intent. An experiment that moves process, shape and implementation together cannot settle anything.
 
 ## Routing rules
 

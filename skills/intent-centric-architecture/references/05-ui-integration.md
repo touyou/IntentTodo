@@ -36,7 +36,7 @@ Button(intent: AddTodoIntent(title: t)) { … }
 
 An intent that calls `requestConfirmation` or `requestChoice` **fails when invoked from an in-app or widget button** — there is no surface to answer on. It fails with `LNPerformActionErrorCodeUnsupportedValueType`, **shows no error, and nothing happens**. [measured 2026-08-12]
 
-This is nasty for three reasons: it looks like a dead button, the same intent succeeds through Siri / Shortcuts / AppIntentsTesting, and therefore **AppIntentsTesting cannot catch it** — only a UI test can. It hid a completely non-functional delete path in this project.
+This is nasty for three reasons: it looks like a dead button, the same intent succeeds through Siri / Shortcuts / AppIntentsTesting, and therefore **AppIntentsTesting cannot catch it** — only a UI test can, and only one that asserts unconditionally ([09](09-verification.md)).
 
 The pattern:
 
@@ -107,7 +107,7 @@ private func applyPendingFilter(_ filter: TodoFilterType?) {
 }
 ```
 
-> Adding a case to the target enum is only half the work. If `perform()`'s `switch` has no branch writing the state, the intent just opens the app. Two filter cases sat in a `break` for months, so "show my favourites" from Siri and the count control both silently opened an unfiltered list. [measured 2026-08-12]
+> Adding a case to the target enum is only half the work. If `perform()`'s `switch` has no branch writing the state, the intent just opens the app — "show my favourites" from Siri and a count control both land on an unfiltered list, with nothing failing anywhere. [measured 2026-08-12]
 
 ### `onAppIntentExecution` — iOS/visionOS only
 
@@ -127,7 +127,7 @@ Constraints worth knowing before choosing it:
 
 - **The closure runs *before* `perform()`.** "If the app intent implements a `perform()` method, it will be called after the action closure." [Apple] Navigating in both places double-navigates — pick one.
 - **macOS and watchOS cannot use it.** `TargetContentProvidingIntent` is `@available(macOS, unavailable)` / `@available(watchOS, unavailable)` [measured, Xcode 27 beta 5]. Guard conformance with `#if os(iOS) || os(visionOS)`.
-- **`canImport` is the wrong test.** `_AppIntents_SwiftUI.framework` *does* exist in the macOS SDK, so `canImport` is true there; only the `onAppIntentExecution` declaration is missing from the macOS slice. An earlier conclusion based on `canImport` was wrong in both directions. [measured 2026-08-12]
+- **`canImport` is the wrong test.** `_AppIntents_SwiftUI.framework` *does* exist in the macOS SDK, so `canImport` is true there; only the `onAppIntentExecution` declaration is missing from the macOS slice. Guard on `os()`. [measured 2026-08-12]
 - **Cold start is still shaky.** Even with the "fixed in iOS 26.4" note in Apple's workshop material, cold-start navigation through this path did not complete reliably on device [measured]. This project uses the `@Dependency` pattern as the primary route for that reason.
 
 ```swift

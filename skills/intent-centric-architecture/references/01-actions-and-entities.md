@@ -30,11 +30,9 @@ Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
 }
 ```
 
-### Why this rule exists (and what it replaced)
+### The measurement behind it
 
-An earlier version of this skill mandated a "Primary + FromExtension" split: an entity-parameter intent for Siri/UI and a `String`-id twin for extensions, because entity pre-resolution had once crashed with `EXC_BREAKPOINT` inside SwiftData.
-
-**That crash does not reproduce on iOS 27** [measured 2026-08-12, Xcode 27 beta 5 simulator]. Wiring an entity-parameter intent directly to a Live Activity lock-screen button:
+The usual reason for splitting an intent per caller is fear of entity pre-resolution running somewhere hostile. Wiring an entity-parameter intent straight to a Live Activity lock-screen button [measured 2026-08-12, iOS 27 / Xcode 27 beta 5 simulator]:
 
 | Case | `entities(for:)` ran in | `perform()` ran in | crash |
 |---|---|---|---|
@@ -42,7 +40,7 @@ An earlier version of this skill mandated a "Primary + FromExtension" split: an 
 | app killed (cold start) + `LiveActivityIntent` | main app | main app | none |
 | app killed + plain `AppIntent` | main app | main app | none |
 
-The split was removed. Note the contrast measured in the same session: during **widget timeline rendering**, `entities(for:)` runs in the *widget extension* process. "Entity resolution always happens in the app" is false in general — it is specific to Live Activity buttons. See [04](04-process-and-dependencies.md).
+Note the contrast measured in the same session: during **widget timeline rendering**, `entities(for:)` runs in the *widget extension* process. "Entity resolution always happens in the app" is false in general — it is specific to Live Activity buttons. See [04](04-process-and-dependencies.md).
 
 ### The only legitimate reasons to split
 
@@ -113,7 +111,7 @@ public enum TodoFilterType: String, AppEnum {
 }
 ```
 
-> Adding a case to a navigation-target enum does nothing on its own. The `switch` in `perform()` must write the matching state, or the new case silently falls through to "just open the app" — which is exactly what happened to two filter cases here for months. [measured 2026-08-12]
+> Adding a case to a navigation-target enum does nothing on its own: the `switch` in `perform()` must write the matching state, or the new case silently falls through to "just open the app" ([05](05-ui-integration.md)).
 
 ## Queries: pick the narrowest one that works
 

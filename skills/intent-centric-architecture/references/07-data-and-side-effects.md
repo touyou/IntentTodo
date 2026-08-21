@@ -19,7 +19,7 @@ public enum WidgetReloader {
 }
 ```
 
-Measured symptom before the second call existed: completing an item through the toggle control left the neighbouring count control stuck at `2`. Adding the line made it drop to `1` at the same moment. [measured 2026-08-12, iOS 27 simulator]
+Measured symptom: with only `reloadAllTimelines()`, completing an item through a toggle control leaves the neighbouring count control stuck at `2`; with `reloadAllControls()` it drops to `1` at the same moment. [measured 2026-08-12, iOS 27 simulator]
 
 Call it **once per logical mutation**, from the Service's `defer`, so no intent can forget:
 
@@ -108,7 +108,7 @@ Several processes share the App Group store, and **after an update a widget can 
 
 Give the `SchemaMigrationPlan` **only to the app's container**; extensions open the store without one and simply read the migrated file. Have the extension fall back to "open the app" if the store is not ready yet.
 
-> Provenance note: this guidance was long attributed to a WWDC SwiftData group lab that does not exist in Apple's session list. The attribution was dropped; the reasoning above stands on its own. [inferred]
+> This one has no Apple source: it is reasoning from the shared-store situation, not a documented rule. [inferred]
 
 ## The `@Query` + `.onChange` foot-gun
 

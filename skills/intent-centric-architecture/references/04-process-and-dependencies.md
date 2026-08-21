@@ -139,17 +139,17 @@ struct MyAppIntentsPackage: AppIntentsPackage {
 
 [Apple: wwdc2025-244 23:29–24:00 — "You **must** register each target as an App Intents Package to ensure proper indexing and validation."]
 
-This reverses earlier guidance in this skill, which said app-side declaration broke Shortcuts routing. Re-verified [measured 2026-08-12]:
+The worry this raises is duplicate registration breaking Shortcuts routing. It does not [measured 2026-08-12]:
 
 1. Every bundle's `Metadata.appintents` counts are **identical** with and without the declarations — no duplication, even on a clean build with DerivedData deleted (`actions` 23 = 23 distinct intent types).
 2. The full AppIntentsTesting suite is green with them declared — the same infrastructure Siri, Shortcuts and Spotlight use.
 3. The Shortcuts app was checked on device: the action list and parameter display are intact.
 
-**Still unverified: App Shortcut *phrase* routing through Siri.** AppIntentsTesting looks intents up by type name, so it structurally cannot exercise the phrase path; that check is manual by design ([09](09-verification.md)). If it ever breaks, deleting the per-target files restores the old behaviour.
+**Still unverified: App Shortcut *phrase* routing through Siri.** AppIntentsTesting looks intents up by type name, so it structurally cannot exercise the phrase path; that check is manual by design ([09](09-verification.md)). If it ever breaks, deleting the per-target files is the fallback.
 
 ### `AppShortcutsProvider` must be in the app target
 
-Intents, entities, enums and queries are aggregated from packages into the app's unified metadata. **`autoShortcuts` is not.** [measured; re-confirmed 2026-08-12 to be independent of the `includedPackages` change]
+Intents, entities, enums and queries are aggregated from packages into the app's unified metadata. **`autoShortcuts` is not** — and this is independent of the `includedPackages` question above [measured 2026-07-08; re-confirmed 2026-08-12]
 
 | Key | package `.appintents` | app `MyApp.app/Metadata.appintents` |
 |---|---|---|
@@ -165,8 +165,6 @@ Check it directly:
 ```bash
 python3 scripts/inspect_appintents_metadata.py --find MyProject
 ```
-
-> Apple's API reference does not state "one `AppIntentsPackage` per app" anywhere we could find [inferred → superseded]; the current rule is Apple's documented procedure plus the measurements above.
 
 ### Extension targets stay thin
 

@@ -90,7 +90,7 @@ Because the app target is never imported, **most mistakes surface at runtime, no
 | `entity.id` → `castingFailed(elementType: "NSNull", targetType: "String")` | Dynamic lookup only sees `@Property` members, and `id` usually isn't one. Use `entity.identifier.instanceIdentifier`. |
 | Simulator dies intermittently as the suite grows | `app.launch()` in `setUp`. Use `activate()`. |
 | First test after a clean build fails with `AppIntentsServicesMetadataErrorDomain Code=400 "<bundle id> is not present"` | The metadata service hasn't seen the new app yet. Poll a cheap query (`suggestedEntities()`) until it succeeds, then start. |
-| `makeIntent(x: nil)` doesn't clear the value | `nil` becomes `.unset` (parameter not supplied), not `.set(nil)`. Pass a **typed** nil: `let explicitNull: any IntentValueExpressing = String?.none`. Misreading this looks exactly like an app bug — it was misdiagnosed as one once. |
+| `makeIntent(x: nil)` doesn't clear the value | `nil` becomes `.unset` (parameter not supplied), not `.set(nil)`. Pass a **typed** nil: `let explicitNull: any IntentValueExpressing = String?.none`. The symptom is indistinguishable from an app-side bug, so suspect the test first. |
 | `valueQueries["…"]` not found | `VisualIntelligence.framework` is absent from the **iOS simulator** SDK, so the query isn't compiled in. Test on device or macOS. |
 | `spotlightQuery()` returns empty right after `run()` | Indexing is asynchronous. Poll with a timeout. |
 | An intent using `requestChoice` / `requestConfirmation` can't be run | Nothing can answer. Keep a non-interactive twin and test that ([01](01-actions-and-entities.md)). |
@@ -131,7 +131,7 @@ deleteButton.tap()
 XCTAssertFalse(row.exists)
 ```
 
-This exact shape concealed a **completely non-functional delete path** for months: the confirmation-based intent was failing silently from `Button(intent:)` ([05](05-ui-integration.md)), and the test never entered the branch. `scripts/audit_intents.py` flags it (`conditional-assert`).
+This shape conceals exactly the failures intent tests cannot see: a confirmation-based intent failing silently from `Button(intent:)` ([05](05-ui-integration.md)) leaves the element absent, the branch unentered, and the suite green. `scripts/audit_intents.py` flags it (`conditional-assert`).
 
 The related lesson: an intent that works through Siri and AppIntentsTesting can still be broken from the UI, because the caller changes the behaviour. **UI tests are not redundant with intent tests.**
 

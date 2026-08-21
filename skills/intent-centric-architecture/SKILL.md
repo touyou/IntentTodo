@@ -177,10 +177,13 @@ App Intents behaviour changes every cycle, and the docs are incomplete in ways t
 - **[measured]** — observed by running it, with date and OS. Re-check on SDK bumps.
 - **[inferred]** — reasoning only. Treat as a hypothesis; verify before designing around it.
 
-Two rules that come from real mistakes:
+What you will *not* find here is how each rule was arrived at — which hypothesis failed, what the previous version of a rule said, which bug took a month to spot. That is deliberate: this skill states the current rule and what backs it, so it stays readable in any project. The label is the handle you need — a `[measured 2026-08-12, iOS 27]` line tells you exactly what to re-run when the SDK moves, without the story attached.
 
-- **Never conclude "not supported" from a positive list.** "Siri, Spotlight and Shortcuts display snippets" does not say controls don't. Settle it by running *the same intent from a different caller* and changing nothing else. One inference like this drove a wrong design once already.
-- **Change one variable at a time.** Experiments that moved process, shape and implementation together stayed inconclusive for weeks; the single-variable comparison settled it in an afternoon.
+Two method rules, both learned the expensive way:
+
+- **Never conclude "not supported" from a positive list.** "Siri, Spotlight and Shortcuts display snippets" does not say controls don't. Settle it by running *the same intent from a different caller* and changing nothing else ([06](references/06-feedback-channels.md)).
+- **Change one variable at a time.** An experiment that moves process, shape and implementation together cannot settle anything, however long it runs.
+- **Never record an inference as a measurement.** If it was not run, the label is `[inferred]` — a mislabelled line is worse than a missing one, because the next reader stops checking.
 
 Also treat "platform-limited" as a statement about the SDK at the time it was written. On an SDK bump, delete the guard and let the build answer — that is how Visual Intelligence on macOS turned out to be possible after all.
 

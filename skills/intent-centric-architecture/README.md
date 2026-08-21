@@ -89,11 +89,21 @@ python3 scripts/inspect_appintents_metadata.py path/to/MyApp.app -v
 あるいは「App Intent 中心で設計したい」「`supportedModes` どれにすべき？」「コントロールから dialog が出ない」
 のように具体的なトピックを話題にすればよい。
 
+## 経緯はここには書かない
+
+skill 本体（`SKILL.md` / `references/`）は**現在のルールとその根拠だけ**を載せる。
+「以前はこう書いていた」「どの仮説が外れた」「どのバグに何ヶ月気づかなかった」といった経緯は、
+他プロジェクトにコピーされた先では解決しないパスになるので、ファイル内にポインタも置かない。
+
+追いたい場合の入口は 2 つ:
+
+- **根拠ラベル**（`[measured 2026-08-12, iOS 27 / Xcode 27 beta 5]`）— SDK が上がったとき何を再確認すべきかは、これだけで足りる
+- 上流リポジトリ [touyou/IntentTodo](https://github.com/touyou/IntentTodo) の `docs/devlog/`（トピック別・時系列の調査ログ）と `docs/insights/`（各知見の詳細）
+
 ## 関連ドキュメント
 
 - [Liquid Glass と App Intents 中心設計](https://goodpatch-tech.hatenablog.com/entry/liquid_glass_and_app_intents) — 設計思想の背景記事
 - [Apple Developer: App Intents](https://developer.apple.com/documentation/appintents)
-- 本リポジトリの `docs/insights/` — 各知見の詳細、`docs/devlog/` — そのルールに至った調査・失敗・再検証の記録
 
 ## ライセンス
 
