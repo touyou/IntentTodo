@@ -6,10 +6,13 @@ Apple プラットフォーム向けの **App Intent 中心設計** を、別プ
 
 ## 何をしてくれるか
 
-iOS / iPadOS / macOS / watchOS / visionOS の App Intent 設計について、Claude Code が以下の判断を支援する:
+iOS / iPadOS / macOS / visionOS / watchOS の App Intent 設計について、Claude Code が以下の判断を支援する:
 
+- **どのレベルから始めるか**（ターゲット 1 つのアプリなら守るべきルールは 4 つ。拡張やプラットフォームが増えた時点で何が増えるか）
+- 既存アプリへの後付け（ViewModel / URL ハンドラ / メニューコマンドに散った「アクション」の棚卸しから）
 - 何を `AppIntent` にし、何を `AppEntity` にするか（verb-noun ルール、1 アクション 1 Intent、分けてよい 3 条件）
-- どのプラットフォーム / システムサーフェスに展開するか（Action-Centered Design マトリクス、サーフェスごとの正しい API）
+- どのプラットフォーム / システムサーフェスに展開するか（Action-Centered Design マトリクス、サーフェスごとの正しい API、サーフェス一覧カタログ）
+- どの `AppSchema` ドメインが自分のアプリに当てはまるか（Siri 対応ドメイン / Shortcuts 限定ドメイン / 全部入り必須ドメインの区別）
 - `supportedModes`（フォアグラウンド遷移）と `allowedExecutionTargets`（実行プロセス）の使い分け
 - `@Dependency` + `AppDependencyManager` をどのプロセスに登録するか
 - `AppIntentsPackage` / `includedPackages` / `AppShortcutsProvider` の置き場所
@@ -23,11 +26,12 @@ iOS / iPadOS / macOS / watchOS / visionOS の App Intent 設計について、Cl
 
 ```
 .claude/skills/intent-centric-architecture/
-├── SKILL.md                  # ルーター: 原則・判断表・参照先
+├── SKILL.md                  # ルーター: 適用レベル・原則・判断表・既知のダメな回避策・参照先
 ├── scripts/
-│   ├── audit_intents.py                 # 17 ルールの静的監査
+│   ├── audit_intents.py                 # 20 ルールの静的監査 + サーフェス到達状況レポート
 │   └── inspect_appintents_metadata.py   # ビルド成果物のメタデータ検査
 └── references/               # 必要になったときだけ読む詳細
+    ├── 00-adoption-levels.md
     ├── 01-actions-and-entities.md
     ├── 02-multi-surface-mapping.md
     ├── 03-execution-modes.md
@@ -39,6 +43,8 @@ iOS / iPadOS / macOS / watchOS / visionOS の App Intent 設計について、Cl
     ├── 09-verification.md
     ├── 10-advanced-entity-apis.md
     ├── 11-interaction-and-scale.md
+    ├── 12-surface-catalog.md
+    ├── 13-schema-domains.md
     └── code-templates.md
 ```
 
@@ -51,6 +57,9 @@ skill を入れていなくても単体で使える。どちらも標準ライ�
 python3 scripts/audit_intents.py . --fail-on error
 python3 scripts/audit_intents.py . --list-rules
 python3 scripts/audit_intents.py . --json
+
+# いま到達しているシステムサーフェスと、未到達のものに何が必要か（ビルド不要）
+python3 scripts/audit_intents.py . --coverage
 
 # ビルド成果物の Metadata.appintents を読む（ビルド後）
 python3 scripts/inspect_appintents_metadata.py --find MyProject
