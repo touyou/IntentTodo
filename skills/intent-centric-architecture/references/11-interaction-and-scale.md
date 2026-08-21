@@ -70,7 +70,17 @@ Conform to the protocol directly; no schema macro needed. The system then unders
 | `OpenIntent` | `var target: Target` where `Target: AppEntity` | associated type inferred from `target`; use `.foreground(.immediate)` |
 | `DeleteIntent` (`: SystemIntent`) | `var entities: [Entity]` — an **array** | a single-entity delete intent cannot conform; make a separate bulk intent |
 
-Neither needs an App Shortcut slot — they are understood without one, which protects the 10-slot budget ([02](02-multi-surface-mapping.md)).
+Neither needs an App Shortcut slot — they are understood without one, which protects the 10-slot budget ([02](02-multi-surface-mapping.md)). The wider catalogue of semantic conformances (media, camera, search, Focus, prediction) is in [12](12-surface-catalog.md).
+
+### `UndoableIntent`
+
+For a destructive or surprising action, conforming buys the gesture people already know: "swipe left with three fingers to trigger undo". Register your undo actions with the `undoManager` the protocol hands you — the system supplies "the most relevant undo manager through this property, even when those intents are run in your extensions", which keeps UI and intent undo in one stack. [Apple: wwdc2025-275 15:19–16:06]
+
+Combines naturally with `requestChoice`: offer "Archive" as an alternative before deleting, and undo as the safety net after. Not exercised here [inferred for behaviour details] — verify the stack ordering before promising it.
+
+### `DeprecatedAppIntent`
+
+The retirement path. A shortcut someone built keeps a reference to your intent type, so deleting the type breaks their automation silently. `DeprecatedAppIntent` marks the action as retired and names its `ReplacementIntent`, so the system can tell them what to use instead. [Apple: app-intent-types] Same discipline as `AppEnum` raw values ([01](01-actions-and-entities.md)): the public surface is a contract with the user's automations, not just with the compiler.
 
 **Every entity a Visual Intelligence value query can return must be openable** — "This `OpenIntent` must exist, otherwise your app won't show up" [Apple: wwdc2025-275 9:19]. The requirement is cross-platform, but it is only **enforced at compile time on the macOS destination**: `result type 'X' that is not openable … must be associated with an OpenIntent`. If a union type returns two entity kinds, both need one — even if one of them has no dedicated screen and its `perform()` just opens the app.
 

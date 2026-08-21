@@ -135,14 +135,14 @@ extension TodoAppEntity: Transferable {
 - `IntentPerson(identifier:name:handle:)` requires **all** arguments; omitting any gives `Missing arguments for parameters 'identifier', 'handle'`.
 - Export closures are `async throws` — **throw** when there is no value, so the representation is simply absent. Don't export an empty placeholder.
 
-## Assistant schemas
+## Schemas (`AppSchema`, formerly `AssistantSchemas`)
 
-`@AppEntity(schema:)` / `@AppEnum(schema:)` / `@AppIntent(schema:)` let Siri and Apple Intelligence understand your content semantically instead of by name.
+`@AppEntity(schema:)` / `@AppEnum(schema:)` / `@AppIntent(schema:)` let Siri and Apple Intelligence understand your content semantically instead of by name. **Which domain to adopt, what each tier actually buys, and the all-or-nothing groups are in [13](13-schema-domains.md)** — this section is only the entity-side mechanics.
 
 What worked here:
 
-- **Small schemas are straightforward.** `@AppEntity(schema: .reminders.list)` needs `id` / `name` / `type`, with `@AppEnum(schema: .reminders.listType)` for the type. The macro generates `typeDisplayRepresentation` (delete the hand-written one) but not `Hashable` — implement it.
-- **`.system.searchInApp`** works well for "take me to search results" ([11](11-interaction-and-scale.md)). `.system.search` is deprecated in favour of it [Apple: wwdc2026-343 14:50].
+- **Small schemas are straightforward.** `@AppEntity(schema: .reminders.list)` needs `id` / `name` / `type`, with `@AppEnum(schema: .reminders.listType)` for the type. The macro generates `typeDisplayRepresentation` (delete the hand-written one) and infers `@Property` for members the schema defines [Apple], but it does not generate `Hashable` — implement it.
+- **`.system.searchInApp`** works well for "take me to search results" ([11](11-interaction-and-scale.md)). It is the current name of the `.system.search` schema introduced in iOS 17 — a rename, not a removed capability [Apple: wwdc2026-343 14:50].
 - **The `.reminders` domain is iOS 27+**, which pushes the package's deployment target.
 - **watchOS has no assistant schemas at all** — see [08](08-platform-and-availability.md) for the duplicate-declaration workaround.
 
@@ -150,7 +150,7 @@ What did not work, and why it is worth knowing before you start:
 
 - **A rich core entity conforming to `.reminders.reminder` is still blocked here.** The requirements are knowable (nested `section` and `locationTrigger` sub-entities, `dueDate: DateComponents?`, non-optional `list`, recursive `subtasks`), and a conforming shape does compile. The blocker is elsewhere: the schema requires `locationTrigger`, whose entity requires `place: GeoToolbox.PlaceDescriptor` as a `@Property`, and adopting that emits an SSU training error (`GeoToolbox.PlaceDescriptorEntity must match regular expression …`) on a clean build [measured 2026-08-12]. That is an SDK bug, not a design problem — wait it out.
 - An earlier explanation ("the macro-generated init conflicts with a hand-written one") was **wrong**: the macro adds conformances, not an initialiser. Correcting a wrong cause is worth as much as finding a new fact.
-- Crucially, **the new Siri integration works without core-entity schema conformance**: a `.reminders.list` conformance, discoverable intents, `OpenIntent` / `DeleteIntent`, `.system.searchInApp` and semantic Spotlight indexing together deliver understanding, search and navigation.
+- Crucially, **the new Siri integration works without core-entity schema conformance**: a `.reminders.list` conformance, discoverable intents, `OpenIntent` / `DeleteIntent`, `.system.searchInApp` and semantic Spotlight indexing together deliver understanding, search and navigation. The same combination is the fallback for an app that fits no domain at all ([13](13-schema-domains.md)).
 
 Verify adoption with the metadata inspector — a schema that fails to register still leaves the macro-generated display name in place, so the source looks correct.
 

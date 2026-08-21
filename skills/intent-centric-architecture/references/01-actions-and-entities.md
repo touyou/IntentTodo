@@ -89,6 +89,10 @@ public struct TodoAppEntity: AppEntity, Identifiable {
 
 `id` itself is normally *not* a `@Property`. That is fine at runtime, but in AppIntentsTesting the type-erased `entity.id` then fails with `castingFailed(elementType: "NSNull")` — use `entity.identifier.instanceIdentifier` there ([09](09-verification.md)).
 
+### Check for a system shape before writing your own
+
+The framework already models several common entity shapes, and using one tells the system more than a hand-rolled equivalent: `UniqueAppEntity` for a value that only ever has one instance (global settings — no fake query over one row), `FileEntity` when the entity *is* a document, `TransientAppEntity` for a computed snapshot nobody queries back ([10](10-advanced-entity-apis.md)). The full list is in [12](12-surface-catalog.md).
+
 ### `AppEnum` before `AppEntity`
 
 For closed sets (filters, sort orders, screen targets), use `AppEnum`: cheaper to reason about, and the system renders a fixed picker. Reach for `AppEntity` only when the set is dynamic, stored, or large.
