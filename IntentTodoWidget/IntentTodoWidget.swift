@@ -134,7 +134,10 @@ struct IntentTodoWidget: Widget {
         }
         .configurationDisplayName("Todo List")
         .description("View your todos at a glance.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        // `.systemExtraLargePortrait` は iOS/macOS 27 で追加された縦長ファミリー
+        // （WWDC 2026 #277）。本ブランチはデプロイメントターゲットが 27 なので
+        // `#available` での組み立ては不要。
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLargePortrait])
     }
 }
 
@@ -171,6 +174,24 @@ struct IntentTodoWidget: Widget {
             )
         ],
         incompleteCount: 2,
+        configuration: TodoWidgetConfigurationIntent()
+    )
+}
+
+#Preview(as: .systemExtraLargePortrait) {
+    IntentTodoWidget()
+} timeline: {
+    TodoWidgetEntry(
+        date: .now,
+        todos: (1...8).map { index in
+            TodoAppEntity(
+                id: "\(index)",
+                title: "Todo \(index)",
+                isCompleted: index.isMultiple(of: 4),
+                dueDate: Date().addingTimeInterval(Double(index) * 3600)
+            )
+        },
+        incompleteCount: 6,
         configuration: TodoWidgetConfigurationIntent()
     )
 }
