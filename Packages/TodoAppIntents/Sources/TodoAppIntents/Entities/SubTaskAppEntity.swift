@@ -40,10 +40,23 @@ public struct SubTaskAppEntity: AppEntity, Hashable {
     }
 
     public var displayRepresentation: DisplayRepresentation {
+        Self.makeDisplayRepresentation(title: title, isCompleted: isCompleted)
+    }
+
+    /// Builds a sub-task's display representation from raw field values.
+    ///
+    /// Static so `SubTaskEntityQuery.displayRepresentations(for:)` can build it
+    /// straight from the model without constructing the entity. `synonyms:` widens
+    /// Siri's matching; the image is a closure so text-only contexts can skip it.
+    static func makeDisplayRepresentation(title: String, isCompleted: Bool) -> DisplayRepresentation {
         DisplayRepresentation(
             title: "\(title)",
-            image: .init(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
-        )
+            synonyms: ["\(title) subtask", "\(title) step"]
+        ) {
+            DisplayRepresentation.Image(
+                systemName: isCompleted ? "checkmark.circle.fill" : "circle"
+            )
+        }
     }
 
     public static var defaultQuery: SubTaskEntityQuery {

@@ -66,6 +66,33 @@ public struct TodoEntityQuery: EntityQuery {
 
     /// Siri / Spotlight に出す候補の上限。HIG の "not more than ten" に合わせている。
     static let suggestedEntityLimit = 10
+
+    /// 候補一覧の描画用に、表示表現だけをまとめて返す。
+    ///
+    /// 既定実装は `entities(for:)` を呼んでから 1 件ずつ `displayRepresentation` を
+    /// 読む。ここは `TodoItem` から直接組み立てて、表示に使わない `CategoryAppEntity`
+    /// の生成を省く。公式: "Return full representations; the system materializes only
+    /// the components it needs"（画像の遅延クロージャがここで効く）。
+    @MainActor
+    public func displayRepresentations(
+        for identifiers: [TodoAppEntity.ID]
+    ) async throws -> [TodoAppEntity.ID: DisplayRepresentation] {
+        let repo = repository()
+        var representations: [TodoAppEntity.ID: DisplayRepresentation] = [:]
+        for identifier in identifiers {
+            guard let uuid = UUID(uuidString: identifier),
+                  let item = try repo.fetch(by: uuid) else {
+                continue  // 既に削除済み。`entities(for:)` と同じく正常系。
+            }
+            representations[identifier] = TodoAppEntity.makeDisplayRepresentation(
+                title: item.title,
+                isCompleted: item.isCompleted,
+                isFavorite: item.isFavorite,
+                dueDate: item.dueDate
+            )
+        }
+        return representations
+    }
 }
 
 // MARK: - EntityStringQuery
@@ -85,6 +112,18 @@ extension TodoEntityQuery: EntityStringQuery {
 // MARK: - EnumerableEntityQuery
 
 extension TodoEntityQuery: EnumerableEntityQuery {
+    /// `EnumerableEntityQuery` 準拠だけで Shortcuts が "Find Todos" アクションを
+    /// 自動生成する。未指定だと説明もカテゴリも無いアクションとして並ぶので、
+    /// 何が返るか（`resultValueName`）まで含めてここで与える。
+    public static var findIntentDescription: IntentDescription? {
+        IntentDescription(
+            "Finds todos and filters them by the conditions you specify.",
+            categoryName: "Todos",
+            searchKeywords: ["find", "search", "filter", "todo", "task"],
+            resultValueName: "Todos"
+        )
+    }
+
     @MainActor
     public func allEntities() async throws -> [TodoAppEntity] {
         try repository().fetchAll().map { TodoAppEntity(from: $0) }

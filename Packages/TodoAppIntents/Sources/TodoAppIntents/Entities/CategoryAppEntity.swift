@@ -40,10 +40,7 @@ public struct CategoryAppEntity: AppEntity, Hashable {
     // MARK: - AppEntity Requirements
 
     public var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(
-            title: "\(name)",
-            image: .init(systemName: "folder")
-        )
+        Self.makeDisplayRepresentation(name: name)
     }
 
     public static var defaultQuery: CategoryEntityQuery {
@@ -99,10 +96,7 @@ public struct CategoryAppEntity: Hashable {
     // MARK: - AppEntity Requirements
 
     public var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(
-            title: "\(name)",
-            image: .init(systemName: "folder")
-        )
+        Self.makeDisplayRepresentation(name: name)
     }
 
     public static var defaultQuery: CategoryEntityQuery {
@@ -141,3 +135,25 @@ public struct CategoryAppEntity: Hashable {
     }
 }
 #endif
+
+// MARK: - Display
+
+/// Declared outside the `#if` so both variants share one implementation.
+extension CategoryAppEntity {
+    /// Builds a category's display representation from its name.
+    ///
+    /// Static so `CategoryEntityQuery.displayRepresentations(for:)` can build it
+    /// straight from the model without constructing the entity.
+    ///
+    /// `synonyms:` widens Siri's matching — people refer to a category as
+    /// "the Work list" or "the Work category" as often as by the bare name.
+    /// The image is a closure so the system can skip it in text-only contexts.
+    static func makeDisplayRepresentation(name: String) -> DisplayRepresentation {
+        DisplayRepresentation(
+            title: "\(name)",
+            synonyms: ["\(name) list", "\(name) category"]
+        ) {
+            DisplayRepresentation.Image(systemName: "folder")
+        }
+    }
+}

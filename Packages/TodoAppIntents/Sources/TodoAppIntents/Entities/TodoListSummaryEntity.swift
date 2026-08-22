@@ -42,10 +42,13 @@ public struct TodoListSummaryEntity: TransientAppEntity {
 
     // MARK: - Display
 
+    /// Siri reads this aloud, so the counts go through `^[...](inflect: true)` —
+    /// the system then picks the right plural form per language instead of always
+    /// saying "1 todos".
     public var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
-            title: "\(pendingCount) pending, \(overdueCount) overdue",
-            subtitle: "\(totalCount) total (\(completedCount) completed, \(favoriteCount) favorited)"
+            title: "^[\(pendingCount) pending todo](inflect: true), \(overdueCount) overdue",
+            subtitle: "^[\(totalCount) todo](inflect: true) total (\(completedCount) done, \(favoriteCount) starred)"
         )
     }
 

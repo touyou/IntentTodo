@@ -27,6 +27,9 @@ import AppIntents
 import TodoAppIntents
 
 struct TodoAppShortcuts: AppShortcutsProvider {
+    /// Shortcuts アプリに並ぶタイルの背景色。未指定だと既定色になる。
+    static let shortcutTileColor: ShortcutTileColor = .teal
+
     static var appShortcuts: [AppShortcut] {
         // Create
         AppShortcut(

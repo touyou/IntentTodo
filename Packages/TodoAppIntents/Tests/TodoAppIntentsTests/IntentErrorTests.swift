@@ -3,6 +3,7 @@
 //  IntentTodo
 //
 
+import AppIntents
 import Foundation
 import Testing
 @testable import TodoAppIntents
@@ -46,6 +47,25 @@ struct IntentErrorTests {
         let error: any Error = IntentError.validation("Test")
 
         #expect(error.localizedDescription.contains("Validation error"))
+    }
+
+    // MARK: - CustomAppIntentErrorConvertible
+
+    /// `AppIntentError(predefinedError:description:)` は受け付けない値を渡すと
+    /// **実行時に `fatalError()`** で落ちる（公式ドキュメント明記）。ビルドでは
+    /// 検出できないので、全ケースを 1 度組み立てて経路を踏む。
+    @Test("Every IntentError case builds an AppIntentError", arguments: [
+        IntentError.validation("Title cannot be empty"),
+        IntentError.notFound("Todo with ID 123"),
+        IntentError.general("Something went wrong")
+    ])
+    func appIntentErrorConversion(error: IntentError) {
+        let converted = error.appIntentError
+
+        // Siri に読ませる文言は種別プレフィックス無しの生メッセージ。
+        #expect(!converted.description.isEmpty)
+        #expect(!converted.description.contains("Validation error:"))
+        #expect(!converted.description.contains("Not found:"))
     }
 
     // MARK: - Edge Cases

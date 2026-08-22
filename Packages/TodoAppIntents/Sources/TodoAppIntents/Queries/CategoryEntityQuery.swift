@@ -37,6 +37,21 @@ public struct CategoryEntityQuery: EntityQuery {
     public func suggestedEntities() async throws -> [CategoryAppEntity] {
         try fetchAll().map { CategoryAppEntity(from: $0) }
     }
+
+    /// 候補一覧の描画用。名前だけで表現が作れるので、entity を組み立て直さない。
+    @MainActor
+    public func displayRepresentations(
+        for identifiers: [CategoryAppEntity.ID]
+    ) async throws -> [CategoryAppEntity.ID: DisplayRepresentation] {
+        let ids = Set(identifiers.compactMap { UUID(uuidString: $0) })
+        return try fetchAll()
+            .filter { ids.contains($0.id) }
+            .reduce(into: [:]) { result, category in
+                result[category.id.uuidString] = CategoryAppEntity.makeDisplayRepresentation(
+                    name: category.name
+                )
+            }
+    }
 }
 
 // MARK: - EntityStringQuery
@@ -53,6 +68,16 @@ extension CategoryEntityQuery: EntityStringQuery {
 // MARK: - EnumerableEntityQuery
 
 extension CategoryEntityQuery: EnumerableEntityQuery {
+    /// Shortcuts が自動生成する "Find Categories" アクションの説明。
+    public static var findIntentDescription: IntentDescription? {
+        IntentDescription(
+            "Finds the lists (categories) todos are organized into.",
+            categoryName: "Todos",
+            searchKeywords: ["find", "search", "category", "list"],
+            resultValueName: "Categories"
+        )
+    }
+
     @MainActor
     public func allEntities() async throws -> [CategoryAppEntity] {
         try fetchAll().map { CategoryAppEntity(from: $0) }
