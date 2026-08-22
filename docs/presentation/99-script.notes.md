@@ -48,6 +48,16 @@
   > — Apple 公式 [Creating your first app intent](https://developer.apple.com/documentation/AppIntents/Creating-your-first-app-intent#Customize-your-app-intents-description-and-behavior)
 - 言い換え案: 「プロトコル的に必須なのは title と perform だけです。ただ実際には description と isDiscoverable、parameterSummary までを 1 セットで書くのが Apple の推奨です」
 
+### A-6. ⚠️ 「App Schema 適合は任意」は 2 層に分けて話す（F. 想定 Q&A の修正）
+
+- Group Lab（#8011 `3:09`）で **「新しい Siri AI との統合にはスキーマ適合が必要」**と明言されている。
+  一方 `21:47` では **「advantage（優遇）という捉え方は違う」**とも言っている。矛盾ではなく **2 層**:
+  - **App Intents（スキーマ不要）** → Shortcuts / Spotlight / ウィジェット / コントロール / ライブアクティビティ / 従来の Siri フレーズ
+  - **App Schema 適合** → **新しい agentic Siri（多ターン会話・自然な言い回し・確認や所有権の自動処理・ローカライズ）**
+- F の「Apple Intelligence / Siri AI 対応は必須？ → 必須ではない」は **「任意」ではなく「どこまで行きたいかで決まる」**に直す
+- ⚠️ 根拠が**字幕由来の粗起こし**なので、スライドに断定で書くなら `3:09` を視聴して逐語確認
+- 詳細: [03-group-lab-evidence.md](03-group-lab-evidence.md)
+
 ### A-4. 「AppEntity はパラメータをつけるときに出てくる」（L28）
 
 - 半分正しいが狭い。`AppEntity` はパラメータだけでなく **戻り値・Spotlight インデックス・画面上のコンテンツ提供（onscreen）・他アプリへの受け渡し**にも使う
@@ -229,7 +239,7 @@
 
 **時間が余ったら足すカード（各 30 秒）**
 
-- **`supportedModes` は実行プロセスを決めない**。共有パッケージの Intent は**ヒューリスティクス**でプロセスが選ばれる（アプリ起動中なら本体優先、未起動なら Extension）。`@Dependency` はプロセスごとの `AppDependencyManager` から解決されるので、**両方に登録**が要る。固定したければ `allowedExecutionTargets`
+- **`supportedModes` は実行プロセスを決めない**。共有パッケージの Intent は**ヒューリスティクス**でプロセスが選ばれる（アプリ起動中なら本体優先、未起動なら Extension）。`@Dependency` はプロセスごとの `AppDependencyManager` から解決されるので、固定しないなら**両方に登録**が要る。→ 本プロジェクトの現在の運用は **「SwiftData を書き換える Intent は必ず `allowedExecutionTargets = [.main]`」（13 Intent）+ 宣言漏れを `IntentExecutionTargetsTests` で検出**。読み取り系は固定せず二重登録のまま（骨子② T14。2026-08-22 更新）
 - **`perform()` を手で呼んではいけない**。`@Dependency` はシステムが dispatch したときだけ解決される。手で呼ぶとゼロ初期化のまま落ちる → **「Intent は関数ではない」**
 - **`#if canImport(X)` だけに頼れない**。`VisualIntelligence` は visionOS **シミュレータでは false / 実機 SDK では true** になって**実機ビルドだけ落ちる**
 - **回避策は原因が消えたら消す**。「Live Activity 経由の entity 解決でクラッシュする」を理由に Intent を 2 系統に分けていたが、iOS 27 で再現しないことを実測して**分離ごと撤去**した
@@ -323,6 +333,8 @@ L76–77 で既に核心を言えているので、**補強は写像表 1 枚**�
 ## 発表前にやること
 
 - [ ] **A-1 / A-2 の 2 箇所を直す**（事実誤り。ここだけは必須）
+- [ ] **A-6** の 2 層整理で F. 想定 Q&A を差し替える + `#8011 3:09` を視聴して逐語確認
+- [ ] Group Lab カードを使うなら [03-group-lab-evidence.md](03-group-lab-evidence.md) の「組み込み案」を見る。逐語取りの優先度は **`45:38`（固定スキーマの理由）> `8:18`（オーケストレーター）> `3:09`**
 - [ ] A-3 / A-5 は言い方の調整（任意だが安い）
 - [ ] C-1 のまさかり対策の言い換えを入れるか決める
 - [ ] D-1 で使うスクショを撮る（Control Center の `2` → `1`、削除ボタンが無反応、Spotlight の snippet）

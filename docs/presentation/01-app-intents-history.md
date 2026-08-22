@@ -186,7 +186,8 @@
     > "We did this by investing deeply in the App Intents framework as a means of connecting the vast world of apps to Apple Intelligence."（wwdc2024-10133 `2:43`）
   - **App Intent Domains（assistant schemas）**: `@AssistantIntent(schema:)` / `@AssistantEntity(schema:)`。iOS 18 で 12 ドメイン
   - ここが面白いポイント: **「ドメイン」という 2016 年の発想が、App Intents 側に戻ってきた**
-    - ただし意味が違う。2016 のドメインは**檻**（外に出られない）、2024 のスキーマは**共通語彙への任意適合**（適合すると AI が意味を理解する。適合しなくても自前 Intent は動く）
+    - ただし意味が違う。2016 のドメインは**檻**（外に出られない）、2024 のスキーマは**共通語彙**（適合すると AI が意味を理解する。適合しなくても自前 Intent は Shortcuts / Spotlight / ウィジェット等で普通に動く）
+    - ⚠️ **「任意適合」と言い切らない**。2026 の Group Lab で **「新しい Siri AI との統合にはスキーマ適合が必要」**と明言されている（#8011 `3:09`）。S21 と揃えて **2 層**で話す（[03-group-lab-evidence.md](03-group-lab-evidence.md)）
   - `IndexedEntity` で Spotlight のセマンティック検索へ。「ペット」で犬・猫の写真が出る、の類
   - **ControlWidget**（コントロールセンター）も追加。Intent の出口がまた増えた
 - **出典**: wwdc2024-10133「Bring your app to Siri」`1:03`–`3:21` / wwdc2024-10134 / wwdc2024-10157
@@ -209,6 +210,11 @@
   - 1 つの Intent を書くと、繋がる先が毎年勝手に増えていく
   - **これが App Intents の最大の投資効率**。「今すぐ Siri 対応したいか」は本質ではない
   - 骨子② の主張への橋: だから**最初から Intent で書く**（App Intent Driven Development）
+  - **Group Lab で出てきた「あまり知られていない出口」2 つ**（[03-group-lab-evidence.md](03-group-lab-evidence.md) §2-1 / §2-9）:
+    - ⭐ **iPad の Apple Pencil のタップに App Shortcut を割り当てられる**（#8011 `3:09`）
+    - ⭐ **HomePod では新しい Siri AI は使えないが、App Shortcuts は以前から動いている**（#8011 `35:40`）。
+      → **「新しい面に乗るのは新 API とは限らない。既に書いてあるものが先に届くこともある」**という、
+      この主張の一番良い実例
 - **出典**: [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md)（SwiftLee: "By defining actions as app intents by default, you allow them to be connected to any system-service in the future."）
 
 ---
@@ -239,6 +245,38 @@
   - **`EntityCollection` / `LongRunningIntent` / `CancellableIntent`**: 大量処理と長時間処理
   - この年のテーマは **API の厚みより「つながり」**（クロスアプリ・クロスデバイス・検証可能性）
 - **出典**: wwdc2026-121 / wwdc2026-240「Build intelligent Siri experiences with App Schemas」/ wwdc2026-295 / wwdc2026-343 / wwdc2026-345 / [../WWDC_APP_INTENTS_SESSIONS.md](../WWDC_APP_INTENTS_SESSIONS.md) 年別サマリー
+
+### S18b. なぜ「固定スキーマ」なのか — Apple 自身の設計判断（2026-08-22 追加）
+
+> 骨子① の主題「なぜこの形なのか」に最も直接答える回答が Group Lab（#8011 `45:38` / `21:47`）にある。
+> **「MCP や function calling のように動的にすればいいのでは」は本発表で必ず出る質問**なので、
+> ここで先に潰しておくと質疑が楽になる。全材料は [03-group-lab-evidence.md](03-group-lab-evidence.md) §2-11。
+
+- **見せるもの**: 「動的な skill 記述 vs 固定スキーマ」の 2 列比較 + 理由 8 点
+- **話の要点**:
+  - 質問（Apple 公開の逐語）: *"Why go for hard-coded schemas instead of a dynamic approach like GPT or Claude — e.g. Markdown-described skills that reference App Entities? Wouldn't that be more flexible?"*（`45:38`）
+  - Apple の答えは 8 点:
+
+    | # | 理由 | 位置 |
+    |---|---|---|
+    | 1 | **一貫性とプライバシー**。Apple Intelligence は「あなたに閉じた personal intelligence」という立場 | `45:38` |
+    | 2 | **プラットフォーム横断で標準化された体験を「保証」できる** | `46:21` |
+    | 3 | **ドメイン内で操作感が転移する** — messaging で Siri の使い方を一度覚えたら、同じドメインのスキーマに適合した他アプリでもそのまま通じる | `46:28` |
+    | 4 | **安全性が型に組み込まれる** — 「送金なら確認を挟むべき」をシステム側が判断できる | `47:02` |
+    | 5 | **所有権を推論して振る舞いを変えられる** — 自分だけの予定は黙って削除、共有中の予定は確認を出す（`EntityOwnership`） | `47:32` |
+    | 6 | **ローカライズを Apple が肩代わりする** — モデルの学習も自然言語のフレーズも Apple 側で用意済み。API に適合するだけで多数のロケールにスケールする | `48:32` |
+    | 7 | **サンプルフレーズとモデル学習が付いてくる**（App Shortcuts は自分でフレーズを書く必要がある） | `21:47` |
+    | 8 | **書くコードが減る** — カスタム Intent で用意すべきものの一部が不要になり、**スキーマを足すとコードを消せる** | `21:47` |
+
+  - ⭐ **一番効くのは 6 と 8**。「型に嵌めると自由度が下がる」という直感を、**Apple が実利で反転させている**
+  - ⭐ **この論法は骨子② の中心設計とまったく同型**:
+    - 中心設計 = 「**Intent** という固定の型に落とすと、ウィジェット / コントロール / Siri / Spotlight が全部ついてくる」
+    - Apple = 「**スキーマ**という固定の型に落とすと、一貫性・安全性・所有権推論・ローカライズ・コード削減が全部ついてくる」
+    - → **どちらも「表現力を捨てて型に嵌めることの見返り」**。S24 への橋として使える
+  - **オチ候補**: 「**"表現力を捨てて型に嵌める" のは制約ではなく、Apple 側が肩代わりできる範囲を広げるための取引だった**。これは今日の話全体に通じる構図です」
+- ⚠️ **引用の注意**: #8011 はページに編集済みトランスクリプトが無く、上記は**自動生成キャプション由来**。
+  スライドに逐語を出すなら発表前に `45:38`–`49:20` を視聴して確認する（[03-group-lab-evidence.md](03-group-lab-evidence.md) §0）
+- **出典**: [03-group-lab-evidence.md](03-group-lab-evidence.md) §2-11 / §2-6
 
 ### S19. 【任意】2026 で SiriKit はどうなったのか
 
@@ -281,8 +319,14 @@
   - **2016**: Apple が決める（ドメイン）。開発者は当てはまるかどうかだけ
   - **2018–2022**: 開発者が決める（Custom Intent / App Intents）。自由だが、システムからは「よく分からない何か」
   - **2024–2026**: **共有語彙**（App Schemas）。自分で決めた語彙のうち、意味が公共的なものはスキーマに適合させる。AI が意味を理解できるようになる
-  - ポイント: 2024 以降のスキーマは**檻ではなく辞書**。適合は任意で、適合しない Intent も普通に動く
-- **出典**: S05 / S07 / S14 / S18 の各出典
+  - ポイント: 2024 以降のスキーマは**檻ではなく辞書**。ただし **2 層で話す**（言い切りは危ない）:
+    | 層 | 要るもの | 届く先 |
+    |---|---|---|
+    | **App Intents（スキーマ不要）** | `AppIntent` / `AppEntity` / `Query` / `AppShortcutsProvider` | Shortcuts / Spotlight / ウィジェット / コントロール / ライブアクティビティ / 従来の Siri フレーズ |
+    | **App Schema 適合** | + `@AppEntity(schema:)` / `@AppIntent(schema:)` | **新しい agentic Siri**（多ターン会話・自然な言い回し・確認や所有権の自動処理・ローカライズ） |
+  - 2026 の Group Lab は **「Siri AI との統合にはスキーマ適合が必要」**（#8011 `3:09`）と言う一方、**「advantage（優遇）という捉え方は違う」**（`21:47`）とも言っている。矛盾ではなく、**スキーマは Siri AI への入場券であって、既存 Intent を格下げするものではない**
+  - **檻との違いは残る**: 2016 は「当てはまらなければ不可能」、2026 は「部分一致でいい / `system` ドメインでいい / App Shortcuts でもいい」と**逃げ道が複数用意されている**（`3:09` / `7:08` / `58:01`）
+- **出典**: S05 / S07 / S14 / S18 の各出典 / [03-group-lab-evidence.md](03-group-lab-evidence.md)（#8011 `3:09` / `21:47`）
 
 ### S22. 軸② どこで実行されるか
 
@@ -292,6 +336,12 @@
   - **App Intents 初期**: アプリ本体に書ける。`@Dependency` でアプリの状態を直接触れる
   - **現在**: 呼出元によって**どのプロセスで走るかはシステムのヒューリスティクス**（アプリ起動中なら本体優先、未起動なら Extension を起動）。固定したければ `allowedExecutionTargets` で明示する
   - つまり「Extension が消えた」のではなく「**意識しなくてよくなった代わりに、意識すべき時に難しくなった**」。骨子② の一番の落とし穴がここ
+  - **2026 でもう 1 段増えた: システムオーケストレーター**（#8011 `8:18`）。
+    **複数アプリの App Intents を横断して実行する主体がシステム側に立った**。
+    アプリ同士が直接呼び合う API は提供されず、**プライバシーと安全性のために経路がここに集約されている**
+    → 実行主体の変遷は **`INExtension`（別プロセス）→ アプリ本体 → システムが状況で選ぶ → システムが横断で選ぶ**
+    の 4 段になった。⚠️ ただし横断するのは**アクションであってデータではない**（`53:53`）
+- **出典（追加）**: [03-group-lab-evidence.md](03-group-lab-evidence.md) §2-3 / §2-12
 - **出典**: [WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) `15:59`–`16:55` / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)
 
 ### S23. 軸③ 何を宣言するか
@@ -309,6 +359,9 @@
 
 - **見せるもの**: 「Intent = 唯一の実行経路」の構成図（UI / Widget / Control / Live Activity / Siri / Spotlight → Intent → Service → Repository）
 - **話の要点**:
+  - ⭐ **Apple 自身による「App Intents に統合するとは何をすることか」の定義**（#8011 `8:18`）:
+    **① アプリのアクションをシステムに差し出す ② コンテンツを App Entity としてモデル化する**。
+    → **中心設計の 3 原則を言う直前に置くと、「これは自分の設計思想ではなく Apple の説明です」と言える**
   - 10 年の結論を実装方針に落とすと 3 行:
     1. **アクションは全部 Intent として定義する**（出口は後から増える）
     2. **UI からも `Button(intent:)` で同じ Intent を呼ぶ**（ロジックを二重に書かない）
@@ -326,4 +379,6 @@
 - [ ] S06 の iOS 11 追加ドメイン一覧 — 一次ソース確認
 - [ ] S19 の「SiriKit deprecated」— **断定しない**。一次ソースが取れたら差し替え
 - [ ] S17 の `.foreground(.deferred)` の挙動説明 — 公式ドキュメントには詳細 semantics の明記がない（実機検証ベース）ことを踏まえた言い方に
+- [ ] **S14 / S21 の「スキーマ適合は任意」の言い切りを 2 層に直した**（2026-08-22）。`#8011 3:09` を視聴して逐語を確認する（根拠が字幕由来のため）
+- [ ] S18 に Group Lab の材料を足すか決める（固定スキーマを選んだ理由 6 点 → [03-group-lab-evidence.md](03-group-lab-evidence.md) S-2）
 - [ ] 引用のタイムスタンプは `https://developer.apple.com/videos/play/wwdcYYYY/NNN/?time=<秒>` で当日その場に飛べるようにしておく

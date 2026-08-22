@@ -187,6 +187,7 @@
     - **system intent（`OpenIntent` / `DeleteIntent`）は登録不要**。AppShortcut 無しでも意味解釈される
   - **フレーズに埋め込めるのは `AppEntity` と `AppEnum` だけ**。`String` パラメータは埋め込めない（コンパイルエラー）。文字列を取りたいなら Siri に後から聞かせる
   - ⚠️ この String 制限は公式リファレンスに明記を見つけられていない（コンパイラ挙動からの観測）。SDK メジャー更新時は再確認する
+- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「10 件上限と設計指針」「フレーズのパラメータ型制限」
 
 ### T12b. もう 1 つのメタデータ: Spotlight の属性を二重に書くと、本文だけが静かに入れ替わる
 
@@ -203,8 +204,16 @@
   - 症状: **ビルドは通る。Spotlight にも出る。検索でも見つかる。** でも**セマンティック検索に載せたかった本文が完了ステータスの固定文に置き換わりうる**。「動いている」ように見える範囲が広いぶん、T10 より気づきにくい
   - 対処: `attributeSet` には **`indexingKey:` が受け持たないキーだけ**を書く（`dueDate` / `keywords` / `displayName`）。状態は `keywords` で表現する。`displayName` は `.title` とは別キーなので衝突しない
   - **話のオチ**: 「App Intents の落とし穴は `Metadata.appintents` だけじゃなかった。**"宣言的な口" と "手で組む口" が同じ場所を指したとき、どちらが勝つかは誰も教えてくれない**」
+  - ⭐ **オチの強化（2026-08-22 / Group Lab #8011 `27:24`）**: Apple 自身がこの面倒さを認識していて、
+    **「Spotlight を触ったことがあれば indexing key の面倒さを知っているはず。"本のタイトルは display name"
+    のような対応付けは、app schemas なら全部やってある」**と言っている。開発者は
+    **「entity を定義し、スキーマに適合させ、プロパティに値を入れるだけ」**でよい、と
+    → つまり **T12b でハマったのは、まさにスキーマが肩代わりしてくれる領域を手で書いていたから**。
+      「**肩代わりされる側に居なかったので、自分でキーの衝突を踏んだ**」という言い方ができる
+    - **`IndexedEntity` とスキーマは対立ではなく相補的**とも明言（`27:24`）。
+      スキーマ = コンテンツの**形**を定義 / `IndexedEntity` = それを**セマンティックインデックスに載せる**。
+      **両方やって初めて最良の Siri AI 体験になる**
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「Phase 9」/ [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)（2026-08-21）
-- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「10 件上限と設計指針」「フレーズのパラメータ型制限」
 
 ---
 
@@ -228,13 +237,16 @@
 |---|---|---|
 | Siri / Shortcuts / UI の `Button(intent:)` | メインアプリ | `App.init()` |
 | Widget `Button(intent:)` + `.foreground(.immediate)` | メインアプリ | `App.init()` |
-| Widget / ControlWidget + `.background`（`allowedExecutionTargets` 未指定） | **ヒューリスティクス** | **両方**（`App.init()` と `WidgetBundle.init()`、保険） |
-| 同上（`allowedExecutionTargets` 明示） | 指定先に固定 | 指定先のみ |
+| Widget / ControlWidget + `.background`（`allowedExecutionTargets` 未指定 = **読み取り系**） | **ヒューリスティクス** | **両方**（`App.init()` と `WidgetBundle.init()`） |
+| **`.background` + `allowedExecutionTargets = [.main]`（書き込み系はすべてこれ）** | メインアプリに固定 | `App.init()` のみ |
 | Live Activity のボタン | メインアプリ（`perform()` は公式保証。entity 事前解決も iOS 27 実測でアプリ） | `App.init()` |
 
 - **話の要点**:
   - `AppDependencyManager.shared` は**プロセスごとに独立したインスタンス**
-  - 本プロジェクトは大半の Widget/Control Intent で `allowedExecutionTargets` を未指定にしているため、**二重登録は撤廃できない**。`CompleteTodosIntent` だけ `[.main]` 固定
+  - **本プロジェクトの現在のルール: SwiftData を書き換える Intent は必ず `allowedExecutionTargets = [.main]` を宣言する**。共有パッケージが Widget Extension にもリンクされているので、未指定だとアプリ未起動時に **Extension プロセスが同じストアの書き手になり得る**（wwdc2026-345 `16:30` が名指しで避けている構成）。現在 **13 Intent が `[.main]` 固定**
+  - **読み取り系は逆に固定しない**。アプリを起こさず Extension で応答できるほうが速い
+  - **宣言漏れはテストで検出する** — `Packages/TodoAppIntents/Tests/TodoAppIntentsTests/IntentExecutionTargetsTests.swift`。T13 の「プロセスはヒューリスティクスで決まる」に対する**運用解がこれ**
+  - したがって二重登録（`App.init()` と `WidgetBundle.init()`）は**撤廃ではなく役割分離**になった。Widget 側の `TodoService` 登録は**読み取り系 Intent・entity 解決・snippet 描画のためだけ**に残っている
   - **登録は同期で**。`App.init()` の中で `Task { @MainActor in ... }` に入れると、`perform()` が Task 完了を待たずに走って `@Dependency` 解決に失敗しうる
   - Live Activity は例外的に楽: `LiveActivityIntent` は `perform()` がアプリプロセスであることが公式保証。加えて **entity の事前解決も iOS 27 実測ではアプリプロセス**（cold start でも同じ）なので、LA Extension 側の登録は不要
   - ただしこれは **LA ボタン経由に限った話**。**Widget のタイムライン描画では `entities(for:)` が Widget Extension で走る**のを同じログ収集で観測している
@@ -299,6 +311,10 @@
     - **Control**: 成功のフィードバックは **`perform()` 完了時の自動リロードによるコントロール自身の再描画**。**失敗時だけローカル通知**（失敗すると前の状態のまま再描画されて「何も起きなかった」と区別できないため）
     - **Siri / Shortcuts 前提の Intent**: **Dialog + Snippet**。`IntentDialog(full:supporting:)` で音声単独用と視覚併用を出し分ける
     - **UI Button 中心の Intent**: dialog も通知も不要（UI が即座に反映する）
+  - ⭐ **`IntentDialog(full:supporting:)` は Apple が「あまり使われていない API」として名指しで推している**
+    （Group Lab #8011 `36:14`）。理由も具体的: **AirPods 使用時は画面が無いのでもう少し饒舌に、
+    iPad で snippet が綺麗に出るならテキストは短く**。→ **本プロジェクトの使い分けルールがこの助言と一致している**
+    ので、「Apple があまり使われていないと言っている API を、必要に迫られて使っていた」という形で出せる
 - **出典**: [../../CLAUDE.md](../../CLAUDE.md)「Dialog vs 通知の使い分け」/ [../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md)
 
 ### T19. ⭐ どうやって「Control では snippet が出ない」を確定させたか
@@ -374,6 +390,8 @@
   - **本アプリは UI も `Button(intent:)`**（＝設計の核そのもの）。サービスに届く時点で必ず Intent 経由なので、**上のどちらもそのまま当てはまらない**
   - 現状の選択: **規約違反になる donate を消す**。結果として **UI タップ由来の donation はゼロ**になった（Siri の予測精度を捨てた）。戻す手段は `AppIntent.callAsFunction(donate:)` で一部の UI 経路だけ直接実行に変えること — つまり**「全部 `Button(intent:)`」を部分的にやめる**判断が要る
   - 一方 **`deleteDonations(matching:)` は呼出元に関係なく正しい**（消えた entity への提案を残さない後片付け）ので、削除経路には入れたまま
+  - **代償の重さは 2026 で増した**: Group Lab（#8011 `21:47`）で Apple は **新しい intent donation を「Siri に影響を与える主要な手段」として押している**。ユーザーの操作を donate すると Siri が学習し、「いつもこのアプリでこの人に連絡する」を覚える。⚠️ つまり **中心設計を徹底すると、Apple が今年一番推している導線を 1 本落とすことになる**。ここは正直に言ったほうが誠実で、話も強い
+    （出典: [03-group-lab-evidence.md](03-group-lab-evidence.md) B-1）
   - **話のオチ**: 「これは**バグではなく、設計を徹底したことの帰結**です。Apple のサンプルは 2 本とも "UI はサービスを直接呼ぶ" 前提で書かれている。つまり **App Intents 中心設計は Apple が想定している標準形ではない**。徹底するなら、こういう "公式ルールを書けない場所" が出てくることを引き受ける必要がある」
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「donation は『アプリ UI 起点の操作』だけ」/ [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)（2026-08-21）/ [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md)
 
@@ -436,7 +454,7 @@
 - **話の要点**:
   - **UI テストバンドル必須**。unit test では動かない（intent を**ライブのアプリプロセス**で実行するため）。SPM の Testing パッケージでも不可
   - 型消去 API。**型名の文字列**でキーする（コンパイル時チェックなし）→ **誤りの多くは実行時に出る**。テストは「一意タイトルで作成 → 操作 → 削除」の自己クリーンアップ設計にする
-  - 本プロジェクトは既存の UI テストターゲットに追加して **22 テスト**（実行系 10 / query 系 8 / システム統合 4）
+  - 本プロジェクトは既存の UI テストターゲットに追加して **23 テスト**（実行系 10 / query 系 8 / システム統合 5）
   - ⚠️ 前提: **テストランナーとアプリの development team（署名）が一致していないと動かない**（wwdc2026-295 `2:54`）。CI や複数 Apple ID 環境で原因不明の失敗になりやすい
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「Phase 6: テスト基盤」/ Apple 公式 [Testing your App Intents code](https://developer.apple.com/documentation/AppIntentsTesting/testing-your-app-intents-code)
 
@@ -474,6 +492,12 @@
     | 部分更新の三状態 | `valueState` | Shortcuts で項目を消せなくなる |
   - **onscreen annotation は「画面ごとに」書く**。公式サンプル（CosmoTunes）は Now Playing / ライブラリの 4 セグメント / `Canvas` / タイマーカードと**面ごとに 6 本**持っている。annotation の形が面ごとに違い、独立に壊れるため。本アプリは詳細画面 1 本だけで、**リストのコレクション annotation は未テスト**
   - **`.appEntityIdentifier(forSelectionType:)` は `List` に付けたときだけ効く**。`ScrollView { VStack { ForEach } }` に付けても**黙って no-op**（アプリの見た目は 1 ピクセルも変わらない）。この形の面は行ごとの単一 `.appEntityIdentifier(_:)` に落とす。**「付け先が違うと静かに無効」という、この talk の主題そのままの例**
+    - ⭐ **深刻さの格上げ（Group Lab #8011 `33:11`）**: Apple は **「画面上のコンテンツを理解して
+      その文脈でアクションする」のを新しい Siri AI の 3 本柱のひとつ**と位置づけている
+      （API は **既存の user activity + 新しい view annotations**）。体験の説明も
+      「SwiftUI の View を作り、entity を持ち、結びつけて、喋ると思ったとおりに動く」と自信満々
+      → **「柱と呼ばれている機能なのに、付け先を間違えると黙って no-op で、見た目は 1 ピクセルも変わらない」**
+        という 1 行が作れる。⚠️ 3 本柱の残り 2 つはこの場で明示されていないので、**「3 本柱のひとつ」までにする**
   - **⚠️ 条件付き assert を書かない**。`if element.waitForExistence(...) { XCTAssert… }` は要素が見つからないと中身が一度も実行されず**緑になる**。実際にこの形で「削除がまったく動いていない」のを長期間見逃した
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「検証の梯子」/ [../devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md) / [../../CLAUDE.md](../../CLAUDE.md) テスト方針
 
@@ -531,6 +555,11 @@
   - **なぜ散文では気づけなかったのか**（ここが持ち帰り）:
     - 公式ドキュメントは **1 シンボルずつ**説明する。「`indexingKey` は attribute set を置き換えず追加する」とは書いてあるが、**同じキーを両方から書いたらどうなるかは書いていない**
     - **合成のしかた（どれとどれを一緒に書いてよいか）はサンプルにしか書いていない**。しかもサンプルはコメントで理由まで書いている（例: 「Siri は subtitle を読み上げるので `"5:00"` のような位置指定表記は避ける」← ドキュメントのどこにも無い）
+  - ⭐ **「サンプルを読む」は Apple 自身が案内している経路**（Group Lab #8011 `1:43`）:
+    - **ドキュメントページに専用の sample セクションがある**。**セッションビデオに出てきたものはそこに載る**
+    - 今年 App Intents は**セッション 5 本 + 複数のサンプルアプリ**を出し、**多くのセッションがそれを使っている**
+    - **「今年ドキュメントに大きく投資した。API の説明だけでなく、どう使うか / ユーザーにどう役立つかを書いている」**
+    - → **「サンプルを読め」は裏技ではなく公式の推奨経路。それでも自分は 4 箇所間違えていた**、という言い方にできる
   - **ただしサンプルは証拠であって権威ではない**。Apple 自身が非推奨 API を使っている（UnicornChat / PhotosDomainExample の `static let openAppWhenRun = true`。現行の綴りは `supportedModes`）。**合成のしかたを読み、個々の呼び出しは各自のドキュメントで確認する**
   - 実務的な注意: **サンプルをリポジトリの中に置かない**。Xcode の同期グループがサンプルの `.xcodeproj` を拾って、**追跡下の `project.pbxproj` に project reference を書き込む**（`.gitignore` では防げない）。実際にやって 50 行の差分が出た
   - **話のオチ**: 「T28 が『呼出元を 1 つだけ変えて比べる』、T29 が『制約は当時の SDK の話かもしれない』。3 つ目が **『Apple が書いたコードを読む』** です。全部読んだつもりでいて、サンプルを開いたら 4 箇所出ました」
@@ -553,6 +582,7 @@
 | デザイン（ユースケース）と実装（Entity-Intent）が写像する | メタデータ抽出は**静かに失敗する**。件数を直接見る運用が要る |
 | 将来の出口に自動で乗る | 毎年 API が変わる。ベータ追従コストは実在する |
 | — | **公式ルールを原理的に書けない場所が出る**。donation は「UI 起点だけ」が規約だが、UI も `Button(intent:)` にした時点で `perform()` から呼出元が見えず、条件を書き分けられない（T21b）|
+| **システムオーケストレーターに参加できる**。2026 から**複数アプリの App Intents を横断実行する主体がシステム側に立った**。アプリ同士が直接呼び合う API は無いので、**App Intents に出すことが唯一の参加手段**（#8011 `8:18`）| **横断するのはアクションであってデータではない**。セマンティックインデックスからの retrieval はアプリのサンドボックス内に閉じる（同一開発者・同一 App Group でも他アプリの donated content は引けない。#8011 `53:53`）。データを渡したいなら `Transferable` で明示的に |
 
   - 結論の言い方:
     - **App Intents 中心設計は「Siri 対応のため」ではなく「アプリの機能をどこからでも呼べる形に保つため」**
@@ -562,7 +592,16 @@
     - **`RelevantEntities`**: todo / reminders 向けの `AppEntityContext` が存在せず適合不能
     - **コア entity の `.reminders.reminder` スキーマ適合**: `list` が非 optional / `dueDate` が `DateComponents` / `locationTrigger` が `PlaceDescriptor` を強制して SSU training バグに正面衝突。**SDK 修正待ちで着手不可**と確定。ただし **list 適合 + 自前 Intent 群で新 Siri 連携自体は成立する**
     - **意図的不使用**: `DynamicOptionsProvider` / `IntentParameterDependency`（パラメータ間の動的依存が起きるユースケースが無い）
-    - **未着手（やる価値はあるが設計変更が要る）**: `UndoableIntent`。実装形は公式サンプル（CosmoTunes `DeleteAlarmIntent`）にあり、消す前に snapshot を取って**同じ id で復元する**のが要件。今の `delete` は SwiftData から実体を消すので、ソフトデリート等への設計変更とセットになる
+    - **未調査（2026-08-22 の Group Lab 突き合わせで存在が判明したもの）**:
+      | 項目 | 出典 | 状況 |
+      |---|---|---|
+      | **`FileEntity` プロトコル** — すべての App Entity で使える。ファイルベースの形式が必要なとき用 | #8011 `55:33` | 本プロジェクトの資料にまったく記載が無い。要調査 |
+      | **新しい Siri AI の「3 本柱」** | #8011 `33:11` | onscreen context がそのひとつ、とだけ判明。**残り 2 つ未確認**（#121 / #240 / #343 と突き合わせる） |
+      | **`EntityOwnership` / `OwnershipProvidingEntity` の具体的な用途** | #8011 `45:38` | 「#47 で優先度低」として保留していたが、**「自分だけの予定は黙って削除、共有中は確認を出す」という振る舞いの出し分けに使う**と判明。再評価の材料 |
+      | **App Shortcut は iPad の Apple Pencil のタップに割り当てられる** | #8011 `3:09` | 出口リスト（骨子① S16 / CLAUDE.md 展開マトリクス）に未記載 |
+    - **`UndoableIntent`: 未着手 → 実装済み（2026-08-22 / ⚠️ 現在も作業中・未コミット）**。`DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` / `DeleteTodosIntent` / `ToggleTodoCompletionIntent` の **4 本**が準拠。**当初「ソフトデリートへの設計変更とセット」と見積もっていたが、実際は不要だった** — `TodoItemSnapshot`（Domain）で消す前の値を丸ごと控え、`TodoUndoRegistrar` が `undoManager` に「同じ id で復元する」ハンドラを登録する形で足りた（公式サンプル CosmoTunes `DeleteAlarmIntent` と同じ形）
+      - **カードとして使えるオチ**: 「T29 の逆パターンです。**"設計変更が要ると思っていたら、要らなかった"**。見積もりのほうが古かった」
+      - ⚠️ **発表前に再確認**: 数字（4 本）とトグルの undo セマンティクス（逆再生ではなく元の値へ戻す）は作業が固まってから確定させる
 - **出典**: [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md) / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md) / [../../CLAUDE.md](../../CLAUDE.md)
 
 ---
@@ -570,6 +609,9 @@
 ## 発表前チェックリスト
 
 - [ ] T01 の数字（Intent 24 / 型 23 / Entity 4 / Query 4 / AppShortcut 8）を発表直前のコードで再カウント
+      - 2026-08-22 実測: **Intent ファイル 24 ✅ / AppShortcut 8 ✅**。`Entities/` は 7 ファイル・`Queries/` は 4 ファイルあるので、**「AppEntity 4 種」は `TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` / `TodoListSummaryEntity` を指す**（`TodoListType` は `AppEnum`、`TodoOrCategory` は `@UnionValue`、`NavigationDestination` は別枠）と注釈をつけないと突っ込まれる
+- [ ] **T14 を 2026-08-22 に更新済み**（`[.main]` 固定が 13 Intent / 二重登録は「撤廃不可」ではなく役割分離 / `IntentExecutionTargetsTests` で宣言漏れ検出）。**T13 → T14 が「落とし穴 → 運用解」の流れになったので、話し方も繋げ直す**
+- [ ] **T30 の `UndoableIntent` は実装済みに変わった**（⚠️ 現在も別作業で進行中・未コミット）。**発表前に数字と結論を確定**。「未着手リスト」が 1 つ減るので T30 の「代償」列とのバランスも見直す
 - [ ] T10 の件数（20 / 3 / 3 / 8→0）は当時の実測値。**現在は Intent 23 / Entity 4 / Query 4** なので「当時の実測」と断って出す
 - [ ] T12 の「フレーズに String 不可」/ T10 の「アプリあたり 1 つ」は一次ソース未確認。**観測ベースと明言する**
 - [ ] T19 / T20 / T08 の実測は iOS 27 / Xcode 27 beta 5 時点。**SDK が上がっていたら再確認**
@@ -577,4 +619,9 @@
 - [ ] スクショ類（Control Center の 2 / 1、削除ボタンが無反応、Snippet）を撮り直す
 - [ ] T12b / T21b / T29b（2026-08-21 追加）を本編に入れるか、既存カードと差し替えるかを決める
 - [ ] T29b の「間違っていた 4 件」は 2026-08-21 時点。**発表までに追加のサンプル読み合わせをしたら件数を更新する**
+- [ ] **Group Lab（#8011）由来の追記が T12b / T18 / T21b / T27 / T29b / T30 に入った**（2026-08-22）。
+      引用はすべて**自動生成キャプション由来**なので、スライドに逐語を出すものだけ視聴して裏取りする
+      （優先度と手順は [03-group-lab-evidence.md](03-group-lab-evidence.md) §0-3）
+- [ ] **§未調査 4 件**（`FileEntity` / 3 本柱の残り 2 つ / `EntityOwnership` の用途 / Apple Pencil）を
+      発表までに調べるか、「未調査」と明言して出すかを決める
 - [ ] 骨子① の S24 から続ける前提。単独発表するなら T01 の前に「App Intents とは」1 枚を足す
