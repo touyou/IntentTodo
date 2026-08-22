@@ -17,7 +17,7 @@ import AppIntents
 ///
 /// 呼出元（UI）が既に確認を取っている前提。Siri / Shortcuts から
 /// ユーザーが直接選ぶ用途には確認付きの `DeleteTodoIntent` を使う。
-public struct DeleteTodoImmediatelyIntent: AppIntent {
+public struct DeleteTodoImmediatelyIntent: UndoableIntent {
     public static var title: LocalizedStringResource { "Delete Todo Immediately" }
     public static let description = IntentDescription("Deletes a todo without asking for confirmation.")
 
@@ -46,7 +46,14 @@ public struct DeleteTodoImmediatelyIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
+        // 確認を出さない分、取り消せることの価値が大きい経路。削除前に snapshot を取る。
+        let snapshot = try todoService.snapshot(todoId: todo.id)
         try todoService.delete(todoId: todo.id)
+        TodoUndoRegistrar.registerRestore(
+            [snapshot],
+            undoManager: undoManager,
+            service: todoService
+        )
 
         // The todo no longer exists — remove any donations that reference it so the
         // system stops suggesting actions it can't perform (IntentDonationManager).

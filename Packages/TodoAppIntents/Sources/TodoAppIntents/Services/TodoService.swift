@@ -190,6 +190,36 @@ public final class TodoService {
         try repository.delete(by: uuid)
     }
 
+    // MARK: - Undo support
+
+    /// Captures everything needed to bring a todo back under the same identity.
+    ///
+    /// Call this **before** deleting. Backs the `UndoableIntent` conformance on the
+    /// delete intents — `TodoItem` is a SwiftData `@Model` and is neither valid nor
+    /// `Sendable` after deletion, so the undo handler has to hold a value copy.
+    public func snapshot(todoId: String) throws -> TodoItemSnapshot {
+        TodoItemSnapshot(try resolve(todoId: todoId))
+    }
+
+    /// Recreates a previously deleted todo from its snapshot.
+    ///
+    /// Idempotent: if a todo with that id is already present (the person undid
+    /// twice, or CloudKit brought it back first) the existing one wins and is
+    /// returned untouched, rather than inserting a duplicate under the same id.
+    @discardableResult
+    public func restore(_ snapshot: TodoItemSnapshot) throws -> TodoAppEntity {
+        defer { Self.dataDidChange() }
+        if let existing = try repository.fetch(by: snapshot.id) {
+            return TodoAppEntity(from: existing)
+        }
+        let category = try snapshot.categoryID.flatMap { try repository.fetchCategory(by: $0) }
+        let item = snapshot.makeTodoItem(category: category)
+        try repository.create(item)
+        let entity = TodoAppEntity(from: item)
+        reindexSpotlight(entity)
+        return entity
+    }
+
     public func snooze(
         todoId: String,
         by interval: TimeInterval = TodoService.defaultSnoozeInterval

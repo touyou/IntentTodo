@@ -58,6 +58,15 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         return try modelContext.fetch(descriptor).first
     }
 
+    public func fetchCategory(by id: UUID) throws -> Domain.Category? {
+        let predicate = #Predicate<Domain.Category> { category in
+            category.id == id
+        }
+        var descriptor = FetchDescriptor<Domain.Category>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
+    }
+
     public func incompleteCount() throws -> Int {
         // fetchCount counts at the store level without materializing TodoItem
         // instances into memory (Apple: "without the overhead of fetching the

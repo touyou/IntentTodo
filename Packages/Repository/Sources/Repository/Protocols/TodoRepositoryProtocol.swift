@@ -43,6 +43,12 @@ public protocol TodoRepositoryProtocol {
     /// when no incomplete todo has a due date.
     func fetchMostUrgentIncomplete() throws -> TodoItem?
 
+    /// Fetches a category by its ID. Returns `nil` when not found.
+    ///
+    /// Needed to re-attach the category relation when a deleted todo is restored
+    /// from a `TodoItemSnapshot` (relations can't be carried in a value type).
+    func fetchCategory(by id: UUID) throws -> Domain.Category?
+
     /// Returns the number of incomplete todo items without materializing them.
     ///
     /// Implementations should count at the store level (e.g.

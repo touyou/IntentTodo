@@ -16,6 +16,10 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
 
     private var todos: [UUID: TodoItem] = [:]
 
+    /// Categories reachable by `fetchCategory(by:)`. Populated from whatever the
+    /// stored todos reference, plus anything a test registers explicitly.
+    private var categories: [UUID: Domain.Category] = [:]
+
     // MARK: - Initialization
 
     public init() {}
@@ -24,12 +28,22 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
     /// - Parameter initialTodos: The initial todo items to populate.
     public init(initialTodos: [TodoItem]) {
         todos = Dictionary(uniqueKeysWithValues: initialTodos.map { ($0.id, $0) })
+        for todo in initialTodos {
+            register(todo.category)
+        }
+    }
+
+    /// Makes a category resolvable by `fetchCategory(by:)` without going through a todo.
+    public func register(_ category: Domain.Category?) {
+        guard let category else { return }
+        categories[category.id] = category
     }
 
     // MARK: - Create
 
     public func create(_ todo: TodoItem) throws {
         todos[todo.id] = todo
+        register(todo.category)
     }
 
     // MARK: - Read
@@ -64,6 +78,10 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
         todos.values
             .filter { !$0.isCompleted && $0.dueDate != nil }
             .min { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
+    }
+
+    public func fetchCategory(by id: UUID) throws -> Domain.Category? {
+        categories[id]
     }
 
     public func incompleteCount() throws -> Int {

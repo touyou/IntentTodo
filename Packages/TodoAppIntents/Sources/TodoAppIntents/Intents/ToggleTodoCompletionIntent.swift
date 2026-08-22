@@ -11,7 +11,9 @@ import Domain
 #endif
 import AppIntents
 
-public struct ToggleTodoCompletionIntent: AppIntent {
+/// `UndoableIntent`: 取り消しはトグルの逆再生ではなく「元の値へ戻す」。
+/// 理由は `TodoUndoRegistrar.registerCompletionChange` のコメント参照。
+public struct ToggleTodoCompletionIntent: UndoableIntent {
     public static var title: LocalizedStringResource { "Toggle Todo Completion" }
 
     public static var description: IntentDescription {
@@ -48,6 +50,12 @@ public struct ToggleTodoCompletionIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
         let result = try todoService.toggleCompletion(todoId: todo.id)
+        TodoUndoRegistrar.registerCompletionChange(
+            todoId: todo.id,
+            previousValue: !result.isNowCompleted,
+            undoManager: undoManager,
+            service: todoService
+        )
 
         #if os(iOS)
         if result.isNowCompleted {

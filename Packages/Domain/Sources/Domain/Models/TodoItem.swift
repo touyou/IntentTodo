@@ -126,4 +126,47 @@ public final class TodoItem {
         self.category = nil
         self.subTasks = []
     }
+
+    /// Recreates a todo with an explicit identifier and timestamps.
+    ///
+    /// Used to bring a deleted todo back (`TodoItemSnapshot.makeTodoItem(category:)`).
+    /// Restoring **under the original `id`** is what keeps the Spotlight index entry,
+    /// donations, and any `TodoAppEntity` a widget / Live Activity still holds
+    /// pointing at the same thing — a fresh UUID would silently orphan all of them.
+    ///
+    /// The ordinary `init(title:…)` deliberately doesn't take an id so normal
+    /// creation can't accidentally collide with an existing todo.
+    public init(
+        id: UUID,
+        title: String,
+        todoDescription: String? = nil,
+        isCompleted: Bool = false,
+        isFavorite: Bool = false,
+        dueDate: Date? = nil,
+        estimatedDuration: TimeInterval? = nil,
+        assigneeName: String? = nil,
+        locationName: String? = nil,
+        locationLatitude: Double? = nil,
+        locationLongitude: Double? = nil,
+        createdAt: Date,
+        modifiedAt: Date,
+        sortIndex: Int
+    ) {
+        self.id = id
+        self.title = title
+        self.todoDescription = todoDescription
+        self.isCompleted = isCompleted
+        self.isFavorite = isFavorite
+        self.dueDate = dueDate
+        self.estimatedDuration = estimatedDuration
+        self.assigneeName = assigneeName
+        self.locationName = locationName
+        self.locationLatitude = locationLatitude
+        self.locationLongitude = locationLongitude
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+        self.sortIndex = sortIndex
+        self.category = nil
+        self.subTasks = []
+    }
 }

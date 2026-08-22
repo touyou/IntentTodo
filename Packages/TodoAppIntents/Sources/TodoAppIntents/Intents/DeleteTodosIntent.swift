@@ -8,6 +8,7 @@
 //
 
 import AppIntents
+import Domain
 
 /// Deletes one or more todos.
 ///
@@ -15,7 +16,7 @@ import AppIntents
 /// (the associated `Entity` type is inferred from it). Modeling delete as a
 /// collection is why this is separate from the single-item `DeleteTodoIntent`,
 /// which UI `Button(intent:)` calls drive with one `TodoAppEntity`.
-public struct DeleteTodosIntent: DeleteIntent {
+public struct DeleteTodosIntent: DeleteIntent, UndoableIntent {
     public static var title: LocalizedStringResource { "Delete Todos" }
 
     public static var description: IntentDescription {
@@ -55,7 +56,10 @@ public struct DeleteTodosIntent: DeleteIntent {
             dialog: IntentDialog(deletionPrompt)
         )
 
+        // バッチ全体を 1 つの undo にまとめたいので、消しながら snapshot を貯める。
+        var snapshots: [TodoItemSnapshot] = []
         for entity in entities {
+            snapshots.append(try todoService.snapshot(todoId: entity.id))
             try todoService.delete(todoId: entity.id)
             // Drop donations referencing a now-deleted todo so the system stops
             // suggesting actions it can no longer perform (IntentDonationManager).
@@ -63,6 +67,11 @@ public struct DeleteTodosIntent: DeleteIntent {
                 matching: .entityIdentifiers([EntityIdentifier(for: entity)])
             )
         }
+        TodoUndoRegistrar.registerRestore(
+            snapshots,
+            undoManager: undoManager,
+            service: todoService
+        )
 
         return .result()
     }

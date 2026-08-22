@@ -6,7 +6,10 @@
 import AppIntents
 
 /// Deletes a todo item.
-public struct DeleteTodoIntent: AppIntent {
+///
+/// `UndoableIntent`: 消す前にスナップショットを取り、`undoManager` に「同じ id で
+/// 戻す」ハンドラを積む。詳細: `TodoUndoRegistrar` / `TodoItemSnapshot`
+public struct DeleteTodoIntent: UndoableIntent {
     public static var title: LocalizedStringResource { "Delete Todo" }
 
     public static var description: IntentDescription {
@@ -45,7 +48,15 @@ public struct DeleteTodoIntent: AppIntent {
         try await requestConfirmation(
             dialog: IntentDialog("Delete “\(todo.title)”?")
         )
+
+        // 削除前に取る。消したあとの `TodoItem` からは何も読めない。
+        let snapshot = try todoService.snapshot(todoId: todo.id)
         try todoService.delete(todoId: todo.id)
+        TodoUndoRegistrar.registerRestore(
+            [snapshot],
+            undoManager: undoManager,
+            service: todoService
+        )
 
         // The todo no longer exists — remove any donations that reference it so the
         // system stops suggesting actions it can't perform (IntentDonationManager).

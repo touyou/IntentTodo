@@ -47,4 +47,22 @@ public final class SubTask {
         self.orderIndex = orderIndex
         self.parentTodo = nil
     }
+
+    /// Recreates a sub-task with an explicit identifier.
+    ///
+    /// Counterpart to `TodoItem.init(id:…)` — sub-tasks are cascade-deleted with
+    /// their parent, so undoing a deletion has to bring them back under the same
+    /// ids as well. 詳細: `TodoItemSnapshot`
+    public init(
+        id: UUID,
+        title: String,
+        isCompleted: Bool,
+        orderIndex: Int
+    ) {
+        self.id = id
+        self.title = title
+        self.isCompleted = isCompleted
+        self.orderIndex = orderIndex
+        self.parentTodo = nil
+    }
 }
