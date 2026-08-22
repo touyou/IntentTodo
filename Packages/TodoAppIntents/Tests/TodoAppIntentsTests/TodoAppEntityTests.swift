@@ -124,10 +124,11 @@ struct TodoAppEntityTests {
         #expect(entity.isOverdue == false)
     }
 
-    @Test("TypeDisplayRepresentation is configured")
+    @Test("TypeDisplayRepresentation names the type")
     func typeDisplayRepresentationConfigured() {
         let representation = TodoAppEntity.typeDisplayRepresentation
-        #expect(representation.name != nil)
+
+        #expect(String(localized: representation.name) == "Todo")
     }
 
     @Test("DisplayRepresentation shows correct title")
@@ -135,9 +136,20 @@ struct TodoAppEntityTests {
         let entity = TodoAppEntity(id: "test-id", title: "My Todo")
         let representation = entity.displayRepresentation
 
-        // DisplayRepresentation.title contains LocalizedStringResource
-        // We verify it exists
-        #expect(representation.title != nil)
+        // 補間形式（キーは "%@"）で渡しているので、解決すると実行時の値そのものになる。
+        // `LocalizedStringResource(stringLiteral:)` に退行すると、存在しないキーの
+        // 引きになってここが "My Todo" 以外に化ける。
+        #expect(String(localized: representation.title) == "My Todo")
+    }
+
+    /// `synonyms:` は Siri のマッチ幅を広げるためのもので、アプリ内の表示には出ない。
+    /// 落としても画面上は何も変わらないため、ここで押さえる。
+    @Test("DisplayRepresentation offers synonyms for Siri matching")
+    func displayRepresentationOffersSynonyms() {
+        let entity = TodoAppEntity(id: "test-id", title: "My Todo")
+        let synonyms = entity.displayRepresentation.synonyms.map { String(localized: $0) }
+
+        #expect(synonyms == ["My Todo todo", "My Todo task"])
     }
 
     @Test("DisplayRepresentation shows completed status")
@@ -174,9 +186,8 @@ struct TodoAppEntityTests {
         #expect(representation.subtitle == nil)
     }
 
-    @Test("DefaultQuery is configured")
+    @Test("DefaultQuery is TodoEntityQuery")
     func defaultQueryConfigured() {
-        let query = TodoAppEntity.defaultQuery
-        #expect(query != nil)
+        #expect(TodoAppEntity.DefaultQuery.self == TodoEntityQuery.self)
     }
 }

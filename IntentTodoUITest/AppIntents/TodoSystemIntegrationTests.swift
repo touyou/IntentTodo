@@ -10,6 +10,11 @@ import AppIntents
 import AppIntentsTesting
 import XCTest
 
+/// `XCUIApplication` まわりの API は `@MainActor` なので、それを触るテストは
+/// クラスごと MainActor に載せる。付けないと "Call to main actor-isolated instance
+/// method … in a synchronous nonisolated context" 系の警告が出る（Swift 6 言語モードでは
+/// エラーになる）。
+@MainActor
 final class TodoSystemIntegrationTests: AppIntentsTestCase {
     // MARK: - Onscreen entity（view annotation）
 
