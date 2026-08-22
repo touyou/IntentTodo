@@ -698,14 +698,103 @@ T21b のオチをこう変えられる:
 > **『Siri に影響を与える主要な手段』として推している**。つまり中心設計は、**今年一番の推し機能を
 > 1 本諦める**ことになります。そこまで引き受けるかどうか、という話です」
 
-### 4-4. 本プロジェクトの資料に無かった項目（今回の突き合わせで出てきた）
+### 4-4. 資料に無かった項目 → **全 4 件、調査完了（2026-08-22）**
 
-| 項目 | 出典 | 状況 |
-|---|---|---|
-| **App Shortcuts は iPad の Apple Pencil のタップに割り当てられる** | `3:09` | 未記載。出口リスト（骨子① S16 / CLAUDE.md 展開マトリクス）に足す価値あり |
-| **`FileEntity` プロトコル（すべての App Entity で使える）** | `55:33` | 未調査。`docs/APP_INTENTS_CENTRIC_PLAN.md` の「未着手の候補」に追加検討 |
-| **新しい Siri AI の「3 本柱」** | `33:11` | onscreen context がそのひとつ、とだけ。**残り 2 つは未確認**。#121 / #240 / #343 と突き合わせる |
-| **entity ownership が「共有かどうかで確認の有無を変える」ために使われる** | `45:38` | `EntityOwnership` / `OwnershipProvidingEntity` は「#47 で優先度低」として保留中。**用途の具体が判明した**ので再評価の材料になる |
+#### ① 新しい Siri の「3 本柱」— **判明**
+
+Group Lab（`33:11`）が「3 本柱のひとつ」と言っていたものの正体は、**#240 の冒頭で明示されている**:
+
+> **`1:51`** *"This year, Siri becomes more powerful in three key ways."*
+> — wwdc2026-240「Build intelligent Siri experiences with App Schemas」`1:51`–`2:37`
+
+| # | 柱 | 内容 | 例（Apple のデモ） |
+|---|---|---|---|
+| **①** | **entities へのアクセス** | アプリの中の**意味のある実コンテンツ**に到達する。「何が meeting なのか」「どの meeting が関連するか」「どのプロパティを返すか」をアプリの定義から理解する | 「次のミーティングはいつどこ？」に **Siri が直接答える** |
+| **②** | **intents によるアクション実行** | アプリがサポートするアクション・必要なパラメータ・**いつ実行して安全か**を Intent が記述する。**言語理解は Siri が担当し、アプリはアクションに集中する** | 「最新のレポートを Mary に送って」 |
+| **③** | **onscreen context の理解** | 画面上に見えているものを理解し、その文脈でアクションする | Group Lab `33:11` が語っていたのはこれ |
+
+⭐ **これは骨子の主張とそのまま一致する**: **Entity（名詞）+ Intent（動詞）+ 文脈**。
+つまり Apple は **「Siri が強くなる 3 つの方向」を Entity / Intent / Onscreen で説明している**。
+**骨子① S23（何を宣言するか: 動詞 → 名詞 → 表示 → 文脈）の裏付けとして直接使える。**
+
+- ⚠️ Group Lab は "three pillars"、#240 は "three key ways" と言い方が違う。**#240 のほうが一次ソースとして強い**
+  （編集済みトランスクリプトがある / セッションの構成そのものがこの 3 分割になっている）
+- 併せて #240 `9:41`–`11:59` に **「Intent と App Schema の関係」の最良の説明**がある:
+  - Intent を定義するだけで **Shortcuts / Spotlight / ウィジェットなどに出る。Siri 無しでも価値がある**
+  - **スキーマは App Intents の "specialization"**。≈ *"They're still App Intents, but shaped in a way that Siri knows how to process."*
+  - **ドメインは「アプリと Siri の間の契約のカテゴリ」** ≈ *"categories of contracts between your app and Siri"*
+  - → **§4-1 の 2 層整理を、Apple 自身の言葉で説明できる**。「スキーマは別物ではなく App Intents の特殊化」
+
+#### ② `FileEntity` — **判明。ただし 2024 の API で、本アプリには非該当**
+
+- **初出は WWDC 2024**（#10134 `9:01`–`10:40`）。**2026 の新機能ではない**
+- 現行の宣言（公式ドキュメント）:
+  ```swift
+  protocol FileEntity: AppEntity where Self.ID == FileEntityIdentifier
+  ```
+  - **`static var supportedContentTypes: [UTType]` の提供が追加要件**
+  - **`id` は `FileEntityIdentifier` でなければならない**。URL から作るか、ファイル未作成なら **draft identifier** として作る
+  - ⭐ **`FileEntityIdentifier` は URL の bookmark data を使うので、ファイルが移動・改名されても entity は有効なまま**
+- 効能: ≈ *"Siri and Shortcuts can facilitate secure access to your file in other apps, allowing them to directly access the file"*（#10134 `10:05`）。
+  例として「別アプリの `RotateImageIntent` が、自分の `PhotoEntity` の裏にあるファイルに安全にアクセスして回転させる」
+- ⭐ **`files` ドメインのスキーマが存在する**（`@AppEntity(schema: .files.file)`）。
+  **本プロジェクトの資料はこのドメインの存在自体を把握していなかった**。対応する system experience は **Siri / Shortcuts**
+- **`IntentFile` は別物**。ディスク上 / メモリ上のデータをパラメータとして渡すための型（`init(data:filename:type:)` / `init(fileURL:filename:type:)`）
+- **本アプリへの適用**: ❌ **非該当**。Todo はファイルベースのコンテンツを持たない（`FileEntity` はドキュメント系 / ファイル管理系アプリ向け）。
+  **「未着手の候補」ではなく「対象外」に分類するのが正しい**
+- **発表での使い所**: Group Lab `55:33` の「スキーマ = 相互運用のプロトコル」の具体例として。
+  **メッセージを写真として export すると、`.photos` スキーマを採用した任意のサードパーティ写真アプリに import できる** ——
+  この「アプリ間でコンテンツが流通する」話の下回りが `FileEntity` / `Transferable`
+
+#### ③ `EntityOwnership` / `OwnershipProvidingEntity` — **判明。用途は「確認ダイアログの出し分け」**
+
+公式ドキュメントで用途がはっきりした:
+
+```swift
+protocol OwnershipProvidingEntity: AppEntity {
+    var ownership: EntityOwnership { get }
+}
+```
+
+- **`EntityOwnership` は OptionSet 的なフラグ**: **`.public`（公開）/ `.shared`（特定の共同編集者と共有）/ `.unknown`（不明・未指定）**。
+  組み合わせ可（`[.shared, .public]`）
+- ⭐ **公式の説明**: 削除・更新のような破壊的 / センシティブな操作について、アプリ側が確認を求められるのに加え、
+  **Apple Intelligence と Siri も確認を求めうる**。`OwnershipProvidingEntity` に準拠すると、
+  **共有 / 公開されている entity にアクションするとき、システムが適切な文脈つきの確認ダイアログを出す**
+- 公式サンプルは `@AppEntity(schema: .photos.album)` に対して `isSharedWithFamily` / `isPublicAlbum` から
+  `ownership` を組み立てている
+- **Group Lab（`45:38`）の説明と一致**: 「自分だけのイベントなら削除される。他の人と共有されているなら確認を追加したい」
+- ⭐ **骨子② への効き方が大きい**:
+  - **T20（`requestConfirmation` を含む Intent はアプリ内 `Button(intent:)` から呼べない）と対になる**。
+    `requestConfirmation` が**アプリが明示的に取る確認**なのに対し、`OwnershipProvidingEntity` は
+    **システムが所有権を見て自動で出す確認**。**「確認を取る」に 2 系統ある**という整理ができる
+  - **§2-11 の理由 ⑤（所有権を推論して振る舞いを変えられる）の実体がこれ**。
+    「スキーマに嵌めると、確認を出すかどうかの判断までシステムが肩代わりする」の具体
+- **本アプリへの適用**: ⚠️ **現状は非該当**。Todo は個人利用主体で共有機能が無いため `ownership` は常に
+  `.unknown`（または空）になる。**「優先度低」の判断は妥当だったが、理由が変わる** ——
+  「用途が分からないから低」ではなく **「共有機能が無いから該当しない」**。
+  **共有 Todo を実装するなら真っ先に必要になる**、と言い切れる
+
+#### ④ Apple Pencil — **判明。ただし Group Lab の言い方が不正確**
+
+- Group Lab の字幕は ≈ *"you can even use it on the iPad if you want to tap on an Apple Pencil"*（`3:09`）だが、
+  **実際の機能は「タップ」ではなく `Apple Pencil Pro` の「スクイーズ（squeeze）」**
+- 一次ソース:
+  - wwdc2024-10134 `0:11` — Action Button と並んで **"the new Apple Pencil squeeze"**
+  - wwdc2024-10210 `4:34` — 「今年は Camera capture、**Apple Pencil Pro: squeeze** を追加」
+  - wwdc2025-244 `9:04` — App Shortcuts は **"the Action Button or Apple Pencil squeeze"** から実行するよう設定できる
+- ⭐ **一番強い事実**（wwdc2024-10210 `22:11`/`22:30`）:
+  - Spotlight と Siri は**自動**。ユーザーはアプリを入れる以外に何もしなくていい。
+    カスタマイズしたければ **Action Button と Apple Pencil Pro でも App Shortcuts が使える**。
+    ≈ *"So that's four features for one piece of code."*
+  - ⭐ **「既に App Shortcuts があるなら、Apple Pencil Pro でもう動いている。去年 Action Button で
+    自動的に動いたのと同じ」** ≈ *"if you have existing App Shortcuts? They already work with Apple Pencil Pro, same as they automatically worked with the Action button last year."*
+- **発表での使い所**: **骨子① S16「出口は毎年勝手に増える」の最良の実例**。
+  **「新しい出口が増えたとき、既に書いてあるものが何も書かずに乗った」**という証言が Apple 自身から出ている。
+  HomePod（`35:40`、App Shortcuts が先に届いていた）と**同じ構図が 2 回起きている**
+- ⚠️ **本プロジェクトの資料（CLAUDE.md 展開マトリクス / 骨子① S16）に Apple Pencil が入っていない**。
+  「物理的なトリガーが自然 → Action Button」の行に **Apple Pencil Pro squeeze** を足すべき
+- ⚠️ **スライドで「タップ」と書かない**。Group Lab の字幕は口語の粗起こしで、正しくは **squeeze**
 
 ---
 

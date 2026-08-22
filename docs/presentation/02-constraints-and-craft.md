@@ -322,6 +322,7 @@
 - **見せるもの**: 出典が割れている表 → 比較実験の表、の 2 段
 - **話の要点**:
   - 公式の記述が**割れていた**:
+
     | 出典 | 示唆 |
     |---|---|
     | AppIntents [Visual presentation](https://developer.apple.com/documentation/AppIntents/visual-presentation) | "**Siri, Spotlight, and the Shortcuts app** display snippets" — Control は列挙されない |
@@ -329,6 +330,7 @@
     | **wwdc2025-275 `1:40`–`1:59`** | "**I'll tap on the control that runs an App Intent** […] the intent will show a snippet" — コントロールから出ているように見える |
   - **肯定リストは Control を明示的に除外していない**ので「列挙に無い＝出ない」とは読めない。実際この推論で**一度設計を誤った**
   - そこで **呼出元だけを変えて同じ Intent・同じ snippet を走らせた**:
+
     | 条件 | 結果 |
     |---|---|
     | Spotlight → `ShowTodoCountIntent`（→ `TodoSummarySnippetIntent`） | **出る** ✅ |
@@ -347,6 +349,7 @@
   - 実際に **詳細画面の削除ボタンが長期間まったく動いていなかった**
   - Siri / Shortcuts / AppIntentsTesting 経由なら**成功する**。だから **AppIntentsTesting では検出できない** → **UI テストが必要**
   - 対処: **確認は SwiftUI 側で取り、実行は確認なし版の Intent に渡す**
+
     | 経路 | 確認の取り方 | 実行する Intent |
     |---|---|---|
     | 詳細画面の削除ボタン | `.confirmationDialog` + `@State` | `DeleteTodoImmediatelyIntent` |
@@ -383,6 +386,7 @@
   - ところが **`perform()` は呼出元を判別できない**。`systemContext`（`IntentSystemContext`）が持つのは `currentMode` と `isVoiceOnly` だけで、invocation source に相当するプロパティが無い
   - つまり `perform()` の末尾で `donate()` を呼ぶと、**Siri / Shortcuts 起点の実行でも必ず走る** = 公式が「するな」と言っている donate をしてしまう。しかも**エラーにもならないので気づかない**（今回撤去するまで実際にそうなっていた）
   - **公式サンプルの回避策はどちらも「UI が Intent を通らない」前提**:
+
     | サンプル | 形 |
     |---|---|
     | CometCal | サービスメソッドに `donateIntent:` フラグ。UI 経路は既定 `true`、Intent 側が `false` を明示して抜ける |
@@ -482,6 +486,7 @@
     4. **Siri** — 自然言語・entity 解決・onscreen・cross-app の end-to-end
   - **4 は自動化できない**。wwdc2026-295 `24:46` も "be sure to test your intents **manually** with Siri and the Shortcuts app" と明示。`AppIntentsTesting` の公開 API に `shortcut` / `phrase` / `siri` / `utterance` に相当するシンボルは 1 つも無い（swiftinterface 全文検索で 0 件）
   - **テストに寄せられる観点は積極的に寄せる**（落ちても他のテストでは捕まらないもの優先）:
+
     | 観点 | API | 落ちたときの症状 |
     |---|---|---|
     | entity の id 解決 | `entities(identifiers:)` | Live Activity / Widget のボタンが無反応 |
@@ -541,6 +546,7 @@
   - それでも**間違っていた箇所: 4**（WWDC 2026 の公式サンプル 4 本を読んだ結果）
 - **話の要点**:
   - WWDC 2026 の App Intents 系サンプルは 4 本（session 240 / 295 / 343 / 344）:
+
     | サンプル | ドメイン |
     |---|---|
     | CometCal | カレンダー（`@AppEntity(schema: .calendar.*)`、AppIntentsTesting 一式）|
@@ -592,13 +598,18 @@
     - **`RelevantEntities`**: todo / reminders 向けの `AppEntityContext` が存在せず適合不能
     - **コア entity の `.reminders.reminder` スキーマ適合**: `list` が非 optional / `dueDate` が `DateComponents` / `locationTrigger` が `PlaceDescriptor` を強制して SSU training バグに正面衝突。**SDK 修正待ちで着手不可**と確定。ただし **list 適合 + 自前 Intent 群で新 Siri 連携自体は成立する**
     - **意図的不使用**: `DynamicOptionsProvider` / `IntentParameterDependency`（パラメータ間の動的依存が起きるユースケースが無い）
-    - **未調査（2026-08-22 の Group Lab 突き合わせで存在が判明したもの）**:
-      | 項目 | 出典 | 状況 |
+    - **2026-08-22 の Group Lab 突き合わせで出てきた 4 件 — 調査完了**（詳細: [03-group-lab-evidence.md](03-group-lab-evidence.md) §4-4）:
+
+      | 項目 | 結論 | 本アプリへの適用 |
       |---|---|---|
-      | **`FileEntity` プロトコル** — すべての App Entity で使える。ファイルベースの形式が必要なとき用 | #8011 `55:33` | 本プロジェクトの資料にまったく記載が無い。要調査 |
-      | **新しい Siri AI の「3 本柱」** | #8011 `33:11` | onscreen context がそのひとつ、とだけ判明。**残り 2 つ未確認**（#121 / #240 / #343 と突き合わせる） |
-      | **`EntityOwnership` / `OwnershipProvidingEntity` の具体的な用途** | #8011 `45:38` | 「#47 で優先度低」として保留していたが、**「自分だけの予定は黙って削除、共有中は確認を出す」という振る舞いの出し分けに使う**と判明。再評価の材料 |
-      | **App Shortcut は iPad の Apple Pencil のタップに割り当てられる** | #8011 `3:09` | 出口リスト（骨子① S16 / CLAUDE.md 展開マトリクス）に未記載 |
+      | **`FileEntity`** | **2024 の API**（#10134 `9:01`–`10:40`）。`id` が `FileEntityIdentifier` である必要があり、URL の bookmark data を使うので**ファイルを移動・改名しても entity が有効**。`files` ドメインのスキーマ（`.files.file`）も存在する | ❌ **対象外**。Todo はファイルベースのコンテンツを持たない。「未着手の候補」ではなく「対象外」に分類し直す |
+      | **新しい Siri の「3 本柱」** | #240 `1:51` が明示: **① entities へのアクセス ② intents によるアクション実行 ③ onscreen context の理解** | 骨子① S23 の裏付けとして使う |
+      | **`EntityOwnership` / `OwnershipProvidingEntity`** | 用途は**確認ダイアログの出し分け**。`.public` / `.shared` / `.unknown` のフラグを返すと、**共有 / 公開 entity への破壊的操作でシステムが文脈つきの確認を出す** | ⚠️ **現状は非該当**（共有機能が無いので常に `.unknown`）。ただし**「優先度低」の理由が変わる** — 用途不明だからではなく**該当機能が無いから**。共有 Todo を作るなら真っ先に必要 |
+      | **Apple Pencil** | **「タップ」ではなく `Apple Pencil Pro` の「スクイーズ」**（2024 / iOS 18）。⭐ **既存の App Shortcuts が何も書かずにそのまま動いた** | 骨子① S16 の「出口は勝手に増える」の実例に追加済み |
+
+      - ⭐ **`OwnershipProvidingEntity` は T20 と対になる**。`requestConfirmation` が**アプリが明示的に取る確認**なのに対し、
+        こちらは**システムが所有権を見て自動で出す確認**。**「確認を取る」に 2 系統ある**という整理ができる。
+        そして後者は **スキーマに嵌めた見返りとして付いてくる**（骨子① S18b の理由 ⑤ の実体）
     - **`UndoableIntent`: 未着手 → 実装済み（2026-08-22 / ⚠️ 現在も作業中・未コミット）**。`DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` / `DeleteTodosIntent` / `ToggleTodoCompletionIntent` の **4 本**が準拠。**当初「ソフトデリートへの設計変更とセット」と見積もっていたが、実際は不要だった** — `TodoItemSnapshot`（Domain）で消す前の値を丸ごと控え、`TodoUndoRegistrar` が `undoManager` に「同じ id で復元する」ハンドラを登録する形で足りた（公式サンプル CosmoTunes `DeleteAlarmIntent` と同じ形）
       - **カードとして使えるオチ**: 「T29 の逆パターンです。**"設計変更が要ると思っていたら、要らなかった"**。見積もりのほうが古かった」
       - ⚠️ **発表前に再確認**: 数字（4 本）とトグルの undo セマンティクス（逆再生ではなく元の値へ戻す）は作業が固まってから確定させる
@@ -622,6 +633,6 @@
 - [ ] **Group Lab（#8011）由来の追記が T12b / T18 / T21b / T27 / T29b / T30 に入った**（2026-08-22）。
       引用はすべて**自動生成キャプション由来**なので、スライドに逐語を出すものだけ視聴して裏取りする
       （優先度と手順は [03-group-lab-evidence.md](03-group-lab-evidence.md) §0-3）
-- [ ] **§未調査 4 件**（`FileEntity` / 3 本柱の残り 2 つ / `EntityOwnership` の用途 / Apple Pencil）を
-      発表までに調べるか、「未調査」と明言して出すかを決める
+- [x] ~~§未調査 4 件~~ → **2026-08-22 に 4 件とも調査完了**（[03-group-lab-evidence.md](03-group-lab-evidence.md) §4-4）
+- [ ] CLAUDE.md の展開マトリクス「物理的なトリガーが自然」の行に **Apple Pencil Pro squeeze** を足す（現在 Action Button のみ）
 - [ ] 骨子① の S24 から続ける前提。単独発表するなら T01 の前に「App Intents とは」1 枚を足す

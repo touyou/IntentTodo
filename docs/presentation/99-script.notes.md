@@ -48,16 +48,6 @@
   > — Apple 公式 [Creating your first app intent](https://developer.apple.com/documentation/AppIntents/Creating-your-first-app-intent#Customize-your-app-intents-description-and-behavior)
 - 言い換え案: 「プロトコル的に必須なのは title と perform だけです。ただ実際には description と isDiscoverable、parameterSummary までを 1 セットで書くのが Apple の推奨です」
 
-### A-6. ⚠️ 「App Schema 適合は任意」は 2 層に分けて話す（F. 想定 Q&A の修正）
-
-- Group Lab（#8011 `3:09`）で **「新しい Siri AI との統合にはスキーマ適合が必要」**と明言されている。
-  一方 `21:47` では **「advantage（優遇）という捉え方は違う」**とも言っている。矛盾ではなく **2 層**:
-  - **App Intents（スキーマ不要）** → Shortcuts / Spotlight / ウィジェット / コントロール / ライブアクティビティ / 従来の Siri フレーズ
-  - **App Schema 適合** → **新しい agentic Siri（多ターン会話・自然な言い回し・確認や所有権の自動処理・ローカライズ）**
-- F の「Apple Intelligence / Siri AI 対応は必須？ → 必須ではない」は **「任意」ではなく「どこまで行きたいかで決まる」**に直す
-- ⚠️ 根拠が**字幕由来の粗起こし**なので、スライドに断定で書くなら `3:09` を視聴して逐語確認
-- 詳細: [03-group-lab-evidence.md](03-group-lab-evidence.md)
-
 ### A-4. 「AppEntity はパラメータをつけるときに出てくる」（L28）
 
 - 半分正しいが狭い。`AppEntity` はパラメータだけでなく **戻り値・Spotlight インデックス・画面上のコンテンツ提供（onscreen）・他アプリへの受け渡し**にも使う
@@ -72,6 +62,16 @@
   - つまり「宣言的」の本質は見た目の書き味だけでなく、**宣言そのものがビルド生成物になる**こと。この 1 行があると「単に書き方が変わっただけでは？」というツッコミを先に潰せる
     > "your intents are compiled into a metadata representation … containing information received from the Swift compiler as it runs on your code" — wwdc2022-10032 `29:12`
 - 「名前から Siri という単語を抜いたことに伴って適用範囲が増えた」→ **良い切り口**。裏付けとして: App Intents は Siri を一度も使わなくても価値が出る（本プロジェクトはウィジェット / コントロールセンター / ライブアクティビティ / Spotlight / アプリ内 UI で日常的に使っている）。ここは後半の「なるべく多くの面で活用する」に繋がる
+
+### A-6. ⚠️ 「App Schema 適合は任意」は 2 層に分けて話す（F. 想定 Q&A の修正）
+
+- Group Lab（#8011 `3:09`）で **「新しい Siri AI との統合にはスキーマ適合が必要」**と明言されている。
+  一方 `21:47` では **「advantage（優遇）という捉え方は違う」**とも言っている。矛盾ではなく **2 層**:
+  - **App Intents（スキーマ不要）** → Shortcuts / Spotlight / ウィジェット / コントロール / ライブアクティビティ / 従来の Siri フレーズ
+  - **App Schema 適合** → **新しい agentic Siri（多ターン会話・自然な言い回し・確認や所有権の自動処理・ローカライズ）**
+- F の「Apple Intelligence / Siri AI 対応は必須？ → 必須ではない」は **「任意」ではなく「どこまで行きたいかで決まる」**に直す
+- ⚠️ 根拠が**字幕由来の粗起こし**なので、スライドに断定で書くなら `3:09` を視聴して逐語確認
+- 詳細: [03-group-lab-evidence.md](03-group-lab-evidence.md)
 
 ---
 
@@ -260,6 +260,7 @@ L76–77 で既に核心を言えているので、**補強は写像表 1 枚**�
 - デザイナーとの共通言語になる、という主張の具体例:
   - 「この画面にこのボタンを足したい」ではなく **「このアクションはどの面に出すべきか」**で会話できる
   - Action-Centered Design の**展開マトリクス**がそのまま使える:
+
     | コンテンツ / アクションの特性 | 出す面 |
     |---|---|
     | 毎日確認する情報 | ウィジェット |

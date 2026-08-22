@@ -210,11 +210,18 @@
   - 1 つの Intent を書くと、繋がる先が毎年勝手に増えていく
   - **これが App Intents の最大の投資効率**。「今すぐ Siri 対応したいか」は本質ではない
   - 骨子② の主張への橋: だから**最初から Intent で書く**（App Intent Driven Development）
-  - **Group Lab で出てきた「あまり知られていない出口」2 つ**（[03-group-lab-evidence.md](03-group-lab-evidence.md) §2-1 / §2-9）:
-    - ⭐ **iPad の Apple Pencil のタップに App Shortcut を割り当てられる**（#8011 `3:09`）
-    - ⭐ **HomePod では新しい Siri AI は使えないが、App Shortcuts は以前から動いている**（#8011 `35:40`）。
-      → **「新しい面に乗るのは新 API とは限らない。既に書いてあるものが先に届くこともある」**という、
-      この主張の一番良い実例
+  - ⭐ **「既に書いてあるものが、新しい出口に何も書かずに乗った」実例が 2 つある**。この主張の一番強い証拠:
+
+    | 出口 | 何が起きたか | 出典 |
+    |---|---|---|
+    | **Apple Pencil Pro のスクイーズ**（2024 / iOS 18） | **既存の App Shortcuts がそのまま動いた**。「去年 Action Button で自動的に動いたのと同じ」と Apple 自身が言っている | wwdc2024-10210 `22:30` / `4:34`、wwdc2024-10134 `0:11`、wwdc2025-244 `9:04` |
+    | **HomePod** | 新しい Siri AI は非対応だが、**App Shortcuts は以前から動いている** | #8011 `35:40` |
+
+    - Apple の言い回し: Spotlight と Siri は自動、Action Button と Apple Pencil Pro はユーザーが設定すれば使える
+      → **「1 つのコードで 4 つの機能」**（wwdc2024-10210 `22:11`）
+    - ⚠️ **「タップ」ではなく「スクイーズ（squeeze）」**。#8011 の字幕は口語の粗起こしで "tap on an Apple Pencil" と
+      なっているが、正しくは **Apple Pencil Pro の squeeze**
+    - ⚠️ CLAUDE.md の展開マトリクス「物理的なトリガーが自然 → Action Button」の行に **Apple Pencil Pro squeeze が抜けている**
 - **出典**: [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md)（SwiftLee: "By defining actions as app intents by default, you allow them to be connected to any system-service in the future."）
 
 ---
@@ -320,6 +327,7 @@
   - **2018–2022**: 開発者が決める（Custom Intent / App Intents）。自由だが、システムからは「よく分からない何か」
   - **2024–2026**: **共有語彙**（App Schemas）。自分で決めた語彙のうち、意味が公共的なものはスキーマに適合させる。AI が意味を理解できるようになる
   - ポイント: 2024 以降のスキーマは**檻ではなく辞書**。ただし **2 層で話す**（言い切りは危ない）:
+
     | 層 | 要るもの | 届く先 |
     |---|---|---|
     | **App Intents（スキーマ不要）** | `AppIntent` / `AppEntity` / `Query` / `AppShortcutsProvider` | Shortcuts / Spotlight / ウィジェット / コントロール / ライブアクティビティ / 従来の Siri フレーズ |
@@ -353,7 +361,13 @@
   - **表示（DisplayRepresentation / Snippet / Dialog）** 2023〜25: どう見せる・どう読み上げる
   - **文脈（Onscreen Entities / RelevantEntities / 通知への entity 付与）** 2025〜26: **いま何を見ているか / 何が関係あるか**
   - 「アプリの機能を公開する」から「**アプリの世界観をシステムに説明する**」に広がってきた
-- **出典**: [../WWDC_APP_INTENTS_SESSIONS.md](../WWDC_APP_INTENTS_SESSIONS.md) 各年 / wwdc2026-343
+  - ⭐ **この整理は Apple 自身の 2026 の説明とほぼ一致する**。#240 `1:51` が「今年 Siri が強くなる 3 つの方向」として
+    挙げているのが **① entities へのアクセス ② intents によるアクション実行 ③ onscreen context の理解** の 3 つ
+    （Group Lab `33:11` が「3 本柱のひとつ」と呼んでいたのはこの ③）
+    - → **「名詞 / 動詞 / 文脈」という自分の整理を、Apple の言葉で裏打ちできる**
+    - #240 `9:41`–`11:59` の言い方も使える: **スキーマは App Intents の "specialization"**（別物ではない）、
+      **ドメインは「アプリと Siri の間の契約のカテゴリ」**
+- **出典**: [../WWDC_APP_INTENTS_SESSIONS.md](../WWDC_APP_INTENTS_SESSIONS.md) 各年 / wwdc2026-343 / wwdc2026-240 `1:51`–`2:37`, `9:41`–`11:59` / [03-group-lab-evidence.md](03-group-lab-evidence.md) §4-4
 
 ### S24. だから「App Intents 中心設計」になる（→ 骨子② へ）
 
