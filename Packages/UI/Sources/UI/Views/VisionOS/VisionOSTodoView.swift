@@ -7,6 +7,7 @@
 //
 
 #if os(visionOS)
+import AppIntents
 import Domain
 import RealityKit
 import SwiftData
@@ -82,6 +83,12 @@ private struct VisionOSSidebar: View {
                         .tag(todo)
                 }
                 .listStyle(.sidebar)
+                // Collection onscreen (WWDC 2026 #343) — same treatment as
+                // `TodoListSidebar` on iOS/macOS, so "これ" / "the third one" resolves
+                // on visionOS too. `forSelectionType:` は `List` に付けたときだけ効く。
+                .appEntityIdentifier(forSelectionType: TodoAppEntity.self) { todo in
+                    EntityIdentifier(for: TodoAppEntity.self, identifier: todo.id)
+                }
             }
         }
         .toolbar {

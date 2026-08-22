@@ -41,6 +41,38 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
+    /// 一覧側のコレクション annotation（`.appEntityIdentifier(forSelectionType:)`）。
+    ///
+    /// 詳細画面の単一 annotation とは別経路で、Siri が「3 つめのやつ」のような参照を
+    /// 解決するための口。`forSelectionType:` は `List` に付けたときだけ効くという
+    /// 制約があり、レイアウトを触った拍子に静かに無効化されうる。アプリ内の見た目は
+    /// 何も変わらないので、ここで押さえないと手で Siri を触るまで気づけない。
+    func testListAnnotatesEveryVisibleRow() async throws {
+        let firstTitle = uniqueTitle("AITest ListOnscreen A")
+        let secondTitle = uniqueTitle("AITest ListOnscreen B")
+        let first = try await addTodo(title: firstTitle)
+        let second = try await addTodo(title: secondTitle)
+        let expected = Set([identifier(of: first), identifier(of: second)])
+
+        // 一覧が前面に居ることを確認してから読む（詳細画面のままだと 1 件しか出ない）。
+        XCTAssertTrue(
+            app.staticTexts[secondTitle].waitForExistence(timeout: 10),
+            "The list should be on screen with the newly added todos"
+        )
+
+        let annotated = try await pollUntil(timeout: 10) {
+            Set(try await self.todoEntity.viewAnnotations().map(\.entity.identifier.instanceIdentifier))
+        } until: { $0.isSuperset(of: expected) }
+
+        XCTAssertTrue(
+            annotated.isSuperset(of: expected),
+            "The list must annotate every visible row; got \(annotated.count) annotation(s) missing \(expected.subtracting(annotated))"
+        )
+
+        try await deleteTodos(matching: firstTitle)
+        try await deleteTodos(matching: secondTitle)
+    }
+
     // MARK: - Navigation（@Dependency + perform()）
 
     /// `LaunchAppIntent` は `@Dependency var navigationModel` へ書き込むことで画面遷移する。
