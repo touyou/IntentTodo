@@ -7,6 +7,7 @@
 
 #if os(iOS) || os(macOS)
 import CoreSpotlight
+import CryptoKit
 import Foundation
 import os.log
 
@@ -26,6 +27,40 @@ enum TodoSpotlightIndex {
 
     static func index() -> CSSearchableIndex {
         CSSearchableIndex(name: name)
+    }
+
+    // MARK: - client state（起動時フル再インデックスの省略）
+
+    /// 索引済みの内容を表す 32 バイトのダイジェスト。
+    ///
+    /// `endIndexBatch(withClientState:)` に渡して index 側へ永続化し、次回起動時に
+    /// `fetchLastClientState()` と突き合わせる。一致すれば全件再インデックスを省ける。
+    ///
+    /// 実装上の制約が 2 つある:
+    /// - client state は **250 バイト上限**（公式ヘッダ）。id を並べると簡単に超えるので
+    ///   SHA-256 で畳む
+    /// - 入力は必ず**ソートしてから**hash する。fetch 順に依存すると、同じ内容でも
+    ///   ダイジェストがぶれて毎回フル再インデックスになる
+    ///
+    /// `fingerprints` には id だけでなく更新時刻も混ぜる（呼出側の責務）。id の集合が
+    /// 同じでも中身が変わることがある（アプリ未起動中に他デバイスの編集が CloudKit で
+    /// 届いた場合など）。
+    static func clientState(for fingerprints: [String]) -> Data {
+        var hasher = SHA256()
+        for fingerprint in fingerprints.sorted() {
+            hasher.update(data: Data(fingerprint.utf8))
+        }
+        return Data(hasher.finalize())
+    }
+
+    /// 前回コミットされた client state。取得に失敗したら `nil`（＝フル再インデックスへ倒す）。
+    static func lastClientState(of index: CSSearchableIndex) async -> Data? {
+        do {
+            return try await index.fetchLastClientState()
+        } catch {
+            logger.error("fetchLastClientState failed: \(String(reflecting: error))")
+            return nil
+        }
     }
 
     // MARK: - 旧 default index からの移行

@@ -355,14 +355,36 @@ public final class TodoService {
     ///
     /// Spotlight 側からの再インデックス要求には `TodoEntityQuery`
     /// (`IndexedEntityQuery`) が応答する。こちらは起動時の初期投入専用。
+    ///
+    /// 前回コミットした client state と内容ダイジェストが一致していれば**丸ごと省く**。
+    /// 逐次の変更は `reindexSpotlight` が拾っているので、ここが毎起動走る必要はない。
+    /// ダイジェストの作り方と 250 バイト制約は `TodoSpotlightIndex.clientState(for:)`。
     public func indexAllForSpotlight() async {
         #if os(iOS) || os(macOS)
         await TodoSpotlightIndex.purgeLegacyDefaultIndexIfNeeded()
         do {
-            let entities = try listTodos(filter: .all)
-            spotlightLogger.info("indexAllForSpotlight start count=\(entities.count)")
-            try await TodoSpotlightIndex.index().indexAppEntities(entities)
-            spotlightLogger.info("indexAllForSpotlight done count=\(entities.count)")
+            let items = try repository.fetchAll()
+            let state = TodoSpotlightIndex.clientState(
+                for: items.map { "\($0.id.uuidString)@\($0.modifiedAt.timeIntervalSinceReferenceDate)" }
+            )
+            let index = TodoSpotlightIndex.index()
+            if await TodoSpotlightIndex.lastClientState(of: index) == state {
+                spotlightLogger.info("indexAllForSpotlight skipped (unchanged) count=\(items.count)")
+                return
+            }
+            guard !items.isEmpty else {
+                // 空のバッチを endIndexBatch しても state は永続化されない。開かずに抜ける。
+                spotlightLogger.info("indexAllForSpotlight nothing to index")
+                return
+            }
+            spotlightLogger.info("indexAllForSpotlight start count=\(items.count)")
+            // batch は index 呼び出しの**前**に開く。
+            index.beginBatch()
+            try await index.indexAppEntities(items.map { TodoAppEntity(from: $0) })
+            // 全件成功したときだけコミットする。途中で throw した起動は前回の state を
+            // 残したままなので、次回起動でフル再インデックスをやり直す。
+            try await index.endBatch(withClientState: state)
+            spotlightLogger.info("indexAllForSpotlight done count=\(items.count)")
         } catch {
             spotlightLogger.error("indexAllForSpotlight failed: \(String(reflecting: error))")
         }

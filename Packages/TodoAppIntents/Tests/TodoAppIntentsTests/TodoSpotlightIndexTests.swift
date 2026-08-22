@@ -38,9 +38,12 @@ struct TodoSpotlightIndexTests {
         #expect(before != afterAdd)
     }
 
-    @Test("Empty input still yields a stable digest")
+    @Test("Empty input yields a digest distinct from any populated store")
     func digestOfNothing() {
-        #expect(TodoSpotlightIndex.clientState(for: []) == TodoSpotlightIndex.clientState(for: []))
+        let empty = TodoSpotlightIndex.clientState(for: [])
+
+        #expect(empty.count == 32)
+        #expect(empty != TodoSpotlightIndex.clientState(for: ["a@1"]))
     }
 }
 #endif
