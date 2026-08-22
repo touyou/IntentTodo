@@ -190,6 +190,23 @@ Widget Extension の `Button(intent:)` や `ControlWidgetButton(action:)` から
 
 ---
 
+## ウィジェットファミリーの追加は `switch` の `default:` を頼らない
+
+`TodoWidgetEntryView` は `@Environment(\.widgetFamily)` で分岐し、`default:` で Small に落とす。
+この fallback は「未知のファミリーでも何か出る」ための保険であって、**新しいファミリーを
+`supportedFamilies` に足したときの受け皿ではない**。落としたまま出荷すると、巨大な面積の中に
+Small レイアウト（3 行）だけが表示される。ファミリーを増やすときは専用 `case` とレイアウトをセットで足す。
+
+現在の対応: `.systemSmall` / `.systemMedium` / `.systemLarge` /
+`.systemExtraLargePortrait`（iOS 27 / macOS 27 で追加された縦長。WWDC 2026 #277）。
+縦長は Large と骨格を共有しつつ行数を 5 → 10 に増やす形にしてある。共有部品は
+`WidgetAllDoneView` / `WidgetAddTodoLink`。
+
+- `.systemExtraLargePortrait` は `@available(iOS 27.0, macOS 27.0, visionOS 26.0, *)`。
+  本ブランチは全ターゲットのデプロイメントターゲットが 27 なので `#available` での組み立ては不要。
+  26 世代へ戻す場合は `supportedFamilies` を条件付きで組み立てる必要がある
+- tvOS / watchOS では unavailable。ウィジェット Extension はそれらを build しないので `#if` は不要
+
 ## WidgetKit 更新パターン
 
 ### 問題

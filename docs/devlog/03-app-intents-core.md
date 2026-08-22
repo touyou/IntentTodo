@@ -642,3 +642,90 @@ CosmoTunes / PhotosDomainExample、計 240 Swift ファイル）を `~/Developer
   リポジトリ外（`~/Developer/Private/wwdc26-app-intents-samples/`）へ移し、pbxproj は revert した。
 - サンプル側にも旧 API（`static let openAppWhenRun = true`）が残っている。Apple のサンプルだから
   正しいとは限らないので、採用前に該当 API のドキュメントで現行の推奨を確認する。
+
+## 2026-08-22: 前日に「観点」として棚上げした未着手候補をまとめて実装
+
+2026-08-21 の公式サンプル突き合わせで挙げた候補のうち、実機検証を伴わずに片付くものを一括で入れた。
+donation の再導入だけは設計判断が要るので明示的に見送った。現在のルールは
+`docs/insights/03-app-intents-core.md`（Phase 9 の各節を現状に合わせて書き換え済み）と
+`docs/insights/05-extensions-and-data-sharing.md`。
+
+### `UndoableIntent`: 「ソフトデリートへの設計変更が要る」は誤りだった
+
+前日は *"undo するには id ごと復元できる形（ソフトデリート等）への設計変更が要る"* と書いていたが、
+CosmoTunes と同じく **値型の snapshot を取ってから消し、同じ id で作り直す**だけで足りた。
+SwiftData は id を指定した挿入を拒まないので、削除フラグを持つ必要がない。
+
+やったこと: `Domain` に `TodoItemSnapshot`、`TodoItem` / `SubTask` に **id を受け取る init**、
+`TodoService.snapshot(todoId:)` / `restore(_:)`、登録処理を集約する `TodoUndoRegistrar`。
+対象は削除 3 Intent（`DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` / `DeleteTodosIntent`）と
+`ToggleTodoCompletionIntent`。
+
+途中で分かったこと:
+
+- `UndoManager.registerUndo(withTarget:handler:)` は **ハンドラごと `@MainActor`**
+  （Foundation の swiftinterface で確認）。CosmoTunes のサンプルコードは `Task { @MainActor in }` で
+  ホップしているが、少なくとも Xcode 27 beta 5 の SDK では不要。
+- リレーションは値で持ち越せない。カテゴリは `categoryID` だけ持って復元時に引き直す形にし、
+  そのために `TodoRepositoryProtocol` へ `fetchCategory(by:)` を足した。
+- サブタスクは `deleteRule: .cascade` で一緒に消えるので、snapshot に入れて id ごと戻す。
+- 完了トグルの undo を「もう一度トグル」にすると、undo までの間に別経路で状態が変わっていたときに
+  逆へ倒れる。`setCompletion` で元の値を絶対値指定する形にした。
+
+### `AppIntentError`: `predefinedError` の受け付け可否はテストでしか分からない
+
+`IntentError` に `CustomLocalizedStringResourceConvertible` ではなく
+`CustomAppIntentErrorConvertible` を付けた（種別まで指定できるほう）。`.notFound` を
+`.Unrecoverable.entityNotFound` に載せたが、**`init(predefinedError:description:)` は受け付けない値だと
+実行時 `fatalError()`** と公式が明記している。ビルドでは分からないので、全ケースを 1 度組み立てる
+テストを `IntentErrorTests` に置いて実行し、`entityNotFound` が受理されることを確認した。
+
+### Spotlight の client state: CosmoTunes より材料を 1 つ増やした
+
+CosmoTunes は id 集合の SHA-256 をダイジェストにしている。それだと **id は同じで中身だけ変わった**
+ケース（アプリ未起動中に他デバイスの編集が CloudKit で届く等）で全件再インデックスが省略され、
+Spotlight が古い内容のまま残る。`"<id>@<modifiedAt>"` を材料にした。
+
+API 名でも 1 回詰まった。ObjC ヘッダの `beginIndexBatch` / `endIndexBatchWithClientState:` は
+Swift では `beginBatch()` / `endBatch(withClientState:)`（Swift 3 のリネームが効いている）。
+ヘッダ名のまま書くと "has been renamed to" で落ちる。
+
+### `systemExtraLargePortrait`: 前提だった `#available` は不要だった
+
+PLAN には *"デプロイメントターゲットが iOS 26 なので `supportedFamilies` を `#available` で
+組み立てる必要"* と書いていたが、`project.pbxproj` を確認したところ本ブランチは全ターゲットが
+27.0 だった（Phase 2 で 27 世代へ引き上げた際の記述の取り残し）。素直に配列へ足すだけで済んだ。
+
+`TodoWidgetEntryView` の `switch` は `default:` で Small へ落ちるので、`case` を足さないまま
+`supportedFamilies` にだけ追加すると「巨大な面積に 3 行だけ」になる。専用 case とレイアウトをセットで足した。
+
+### 見送り: UI タップ由来の donation
+
+`perform()` 内 donate が規約違反なのは前日の結論のまま。再導入するには UI の一部を
+`Button(intent:)` から `AppIntent.callAsFunction(donate:)` の直接実行に切り替えることになり、
+本プロジェクトの「`Button(intent:)` を唯一の実行経路とする」原則を部分的に崩す。
+機能追加ではなく設計判断なので、候補として PLAN に残したまま今回は触らない選択をした。
+
+### 検証範囲
+
+iOS / visionOS / macOS / watchOS の 4 destination で `BuildProject` グリーン、
+SPM テスト 89 件グリーン、AppIntentsTesting 系 23 件（iPhone 17 Pro Max シミュレータ）もグリーン。
+**実機での Siri / Shortcuts の見え方（undo メニューの文言、Shortcuts の Find アクションの説明、
+タイル色、縦長ウィジェットの実レイアウト）は未確認**。visionOS の onscreen annotation もビルドのみ。
+
+### ついでに見つけた: `testDetailViewAnnotatesItsEntity` はストア状態に依存する
+
+一覧側の annotation テストを足した流れで 23 件をまとめて走らせたとき、既存の
+`testDetailViewAnnotatesItsEntity` が 1 回だけ *"(\"6\") is not equal to (\"1\")"* で落ちた。
+単体で走らせ直すと通り、その後クラス単位で走らせても通る。原因はストアに前の（中断された）実行の
+todo が残っていたことと見られる。
+
+この失敗の仕方が示しているのは、**このテストの `XCTAssertEqual(annotations.count, 1)` が
+「ストアがほぼ空である」ことに暗黙に依存している**という点。詳細画面を push しても背後の一覧が
+annotation を出し続けているのか、それとも `OpenTodoIntent` の遷移自体が起きていなかったのかは
+この 1 回の観測では区別できない。区別できないまま assertion を緩めると「遷移していない」ことを
+検出する力を失うので、今回は**触らずに記録だけ**にした。
+
+本質的な対処は自己クリーンアップ方式（一意タイトルで作って消す）からの脱却で、サンプルが使っている
+`#if DEBUG` + `isDiscoverable = false` の `ResetTestDataIntent` を `setUp()` で走らせる形が候補
+（insights の Phase 9「テスト」節）。

@@ -91,7 +91,7 @@ IntentTodoWatchApp/                 # watchOS アプリ
 - **macOS**: ネイティブビルド対応（`AppDelegate` (iOS/visionOS) と `MacAppDelegate` (macOS) を `#if os(...)` で分離、`NotificationHandler` を cross-platform 実体として共通化）
 - **watchOS**: アプリ + コンプリケーション（Circular/Corner/Rectangular/Inline）
 - **visionOS**: 空間UI（NavigationSplitView、Ornament、ホバーエフェクト）
-- **ウィジェット**: Small/Medium/Large サイズ対応（Todo一覧表示、アプリ起動は `Link(destination:)` を使用）
+- **ウィジェット**: Small/Medium/Large/ExtraLargePortrait サイズ対応（Todo一覧表示、アプリ起動は `Link(destination:)` を使用）
 
 > **Widget でのアプリ起動**: [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) に "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`" と明記。アプリを開くだけの用途には `Button(intent:)` より `Link` が公式推奨。
 - **ライブアクティビティ**: Dynamic Island + ロック画面（期限1時間以内で自動表示、`LiveActivityIntent` 使用）
@@ -263,6 +263,21 @@ struct IntentTodoAppIntentsPackage: AppIntentsPackage {
 > **⚠️ `requestConfirmation` / `requestChoice` を含む Intent をアプリ内の `Button(intent:)` から呼んではいけない**。応答する面が無いため `LNPerformActionErrorCodeUnsupportedValueType` で失敗し、**エラー表示も出ずに何も起きない**（2026-08-12 実測）。Siri / Shortcuts / AppIntentsTesting 経由では成功するので、AppIntentsTesting では検出できず **UI テストが要る**。
 
 内部用（`isDiscoverable = false`）の Intent は AppShortcuts に登録しない。
+
+### 破壊的 / 不可逆な操作は `UndoableIntent` にする
+
+削除系 3 Intent と `ToggleTodoCompletionIntent` は `UndoableIntent`。登録処理は
+`TodoUndoRegistrar` に集約する（Intent 側に直接書かない。3 つある削除経路のどれかだけ直し忘れる）。
+
+- **消す前に `TodoService.snapshot(todoId:)`**。`TodoItem` は SwiftData の `@Model` なので削除後は
+  何も読めず、`Sendable` でもないため undo のクロージャに持ち越せない
+- **同じ id で戻す**（`TodoService.restore(_:)`）。id が変わると Spotlight index / donation /
+  ウィジェットが握っている参照がまとめて迷子になる。復元は idempotent
+- 完了状態の undo は「逆トグル」ではなく**元の値を `setCompletion` で絶対値指定**する
+- `undoManager` は呼出元が用意しなければ `nil`（ウィジェットの `Button(intent:)` など）。
+  登録が no-op になるのは想定どおり
+
+詳細と落とし穴: `docs/insights/03-app-intents-core.md`。
 
 Live Activity の状態を触る Intent（`activity.end` / `activity.update`）は `#if os(iOS)` で `LiveActivityIntent` に準拠させる（`perform()` がアプリプロセスで走ることの公式保証を得るため）。
 
@@ -543,6 +558,7 @@ interface, and **not to interactions started by Siri or the Shortcuts app**."
 - [x] 緊急フラグ（ToggleUrgentTodoIntent）
 - [x] スヌーズ（SnoozeTodoIntent — requestChoice でスヌーズ期間選択）
 - [x] バルク完了（CompleteTodosIntent — LongRunningIntent + CancellableIntent）
+- [x] 削除 / 完了の取り消し（UndoableIntent — TodoItemSnapshot で同じ id へ復元）
 
 ### 拡張機能
 - [x] 検索（TodoListView + .searchable）
@@ -561,7 +577,7 @@ interface, and **not to interactions started by Siri or the Shortcuts app**."
 - [x] macOS ネイティブアプリ（Catalyst ではない）
 - [x] watchOS アプリ + コンプリケーション
 - [x] visionOS 空間UI
-- [x] ホーム画面ウィジェット（Small/Medium/Large）
+- [x] ホーム画面ウィジェット（Small/Medium/Large/ExtraLargePortrait）
 - [x] ライブアクティビティ（Dynamic Island + ロック画面）
 - [x] コントロールセンター（クイック追加/Todo数/緊急Todo）
 - [x] Siri/Shortcuts（TodoAppShortcuts）
@@ -576,7 +592,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 | **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier（単一）/ .appEntityIdentifier(forSelectionType:)（一覧, #46）/ 通知 appEntityIdentifiers(#46) | ✅ |
 | **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ |
 | **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ list+search適合（watchOSは Xcode 27 beta 2 で非対応→フォールバック/除外）/ reminder本体は据え置き(#48) |
-| **高度な Intent** | 対話/寄付/system/部分更新 | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, IntentDialog(full:supporting:), IntentParameter.valueState(#45) | ✅（RelevantEntities は不適合） |
+| **高度な Intent** | 対話/寄付/system/部分更新/取り消し | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, UndoableIntent, IntentDialog(full:supporting:), IntentParameter.valueState(#45) | ✅（RelevantEntities は不適合 / donation は撤去済み） |
 | **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, CancellableIntent, allowedExecutionTargets(.main/.appIntentsExtension/.widgetKitExtension, #42), @UnionValue, SyncableEntity | ✅ |
 | **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor, semanticContentSearch | ✅ |
 | **テスト基盤** | Intent 実経路テスト | AppIntentsTesting (makeIntent/run, UIテストバンドル) | ✅ |
@@ -585,7 +601,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 > 検証は `xcode27` ブランチ（26.x ベータ SDK 用、**main 未マージ**）。状態・コミット・残タスクは `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
 > **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（#48 で再評価 → マクロ生成 init + 入れ子サブエンティティの再設計が必要なため据え置き。list 適合 + 自前 Intent で新 Siri 連携は成立）、`OwnershipProvidingEntity` / `requestValue`（#47、個人利用主体で優先度低）、EventKit/Contacts 連携（別フレームワーク軸）。
 > **意図的不使用（API は把握済み・このアプリに不要と判断）**: `DynamicOptionsProvider` / `IntentParameterDependency`（パラメータ間の動的依存が発生するユースケースがない。選択肢は `AppEnum` ベースの静的リストで十分）。
-> **未着手の候補（着手すれば価値が出るもの）**: `UndoableIntent` / `SpotlightSearchTool`(#246) / `systemExtraLargePortrait`(#277) / `requestValue` など。理由と前提つきの一覧は [docs/APP_INTENTS_CENTRIC_PLAN.md の「未着手の候補」](docs/APP_INTENTS_CENTRIC_PLAN.md#未着手の候補2026-08-21-の全ソース走査で拾ったもの)。
+> **未着手の候補（着手すれば価値が出るもの）**: `SpotlightSearchTool`(#246、FoundationModels 前提でスコープ外) / `requestValue` / UI タップ由来の donation 再導入 / watchOS の onscreen annotation。理由と前提つきの一覧は [docs/APP_INTENTS_CENTRIC_PLAN.md の「未着手の候補」](docs/APP_INTENTS_CENTRIC_PLAN.md#未着手の候補2026-08-21-の全ソース走査で拾ったもの)。
 > **watchOS での assistant schema 非対応 (Xcode 27 beta 2〜、beta 5 でも継続を実ビルドで確認)**: `reminders` / `system` ドメインの assistant schema は watchOS で unavailable。TodoAppIntents は watchOS でもコンパイルされるため、`@AppEntity(schema: .reminders.list)`（`CategoryAppEntity`）と `@AppEnum(schema: .reminders.listType)`（`TodoListType`）は `#if os(watchOS)` で素の `AppEntity`/`AppEnum` にフォールバック（マクロ付き宣言は `#if` で分割不可なので型を2系統で全書き）、`@AppIntent(schema: .system.searchInApp)`（`ShowTodoSearchResultsIntent`）は watchOS に検索遷移先が無いため `#if !os(watchOS)` で丸ごと除外。`.visualIntelligence.*` は元々 `#if canImport(VisualIntelligence)`（iOS 限定）で保護済み。
 
 ## 開発フロー（TDD）

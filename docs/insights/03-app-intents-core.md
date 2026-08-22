@@ -1304,23 +1304,31 @@ DisplayRepresentation(
 }
 ```
 
-複数形は `^[\(n) track](inflect: true)` で inflection を効かせる（本アプリの
-`TodoListSummaryEntity` はまだ素の文字列連結）。
+複数形は `^[\(n) track](inflect: true)` で inflection を効かせる。
+
+本アプリの適用先: `TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` の 3 つとも
+`synonyms:` + 遅延クロージャ形。`TodoListSummaryEntity` は `^[\(n) todo](inflect: true)`。
+組み立ては **`makeDisplayRepresentation(...)` という static 関数**に寄せてある（後述の
+`displayRepresentations(for:)` が entity を作らずに同じ表現を返せるようにするため）。
 
 ### `EntityQuery.displayRepresentations(for:)`（バッチ）
 
 公式: *"Return full representations; the system materializes only the components it needs (for
-example, dropping a deferred image when only text is required)."* CosmoTunes は全 query に実装し、
-関係グラフを読まない軽量版 entity から representation だけを作って返している。候補一覧の描画で
-entity 本体を N 回組み立てるコストを避けるための口。
+example, dropping a deferred image when only text is required)."* 候補一覧の描画で entity 本体を
+N 回組み立てるコストを避けるための口。
+
+本アプリは `TodoEntityQuery` / `CategoryEntityQuery` / `SubTaskEntityQuery` の 3 つに実装。いずれも
+**SwiftData のモデルから直接 `makeDisplayRepresentation(...)` を呼ぶ**（`TodoAppEntity(from:)` を
+通さない）。todo では、表示に使わない `CategoryAppEntity` の生成がまるごと落ちるのが効き目。
+`@available(anyAppleOS 27.0, *)` の要件なので、26 世代へ戻すなら `#available` が要る。
 
 ### `EnumerableEntityQuery.findIntentDescription`
 
 Shortcuts が自動生成する "Find X" アクションの説明・カテゴリ・`resultValueName` を指定できる。
-未指定だと説明なしのアクションとして並ぶ。本アプリの `TodoEntityQuery` / `CategoryEntityQuery` は
-`EnumerableEntityQuery` に準拠済みだが未指定。
+未指定だと説明なしのアクションとして並ぶ。`TodoEntityQuery` / `CategoryEntityQuery` の両方に指定済み
+（`SubTaskEntityQuery` は `EnumerableEntityQuery` 非準拠なので対象外）。
 
-### `UndoableIntent`（削除系の具体実装が手に入った）
+### `UndoableIntent`
 
 CosmoTunes `DeleteAlarmIntent` が実装形を示している。要点は **snapshot を取る順序**と
 **同じ id で復元する**こと（Spotlight / AlarmKit の identity を保つため）。
@@ -1348,16 +1356,46 @@ struct DeleteAlarmIntent: UndoableIntent {
 }
 ```
 
-### エラーは `AppIntentError(wrapping:)` + `CustomLocalizedStringResourceConvertible`
+本アプリの形（`TodoUndoRegistrar` に登録処理を集約）と、そこで分かった注意点:
+
+- **`UndoManager.registerUndo(withTarget:handler:)` はハンドラごと `@MainActor`**（Foundation の
+  swiftinterface で `handler: @escaping @MainActor (TargetType) -> Void`）。`Task { @MainActor in }` で
+  ホップする必要はなく、`TodoService` をそのまま呼べる
+- **`undoManager` は呼出元が用意しなければ `nil`**。ウィジェットの `Button(intent:)` などでは登録が
+  丸ごと no-op になる。これは失敗ではなく想定どおりの分岐なので、`guard let` で静かに抜ける
+- **完了トグルの undo は「逆トグル」ではなく「元の値へ `setCompletion`」**。undo するまでの間に別経路
+  （Siri / ウィジェット / 別デバイスの CloudKit マージ）で状態が変わっていると、トグルは意図と逆へ倒れる
+- **復元は idempotent にする**。`TodoService.restore(_:)` は同じ id の todo が既にあればそれを返すだけ。
+  二重 undo や CloudKit が先に戻したケースで、同じ id の重複を作らない
+- 削除は `SubTask` を cascade で連れていくので、snapshot にサブタスクも入れて**サブタスクの id も保つ**。
+  カテゴリはリレーションを値で持ち越せないので `categoryID` だけ持ち、復元時に引き直す。カテゴリ自体が
+  消えていたら関連を落として復元する（カテゴリの不在で todo が戻らないほうが困る）
+- `TodoItem` / `SubTask` に **id を受け取る init を別途生やす**。通常の `init(title:)` に id を足すと、
+  普通の作成経路が既存 todo と衝突しうる形になる
+
+### Siri に読ませるエラー文言は `CustomAppIntentErrorConvertible` で決める
 
 CosmoTunes はドメインエラー enum に `CustomLocalizedStringResourceConvertible` を付けて Siri が
-読める文言を与え、throw の直前に `AppIntentError(wrapping:)` で包む。本アプリの `IntentError` は
-`LocalizedError` ベースなので、Siri 経由の文言を意識した見直し余地がある。
+読める文言を与え、throw の直前に `AppIntentError(wrapping:)` で包む。
+
+本アプリは 1 段上の `CustomAppIntentErrorConvertible`（`var appIntentError: AppIntentError`）を
+`IntentError` に付けている。理由と注意点:
+
+- **throw 側で `AppIntentError(wrapping:)` を呼ぶ必要がない**。公式: *"When you throw a conforming
+  error from a method such as `perform()` […] the framework reads the `appIntentError` property and
+  uses it directly."* `TodoService` は AppIntents を import せずに `IntentError` を投げるだけでよい
+- `errorDescription`（"Validation error: …" のような開発者向けプレフィックス付き）と、Siri が読む文言を
+  **別々に決められる**。前者を読み上げさせない
+- `.notFound` は `AppIntentError(predefinedError: .Unrecoverable.entityNotFound, description:)` に載せる。
+  文言だけでなく「参照先の entity が無い」種別がシステムに伝わる
+- **`init(predefinedError:description:)` は受け付けない値を渡すと実行時に `fatalError()`**（公式明記）。
+  ビルドでは検出できないので、全ケースを 1 度組み立てるテストを置く（`IntentErrorTests`）
+- 両方（`CustomLocalizedStringResourceConvertible` と `CustomAppIntentErrorConvertible`）に準拠した場合、
+  システムは後者だけを見る
 
 ### `AppShortcutsProvider.shortcutTileColor`
 
-Shortcuts アプリに並ぶタイルの背景色。UnicornChat / PhotosDomainExample が指定している
-（`static let shortcutTileColor: ShortcutTileColor = .blue`）。本アプリは未指定。
+Shortcuts アプリに並ぶタイルの背景色。未指定だと既定色。本アプリは `.teal`。
 
 ### Onscreen annotation: `forSelectionType:` は `List` に付けたときだけ効く
 
@@ -1369,15 +1407,17 @@ CosmoTunes `TimerView` のコメントが明言している:
 `Canvas` などビュー階層から bounds を推測できない描画は `.appEntityUIElements { context in ... }`
 で `AppEntityUIElement(identifier:bounds:state:)` を明示的に返す。
 
-本アプリの `TodoListView` は `List(selection:)` + `.tag(todo)` なので `forSelectionType:` が
-正しく効く形。ただし **visionOS の `VisionOSTodoListView`（`List` を使っているが annotation 無し）**
-と watchOS 側には annotation が無い。
+本アプリの `TodoListView`（iOS / macOS）と `VisionOSTodoListView`（visionOS）はどちらも
+`List(selection:)` + `.tag(todo)` なので `forSelectionType:` がそのまま効く形。**watchOS 側には
+まだ annotation が無い**（Siri 連携そのものの優先度判断が先）。
 
 ### テスト: `viewAnnotations()` と `#if DEBUG` の seed / reset Intent
 
 - `AppEntityDefinition.viewAnnotations()` で「いま画面が publish している entity」を検証できる。
   CosmoTunes は Now Playing / Library の 4 セグメント / Canvas / Timer カードと**画面ごとに**
-  テストを持つ。本アプリは詳細画面 1 本だけで、**リストのコレクション annotation は未テスト**。
+  テストを持つ。本アプリは詳細画面（単一 annotation）と一覧（コレクション annotation）の 2 本。
+  一覧側は「作った 2 件が両方 annotation に出る」を superset で見る（他のテストが残した todo が
+  混ざりうるので、件数の完全一致では見ない）。
 - サンプルは `#if DEBUG` + `isDiscoverable = false` の `ResetTestDataIntent` /
   `SeedSampleEventsIntent` / `ClearSpotlightIntent` をアプリターゲットに同梱し、`setUp()` で
   `run()` して既知状態から始める。本アプリは「一意タイトルを作って最後に消す」自己クリーンアップ
@@ -1385,20 +1425,29 @@ CosmoTunes `TimerView` のコメントが明言している:
 - `IndexedEntityQuery` の reindex 経路を手で叩く方法もサンプルのコメントにある:
   macOS は `mdutil -cr <bundle id>`、iOS は Settings → Developer → CoreSpotlight Testing。
 
-### Spotlight の全件再インデックスは client state で省略できる
+### Spotlight の全件再インデックスは client state で省略する
 
-CosmoTunes `CoreSpotlightWrapper` は名前付き index の `beginBatch()` /
-`endBatch(withClientState:)` / `fetchLastClientState()` を使い、前回コミットしたダイジェストと
-一致すれば起動時の全件再インデックスを丸ごと飛ばす。実装上の注意点もコメントに残っている:
+名前付き index の `beginBatch()` / `endBatch(withClientState:)` / `fetchLastClientState()` を使い、
+前回コミットしたダイジェストと一致すれば起動時の全件再インデックスを丸ごと飛ばす
+（`TodoService.indexAllForSpotlight()` / `TodoSpotlightIndex.clientState(for:)`）。
 
-- client state は 250 バイト上限なので、id 集合を SHA-256 で 32 バイトに畳む（`Set` の反復順に
-  依存しないよう **ソートしてから** hash する）
+- client state は 250 バイト上限なので SHA-256 で 32 バイトに畳む。入力は **ソートしてから** hash する
+  （fetch 順に依存すると同じ内容でもダイジェストがぶれ、毎回フル再インデックスになる）
+- ダイジェストの材料は **id だけでなく `modifiedAt` も混ぜる**。id 集合が同じでも中身が変わることが
+  ある（アプリ未起動中に他デバイスの編集が CloudKit で届いた等）。CosmoTunes は id 集合だけなので、
+  そこだけ本アプリのほうが強い
 - `beginBatch()` は index / delete 呼び出しの**前**に開く。空の no-op バッチで
-  `endBatch(withClientState:)` すると state が永続化されず毎回フル再インデックスになる
-- 全ての per-entity 呼び出しが成功したときだけ state をコミットする（中断された起動は前回の
-  state を残して次回リトライさせる）
+  `endBatch(withClientState:)` すると state が永続化されず毎回フル再インデックスになるため、
+  todo が 0 件のときは batch を開かずに抜ける
+- 全ての per-entity 呼び出しが成功したときだけ state をコミットする（`try` が throw した起動は前回の
+  state を残し、次回起動でフル再インデックスをやり直す）
+- **batching は default index では使えない**（公式ヘッダ: *"Batching is unsupported for the
+  CSSearchableIndex returned by the defaultSearchableIndex method"*）。名前付き index への移行が前提
 
-本アプリの `TodoService.indexAllForSpotlight()` は毎起動フル再インデックス。
+Swift の API 名は ObjC ヘッダと違う（Swift 3 のリネームが効いている）: `beginIndexBatch` → `beginBatch()`、
+`endIndexBatchWithClientState:` → `endBatch(withClientState:)`。ヘッダ名のまま書くとビルドエラーになる。
+
+ダイジェストの性質（32 バイト / 順序非依存 / 内容変化を検出）は `TodoSpotlightIndexTests` で押さえる。
 
 ### サンプル側にも古い書き方は残っている（無批判に真似しない）
 
