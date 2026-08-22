@@ -82,7 +82,7 @@ IntentTodoWatchApp/                 # watchOS アプリ
 | 繰り返しのアクション | **Shortcuts / Siri** | Todo追加、完了切り替え |
 | 常時追跡が必要な情報 | **ライブアクティビティ** | 期限1時間以内のTodo |
 | 素早いアクセスが必要 | **コントロールセンター** | クイック追加、緊急Todo完了 |
-| 物理的なトリガーが自然 | **Action Button** | 新規Todo作成 |
+| 物理的なトリガーが自然 | **Action Button** / **Apple Pencil Pro（スクイーズ）** | 新規Todo作成 |
 | 没入型・空間的な体験 | **visionOS** | 空間UI、ガラス素材 |
 
 #### 実装済みプラットフォーム
