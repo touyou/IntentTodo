@@ -729,3 +729,82 @@ annotation を出し続けているのか、それとも `OpenTodoIntent` の遷
 本質的な対処は自己クリーンアップ方式（一意タイトルで作って消す）からの脱却で、サンプルが使っている
 `#if DEBUG` + `isDiscoverable = false` の `ResetTestDataIntent` を `setUp()` で走らせる形が候補
 （insights の Phase 9「テスト」節）。
+
+## 2026-08-25 — #49: `.reminders.list` 適合がアプリバンドルから消えていた
+
+### 発端の観測は「見ていたバンドルが 1 つだけ」だった
+
+issue #49 は「`CategoryAppEntity` の `properties` が 0 件で `assistantDefinedSchemas` も空」から
+始まっていて、「`@Property` を書き忘れているのでは / マクロが面倒を見てくれる前提だったのでは」
+という 2 つの仮説が並んでいた。全バンドルを一覧にしたら、そのどちらでもなかった。
+
+```
+Debug-iphonesimulator/TodoAppIntents.appintents   cat=2p schema=['ListEntity']
+Debug-iphonesimulator/IntentTodoWidgetExtension   cat=2p schema=['ListEntity']
+Debug-iphonesimulator/IntentTodo.app              cat=0p schema=[]        ← ここだけ
+Debug-xrsimulator/IntentTodo.app                  cat=2p schema=['ListEntity']
+Debug/IntentTodo.app                              cat=2p schema=['ListEntity']
+```
+
+`@AppEntity(schema: .reminders.list)` マクロは `name` / `type` の `@Property` もスキーマ登録も
+ちゃんとやっていた（パッケージ側の `.appintents` には両方出ている）。落ちていたのは
+**iOS アプリバンドルの統合メタデータだけ**。macOS と visionOS のアプリバンドルは無事。
+issue が見ていたのは iOS のアプリバンドル 1 つだったので、「マクロが動いていない」ように見えていた。
+
+同じ形で `TodoListType`（`@AppEnum(schema: .reminders.listType)`）も落ちていた。一方
+`ShowTodoSearchResultsIntent` の `.system.searchInApp`（**action** のスキーマ）は残っていた。
+entity / enum だけが消えるという非対称。
+
+### 犯人はたまたま stale だったビルド成果物が教えてくれた
+
+iOS / macOS / visionOS の違いとして残るのは「iOS アプリだけが watchOS アプリを
+`IntentTodo.app/Watch/` に埋め込む」こと。ただ相関だけでは弱い。決め手になったのは、
+`@Property` を watchOS フォールバックに足して増分ビルドした瞬間の中途半端な状態だった。
+
+```
+Debug-watchsimulator/TodoAppIntents.appintents   cat=2p   ← 再生成された（@Property あり）
+Debug-watchsimulator/WatchUI.appintents          cat=0p   ← 08-12 のまま stale
+Debug-watchsimulator/IntentTodoWatchApp.app      cat=0p   ← 統合結果
+```
+
+同じ型に 2 つの形（2 props / 0 props）が入力されたとき、統合結果は **0 props 側**になる。
+「情報が少ない方が勝つ」というマージ規則がこれで確定した。iOS アプリの 0 props も同じ規則で
+説明がつく — 埋め込んだ watchOS アプリが 0 props / スキーマ無しの `CategoryAppEntity` を持ち込む。
+
+### 型名を分けたら両方残った
+
+`#if os(watchOS)` 側を `WatchCategoryAppEntity` / `WatchTodoListType` に改名し、
+`public typealias CategoryAppEntity = WatchCategoryAppEntity` で呼出側の名前は据え置き。
+mangled type name が別物になるので衝突しない。クリーンビルドで確認:
+
+```
+Debug-iphonesimulator/IntentTodo.app
+  [('CategoryAppEntity', 2, ['ListEntity']), ('WatchCategoryAppEntity', 2, [])] enumSchemas=['ListType']
+```
+
+代償は iOS アプリのメタデータに `WatchCategoryAppEntity` が 1 件増えること。iOS 側のどの Intent も
+このパラメータを取らないので実害は見つかっていないが、Shortcuts に "List" 型が 2 つ見える可能性は
+残る。スキーマ適合が出荷メタデータに届かないほうが重いので、それを取った。
+
+`@Property(title:)` の明示はフォールバック側にも入れた。改名だけでもスキーマは戻るが、素の
+`AppEntity` は自分で書かないと watchOS で「プロパティ 0 件の entity」になる（渡せるが読めない）。
+
+### 検出手段を残す
+
+この壊れ方は **コンパイラも `XcodeRefreshCodeIssuesInFile` もビルド緑も何も言わない**。
+`AppShortcutsProvider` をパッケージに置いたときの `autoShortcuts: 0` と同型で、統合メタデータを
+直接見るしかない。`inspect_appintents_metadata.py` に「linked package にはあるのにアプリ
+バンドルに無い entity / enum スキーマ」を error にするチェックを足した（action は元から
+別チェックがある）。合わせて `schemas()` が enum も拾うようにした（それまで action と entity のみ）。
+
+1 点ハマったのが nested バンドル。`IntentTodo.app/Watch/IntentTodoWatchApp.app` は config が
+`Debug-iphonesimulator` になるので、素直に書くと iOS のパッケージと比較して誤検出する（中身は
+watchOS ビルド）。既存の action 側チェックも同じ誤検出を出していたので、両方 nested を除外した。
+standalone のコピーが `Debug-watchsimulator` 側で検査されるため、カバレッジは落ちない。
+
+### 残っている未確認
+
+**実機 Siri / Apple Intelligence で `.reminders.list` 適合が実際に効くか**は未確認のまま。
+AppIntentsTesting は型名で intent / entity を引くのでスキーマ経路を通らず、`AppEntityDefinition`
+にもスキーマやプロパティ一覧を読む API は無い（`makeReference` / `allEntities` / `suggestedEntities`
+のみ）。メタデータに載っていることは確定したので、ここから先は手動確認の領域。

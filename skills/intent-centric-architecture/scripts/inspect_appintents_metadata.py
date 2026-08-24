@@ -84,12 +84,16 @@ class Bundle:
         return sum(len(s.get("phraseTemplates") or []) for s in self.auto_shortcuts())
 
     def schemas(self) -> list[tuple[str, str, str]]:
-        """(kind, type name, schema) for every schema-conforming action/entity."""
+        """(kind, type name, schema) for every schema-conforming action/entity/enum."""
         out = []
         for kind, table in (("action", self.actions()), ("entity", self.entities())):
             for name, obj in table.items():
                 for s in obj.get("assistantDefinedSchemas") or []:
                     out.append((kind, name, f"{s.get('domain')}.{s.get('name')}"))
+        for obj in self.enums():
+            name = obj.get("identifier") or obj.get("fullyQualifiedTypeName") or "?"
+            for s in obj.get("assistantDefinedSchemas") or []:
+                out.append(("enum", name, f"{s.get('domain')}.{s.get('name')}"))
         return out
 
     def not_discoverable(self) -> list[str]:
@@ -274,8 +278,11 @@ def run_checks(bundles: list[Bundle]) -> list[Check]:
 
     # aggregation: within one build configuration, the app should be a superset of the
     # packages it links. Compare per config so an iOS package is never held against a
-    # watchOS bundle.
-    for app in [b for b in bundles if b.is_app or b.is_appex]:
+    # watchOS bundle. Nested copies are skipped: an embedded watchOS app lives in the
+    # iOS products directory but was built against the watchOS packages, so comparing it
+    # with its neighbours there is meaningless. Its standalone copy is checked in its own
+    # configuration.
+    for app in [b for b in bundles if (b.is_app or b.is_appex) and not b.is_nested]:
         cfg = config_for(app.path)
         pkg_actions: set[str] = set()
         for pkg in bundles:
@@ -290,6 +297,31 @@ def run_checks(bundles: list[Bundle]) -> list[Check]:
                 "Expected when a platform #if excludes them (e.g. a watchOS-unavailable schema); "
                 "otherwise the target is not picking up the package's metadata — check target membership "
                 "and the AppIntentsPackage / includedPackages declaration for that target.",
+            ))
+
+        # Entity / enum schemas, unlike actions, can be *silently dropped* while the type
+        # itself survives. When one input declares `Foo` with a schema and another declares
+        # the same mangled type name without one (a `#if os(...)` fallback for a platform
+        # where the schema is unavailable), the schema-less shape wins the merge.
+        pkg_schemas: dict[tuple[str, str], str] = {}
+        for pkg in bundles:
+            if pkg.is_package and config_for(pkg.path) == cfg:
+                for kind, name, schema in pkg.schemas():
+                    if kind != "action":
+                        pkg_schemas[(kind, name)] = schema
+        app_schemas = {(k, n) for k, n, _ in app.schemas() if k != "action"}
+        lost = sorted(pkg_schemas.keys() - app_schemas)
+        if lost:
+            detail = ", ".join(f"{k} {n} -> {pkg_schemas[(k, n)]}" for k, n in lost)
+            checks.append(Check(
+                "error", f"{app.label} ({cfg})",
+                f"assistant schema present in a linked package but missing here: {detail}",
+                "The type is still in this bundle's metadata, so the build is green and the app looks "
+                "fine — but Siri / Apple Intelligence no longer see the schema conformance. This happens "
+                "when the same type is declared twice behind a `#if` (schema variant + plain fallback for "
+                "a platform where the schema is unavailable) and both shapes reach one merge, e.g. an iOS "
+                "app that embeds a watchOS app. Give the fallback a distinct type name (plus a typealias) "
+                "so the mangled names no longer collide.",
             ))
 
     # The same finding usually repeats across build configurations; report it once.

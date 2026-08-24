@@ -644,6 +644,28 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
   watchOS を含むフルビルドで初めて出る**（`indexingKey:` の #43 と同じ「複数 destination を回せ」教訓）。
 
   経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
+- **フォールバック側の型名は本体と変える（`WatchCategoryAppEntity` / `WatchTodoListType`）**。同じ
+  mangled type name にスキーマ付きの形とスキーマ無しの形が両方存在すると、**アプリの統合
+  `Metadata.appintents` へのマージで「情報が少ない方」が勝つ**。iOS アプリは watchOS アプリを
+  `IntentTodo.app/Watch/` に埋め込むため、iOS の出荷メタデータから `reminders.ListEntity` /
+  `reminders.ListType` が消え、`properties` も 0 件になる。型名を分ければ 2 エントリが共存し、
+  スキーマは残る（代償は iOS 側メタデータに `WatchCategoryAppEntity` が 1 件増えること）。
+  呼出側は `public typealias CategoryAppEntity = WatchCategoryAppEntity` で共通名のまま。
+- **フォールバック側にも `@Property(title:)` を明示する**。スキーマ変種はマクロが `name` / `type` の
+  `@Property` を生成してくれるが、素の `AppEntity` は自分で書かないと **プロパティ 0 件の entity**
+  になる（渡せるが何も読めない・絞り込めない）。
+- 上 2 点はいずれも**コンパイラにもビルド緑にも一切現れない**。パッケージ単体の `.appintents` は
+  正常なので、**アプリバンドルの統合メタデータを直接見るまで分からない**:
+
+  ```bash
+  python3 skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py --find IntentTodo
+  ```
+
+  「linked package にはあるのにアプリバンドルに無いスキーマ」を error として検出する。**nested な
+  バンドル（`IntentTodo.app/Watch/…`）は比較対象から外す**必要がある — iOS の products ディレクトリに
+  居ても中身は watchOS ビルドなので、隣の iOS パッケージと比べても意味がない。
+
+  経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)（2026-08-25 の #49）
 - **大スキーマ（`.reminders.reminder`）の落とし穴**: スキーマが `dueDate: DateComponents?`（`Date?` と衝突）、
   非 optional `list`、再帰 `subtasks: [Self]`、`images`/`tags`/`urls`/`recurrence`/`section`/`locationTrigger`
   等を要求。さらに **マクロ生成 init は `EntityProperty<T>` 引数**を取り、`section`/`locationTrigger` 等の

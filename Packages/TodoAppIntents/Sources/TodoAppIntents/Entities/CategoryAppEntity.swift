@@ -19,8 +19,19 @@ import Domain
 /// `AppEntity`. Siri / Apple Intelligence schema routing isn't used on watchOS,
 /// so this loses nothing on that platform. A macro-attributed declaration can't
 /// be split by `#if`, so the two variants are declared in full.
+///
+/// The watchOS variant is deliberately named `WatchCategoryAppEntity` rather than
+/// sharing the name behind the `#if`. The iOS app embeds the watchOS app, and the
+/// app's unified `Metadata.appintents` merges both bundles: with one mangled type
+/// name carrying two shapes, the schema-less one wins and the iOS app ships with
+/// `reminders.ListEntity` (and `reminders.ListType`) gone. A distinct name keeps
+/// the two entries apart, so the schema survives into the app the system reads.
+/// Nothing is visible in the compiler or in a green build — the regression check
+/// lives in `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`.
+/// 経緯: docs/devlog/03-app-intents-core.md（2026-08-25 の #49）
+/// 詳細: docs/insights/03-app-intents-core.md
 #if os(watchOS)
-public struct CategoryAppEntity: AppEntity, Hashable {
+public struct WatchCategoryAppEntity: AppEntity, Hashable {
     public static let typeDisplayRepresentation: TypeDisplayRepresentation = "List"
 
     // MARK: - Properties
@@ -32,9 +43,14 @@ public struct CategoryAppEntity: AppEntity, Hashable {
     public var colorHex: String?
 
     /// The display name of the list (schema-required).
+    ///
+    /// The schema variant gets `@Property` from the macro; the fallback has to
+    /// declare it, or watchOS exposes an entity nothing can be read from.
+    @Property(title: "Name")
     public var name: String
 
     /// The kind of list (schema-required). Always `.standard` for our categories.
+    @Property(title: "List Type")
     public var type: TodoListType
 
     // MARK: - AppEntity Requirements
@@ -49,7 +65,7 @@ public struct CategoryAppEntity: AppEntity, Hashable {
 
     // MARK: - Initialization
 
-    /// Creates a new CategoryAppEntity from a Category model.
+    /// Creates a new WatchCategoryAppEntity from a Category model.
     @MainActor
     public init(from category: Domain.Category) {
         self.id = category.id.uuidString
@@ -58,7 +74,7 @@ public struct CategoryAppEntity: AppEntity, Hashable {
         self.type = .standard
     }
 
-    /// Creates a new CategoryAppEntity with the given properties.
+    /// Creates a new WatchCategoryAppEntity with the given properties.
     public init(id: String, name: String, colorHex: String? = nil, type: TodoListType = .standard) {
         self.id = id
         self.colorHex = colorHex
@@ -68,7 +84,7 @@ public struct CategoryAppEntity: AppEntity, Hashable {
 
     // MARK: - Hashable / Equatable
 
-    public static func == (lhs: CategoryAppEntity, rhs: CategoryAppEntity) -> Bool {
+    public static func == (lhs: WatchCategoryAppEntity, rhs: WatchCategoryAppEntity) -> Bool {
         lhs.id == rhs.id && lhs.name == rhs.name && lhs.colorHex == rhs.colorHex && lhs.type == rhs.type
     }
 
@@ -76,6 +92,10 @@ public struct CategoryAppEntity: AppEntity, Hashable {
         hasher.combine(id)
     }
 }
+
+/// Call sites use the shared name on every platform, so nothing outside this file
+/// needs a `#if`. Only the metadata sees the two names apart.
+public typealias CategoryAppEntity = WatchCategoryAppEntity
 #else
 @AppEntity(schema: .reminders.list)
 public struct CategoryAppEntity: Hashable {
