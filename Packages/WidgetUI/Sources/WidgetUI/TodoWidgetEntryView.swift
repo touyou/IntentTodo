@@ -262,7 +262,7 @@ struct WidgetAllDoneView: View {
 /// (`Button(intent:)` は開く以上の副作用がある場合に限定する)。
 struct WidgetAddTodoLink: View {
     var body: some View {
-        Link(destination: URL(string: "intenttodo://addTodo")!) {
+        Link(destination: TodoDeepLink.addTodo.url) {
             HStack {
                 Image(systemName: "plus.circle.fill")
                 Text("Add Todo")

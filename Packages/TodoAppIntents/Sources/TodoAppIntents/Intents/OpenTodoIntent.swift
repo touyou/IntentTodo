@@ -22,7 +22,11 @@ import UIKit
 ///
 /// Navigation is written to `NavigationModel` via `@Dependency` in `perform()`,
 /// matching `LaunchAppIntent`'s cold-start-safe pattern.
-public struct OpenTodoIntent: OpenIntent {
+/// `URLRepresentableIntent` も満たす。`OpenIntent` で `Target` が
+/// `URLRepresentableEntity` なので `urlRepresentation` は SDK 側の extension が
+/// 組み立ててくれる（`intenttodo://todo/<id>`）。これにより「この Todo を開く」が
+/// URL としても表現でき、ウィジェットの `Link` と Siri / Shortcuts が同じ宛先を指す。
+public struct OpenTodoIntent: OpenIntent, URLRepresentableIntent {
     public static let title: LocalizedStringResource = "Open Todo"
     public static let description = IntentDescription("Opens the app to a specific todo")
     public static let supportedModes: IntentModes = [.foreground(.immediate)]

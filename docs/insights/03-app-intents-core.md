@@ -1315,6 +1315,28 @@ UI 側で立てて `perform()` 内の donate を切り替える）は成立し�
 `deleteDonations(matching: .entityIdentifiers(...))` を呼ぶ形で、削除経路に必ず入れている。
 本アプリの delete 系 3 Intent は既にこの形。
 
+### URL 表現は `URLRepresentableEntity` に寄せ、綴りの重複はテストで縛る
+
+`TodoAppEntity: URLRepresentableEntity` を宣言すると `intenttodo://todo/<id>` が entity の
+URL 表現になり、`OpenTodoIntent` は `URLRepresentableIntent` を**無償で満たす**
+（SDK に `URLRepresentableIntent where Self: OpenIntent, Value: URLRepresentableEntity` の
+extension があり `urlRepresentation` を組み立ててくれる）。結果、ウィジェットの `Link` /
+Siri / Shortcuts / Spotlight が同じ宛先を指す。
+
+注意点が 2 つ。
+
+- **`urlRepresentation` は DSL リテラル**（`"intenttodo://todo/\(.id)"`）で、関数を呼べない。
+  URL を組む / 読む側の実装（`TodoDeepLink`）とは**同じ形を 2 回書く**ことになる。両者の一致は
+  `TodoDeepLinkTests` の「entity の URL 表現は TodoDeepLink と同じ URL になる」で縛る
+  （インスタンス側の `urlRepresentation` は `async` なので `await` して比較する）
+- **URL の綴りをターゲットごとに散らさない**。作る側（ウィジェット、entity）と読む側
+  （アプリの `onOpenURL`）が別ターゲットなので、文字列を各所に置くとビルドでは検出できず
+  「ウィジェットをタップしても何も起きない」という形でしか出ない。`TodoDeepLink` に集約する
+
+「アプリを開くだけ」の行タップは `Button(intent:)` ではなく `Link(destination:)`
+（公式: *"If you want to offer an interaction that opens the app, use `Link`"*）。ウィジェットの
+Todo 行はこの形で該当 Todo の詳細に飛ぶ。
+
 ### Focus filter（`SetFocusFilterIntent`）は「実行先を選べない Intent」
 
 集中モードごとの絞り込みは `TodoFocusFilterIntent` が受ける。設定 > 集中モード に現れ、

@@ -331,6 +331,22 @@ extension TodoAppEntity: Transferable {
     }
 }
 
+// MARK: - URLRepresentableEntity
+
+/// Todo を URL で指し示せるようにする。
+///
+/// これがあると `OpenTodoIntent` が `URLRepresentableIntent` を無償で満たせて、
+/// ウィジェットの `Link(destination:)` からも同じ宛先を作れる。
+///
+/// リテラルの綴りは `TodoDeepLink.todo(id:)` と一致していなければならない
+/// （こちらは DSL なので関数を呼べず、同じ形を 2 回書くしかない）。
+/// 食い違いは `TodoDeepLinkTests` が検出する。
+extension TodoAppEntity: URLRepresentableEntity {
+    public static var urlRepresentation: URLRepresentation {
+        "intenttodo://todo/\(.id)"
+    }
+}
+
 // MARK: - IndexedEntity (Spotlight Integration)
 
 #if os(iOS) || os(macOS)

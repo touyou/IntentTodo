@@ -335,6 +335,18 @@ public final class TodoService {
         return items.map { TodoAppEntity(from: $0) }
     }
 
+    /// 単一の Todo を id で引く。見つからなければ `nil`。
+    ///
+    /// ディープリンク（`TodoDeepLink.todo(id:)`）の解決用。古いリンクを開いたときに
+    /// エラーを見せる意味がないので、`resolve(todoId:)` と違って throw せず `nil` を返す。
+    public func todo(id: String) -> TodoAppEntity? {
+        guard let uuid = UUID(uuidString: id),
+              let item = try? repository.fetch(by: uuid) else {
+            return nil
+        }
+        return TodoAppEntity(from: item)
+    }
+
     public func incompleteCount() throws -> Int {
         try repository.incompleteCount()
     }

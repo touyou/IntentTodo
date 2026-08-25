@@ -123,16 +123,24 @@ struct IntentTodoApp: App {
 
     // MARK: - URL Handling
 
-    /// Handle deep link URLs from widgets (e.g. intenttodo://addTodo from Home Widgets).
+    /// Handle deep link URLs from widgets and from `TodoAppEntity`'s URL
+    /// representation (`intenttodo://todo/<id>`).
+    ///
+    /// URL の綴りは `TodoDeepLink` に集約してあるので、ここでは解釈結果だけを見る。
     private func handleURL(_ url: URL) {
-        guard url.scheme == "intenttodo" else { return }
+        guard let link = TodoDeepLink(url: url) else { return }
 
-        switch url.host {
-        case "addTodo":
+        switch link {
+        case .addTodo:
             navigationModel.navigateToRoot()
             navigationModel.showAddTodo()
-        default:
-            break
+        case .todo(let id):
+            // 消された Todo の古いリンクを踏んだ場合は何もしない（エラーを見せる
+            // 価値がなく、開いた画面が空になるより現状維持のほうが混乱しない）。
+            let service = TodoService.swiftDataBacked(container: modelContainer)
+            guard let todo = service.todo(id: id) else { return }
+            navigationModel.navigateToRoot()
+            navigationModel.showDetail(for: todo)
         }
     }
 
