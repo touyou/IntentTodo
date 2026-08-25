@@ -13,12 +13,12 @@ let package = Package(
         .library(
             name: "UI",
             targets: ["UI"]
-        ),
+        )
     ],
     dependencies: [
         .package(path: "../TodoAppIntents"),
         .package(path: "../Domain"),
-        .package(path: "../LiveActivity"),
+        .package(path: "../LiveActivity")
     ],
     targets: [
         .target(
@@ -26,7 +26,7 @@ let package = Package(
             dependencies: [
                 .product(name: "TodoAppIntents", package: "TodoAppIntents"),
                 .product(name: "Domain", package: "Domain"),
-                .product(name: "LiveActivity", package: "LiveActivity"),
+                .product(name: "LiveActivity", package: "LiveActivity")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
@@ -35,6 +35,6 @@ let package = Package(
         .testTarget(
             name: "UITests",
             dependencies: ["UI", "TodoAppIntents"]
-        ),
+        )
     ]
 )

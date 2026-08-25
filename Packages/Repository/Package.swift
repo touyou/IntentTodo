@@ -13,16 +13,16 @@ let package = Package(
         .library(
             name: "Repository",
             targets: ["Repository"]
-        ),
+        )
     ],
     dependencies: [
-        .package(path: "../Domain"),
+        .package(path: "../Domain")
     ],
     targets: [
         .target(
             name: "Repository",
             dependencies: [
-                .product(name: "Domain", package: "Domain"),
+                .product(name: "Domain", package: "Domain")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
@@ -31,6 +31,6 @@ let package = Package(
         .testTarget(
             name: "RepositoryTests",
             dependencies: ["Repository"]
-        ),
+        )
     ]
 )

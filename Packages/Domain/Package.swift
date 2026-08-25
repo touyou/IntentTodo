@@ -13,7 +13,7 @@ let package = Package(
         .library(
             name: "Domain",
             targets: ["Domain"]
-        ),
+        )
     ],
     targets: [
         .target(
@@ -25,6 +25,6 @@ let package = Package(
         .testTarget(
             name: "DomainTests",
             dependencies: ["Domain"]
-        ),
+        )
     ]
 )

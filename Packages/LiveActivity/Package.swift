@@ -13,22 +13,22 @@ let package = Package(
         .library(
             name: "LiveActivity",
             targets: ["LiveActivity"]
-        ),
+        )
     ],
     dependencies: [
         .package(path: "../Domain"),
-        .package(path: "../TodoAppIntents"),
+        .package(path: "../TodoAppIntents")
     ],
     targets: [
         .target(
             name: "LiveActivity",
             dependencies: [
                 .product(name: "Domain", package: "Domain"),
-                .product(name: "TodoAppIntents", package: "TodoAppIntents"),
+                .product(name: "TodoAppIntents", package: "TodoAppIntents")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
-        ),
+        )
     ]
 )

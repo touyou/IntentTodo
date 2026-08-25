@@ -13,18 +13,18 @@ let package = Package(
         .library(
             name: "TodoAppIntents",
             targets: ["TodoAppIntents"]
-        ),
+        )
     ],
     dependencies: [
         .package(path: "../Domain"),
-        .package(path: "../Repository"),
+        .package(path: "../Repository")
     ],
     targets: [
         .target(
             name: "TodoAppIntents",
             dependencies: [
                 .product(name: "Domain", package: "Domain"),
-                .product(name: "Repository", package: "Repository"),
+                .product(name: "Repository", package: "Repository")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
@@ -33,6 +33,6 @@ let package = Package(
         .testTarget(
             name: "TodoAppIntentsTests",
             dependencies: ["TodoAppIntents"]
-        ),
+        )
     ]
 )
