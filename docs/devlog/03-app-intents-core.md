@@ -808,3 +808,39 @@ standalone のコピーが `Debug-watchsimulator` 側で検査されるため、
 AppIntentsTesting は型名で intent / entity を引くのでスキーマ経路を通らず、`AppEntityDefinition`
 にもスキーマやプロパティ一覧を読む API は無い（`makeReference` / `allEntities` / `suggestedEntities`
 のみ）。メタデータに載っていることは確定したので、ここから先は手動確認の領域。
+
+---
+
+## 2026-08-26: donate を「Intent の専用フラグ」で切り替える案を検討し、却下
+
+T21b（`perform()` は呼出元を判別できないので donation を書けない）に対する 3 案目として、
+**Intent に donate 用のプロパティを 1 つ持たせ、`Button(intent:)` に渡すときだけ立てる**案を検討した。
+公式サンプルの 2 方式（CometCal のサービス層フラグ / CosmoTunes の UI タップ地点）がどちらも
+「UI が Intent を通らない」前提なので、フラグを Intent 側に移せば中心設計のまま満たせるのでは、
+という発想。
+
+却下した。理由は 2 つとも機械的で、どちらに転んでも壊れる。
+
+- **素のプロパティ**にすると実行側プロセスに届かない。Intent のシリアライズ面は `@Parameter` だけ。
+  Widget / Control のように別プロセスで走る経路では `init()` からのデフォルト値に戻る。しかも
+  アプリ内 `Button(intent:)` では運ばれうるので、**アプリ内だけ通って他で静かに落ちる**形になる
+- **`@Parameter`** にすると統合メタデータに乗る。`ParameterSummary` から外せば Shortcuts エディタには
+  出ないが、モデルは値を埋められるので **Siri 起点で donate が走る = 避けたかった違反そのもの**。
+  保存済みショートカットはパラメータ込みで replay されるため、後から取り除けない契約にもなる
+
+加えて、根拠の読み直しで**規約違反より前の話**だったことが分かった。Apple の donation ガイダンスは
+"Don't donate from inside an intent's `perform()`; the system already donates the intents it runs,
+so a donation there would double-count." で、**`perform()` は donate の置き場所として単純に間違い**
+（CosmoTunes のコメントも同文）。呼出元をどう伝えるかを工夫しても、置き場所の問題は解けない。
+
+もう 1 つの決め手はテスタビリティ。donation には列挙・観測の公開 API が無く（`deleteDonations` はある）、
+**AppIntentsTesting で押さえられない**。「効いているか確認できないコードを Intent の公開スキーマに
+足す」というトレードで、フラグ案はそのコストを一番高い形で払う。
+
+結論は T21b のまま変わらず: donate する層は**呼出元を知っている層（UI）**、タイミングは**成功後**。
+やるなら `AppIntent.callAsFunction(donate:)` で一部 UI 経路を直接実行に切り替える（＝「全部
+`Button(intent:)`」を部分的にやめる）判断が必要。`deleteDonations(matching:)` を削除 3 経路に
+入れてある現状は正しいので触っていない。
+
+現在のルールは insights/03「donation は『アプリ UI 起点の操作』だけ」に、想定質問としての形は
+`docs/presentation/02-constraints-and-craft.md` の T21b に書いた。

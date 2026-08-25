@@ -1288,6 +1288,28 @@ donate し直したい場合の選択肢は `AppIntent.callAsFunction(donate:)`
 一部の UI 経路だけ `Button(intent:)` から直接実行へ切り替える形。未着手候補として
 `docs/APP_INTENTS_CENTRIC_PLAN.md` に置いてある。
 
+**却下した 3 案目: Intent に「呼出元フラグ」を持たせる形**（`shouldDonate` のような専用プロパティを
+UI 側で立てて `perform()` 内の donate を切り替える）は成立しない。理由は 2 つとも機械的:
+
+- **素のプロパティは実行側プロセスに届かない**。Intent のシリアライズ面は `@Parameter` だけで、
+  システムは実行プロセスで `init()` してからパラメータを流し込む。Widget / Control のように
+  別プロセスで走る経路では必ずデフォルト値に戻る。アプリ内 `Button(intent:)` では運ばれうるため
+  **「アプリ内だけ通って他の呼出元で静かに落ちる」**という一番たちの悪い形になる
+- **`@Parameter` にすると Siri / Shortcuts から立てられる**。`ParameterSummary` から外せば
+  Shortcuts エディタには出ないが（`parameters.md`: 「summary に無いパラメータはエディタに出ないだけで
+  存在し解決もされる」）、統合メタデータには残るのでモデルが値を埋められる。**避けたかった
+  「Siri 起点の donate」がむしろ起こる**。加えて保存済みショートカットはパラメータ込みで replay
+  されるため、後から消せない契約になる
+
+そもそも Apple のガイダンスは「呼出元で分岐せよ」ではなく **「`perform()` の中では donate するな」**
+（システムは自分が走らせた Intent を既に donate しているので二重計上になる）。フラグをどこに置くかの
+問題ではなく、置き場所が `perform()` ではないという話。donate する層は「呼出元を知っている層」＝UI で、
+タイミングは**操作が成功した後**。
+
+もう 1 つのコストとして、donation には観測用の公開 API が無い（`deleteDonations` はあるが列挙は無い）。
+**AppIntentsTesting で押さえられない**ので、「効いているか確認できないコードを Intent の公開スキーマに
+足す」形になる。これも未着手のまま置いている理由の一部。
+
 一方 **`deleteDonations(matching:)` は呼出元に関係なく正しい**（消えた entity への提案を残さない
 後片付け）。CosmoTunes も `EntityIdentifier(for:identifier:)` を集めて
 `deleteDonations(matching: .entityIdentifiers(...))` を呼ぶ形で、削除経路に必ず入れている。
