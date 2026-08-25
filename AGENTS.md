@@ -575,6 +575,7 @@ interface, and **not to interactions started by Siri or the Shortcuts app**."
 - [x] サブタスク（SubTask model / SubTaskAppEntity）
 - [x] 統計情報取得（GetTodoSummaryIntent — TodoListSummaryEntity: TransientAppEntity）
 - [x] カテゴリを開く（OpenCategoryIntent — Visual Intelligence macOS対応で追加）
+- [x] 集中モード連携（TodoFocusFilterIntent — SetFocusFilterIntent。カテゴリ / 急ぎのみ / 完了を隠す。リストとウィジェットの両方に効く）
 
 ### マルチプラットフォーム
 - [x] iOS/iPadOS メインアプリ

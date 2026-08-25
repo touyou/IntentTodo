@@ -200,6 +200,18 @@
     **本ブランチはデプロイメントターゲットが 27 なので `#available` での組み立ては不要**だった
   - 🚫 donation の再導入は見送り（`Button(intent:)` を唯一の実行経路とする設計を崩す判断が要る）
   - 詳細は insights/03「Phase 10」。経緯: [docs/devlog/03-app-intents-core.md](devlog/03-app-intents-core.md)（2026-08-22）
+- **Phase 11 未採用だった Intent 種別の消化**（2026-08-26 着手）:
+  - ✅ `SetFocusFilterIntent`（`TodoFocusFilterIntent`）: カテゴリ / 急ぎのみ / 完了を隠す の 3 パラメータ。
+    `TodoFocusFilter`（判定 + App Group 経由の共有）と `TodoFocusFilterStore`（`@Observable`）を足し、
+    リスト UI とホームウィジェットの両方に効かせた。AppIntents Extension を持たないので
+    アプリ未起動中の Focus 遷移は `current` で取り直す。`notificationFilterPredicate` の許可リストには
+    失敗通知用の criteria を常置。詳細と落とし穴は insights/03「Focus filter」
+  - ℹ️ `ProgressReportingIntent` は**すでに採用済み**だった（SDK で `LongRunningIntent: ProgressReportingIntent`。
+    `CompleteTodosIntent` が `progress` を更新している）。「未実装の種別」ではない
+  - ⏳ `UISceneAppIntent` + `AppIntentSceneDelegate` / `URLRepresentableIntent`・`URLRepresentableEntity`
+  - 🚫 対象外: `AudioPlaybackIntent`（再生機能なし）/ `CustomIntentMigratedAppIntent`（SiriKit 資産なし）/
+    `LiveActivityStartingIntent`（iOS 17 で deprecated、`LiveActivityIntent` が後継）/
+    `PredictableIntent`（donation ゼロのため提案自体が出ない）
 
 > 各フェーズは機能単位の小コミット + `BuildProject` 確認で進める。R 深度（実機 Siri/Visual Intelligence）は
 > デバイス手動確認が必要なため、コード側は B/U まで到達させ、R は別途手動検証メモを残す。

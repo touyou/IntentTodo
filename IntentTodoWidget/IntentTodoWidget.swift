@@ -75,10 +75,19 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
                 return lhs.createdAt > rhs.createdAt
             }
 
-            let entities = sortedTodos.prefix(10).map { TodoAppEntity(from: $0) }
+            // 集中モードの絞り込みはウィジェットにも効かせる。アプリ側と同じ
+            // `TodoFocusFilter.apply` を通すので、一覧とウィジェットで結果がずれない。
+            // 設定は App Group の UserDefaults 経由で受け取る（Focus filter の
+            // `perform()` はアプリプロセスで走るため、ここでは読むだけ）。
+            let focusFilter = TodoFocusFilter.loadFromSharedDefaults()
+            let visibleTodos = focusFilter.apply(to: sortedTodos.map { TodoAppEntity(from: $0) })
+
+            let entities = visibleTodos.prefix(10)
             // 各 size view が独立して `todos.filter { !$0.isCompleted }.count` を
             // 走らせていた旧実装を、Provider 側で 1 回 precompute する形に集約。
-            let incompleteCount = sortedTodos.lazy.filter { !$0.isCompleted }.count
+            // 件数も絞り込み後の母数で数える（絞られた一覧に対して全体の件数を出すと
+            // 「表示 0 件なのに未完了 5 件」という食い違った表示になる）。
+            let incompleteCount = visibleTodos.lazy.filter { !$0.isCompleted }.count
 
             return TodoWidgetEntry(
                 date: Date(),

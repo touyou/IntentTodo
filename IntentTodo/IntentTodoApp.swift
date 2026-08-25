@@ -28,6 +28,8 @@ struct IntentTodoApp: App {
     @NSApplicationDelegateAdaptor(MacAppDelegate.self) var appDelegate
     #endif
 
+    @Environment(\.scenePhase) private var scenePhase
+
     let modelContainer: ModelContainer
 
     // Same instance stored in @State AND registered with AppDependencyManager.
@@ -101,6 +103,16 @@ struct IntentTodoApp: App {
                 .environment(navigationModel)
                 .task {
                     await requestNotificationPermission()
+                }
+                // アプリが動いていない間の Focus 遷移では TodoFocusFilterIntent の
+                // perform() が呼ばれない（AppIntents Extension を持たないため。
+                // wwdc2022-10121 9:29）。起動時と復帰時に current を取り直して埋める。
+                .task {
+                    await TodoFocusFilterStore.shared.syncFromSystem()
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    guard phase == .active else { return }
+                    Task { await TodoFocusFilterStore.shared.syncFromSystem() }
                 }
                 .onOpenURL { url in
                     handleURL(url)

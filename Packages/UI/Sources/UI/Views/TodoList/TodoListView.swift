@@ -22,6 +22,8 @@ public struct TodoListView: View {
 
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
+    /// 集中モードの絞り込み。`TodoFocusFilterIntent` が書き込むと body が再評価される。
+    @State private var focusFilterStore = TodoFocusFilterStore.shared
     @Environment(NavigationModel.self) private var navigationModel
     @Environment(\.modelContext) private var modelContext
 
@@ -34,7 +36,10 @@ public struct TodoListView: View {
         // 1,000 件規模での map コストが問題になるなら、`TodoItem` のフィールドだけを
         // 抜き出した軽量 projection (例: SwiftData の `#Predicate` で fetch する struct)
         // を別途検討する。
-        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
+        viewModel.filteredTodos(
+            from: todoItems.map { TodoAppEntity(from: $0) },
+            focusFilter: focusFilterStore.effectiveFilter
+        )
     }
 
     // MARK: - Initialization
@@ -69,6 +74,11 @@ public struct TodoListView: View {
                 }
             }
             .navigationTitle("Todos")
+            // 一覧が空になる原因が Focus のときも見えている必要があるので、List の中
+            // ではなく List の外（上端）に出す。
+            .safeAreaInset(edge: .top, spacing: 0) {
+                FocusFilterBanner(store: focusFilterStore)
+            }
             .toolbar {
                 TodoListToolbar(viewModel: $viewModel)
             }
@@ -180,6 +190,65 @@ private struct TodoListSidebar: View {
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 DeleteButton(todo: todo)
             }
+    }
+}
+
+// MARK: - Focus Filter Banner
+
+/// 集中モードで一覧が絞られていることを示し、その場で解除できるようにする。
+///
+/// 標準アプリ（カレンダー）が Focus filter 適用中に「Focus で絞り込み中」の表示と
+/// 解除手段を並べて出しているのと同じ扱い（wwdc2022-10121 2:04）。表示だけ出して
+/// 解除手段が無いと、絞られていることに気づいたユーザーが設定アプリまで行くしかない。
+private struct FocusFilterBanner: View {
+    let store: TodoFocusFilterStore
+
+    var body: some View {
+        if store.filter.isActive {
+            HStack(spacing: 8) {
+                Image(systemName: "moon.fill")
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(store.isSuspended ? "Focus filter paused" : "Filtered by Focus")
+                        .font(.footnote)
+                    FocusFilterConditions(filter: store.filter)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button(store.isSuspended ? "Apply" : "Show All") {
+                    store.isSuspended.toggle()
+                }
+                .font(.footnote)
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            // Liquid Glass 時代のクロームは自前で塗らずシステムマテリアルに任せる。
+            .background(.bar)
+            .accessibilityElement(children: .combine)
+        }
+    }
+}
+
+/// 効いている条件の内訳。文言を `String` に連結せず `Text` を並べることで、
+/// このファイルの他の文言と同じくローカライズ対象のまま扱える
+/// （カテゴリ名だけはユーザーデータなので `verbatim`）。
+private struct FocusFilterConditions: View {
+    let filter: TodoFocusFilter
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let categoryName = filter.categoryName {
+                Text(verbatim: categoryName)
+            }
+            if filter.showsUrgentOnly {
+                Text("Urgent only")
+            }
+            if filter.hidesCompleted {
+                Text("Hiding completed")
+            }
+        }
     }
 }
 

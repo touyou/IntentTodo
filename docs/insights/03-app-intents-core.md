@@ -1315,6 +1315,36 @@ UI 側で立てて `perform()` 内の donate を切り替える）は成立し�
 `deleteDonations(matching: .entityIdentifiers(...))` を呼ぶ形で、削除経路に必ず入れている。
 本アプリの delete 系 3 Intent は既にこの形。
 
+### Focus filter（`SetFocusFilterIntent`）は「実行先を選べない Intent」
+
+集中モードごとの絞り込みは `TodoFocusFilterIntent` が受ける。設定 > 集中モード に現れ、
+Focus の切り替わりでシステムが `perform()` を呼ぶ。他の Intent と違う点が 4 つある。
+
+- **`allowedExecutionTargets` を宣言しない**。実行先は Focus の仕組みが決める（アプリが動いて
+  いればアプリ、そうでなければ AppIntents Extension。wwdc2022-10121 9:29）。本プロジェクトの
+  「書き込み系は `[.main]`」ルールはここには適用しない — 固定しても意味がなく、将来 Extension を
+  足したときに噛み合わなくなる
+- **AppIntents Extension が無い＝アプリ未起動中の遷移は取りこぼす**。埋め合わせは
+  `SetFocusFilterIntent.current`（wwdc2022-10121 11:47）で、起動時とフォアグラウンド復帰時に
+  `TodoFocusFilterStore.syncFromSystem()` が現在値を取り直す。Focus filter 未設定なら throw
+  するので、その場合は `.inactive` に倒す
+- **`notificationFilterPredicate` に一致しない通知は黙らされる**（wwdc2022-10121 13:15）。
+  照合相手は `UNMutableNotificationContent.filterCriteria`。**criteria を付けていない通知は
+  述語を返した瞬間に全部消える**ので、アプリ自身の失敗通知（`ControlNotificationHelper`）には
+  `TodoFocusFilter.systemNotificationCriteria` を付け、許可リストに常に含める。コントロールの
+  失敗通知が消えると「何も起きなかった」と区別できなくなる
+- **絞り込みの判定は 1 か所に集約する**。読み手はリスト UI（アプリプロセス）とウィジェット
+  （別プロセス）の 2 つで、後者には App Group の UserDefaults 経由で設定だけを渡し、
+  「どの Todo を残すか」は共通の `TodoFocusFilter.apply(to:now:)` を通す。ウィジェットの件数表示も
+  絞り込み後の母数で数える（絞った一覧に全体件数を出すと「表示 0 件なのに未完了 5 件」になる）
+
+UI 側では**絞り込み中であることの表示と、その場での解除手段**をセットで出す（標準のカレンダーが
+同じ形。wwdc2022-10121 2:04）。表示だけだと、絞られていることに気づいたユーザーが設定アプリまで
+行くしかない。解除は永続化しない（次の Focus 遷移で畳む）。
+
+`displayRepresentation` は設定済みの内容を動的に反映する（wwdc2022-10121 8:07）。ここもランタイム
+文字列は `"\(value)"` の補間形式で渡す（上の「Entity の表示表現」と同じ理由）。
+
 ### `attributeSet` と `@Property(indexingKey:)` で同じ Spotlight キーを二重に埋めない
 
 `indexingKey:` はプロパティを `CSSearchableItemAttributeSet` のキーへマップする。同じキーを

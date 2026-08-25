@@ -39,10 +39,17 @@ public final class TodoListViewModel {
     /// Filters and sorts todos based on current UI state.
     ///
     /// This logic is UI-specific and not exposed to Siri/Shortcuts.
-    /// - Parameter todos: The source todos to filter and sort.
+    /// - Parameters:
+    ///   - todos: The source todos to filter and sort.
+    ///   - focusFilter: 集中モードの絞り込み。ユーザーが選んだフィルタより前に効く
+    ///     （システム側の制約なので、UI のフィルタで広げ直せてはいけない）。
+    ///     既定は `.inactive` で、Focus を使っていない環境では従来どおり素通し。
     /// - Returns: Filtered and sorted todos.
-    public func filteredTodos(from todos: [TodoAppEntity]) -> [TodoAppEntity] {
-        var result = todos
+    public func filteredTodos(
+        from todos: [TodoAppEntity],
+        focusFilter: TodoFocusFilter = .inactive
+    ) -> [TodoAppEntity] {
+        var result = focusFilter.apply(to: todos)
 
         // Apply filter
         switch filter {

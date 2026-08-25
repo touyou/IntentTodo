@@ -29,6 +29,9 @@ public enum ControlNotificationHelper {
         content.title = "Todo Error"
         content.body = message
         content.sound = .default
+        // 集中モードの絞り込み中でも黙らされないようにする。`TodoFocusFilterIntent`
+        // が返す述語の許可リストは必ずこの criteria を含む（wwdc2022-10121 13:15）。
+        content.filterCriteria = TodoFocusFilter.systemNotificationCriteria
         if let todoId {
             content.appEntityIdentifiers = [EntityIdentifier(for: TodoAppEntity.self, identifier: todoId)]
         }
