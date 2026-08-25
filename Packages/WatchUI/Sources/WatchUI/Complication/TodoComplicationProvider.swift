@@ -12,11 +12,24 @@ private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoC
 
 /// Timeline provider that fetches todo data for complications.
 public struct TodoComplicationProvider: TimelineProvider {
-    private let modelContainer: ModelContainer
+    /// `nil` when the store could not be opened.
+    ///
+    /// A complication provider is the one place where `fatalError` is the wrong
+    /// answer: crashing the extension leaves the complication blank, which reads
+    /// exactly like "nothing due". `loadFailed` already exists to say "unknown"
+    /// on the watch face, so an unopenable store takes the same path as a failed
+    /// fetch — visibly unavailable, retried on the short 5-minute policy.
+    private let modelContainer: ModelContainer?
 
     public init() {
-        // swiftlint:disable:next force_try
-        self.modelContainer = try! SharedModelContainer.createContainer()
+        do {
+            self.modelContainer = try SharedModelContainer.createContainer()
+        } catch {
+            logger.critical("complication ModelContainer init failed: \(String(reflecting: error))")
+            let nsError = error as NSError
+            logger.critical("NSError domain=\(nsError.domain) code=\(nsError.code)")
+            self.modelContainer = nil
+        }
     }
 
     public func placeholder(in context: Context) -> TodoComplicationEntry {
@@ -42,7 +55,8 @@ public struct TodoComplicationProvider: TimelineProvider {
     }
 
     @MainActor
-    private static func makeEntry(using modelContainer: ModelContainer) -> TodoComplicationEntry {
+    private static func makeEntry(using modelContainer: ModelContainer?) -> TodoComplicationEntry {
+        guard let modelContainer else { return .unavailable() }
         // 1 fetch で全 Todo を取り、集計は in-memory で行う (watchOS での典型件数で
         // クエリを 2 回投げるより安い + 集計ロジックが1箇所にまとまる)。
         let context = modelContainer.mainContext

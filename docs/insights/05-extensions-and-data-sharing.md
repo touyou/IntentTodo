@@ -33,6 +33,25 @@ struct IntentTodoWidgetBundle: WidgetBundle {
 
 各Extension（Widget、LiveActivity）は独立したプロセスで動作するため、ModelContainerを個別に作成する必要がある。
 
+### コンテナ生成失敗時の扱い — `try!` は使わない
+
+`try!` はトラップするだけでメッセージを残さない。Extension のクラッシュは「ウィジェットが白いまま」
+「Watch アプリを開いてすぐ落ちる」としてしか見えないので、**理由が Console に出ないと切り分けができない**。
+最低限 `Logger.critical` に error / `NSError.domain` / `code` / `userInfo` を出してから落とす
+（メインアプリの `IntentTodoApp.init()` と同じ形）。
+
+落とす / 落とさないの判断は「そのプロセスで表示できるものが残っているか」で決める。
+
+| 呼出元 | 扱い | 理由 |
+|-------|-----|------|
+| `IntentTodoApp.init()` / `IntentTodoWatchApp.init()` | ログ + `fatalError` | アプリ本体はストアが無ければ何も表示できない |
+| `sharedWidgetModelContainer`（Widget Extension） | ログ + `fatalError` | Extension 内の全ウィジェット / コントロールが対象。代替表示は無い |
+| `TodoComplicationProvider.init()` | ログ + **`nil` 保持 → `.unavailable()` entry** | **ここだけ `fatalError` は不適切**。落とすとコンプリケーションが空白になり、それは「予定なし」と区別できない。`loadFailed` で「不明」を出す口が既にあるので、fetch 失敗と同じ経路に載せて短い policy（5 分）で再試行させる |
+
+「fetch 失敗を 0 / 空 / nil に潰さない」という同じ判断を、コンテナ生成失敗にも適用したもの。
+`TodoCountControl`（`throws` で前回値を維持）、`TodoComplicationProvider`（`.unavailable()`）、
+`IntentTodoWidget.fetchEntry`（`loadFailed: true`）が同じ考え方。
+
 ---
 
 ## App Groups によるデータ共有
