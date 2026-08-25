@@ -7,6 +7,8 @@
 //  `AppIntentSceneDelegate` として、シーンに向けて実行される App Intent の
 //  ナビゲーションをこのシーンに適用する（wwdc2025-275 23:52）。
 //
+//  詳細: docs/insights/04-ui-integration.md（UISceneAppIntent）
+//
 
 #if os(iOS) || os(visionOS)
 import AppIntents

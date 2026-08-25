@@ -77,6 +77,8 @@ struct SharedModelContainerTests {
     /// そのため「環境によって落ちるテスト」として明示する。entitlement のある
     /// ホストで走らせれば成功し、`isIntermittent: true` なのでその場合も緑のまま。
     /// in-memory 経路の実質的なカバレッジは下の `containerMainContext` にある。
+    ///
+    /// 経緯: docs/devlog/05-extensions-and-data-sharing.md（2026-08-26）
     @Test("Container can be created successfully")
     func containerCreation() throws {
         withKnownIssue(

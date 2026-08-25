@@ -2,9 +2,11 @@
 //  TodoFocusFilterIntent.swift
 //  TodoAppIntents
 //
-//  集中モードごとに一覧の見せ方を変える Focus filter（wwdc2022-10121）。
+//  集中モードごとに一覧の見せ方を変える Focus filter（wwdc2022-10121 4:17）。
 //  設定 > 集中モード > アプリのフィルタ に現れ、Focus の切り替わりでシステムが
 //  `perform()` を呼ぶ。
+//
+//  詳細: docs/insights/03-app-intents-core.md（Focus filter）
 //
 
 import AppIntents

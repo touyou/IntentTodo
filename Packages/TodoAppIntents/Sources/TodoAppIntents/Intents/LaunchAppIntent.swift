@@ -114,6 +114,8 @@ public struct LaunchAppIntent: AppIntent {
 /// SwiftUI 側の代替は `contentIdentifier` と `handlesExternalEvents` の組み合わせで
 /// 「どのシーンが処理するか」を宣言する形（同 23:12）。本アプリは `WindowGroup` が
 /// 1 つで宛先の選択が要らないため、cold start を確定させられる delegate 側を採った。
+///
+/// 詳細: docs/insights/04-ui-integration.md（UISceneAppIntent）
 extension LaunchAppIntent: UISceneAppIntent {
     public func performNavigation(forScene scene: UIScene) {
         // 呼び出しは常にシーンデリゲート（メインスレッド）から。

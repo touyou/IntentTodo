@@ -341,6 +341,7 @@ extension TodoAppEntity: Transferable {
 /// リテラルの綴りは `TodoDeepLink.todo(id:)` と一致していなければならない
 /// （こちらは DSL なので関数を呼べず、同じ形を 2 回書くしかない）。
 /// 食い違いは `TodoDeepLinkTests` が検出する。
+/// 詳細: docs/insights/03-app-intents-core.md（URL 表現）
 extension TodoAppEntity: URLRepresentableEntity {
     public static var urlRepresentation: URLRepresentation {
         "intenttodo://todo/\(.id)"

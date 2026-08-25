@@ -183,9 +183,14 @@ modifier_order:
     - owned
 
 # ファイルヘッダー
+#
+# 3 行目は Xcode の標準テンプレートどおり「そのファイルが属するターゲット / モジュール名」。
+# 本リポジトリは機能の大半を SPM パッケージに置いているため、ここは `IntentTodo` だけでなく
+# `TodoAppIntents` / `UI` / `WatchUI` などにもなる（150 ファイル中 90 件超がアプリターゲット外）。
+# 固定文字列にすると、規約に合わせるほどヘッダーが実態と食い違う。
 file_header:
   required_pattern: |
     \/\/
     \/\/  .*\.swift
-    \/\/  IntentTodo
+    \/\/  \S.*
     \/\/

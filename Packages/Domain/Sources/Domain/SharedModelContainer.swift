@@ -73,6 +73,9 @@ public enum SharedModelContainer {
     /// `sharedContainerURL` がパスを返してしまうため、開けない共有ストアを掴んで
     /// `createContainer()` が throw する。テスト側はそれを前提に組む
     /// （`SharedModelContainerTests` / `createInMemoryContainer()`）。
+    ///
+    /// 詳細: docs/insights/05-extensions-and-data-sharing.md
+    /// 経緯: docs/devlog/05-extensions-and-data-sharing.md（2026-08-26）
     public static var configuration: ModelConfiguration {
         if let containerURL = sharedContainerURL {
             let storeURL = containerURL.appendingPathComponent(databaseFilename)

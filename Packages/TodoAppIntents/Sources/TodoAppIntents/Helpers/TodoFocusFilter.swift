@@ -9,6 +9,8 @@
 //  UserDefaults を通す。値の解釈（どの Todo を残すか）はこの型の純関数に集約し、
 //  UI とウィジェットで判定がずれないようにする。
 //
+//  詳細: docs/insights/03-app-intents-core.md（Focus filter）
+//
 
 import Domain
 import Foundation
