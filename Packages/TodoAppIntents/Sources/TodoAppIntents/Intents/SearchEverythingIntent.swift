@@ -40,13 +40,16 @@ public struct SearchEverythingIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<[TodoOrCategory]> {
-        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        // 突き合わせは `localizedStandardContains(_:)`（`TodoEntityQuery` と同じ）。
+        // 小文字化して `contains` するとロケール非依存になり、かな/カナやダイアクリ
+        // ティカルマークを別物として扱ってしまう。
+        let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !needle.isEmpty else { return .result(value: []) }
 
         let todos = try todoService.listTodos(filter: .all)
 
         let matchedTodos = todos
-            .filter { $0.title.lowercased().contains(needle) }
+            .filter { $0.title.localizedStandardContains(needle) }
             .map { TodoOrCategory.todo($0) }
 
         // Categories are derived from the todos' relationships — dedupe by id and
@@ -55,7 +58,7 @@ public struct SearchEverythingIntent: AppIntent {
         let matchedCategories = todos
             .compactMap(\.category)
             .filter { category in
-                category.name.lowercased().contains(needle) && seenCategoryIDs.insert(category.id).inserted
+                category.name.localizedStandardContains(needle) && seenCategoryIDs.insert(category.id).inserted
             }
             .map { TodoOrCategory.category($0) }
 

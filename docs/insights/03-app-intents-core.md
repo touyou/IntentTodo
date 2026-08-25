@@ -1378,12 +1378,25 @@ UI 側では**絞り込み中であることの表示と、その場での解除
 `attributeSet` には **`indexingKey:` で表現できない属性だけ**を書く（`dueDate`、`keywords` など）。
 `displayName` は Spotlight 結果セルの表示名で `.title` とは別キーなので衝突しない。
 
-### ユーザー入力との突き合わせは `localizedStandardContains(_:)`
+### 文字列の突き合わせは**すべて** `localizedStandardContains(_:)`
 
 `EntityStringQuery.entities(matching:)` は**システムが絞り込んでくれない**（自分でフィルタする）。
 その比較に `lowercased().contains()` を使うとロケール非依存になり、かな/カナ、ダイアクリティカル
 マーク、トルコ語の I などを別物として扱う。サンプルは `localizedCaseInsensitiveContains`、
 本プロジェクトのユーザー全体ルールは `localizedStandardContains` を指定している。
+
+**適用先は `EntityStringQuery` に限らない**。「人が読む文字列同士を突き合わせる」場所はすべて同じ:
+
+| 場所 | 突き合わせるもの |
+|---|---|
+| `TodoEntityQuery` / `CategoryEntityQuery` | Siri / Shortcuts が渡す文字列 ↔ タイトル・カテゴリ名 |
+| `SearchEverythingIntent` | `query` パラメータ ↔ タイトル・カテゴリ名 |
+| `TodoVisualIntelligenceQuery` | `SemanticContentDescriptor.labels` ↔ タイトル・カテゴリ名 |
+| `TodoListViewModel`（UI の検索フィールド） | 入力文字列 ↔ タイトル |
+
+Visual Intelligence のラベルは英語主体だが、**突き合わせ先の Todo は日本語などになる**ので
+例外にしない。`localizedStandardContains` は自前の小文字化を不要にするため、
+`labels.map { $0.lowercased() }` のような前処理も消せる。
 
 ### `DisplayRepresentation` の `synonyms:` と画像の遅延クロージャ
 

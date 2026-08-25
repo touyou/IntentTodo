@@ -64,9 +64,11 @@ public final class TodoListViewModel {
         }
 
         // Apply search
+        // 突き合わせは `localizedStandardContains(_:)`（`TodoEntityQuery` と同じ）。
+        // `lowercased().contains()` はロケール非依存で、かな/カナやダイアクリティカル
+        // マークを別物として扱ってしまう。
         if !searchText.isEmpty {
-            let query = searchText.lowercased()
-            result = result.filter { $0.title.lowercased().contains(query) }
+            result = result.filter { $0.title.localizedStandardContains(searchText) }
         }
 
         // Apply sort

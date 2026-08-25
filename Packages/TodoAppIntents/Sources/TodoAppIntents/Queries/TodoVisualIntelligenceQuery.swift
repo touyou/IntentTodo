@@ -34,7 +34,11 @@ public struct TodoVisualIntelligenceQuery: IntentValueQuery {
         // "plant"). Match them against todo titles and category names. The pixel
         // buffer (`input.pixelBuffer`) is available too but image matching needs
         // an ML model, so we use the labels here.
-        let labels = input.labels.map { $0.lowercased() }
+        // 突き合わせは `localizedStandardContains(_:)`（`TodoEntityQuery` と同じ）。
+        // ラベルは英語主体でも突き合わせ先の Todo は日本語などになるので、小文字化 +
+        // `contains` ではロケール依存の同一視（かな/カナ、ダイアクリティカルマーク、
+        // 全角/半角）が効かない。
+        let labels = input.labels
         guard !labels.isEmpty else { return [] }
 
         // TodoService is MainActor-isolated; hop to fetch the snapshot, then filter
@@ -42,8 +46,7 @@ public struct TodoVisualIntelligenceQuery: IntentValueQuery {
         let todos = try await MainActor.run { try todoService.listTodos(filter: .all) }
 
         func matches(_ text: String) -> Bool {
-            let haystack = text.lowercased()
-            return labels.contains { haystack.contains($0) }
+            labels.contains { text.localizedStandardContains($0) }
         }
 
         let matchedTodos = todos
