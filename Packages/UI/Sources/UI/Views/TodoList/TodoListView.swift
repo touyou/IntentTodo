@@ -345,6 +345,13 @@ private struct NavigationBarMinimizeOnScroll: ViewModifier {
 // MARK: - Empty View
 
 private struct TodoListEmptyView: View {
+    /// `ContentUnavailableView` 1 つ分の文言。
+    private struct EmptyContent {
+        let title: String
+        let icon: String
+        let description: String
+    }
+
     let filter: TodoFilter
     let searchText: String
     @Environment(NavigationModel.self) private var navigationModel
@@ -363,19 +370,39 @@ private struct TodoListEmptyView: View {
         }
     }
 
-    private var emptyContent: (title: String, icon: String, description: String) {
+    private var emptyContent: EmptyContent {
         if !searchText.isEmpty {
-            return ("No Results", "magnifyingglass", "No todos match your search.")
+            return EmptyContent(
+                title: "No Results",
+                icon: "magnifyingglass",
+                description: "No todos match your search."
+            )
         }
         switch filter {
         case .all:
-            return ("No Todos", "checklist", "Tap + to add your first todo.")
+            return EmptyContent(
+                title: "No Todos",
+                icon: "checklist",
+                description: "Tap + to add your first todo."
+            )
         case .incomplete:
-            return ("All Done!", "checkmark.circle", "You've completed all your todos!")
+            return EmptyContent(
+                title: "All Done!",
+                icon: "checkmark.circle",
+                description: "You've completed all your todos!"
+            )
         case .completed:
-            return ("No Completed Todos", "circle", "Complete some todos to see them here.")
+            return EmptyContent(
+                title: "No Completed Todos",
+                icon: "circle",
+                description: "Complete some todos to see them here."
+            )
         case .favorites:
-            return ("No Favorites", "star", "Star a todo to add it to favorites.")
+            return EmptyContent(
+                title: "No Favorites",
+                icon: "star",
+                description: "Star a todo to add it to favorites."
+            )
         }
     }
 }

@@ -37,17 +37,20 @@ public enum FieldUpdate<Value>: Sendable where Value: Sendable {
 }
 
 // MARK: - Result Types
+//
+// 以下の payload は `@MainActor` 隔離なので Sendable は暗黙に付く（グローバルアクター
+// 隔離型は SE-0316 により public でも推論される）。明示すると重複になる。
 
 /// Payload returned after toggling a todo's completion.
 @MainActor
-public struct TodoToggleResult: Sendable {
+public struct TodoToggleResult {
     public let entity: TodoAppEntity
     public let isNowCompleted: Bool
 }
 
 /// Payload returned after snoozing a todo.
 @MainActor
-public struct TodoSnoozeResult: Sendable {
+public struct TodoSnoozeResult {
     public let entity: TodoAppEntity
     public let newDueDate: Date
     public let title: String
@@ -55,7 +58,7 @@ public struct TodoSnoozeResult: Sendable {
 
 /// Payload returned after toggling the most urgent todo.
 @MainActor
-public struct UrgentTodoToggleResult: Sendable {
+public struct UrgentTodoToggleResult {
     public let id: String
     public let title: String
     public let isNowCompleted: Bool
@@ -306,9 +309,8 @@ public final class TodoService {
     public func reorderTodos(orderedIDs: [String]) throws {
         defer { Self.dataDidChange() }
         let byID = Dictionary(
-            try repository.fetchAll().map { ($0.id.uuidString, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
+            try repository.fetchAll().map { ($0.id.uuidString, $0) }
+        ) { first, _ in first }
         let now = Date()
         for (index, id) in orderedIDs.enumerated() {
             guard let item = byID[id], item.sortIndex != index else { continue }

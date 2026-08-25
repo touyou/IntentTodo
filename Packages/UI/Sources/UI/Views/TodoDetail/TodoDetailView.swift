@@ -246,11 +246,11 @@ private struct TodoDetailTimeRemainingLabel: View {
 
     /// `DateComponentsFormatter` はインスタンス生成が高価なため、共有 formatter を使う。
     private static let formatter: DateComponentsFormatter = {
-        let f = DateComponentsFormatter()
-        f.allowedUnits = [.day, .hour, .minute]
-        f.unitsStyle = .abbreviated
-        f.maximumUnitCount = 2
-        return f
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.day, .hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.maximumUnitCount = 2
+        return formatter
     }()
 
     private static func format(_ interval: TimeInterval) -> String {

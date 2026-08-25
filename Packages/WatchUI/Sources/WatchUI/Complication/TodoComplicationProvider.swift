@@ -48,8 +48,9 @@ public struct TodoComplicationProvider: TimelineProvider {
         Task { @MainActor in
             let entry = Self.makeEntry(using: container)
             // 失敗時は短い間隔で再試行 (5 分後)、成功時は 15 分後に通常更新。
-            let nextUpdateMinutes = entry.loadFailed ? 5 : 15
-            let nextUpdate = Calendar.current.date(byAdding: .minute, value: nextUpdateMinutes, to: Date())!
+            // 暦の単位ではなく経過時間なので `Calendar` は通さない。
+            let nextUpdateMinutes = entry.loadFailed ? 5.0 : 15.0
+            let nextUpdate = Date(timeIntervalSinceNow: nextUpdateMinutes * 60)
             completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
         }
     }
@@ -75,9 +76,10 @@ public struct TodoComplicationProvider: TimelineProvider {
             .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
         let nextDueTodo = incompleteTodos.first { $0.dueDate != nil }
 
-        let startOfDay = Calendar.current.startOfDay(for: Date())
-        let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay)!
-        let todayTodos = allTodos.filter { $0.createdAt >= startOfDay && $0.createdAt < endOfDay }
+        // 「今日作られたか」は `isDateInToday` がそのまま答える。自前で日の境界を
+        // 組み立てると DST / 暦の切り替わりを踏むうえ、失敗しうる Optional になる。
+        let calendar = Calendar.current
+        let todayTodos = allTodos.filter { calendar.isDateInToday($0.createdAt) }
         let completedToday = todayTodos.filter(\.isCompleted).count
 
         return TodoComplicationEntry(

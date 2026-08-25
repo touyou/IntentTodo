@@ -82,7 +82,7 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
     public func update(_ todo: TodoItem) throws {
         // SwiftData automatically tracks changes to managed objects.
         // We just need to ensure the object is in the context and save.
-        guard modelContext.model(for: todo.persistentModelID) as? TodoItem != nil else {
+        guard modelContext.model(for: todo.persistentModelID) is TodoItem else {
             throw RepositoryError.notFound(id: todo.id)
         }
         try modelContext.save()

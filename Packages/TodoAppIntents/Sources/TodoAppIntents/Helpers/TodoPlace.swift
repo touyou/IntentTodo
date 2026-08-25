@@ -9,6 +9,15 @@ import GeoToolbox
 /// Bridges between the App Intents native `PlaceDescriptor` (GeoToolbox) type and
 /// the CloudKit-safe primitives (name + coordinate) stored on `TodoItem`.
 enum TodoPlace {
+    /// The CloudKit-safe primitives a `PlaceDescriptor` decomposes into — the same
+    /// three values `TodoItem` stores and `descriptor(name:latitude:longitude:)`
+    /// reassembles.
+    struct Components {
+        let name: String?
+        let latitude: Double?
+        let longitude: Double?
+    }
+
     /// Reconstructs a `PlaceDescriptor` from stored primitives, or `nil` if there
     /// is no usable location.
     static func descriptor(name: String?, latitude: Double?, longitude: Double?) -> PlaceDescriptor? {
@@ -25,7 +34,15 @@ enum TodoPlace {
     }
 
     /// Decomposes a `PlaceDescriptor` into the primitives stored on the model.
-    static func decompose(_ place: PlaceDescriptor) -> (name: String?, latitude: Double?, longitude: Double?) {
-        (place.commonName, place.coordinate?.latitude, place.coordinate?.longitude)
+    ///
+    /// 呼び出し元は現在いない。`location` を `PlaceDescriptor` から `String` に退避した
+    /// SSU バグ回避（`AddTodoIntent.location` のコメント参照）で一時的に出番が無くなった
+    /// だけで、`descriptor(name:latitude:longitude:)` と対になる復路。
+    static func decompose(_ place: PlaceDescriptor) -> Components {
+        Components(
+            name: place.commonName,
+            latitude: place.coordinate?.latitude,
+            longitude: place.coordinate?.longitude
+        )
     }
 }

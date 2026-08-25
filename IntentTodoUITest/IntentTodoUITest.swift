@@ -11,6 +11,10 @@ import XCTest
 final class IntentTodoUITest: XCTestCase {
     // MARK: - Properties
 
+    // `setUpWithError()` で組み立て `tearDownWithError()` で捨てる XCTest の
+    // ライフサイクルに乗せた fixture。毎回 unwrap する Optional にしても、テスト側の
+    // 記述が増えるだけで捕まえられる失敗は増えない。
+    // swiftlint:disable:next implicitly_unwrapped_optional
     var app: XCUIApplication!
 
     // MARK: - Setup / Teardown
@@ -65,7 +69,7 @@ final class IntentTodoUITest: XCTestCase {
     /// - Parameter title: The title to search for.
     /// - Returns: The cell element if found.
     private func findTodoCell(title: String) -> XCUIElement {
-        return app.staticTexts[title].firstMatch
+        app.staticTexts[title].firstMatch
     }
 
     // MARK: - Test: App Launch
@@ -341,8 +345,9 @@ final class IntentTodoUITest: XCTestCase {
         // Also check if any menu items exist (generic check)
         if !menuOpened {
             // Check for picker selections via images (checkmark.circle.fill indicates selection)
-            let checkmarkImages = app.images.matching(identifier: "checkmark")
-            if checkmarkImages.count > 0 {
+            // `XCUIElementQuery` に `isEmpty` は無い。件数は要らず「1 件でもあるか」だけ
+            // 知りたいので `firstMatch` で問い合わせる（全件の解決も避けられる）。
+            if app.images.matching(identifier: "checkmark").firstMatch.exists {
                 menuOpened = true
             }
         }

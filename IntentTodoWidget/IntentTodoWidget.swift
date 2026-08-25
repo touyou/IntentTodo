@@ -41,7 +41,9 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: Intent, in context: Context) async -> Timeline<TodoWidgetEntry> {
         let entry = await fetchEntry(for: configuration)
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        // リロード期限は「今から 15 分」という経過時間そのもので、暦の単位ではない。
+        // `Calendar` を通すと失敗しうる Optional になるだけで得るものがない。
+        let nextUpdate = Date(timeIntervalSinceNow: 15 * 60)
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
 
