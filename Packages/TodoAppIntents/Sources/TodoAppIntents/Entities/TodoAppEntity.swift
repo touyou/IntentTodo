@@ -305,6 +305,10 @@ extension TodoAppEntity: Transferable {
     public static var transferRepresentation: some TransferRepresentation {
         ProxyRepresentation(exporting: \.title)
 
+        // `exporting:` は Transferable DSL で表現の向きを選ぶラベルで（`importing:` /
+        // `exporting:importing:` の兄弟がある）、外すと向きの決定がクロージャの型推論に
+        // 委ねられる。上の `ProxyRepresentation(exporting:)` とも綴りを揃える。
+        // swiftlint:disable:next trailing_closure
         ValueRepresentation(exporting: { (todo: TodoAppEntity) -> IntentPerson in
             guard let name = todo.assigneeName, !name.isEmpty else {
                 throw IntentError.notFound("Todo has no assignee to export")
@@ -316,6 +320,7 @@ extension TodoAppEntity: Transferable {
             )
         })
 
+        // swiftlint:disable:next trailing_closure
         ValueRepresentation(exporting: { (todo: TodoAppEntity) -> PlaceDescriptor in
             // `location` は SSU バグ回避のため String（場所名）に退避している。
             // Transferable 経由の export はここで `PlaceDescriptor` に復元して従来どおり提供する。

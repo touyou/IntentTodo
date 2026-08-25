@@ -14,6 +14,9 @@ import SwiftData
 public final class SubTask {
     // MARK: - Properties
 
+    // 型注釈を省かない理由は `TodoItem` と同じ（永続化スキーマの一覧として読む）。
+    // swiftlint:disable redundant_type_annotation
+
     /// Unique identifier for the sub-task.
     public var id: UUID = UUID()
 
@@ -28,6 +31,8 @@ public final class SubTask {
 
     /// The parent todo item this sub-task belongs to.
     public var parentTodo: TodoItem?
+
+    // swiftlint:enable redundant_type_annotation
 
     // MARK: - Initialization
 

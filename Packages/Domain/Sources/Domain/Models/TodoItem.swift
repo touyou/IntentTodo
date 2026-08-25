@@ -17,6 +17,11 @@ import SwiftData
 public final class TodoItem {
     // MARK: - Properties
 
+    // 永続化スキーマの宣言なので、`= UUID()` / `= Date()` のように初期化子から型が
+    // 読める場合でも型注釈を省かない。CloudKit と突き合わせる際に読む対象がここなので、
+    // 一覧として全プロパティの型が揃って並んでいることに価値がある。
+    // swiftlint:disable redundant_type_annotation
+
     /// Unique identifier for the todo item.
     public var id: UUID = UUID()
 
@@ -88,6 +93,8 @@ public final class TodoItem {
     /// schema" が `to-many relationships must be optional` を要求する。
     @Relationship(deleteRule: .cascade, inverse: \SubTask.parentTodo)
     public var subTasks: [SubTask]? = []
+
+    // swiftlint:enable redundant_type_annotation
 
     // MARK: - Initialization
 

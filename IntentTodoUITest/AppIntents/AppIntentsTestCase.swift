@@ -21,8 +21,13 @@ class AppIntentsTestCase: XCTestCase {
     /// アプリターゲットの PRODUCT_BUNDLE_IDENTIFIER と一致させること。
     static let appBundleID = "dev.touyou.IntentTodo"
 
+    // setUp で組み立て tearDown で捨てる XCTest の fixture。特に `definitions` は
+    // インスタンス生成時ではなく setUp の中（アプリを activate した後）に作る必要がある
+    // ので、宣言時の初期化には置き換えられない。
+    // swiftlint:disable implicitly_unwrapped_optional
     var app: XCUIApplication!
     var definitions: IntentDefinitions!
+    // swiftlint:enable implicitly_unwrapped_optional
 
     @MainActor
     override func setUp() async throws {
