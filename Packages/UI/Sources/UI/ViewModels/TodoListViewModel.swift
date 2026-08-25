@@ -105,14 +105,19 @@ public final class TodoListViewModel {
         }
     }
 
+    /// 期限なしは昇順・降順のどちらでも**末尾**に置く。
+    ///
+    /// 「日付の大小」ではなく「日付があるものを先に見せる」という並びなので、
+    /// nil の位置は `ascending` で反転させない（反転させると降順のときだけ
+    /// 期限なしが先頭に来る）。
     private func compareDueDates(_ lhs: Date?, _ rhs: Date?, ascending: Bool) -> Bool {
         switch (lhs, rhs) {
         case (nil, nil):
             return false
         case (nil, _):
-            return !ascending
+            return false
         case (_, nil):
-            return ascending
+            return true
         case let (date1?, date2?):
             return ascending ? date1 < date2 : date1 > date2
         }
