@@ -4,24 +4,33 @@
 //
 //  iOS / visionOS 専用。macOS native ビルドでは UIKit が存在しないためビルドから除外する。
 //
-//  現状は空のスキャフォルド。将来 iOS 26+ の UISceneAppIntent を使って
-//  Shortcuts / Siri からの特定シーン起動を拾うときにここでハンドリングする。
-//  今のところナビゲーション経路は `onOpenURL` と `AppDependencyManager` 経由の
-//  NavigationModel 書き込みで足りているため、ハンドラ実装は未着手。
+//  `AppIntentSceneDelegate` として、シーンに向けて実行される App Intent の
+//  ナビゲーションをこのシーンに適用する（wwdc2025-275 23:52）。
 //
 
 #if os(iOS) || os(visionOS)
+import AppIntents
 import TodoAppIntents
 import UIKit
 
-final class SceneDelegate: NSObject, UIWindowSceneDelegate {
+final class SceneDelegate: NSObject, UIWindowSceneDelegate, AppIntentSceneDelegate {
     func scene(
         _ scene: UIScene,
         willConnectTo session: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
-        // TODO: iOS 26+ UISceneAppIntent を採用するときはここで接続シーンを
-        // NavigationModel に紐付ける。Issue #30 A-1 の cold start 経路検証後に判断。
+        // cold start 経路。App Intent がきっかけでシーンが作られた場合、その Intent は
+        // `willPerformAppIntent` ではなく接続オプションから渡ってくる。ここを拾わないと
+        // 「アプリは開くが目的の画面に行かない」になる。
+        guard let appIntent = connectionOptions.appIntent else { return }
+        appIntent.performNavigation(forScene: scene)
+    }
+
+    /// 起動済みのシーンに対する実行。`UISceneAppIntent` 準拠の Intent
+    /// (`LaunchAppIntent` / `OpenTodoIntent`) が自分のナビゲーションを知っているので、
+    /// ここでは宛先シーンを渡して委譲するだけ。Intent ごとの分岐は書かない。
+    func scene(_ scene: UIScene, willPerformAppIntent appIntent: any UISceneAppIntent) {
+        appIntent.performNavigation(forScene: scene)
     }
 }
 #endif

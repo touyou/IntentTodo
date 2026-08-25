@@ -208,7 +208,12 @@
     失敗通知用の criteria を常置。詳細と落とし穴は insights/03「Focus filter」
   - ℹ️ `ProgressReportingIntent` は**すでに採用済み**だった（SDK で `LongRunningIntent: ProgressReportingIntent`。
     `CompleteTodosIntent` が `progress` を更新している）。「未実装の種別」ではない
-  - ⏳ `UISceneAppIntent` + `AppIntentSceneDelegate` / `URLRepresentableIntent`・`URLRepresentableEntity`
+  - ✅ `UISceneAppIntent` + `AppIntentSceneDelegate`: `LaunchAppIntent` / `OpenTodoIntent` を準拠させ、
+    `SceneDelegate` の TODO スキャフォルドを回収。狙いはマルチウィンドウではなく **cold start**
+    （`UIScene.ConnectionOptions.appIntent` を拾わないと「アプリは開くが目的の画面に行かない」）。
+    遷移処理は `applyNavigation()` に集約し、`SceneNavigationWiringTests` が集約の維持を検出。
+    詳細は insights/04「UISceneAppIntent」
+  - ⏳ `URLRepresentableIntent`・`URLRepresentableEntity`
   - 🚫 対象外: `AudioPlaybackIntent`（再生機能なし）/ `CustomIntentMigratedAppIntent`（SiriKit 資産なし）/
     `LiveActivityStartingIntent`（iOS 17 で deprecated、`LiveActivityIntent` が後継）/
     `PredictableIntent`（donation ゼロのため提案自体が出ない）

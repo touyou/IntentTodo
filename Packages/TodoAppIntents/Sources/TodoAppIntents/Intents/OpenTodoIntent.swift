@@ -8,6 +8,11 @@
 //
 
 import AppIntents
+#if os(iOS) || os(visionOS)
+// AppIntents + UIKit を揃えて import すると cross-import overlay 経由で
+// UISceneAppIntent が使えるようになる。
+import UIKit
+#endif
 
 /// Opens the app to a specific todo's detail screen.
 ///
@@ -40,8 +45,27 @@ public struct OpenTodoIntent: OpenIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        navigationModel.navigateToRoot()
-        navigationModel.showDetail(for: target)
+        applyNavigation()
         return .result()
     }
+
+    /// 対象 Todo の詳細へ遷移する。`perform()` とシーン経由の両方から呼ぶ（冪等）。
+    @MainActor
+    func applyNavigation() {
+        navigationModel.navigateToRoot()
+        navigationModel.showDetail(for: target)
+    }
 }
+
+#if os(iOS) || os(visionOS)
+/// `OpenIntent` と組み合わせると `contentIdentifier`（`target.id` 由来）が自動で
+/// 手に入る。SwiftUI の `handlesExternalEvents` で宛先ウィンドウを選ばせたくなった
+/// ときに、この識別子をそのまま活性化条件に使える（wwdc2025-275 23:26）。
+extension OpenTodoIntent: UISceneAppIntent {
+    public func performNavigation(forScene scene: UIScene) {
+        MainActor.assumeIsolated {
+            applyNavigation()
+        }
+    }
+}
+#endif

@@ -269,7 +269,30 @@ static let supportedModes: IntentModes = [.foreground(.immediate)]
 #if canImport(_AppIntents_UIKit) && !os(watchOS)
 ```
 
-`TodoAppIntents` に `UISceneAppIntent` を要する具体的なマルチウィンドウ機能が無いため実装は見送り（機能要求が出たら上記ガードで着手する）。マルチウィンドウでのシーン固有ルーティングが必要な場合の代替は変わらず、メインアプリターゲット内でIntentを定義するか、`SceneDelegate`で`connectionOptions`を活用する。
+本プロジェクトは `#if os(iOS) || os(visionOS)` でガードして採用している（`canImport` を使わないので watchOS の罠を踏まない）。適用先は `LaunchAppIntent` と `OpenTodoIntent`。
+
+**採用の理由はマルチウィンドウではなく cold start**。`SceneDelegate` を `AppIntentSceneDelegate` に準拠させ、2 経路をシーンに向ける:
+
+```swift
+// 起動済みのシーンに対する実行
+func scene(_ scene: UIScene, willPerformAppIntent appIntent: any UISceneAppIntent) {
+    appIntent.performNavigation(forScene: scene)
+}
+
+// cold start: Intent がきっかけでシーンが作られた場合はここに渡ってくる
+func scene(_ scene: UIScene, willConnectTo session: UISceneSession,
+           options connectionOptions: UIScene.ConnectionOptions) {
+    connectionOptions.appIntent?.performNavigation(forScene: scene)
+}
+```
+
+`connectionOptions.appIntent` は `willPerformAppIntent` では来ない。**この 1 行を落とすと「アプリは開くが目的の画面に行かない」**が cold start だけで起きる（上の「cold start ナビゲーションは不安定」と同じ症状の別経路）。
+
+**遷移の実装は 1 か所に集約する**。`perform()` と `performNavigation(forScene:)` の両方から同じ `applyNavigation()` を呼ぶ（冪等）。別々に書くと片方だけ直す事故になり、しかも cold start しか壊れないので気づけない。ソースを真とした検出は `NavigationIntentsTests` の `SceneNavigationWiringTests`。
+
+`performNavigation(forScene:)` はプロトコル要件が nonisolated なので、`@MainActor` を付けずに実装して中で `MainActor.assumeIsolated` する。呼び出し元をシーンデリゲート（＝メインスレッド）に限っているから成立する形。
+
+SwiftUI 側の代替は `contentIdentifier` + `handlesExternalEvents` で「どのシーンが処理するか」を宣言する形（wwdc2025-275 23:12–23:26）。本アプリは `WindowGroup` が 1 つで宛先の選択が要らないため、cold start を確定させられる delegate 側を採った。`OpenIntent` と `UISceneAppIntent` を両方満たす Intent は `contentIdentifier` が自動で得られるので、将来ウィンドウを選ばせたくなったらそのまま活性化条件に使える。
 
 経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)
 
