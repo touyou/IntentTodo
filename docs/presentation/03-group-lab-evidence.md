@@ -80,7 +80,7 @@ Group Lab は Q&A なので、**開発者が何を不安がっていて Apple �
 | 16 | `35:40` | **AI** | HomePod / audioOS で App Intents は使えるか | **§2-9** |
 | 17 | `36:14` | **AI** | watchOS の App Intents の応答は iOS と 1 対 1 で一致すると期待してよいか | **§2-10** |
 | 18 | `38:31` | IP | Image Playground はネット接続必須になったか。オンデバイスへフォールバックするか | §3 |
-| 19 | `38:59` | — | Apple Intelligence の更新で各自が一番楽しみにしているものは | §3 |
+| 19 | `38:59` | — / **AI** | Apple Intelligence の更新で各自が一番楽しみにしているものは | **§2-15** / §3 |
 | 20 | `45:38` | **AI** | なぜ GPT / Claude のような動的な skill 記述ではなく固定スキーマなのか | **§2-11 ★★** |
 | 21 | `49:22` | EV | Evaluations framework で自分のツールが呼ばれたか確認できるか | §3 |
 | 22 | `51:01` | FM | オンデバイスと大型サーバーモデル間でコンテキストを渡すときの意味的エントロピーの緩和 | §3 |
@@ -90,7 +90,8 @@ Group Lab は Q&A なので、**開発者が何を不安がっていて Apple �
 | 26 | `58:01` | **AI** | 連絡先リストを `.messages.messagePerson` に寄せるのは許容されるか | **§2-14** |
 | 27 | `1:00:09` | FM | 画像入力が入っても 4096 トークン。他の入力に制約はあるか | §3 |
 
-**App Intents 関連は 27 問中 11 問**（`1:43` を含めれば 12）。
+**App Intents 関連は 27 問中 11 問**（`1:43` を含めれば 12。`38:59` は雑談枠だが
+**回答の中身は App Intents / スキーマのエコシステム像**なので §2-15 で別途扱う）。
 **そのうち 4 問（`3:09` / `7:08` / `21:47` / `58:01`）が「うちのアプリは当てはまらない」という同じ不安**。
 
 ---
@@ -628,6 +629,61 @@ App Shortcut 8 件）。
 
 ---
 
+### 2-15. `38:59` — 「一番楽しみなもの」に現れるエコシステム像 ★「Apple がこれを重要視している」が一番素直に伝わる箇所
+
+- **質問（逐語）**: *"What are each of you most excited about regarding the updates to Apple Intelligence?"*
+- **[?time=2339](https://developer.apple.com/videos/play/wwdc2026/8011/?time=2339)**（App Intents の話が出るのは **`43:36` 以降**）
+
+**位置づけ**: 雑談枠の質問なので、**論拠の強さは §2-3（システムオーケストレーター）に劣る**。
+一方で §2-3 が「**構造としてそこしか経路が無い**」を示すのに対し、ここは
+「**Apple がどういう状態を到達点として思い描いているか**」が最も素直に出る。**両者を対にすると
+「構造」＋「意志」の両輪になる**。
+
+**Dan の回答（`43:36`–`44:30`）**:
+
+1. 今年の Siri の進歩と、**開発者が採用するための API 群**という並べ方をしている
+   ≈ *"we have a lot of great APIs this year for developers to adopt and bring Siri to their app"*
+2. ⭐ **エコシステム像**（ここが本命）:
+   ≈ *"I can't wait to see how we'll eventually get to this ecosystem where you have all of these apps
+   that are deeply integrated with Siri and Apple Intelligence providing content to the semantic index,
+   so that people can ask natural questions about content from all these different kinds of apps and
+   get answers instantly."*
+   → **「全アプリがセマンティックインデックスにコンテンツを供給している状態」を到達点として語っている**
+3. ⭐ **`44:16` — "bicycle for the mind"**:
+   ≈ *"when you integrate with intent schemas, Siri taking actions on a variety of apps across many
+   different domains — I'm just really excited to see sort of like the bicycle for the mind. You get
+   this ecosystem that is deeply integrated in Siri, taking action across many different apps."*
+   → Apple の歴史的レトリックを、**App Intents / スキーマの到達点に対して使っている**
+4. ⭐ **`44:49`**: ≈ *"I can't wait for all my favorite apps to adopt our APIs and then just be able to
+   have Siri perform all these actions."*
+   → ⚠️ **話者は断定しない**。直前（`44:30`）で別のパネリストが *"I want to change my answer to that"* と
+   割り込んでおり、**字幕は話者交代を区切っていない**
+
+**同じトーンの補強（セッション終盤で 2 回繰り返される）**:
+
+- **`59:45`** ≈ *"I can't wait to see what people build with these integrations and these APIs."*
+  （§2-14 の直後、Dan / 司会）
+- **`1:03:32`** ≈ *"we can't wait to see what you build"*（クロージング）
+
+**引用上の注意**:
+
+- ⚠️ **全文が字幕由来の粗起こし**。スライドに載せるなら `?time=2616` / `?time=2656` を視聴して逐語確認する
+- ⚠️ **Apple 提供 Summary はこの回答を「通話中に Mail からフライト確認番号を引く」の一行に圧縮していて、
+  エコシステム像は落ちている**（§3 の `38:59` 行）。つまり **Summary 経由では絶対に出てこない材料**で、
+  字幕を復元していないと拾えない
+- ⚠️ **"bicycle for the mind" を引くなら、意図的な引用だと分かる形にする**。Apple の文脈を知らない聴衆には
+  唐突に見える
+
+**使い所**:
+
+- **骨子① S24（中心設計へ）の導入か締め**。§2-3 の「App Intents に統合するとは、アクションを
+  システムに差し出し、コンテンツを Entity としてモデル化すること」（構造の定義）に、
+  **「そうしたアプリが揃った状態を Apple は到達点と呼んでいる」**（意志）を重ねる
+- **想定 Q&A「なぜ今やるのか / 様子見でいいのでは」への回答**。§2-1 / §2-2 / §2-14 の
+  「完璧を待つな、今始めて後で広げろ」（§5-2 の 3）と同じ方向を、**パネリストの動機の側から**言える
+
+---
+
 ## 3. App Intents 以外の回答（記録用 / 参考）
 
 App Intents 中心設計には直接効かないが、質疑で振られる可能性と、後から探し直す手間を省くために残す。
@@ -642,7 +698,7 @@ App Intents 中心設計には直接効かないが、質疑で振られる可�
 | `26:00` | Image Playground | **`ImagePlaygroundStyle.all` でフォトリアルなスタイルにアクセスできる**。**PCC 上で動く**のでより強力なモデル。専用の WWDC ビデオとドキュメントあり |
 | `30:15` | Evaluations の学術利用 | **言語モデルに限らず任意の確率的システムを評価できる**ように設計されている。線形回帰や分類器のような従来型 ML にも適用可。**研究指標にも使える** |
 | `38:31` | Image Playground のオフライン | **常にインターネット接続が必要**（PCC のサーバーモデルを使うため）。**オンデバイス生成にフォールバックしない** |
-| `38:59` | 各自が楽しみなもの | 個人的な推しを共有。**目玉は通話中に出るインテリジェンス機能** — 通話しながら Mail からフライトの確認番号を引っ張ってくるなど |
+| `38:59` | 各自が楽しみなもの | 個人的な推しを共有。**目玉は通話中に出るインテリジェンス機能** — 通話しながら Mail からフライトの確認番号を引っ張ってくるなど。⚠️ **Summary はここで打ち切っているが、字幕には `43:36` 以降に App Intents のエコシステム像がある** → **§2-15** |
 | `49:22` | ツール呼び出しの評価 | **Yes**。設定済み `LanguageModelSession` の transcript を渡して **tool-call evaluator** を使う。**期待値 / アサーションの仕組みで、ツールが呼ばれたか・順序・プロパティ・値まで検証できる** |
 | `51:01` | 意味的エントロピー | Foundation Models の dynamic profiles と context window の違いに関係する。**オンデバイスのシステムモデルは 4K、PCC モデルは 32K**。フレームワークが**モデル間の context の運び方を管理**して情報を保持する |
 | `52:54` | Evaluations と FM の依存 | **不要**。任意の確率的システムを評価できる。**例外は tool-call evaluator** で、現状 Foundation Models の transcript が必要（他プロバイダ向けのより汎用的な変換は作業中）。それ以外は任意の言語モデルで評価できる |
@@ -855,6 +911,7 @@ protocol OwnershipProvidingEntity: AppEntity {
 | **S22（どこで実行されるか）** | §2-3 | **システムオーケストレーターの登場**は「実行主体」の軸に新しい段を足す。2016 = INExtension / 2022 = アプリ本体 / 2026 = **システムが横断的に選ぶ** |
 | **S23（何を宣言するか）** | §2-3 / §2-7 | 「アクションを差し出す + コンテンツを Entity としてモデル化する」という Apple 自身の定義。**「アプリの世界観をシステムに説明する」への裏付け** |
 | **S24（中心設計へ）** | §2-3 | **「App Intents に統合するとは、アクションをシステムに差し出し、コンテンツを Entity としてモデル化すること」** — 中心設計の 3 原則の直前に置くと橋渡しになる |
+| **S24 の締め** | §2-15 | **「全アプリがセマンティックインデックスにコンテンツを供給している状態」を Apple が到達点として語っている**（`43:36` / *"bicycle for the mind"*）。§2-3 の「構造」に「意志」を重ねる |
 
 ### 骨子② への追加候補
 
@@ -874,6 +931,7 @@ protocol OwnershipProvidingEntity: AppEntity {
 | 質問 | 材料 |
 |---|---|
 | なぜ MCP / function calling ではないのか | §2-11 全体 |
+| なぜ今やるのか / 様子見でいいのでは | §2-15（Apple の到達点の語り）＋ §2-3（他に経路が無い）＋ §5-2 の 3（完璧を待つな） |
 | Apple Intelligence 対応は必須か | §4-1 の 2 層整理 |
 | 他アプリのデータを使えるのか | §2-3 + §2-12（アクションは横断 / データは横断しない / `Transferable`） |
 | スキーマに適合できないアプリはどうすれば | §2-1 / §2-2 / §2-14 の 3 段の逃げ道 |
