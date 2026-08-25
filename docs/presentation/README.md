@@ -14,9 +14,12 @@ App Intents 中心設計についての登壇・発表用の素材置き場。
 | [99-script.md](99-script.md) | **本番スクリプト（iOSDC 40 分枠 / 本人執筆）** |
 | [99-script.notes.md](99-script.notes.md) | 99 の補完メモ。事実確認（要修正 3 箇所）/ 詳細ゾーンの材料 / 各節の一次ソース / 残りアウトラインの材料 / 尺配分 / 想定 Q&A |
 
-> **スライド ID の枝番について**: 骨子② の `T12b` / `T21b` / `T29b` は 2026-08-21（WWDC26 公式サンプルとの突き合わせ）で
-> 後から足したもの。既存 ID と `.script.md` の対応を壊さないために枝番にしてある。最終構成では既存カードとの
-> 差し替え候補として扱う。
+> **スライド ID の枝番について**: 骨子② の `T12b` / `T21b` / `T29b` は 2026-08-21（WWDC26 公式サンプルとの突き合わせ）、
+> `T07b` は 2026-08-25（Layered / Clean Architecture との対比）で後から足したもの。既存 ID と `.script.md` の
+> 対応を壊さないために枝番にしてある。最終構成では既存カードとの差し替え候補として扱う。
+>
+> `T07b` は `99-script.notes.md` の `C-3x` と同じ内容。両方使うなら役割を分ける
+> （99 側 = なぜ Intent にしたか / T07b = 従来の層とどう対応するか）。経緯: [../devlog/2026-08-25-layering-vs-clean-architecture.md](../devlog/2026-08-25-layering-vs-clean-architecture.md)
 
 ## 使い方
 
@@ -33,5 +36,5 @@ App Intents 中心設計についての登壇・発表用の素材置き場。
 | [../references/wwdc/](../references/wwdc/) | 骨子①②の引用（トランスクリプト＋タイムスタンプ） |
 | [../insights/](../insights/) | 骨子② のほぼ全部 |
 | [../devlog/](../devlog/) | 骨子② の「どう気づいたか」部分 |
-| [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md) | 骨子② の思想的背景（他概念との比較） |
+| [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md) | 骨子② の思想的背景（他概念との比較）+ **T07b / C-3x の元ネタ**（Layered / Clean Architecture との対比） |
 | [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md) | 骨子② の検証状況・不適合リスト |

@@ -17,6 +17,7 @@
 - [07-platform-specific.md](07-platform-specific.md) — watchOS/macOS/visionOS/Live Activity のプラットフォーム別の経緯
 - [app-intents-centric-plan.md](app-intents-centric-plan.md) — `APP_INTENTS_CENTRIC_PLAN.md` の beta 追従・SDK バグ対応の顛末
 - [2026-08-11-constraint-recheck.md](2026-08-11-constraint-recheck.md) — WWDC 書き起こし全数突き合わせによる制約の再検証セッション（そのもの自体が調査ログ）
+- [2026-08-25-layering-vs-clean-architecture.md](2026-08-25-layering-vs-clean-architecture.md) — 「UseCase 層は廃止」という説明をやめ、Layered / Clean Architecture との対比を明文化した経緯
 - [insights-changelog.md](insights-changelog.md) — `docs/INSIGHTS.md` / `insights/` 構成の再編履歴
 
 ## 運用方針

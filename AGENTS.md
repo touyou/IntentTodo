@@ -66,7 +66,11 @@ IntentTodoWatchApp/                 # watchOS アプリ
 ```
 
 **ポイント**:
-- UseCase 層は廃止 → AppIntents がロジックを担う
+- **UseCase 層はパッケージとして持たない**。ユースケースの**宣言**（名前・引数・戻り値）を `AppIntent` が、
+  **実装**（手続き・不変条件・副作用）を `TodoService` が受け持つ形に分かれている。
+  「廃止」ではなく「宣言と実装に分裂した」と言うほうが実態に合う。
+  Layered / Clean Architecture との対比（対応表・砂時計図・置き場の判定ルール）:
+  [docs/APP_INTENT_DRIVEN_DESIGN.md](docs/APP_INTENT_DRIVEN_DESIGN.md#layered--clean-architecture-との対比)
 - UI は Intent 実行トリガーと結果表示のみ
 - Extension はターゲット固有のスキャフォルドのみ、View は SPM に移送してプレビュー再利用・テスト可能化
 - Repository Protocol により Mock 可能、テスタビリティ確保

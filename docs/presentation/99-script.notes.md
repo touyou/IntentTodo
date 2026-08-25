@@ -163,6 +163,82 @@
 - ただし正直に言うべき境界: **ロジックを Intent の `perform()` に書くのは 24 個に増えると破綻する**。本プロジェクトは `TodoService`（`@MainActor final class`）に集約して、Intent は「システムとの接続点」に薄く保っている。**「UseCase を廃止した」＝「ロジックの置き場をなくした」ではない**、と言い切っておくと誤解されない
 - 「制約によりけりで柔軟に」（L79）の実例: **`AppShortcutsProvider` だけは SPM に置けない**（後述 D-1）。理想の分割が SDK 側の都合で崩れる代表例として使える
 
+#### C-3x. ⚠️ 「UseCase 層を廃止」という言い方を直す（L74 / 図を描くときに必ず詰まる）
+
+2026-08-25 追記。**L74 の「Use Case 層を廃止し App Intents 層に置き換えた」は、図にしようとすると破綻する**。
+理由と言い直しは全文を [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md#layered--clean-architecture-との対比) に置いた。
+スライドに落とすなら以下 5 枚分の材料。骨子②の **T07b** と同じ内容なので、両方使うなら役割を分ける
+（99 側 = なぜ Intent にしたか / T07b = 従来の層とどう対応するか）。
+
+**① なぜ同心円に収まらないのか**
+
+- Clean / Layered の同心円が成立しているのは、レイヤーが **1 本の軸（依存方向 = 抽象 ← 具体）だけ**で切られているから
+- App Intents 中心設計は **別の軸（誰が呼ぶか = 呼出面）**を持ち込む。2 軸を同心円 1 枚に押し込もうとして破綻する
+- 実際 `AppIntent` は Clean Architecture の語彙で **3 役を同時に**担っている:
+  **Controller**（`@Parameter` / `EntityQuery` / 曖昧性解消）+ **Presenter**（`IntentDialog` / Snippet / `DisplayRepresentation`）+ **UseCase の入力ポート**（名前と signature）
+- **UseCase の「本体」だけが `AppIntent` に入っていない**。それが `TodoService`
+
+**② 言い直し（これがスライド 1 枚の見出しになる）**
+
+> **「UseCase 層を廃止した」ではなく「UseCase の宣言が Intent に、実装が Service に分かれた」**
+
+`Packages/` に `UseCase/` が無いのは層が消えたからではなく、宣言が `TodoAppIntents/Intents/`、
+実装が `TodoAppIntents/Services/TodoService.swift`（494 行）に同居しているから。
+
+**③ 対応表**
+
+| Clean Architecture | 本プロジェクト |
+|---|---|
+| Entity | `Domain`（`@Model`） |
+| UseCase の**宣言** | `AppIntent` 型 + `@Parameter` |
+| UseCase の**実装** | `TodoService` のメソッド |
+| Controller | `perform()` 前半 + `EntityQuery` |
+| Presenter / ViewModel | `IntentDialog` / Snippet / SwiftUI View |
+| Gateway | `TodoRepositoryProtocol` |
+| DB / Framework | `SwiftDataTodoRepository` |
+
+**④ 図は同心円ではなく砂時計（bowtie）**
+
+```
+ UI  Siri  Spotlight  Widget  Control  LiveActivity  他アプリ   ← 呼出面（対等・能力が違う）
+  \    \      |         |        |          /          /
+   ────────── Intent + Entity ──────────                      ← くびれ = 公開契約（最も凍る）
+                    │  ┊
+              TodoService  ┊ ← 読み取り（EntityQuery）は層を直通
+                    │
+           TodoRepositoryProtocol
+                    │
+              SwiftData / CloudKit
+```
+
+- 砂時計にすると同心円で言えなかった 2 つが言える:
+  - **UI は特権的な最上層ではなく、Siri と対等な呼出面の一つ**（`Button(intent:)` 必須の理由が図から出る）
+  - **呼出面ごとに能力が違う**（Control は dialog も snippet も出ない、等）。同心円だと「外側は全部同じ Presentation」に見えてこの差が消える
+
+**⑤ 「UseCase と Repository の使い分け」を納得させるコツ**
+
+素通しの例（`createTodo()` → `repository.create()`）を出すと「なぜ 2 段？」で終わる。**差が出る実例**で説明する。
+
+| Service にあって Repository に置けないもの | 理由 |
+|---|---|
+| `toggleMostUrgentTodo()` | fetch + mutate の 2 呼び出しが、ユーザーには **1 行為** |
+| `snapshot()` / `restore()` | 「**同じ id で**戻す」という undo の不変条件。Repository は id の意味論を知らない |
+| `dataDidChange()`（Widget reload + AppShortcut パラメータ更新） | **「1 行為が完了した」ことを知っているのは UseCase 層だけ**。Repository の `update()` は自分が行為の途中か終端か判別できない |
+
+**⑥ Clean Architecture と本質的に反転している 2 点（対比の山）**
+
+1. **凍る方向が逆**。Clean は「内側 = 安定した方針、外側 = 揺れる詳細」。App Intents 中心では
+   **外周の Intent 型名 / parameter 名 / `AppEnum` の raw value がユーザーのショートカットに永続化されていて最もリファクタできない**。内側の `TodoService` のほうが自由に触れる
+2. **依存逆転の目的が違う**。「DB を差し替えられる」はほぼ使われない口実だが、ここでは
+   `TodoRepositoryProtocol` が **プロセス境界**で効く（`allowedExecutionTargets` / Widget Extension とメインアプリで同じロジックが別プロセスに載る）
+
+**⑦ 正直に言う非対称**
+
+`EntityQuery` 系の**読み取りは `TodoService` も Repository も飛ばして**ストアに直通している
+（`@Dependency var modelContainer`）。実態は **書き込み側だけ層が厚い CQRS 的な形**。
+理由は「読み取り系 Intent は実行先を固定せず Extension プロセスで応答させたい = アプリ起動コストを避けたい」。
+**同心円 1 枚だとこの線が引けない**のも砂時計にする理由。
+
 ---
 
 ## D. 残りアウトラインの材料（L82–88）
@@ -323,7 +399,9 @@ L76–77 で既に核心を言えているので、**補強は写像表 1 枚**�
 |---|---|
 | 小規模アプリでもやる意味ある？ | **アクション 1 つからでいい**。ウィジェットやコントロールを作る予定があるなら確実に元が取れる。逆に「アプリの外に出す面が今後もゼロ」なら過剰 |
 | テストどうしてる？ | Apple 自身が **検証の梯子**を示している（AppIntentsTesting → Shortcuts アプリ → Spotlight → Siri）。**4 段目は自動化できない**（`AppIntentsTesting` の公開 API に phrase / siri に相当するシンボルは 1 つも無い）。加えて **UI 経路は UI テストで押さえる必要がある**（対話 Intent の件） |
-| ロジックを Intent に置くと肥大しない？ | する。だから `TodoService` に集約して Intent は接続点に薄く保つ。**「UseCase を廃止」≠「ロジックの置き場をなくす」** |
+| ロジックを Intent に置くと肥大しない？ | する。だから `TodoService` に集約して Intent は接続点に薄く保つ。**「UseCase を廃止」≠「ロジックの置き場をなくす」**（C-3x） |
+| Clean Architecture でいうと何層になるの？ / UseCase と Repository の使い分けが図にならないのでは？ | **同心円に収まらないのは正しい**。Clean は 1 軸（依存方向）で切るが、こちらは **呼出面**という別の軸が入る。`AppIntent` は Controller + Presenter + UseCase の入力ポートを兼ね、**実装だけが `TodoService`**。だから図は同心円ではなく**砂時計**にする。詳細は C-3x |
+| 凍るのは内側じゃないの？ | **逆**。Intent 型名 / parameter 名 / `AppEnum` の raw value はユーザーのショートカットに永続化されていて、**外周が一番リファクタできない**。Clean の「外側 = 揺れる詳細」の前提が反転する |
 | MVI の Intent と同じ？ | 別概念。MVI の Intent は状態変更イベント、AppIntent はシステム連携のプロトコル |
 | 毎年 API が変わって追従つらくない？ | つらい。4 年で非推奨 7 個。ベータごとの追従も実在する（`.reminders` 有効化 → watchOS で unavailable 化 → SDK バグ回避…）。ただし**非推奨の方向は一貫している**（Bool フラグ → 意味のある宣言 / アシスタント専用 → App Intents 本体へ統合） |
 | Apple Intelligence / Siri AI 対応は必須？ | 必須ではない。**App Schema 適合は任意**で、適合しない自前 Intent も普通に動く。本プロジェクトはコア entity のスキーマ適合を **SDK 側のバグでブロックされて保留**しているが、それでも Siri 連携自体は成立している |
@@ -338,6 +416,8 @@ L76–77 で既に核心を言えているので、**補強は写像表 1 枚**�
 - [ ] Group Lab カードを使うなら [03-group-lab-evidence.md](03-group-lab-evidence.md) の「組み込み案」を見る。逐語取りの優先度は **`45:38`（固定スキーマの理由）> `8:18`（オーケストレーター）> `3:09`**
 - [ ] A-3 / A-5 は言い方の調整（任意だが安い）
 - [ ] C-1 のまさかり対策の言い換えを入れるか決める
+- [ ] **L74 の「Use Case 層を廃止し」を「宣言が Intent に、実装が Service に分かれた」に言い直す**（C-3x）。
+      アーキテクチャ図を同心円で描かない（砂時計にする）。骨子② T07b と重複するので、両方使うなら役割を分ける
 - [ ] D-1 で使うスクショを撮る（Control Center の `2` → `1`、削除ボタンが無反応、Spotlight の snippet）
 - [ ] 数字を発表直前のコードで再カウント（Intent 24 ファイル / 型 23 / Entity 4 / Query 4 / AppShortcut 8）
 - [ ] WWDC の引用は `?time=<秒>` 付き URL をスライドのノートに入れて、その場で飛べるようにする

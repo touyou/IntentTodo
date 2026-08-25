@@ -14,7 +14,7 @@
 
 ```
 第0部  前提          T01–T04  何を作ったか / どこまで徹底したか
-第1部  設計の芯      T05–T08  1アクション1Intent / 唯一の実行経路 / ロジックの置き場
+第1部  設計の芯      T05–T08  1アクション1Intent / 唯一の実行経路 / ロジックの置き場 / 従来の層との対比(T07b)
 第2部  制約A メタデータ T09–T12  ビルドは通るのに機能しない
 第3部  制約B プロセス   T13–T17  どこで perform されるのか問題
 第4部  制約C 呼出元     T18–T21  同じ Intent でも出るものが違う
@@ -24,8 +24,9 @@
 第8部  総括           T30      効能と代償
 ```
 
-> **`b` 付きの ID（T12b / T21b / T29b）は 2026-08-21 に後から足したもの**。既存の ID を動かさないために
-> 枝番にしてある。3 枚とも「今回の実測ネタ」なので、最終構成では既存カードと差し替える判断もありうる。
+> **`b` 付きの ID は後から足したもの**。既存の ID を動かさないために枝番にしてある。
+> T12b / T21b / T29b は 2026-08-21 追加（実測ネタ）、**T07b は 2026-08-25 追加**（Layered / Clean Architecture との対比）。
+> 最終構成では既存カードと差し替える判断もありうる。
 
 貫くメッセージ（T02 / T28 / T30 で 3 回）:
 
@@ -49,7 +50,7 @@
 
 - **見せるもの**: 依存図。`Domain → Repository → TodoAppIntents → (UI / WidgetUI / WatchUI / LiveActivity)`
 - **話の要点**:
-  - **UseCase 層を作らなかった**。App Intents がその役を担う
+  - **UseCase 層をパッケージとして作らなかった**。宣言は Intent、実装は `TodoService`（詳しい対応は T07b）
   - **UI からのアクションは必ず `Button(intent:)`**。ViewModel はフィルタ・ソート・検索テキストといった**表示状態だけ**持つ
   - Extension ターゲット（Widget / LiveActivity / Watch App）は **`@main` と宣言だけ**。View も状態管理も SPM に置く（プレビューとテストのため）
   - この徹底が効いた部分と、代償になった部分の両方を今日話す
@@ -114,6 +115,50 @@
   - 副作用: **`WidgetReloader.reloadAllWidgets()` を Service 側の `defer` で呼ぶ**ようにできた。Intent 側で呼び忘れる余地が消えた
   - `WidgetReloader` は `WidgetCenter.reloadAllTimelines()` と **`ControlCenter.reloadAllControls()` の両方**を呼ぶ。⚠️ ここは実際にバグった（次スライド）
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「共通ロジックは TodoService に集約」
+
+### T07b. ⭐ 「UseCase 層を廃止した」は説明として間違っている（Clean Architecture との対比）
+
+> 2026-08-25 追加。T07 の直後に置くと「じゃあ従来の層とどう対応するの？」に先回りできる。
+> 骨子① / 99-script の「レイヤードアーキテクチャ」節と同じ話なので、単独発表なら片方だけでよい。
+
+- **見せるもの**: 同心円が破綻している図 → 砂時計（bowtie）図、の 2 段
+- **話の要点**:
+  - よく聞かれるのが **「UseCase と Repository の使い分けが、図にすると綺麗に退避できないのでは？」**。これは正しい直感で、原因は**説明の言葉**のほう
+  - Clean / Layered の同心円が成立しているのは、レイヤーが **1 本の軸（依存方向 = 抽象 ← 具体）だけ**で切られているから。App Intents 中心設計は**別の軸（誰が呼ぶか）**を持ち込むので、2 軸を同心円 1 枚に押し込もうとして破綻する
+  - 実際 `AppIntent` は Clean Architecture の語彙で **3 役を同時に**やっている:
+    - **Controller**（`@Parameter` / `EntityQuery` による解決 / 曖昧性解消）
+    - **Presenter**（`IntentDialog` / Snippet / `DisplayRepresentation`）
+    - **UseCase の入力ポート**（名前と signature = ユースケースの同一性）
+  - そして **UseCase の「本体」だけが `AppIntent` に入っていない**。それが `TodoService`
+  - → **言い直し: 「UseCase 層を廃止した」ではなく「UseCase の宣言が Intent に、実装が Service に分かれた」**。`Packages/` に `UseCase/` が無いのは層が消えたからではなく、宣言が `Intents/`、実装が `Services/TodoService.swift` に同居しているから
+  - **対応表**（1 枚で出す）:
+
+    | Clean Architecture | 本プロジェクト |
+    |---|---|
+    | Entity | `Domain`（`@Model`） |
+    | UseCase の**宣言** | `AppIntent` 型 + `@Parameter` |
+    | UseCase の**実装** | `TodoService` のメソッド |
+    | Controller | `perform()` 前半 + `EntityQuery` |
+    | Presenter / ViewModel | `IntentDialog` / Snippet / SwiftUI View |
+    | Gateway | `TodoRepositoryProtocol` |
+    | DB / Framework | `SwiftDataTodoRepository` |
+
+  - **図は同心円ではなく砂時計にする**。くびれが `Intent + Entity`。この形にすると同心円で言えなかった 2 つが言える:
+    - **UI は特権的な最上層ではなく、Siri と対等な呼出面の一つ**（`Button(intent:)` 必須の理由が図から出る）
+    - **呼出面ごとに能力が違う**（T18 のマトリクスがここに接続する）。同心円だと「外側は全部同じ Presentation」に見えて、この差が図から消える
+  - **「UseCase と Repository の使い分け」を納得させるコツ**: 素通しの例（`createTodo()` → `repository.create()`）を出すと「なぜ 2 段？」で終わる。**差が出る実例**を出す:
+
+    | Service にあって Repository に置けないもの | 理由 |
+    |---|---|
+    | `toggleMostUrgentTodo()` | fetch + mutate の 2 呼び出しが、ユーザーには **1 行為** |
+    | `snapshot()` / `restore()` | 「**同じ id で**戻す」という undo の不変条件。Repository は id の意味論を知らない |
+    | `dataDidChange()`（Widget reload + AppShortcut パラメータ更新） | **「1 行為が完了した」ことを知っているのは UseCase 層だけ**。Repository の `update()` は自分が行為の途中か終端か判別できない |
+
+  - ⭐ **Clean Architecture と本質的に反転している 2 点**（ここが対比の山）:
+    1. **凍る方向が逆**。Clean は「内側 = 安定、外側 = 揺れる詳細」。App Intents 中心では **外周の Intent 型名 / parameter 名 / `AppEnum` の raw value がユーザーのショートカットに永続化されていて最もリファクタできない**。内側の `TodoService` のほうが自由に触れる
+    2. **依存逆転の目的が違う**。「DB を差し替えられる」はほぼ使われない口実だが、ここでは `TodoRepositoryProtocol` が **プロセス境界**で効く（`allowedExecutionTargets` / Widget Extension とメインアプリで同じロジックが別プロセスに載る → T14 に接続）
+  - **正直に言う非対称**: `EntityQuery` 系の**読み取りは `TodoService` も Repository も飛ばして**ストアに直通している。実態は **書き込み側だけ層が厚い CQRS 的な形**。理由は「読み取り系は実行先を固定せず Extension で応答させたい（アプリ起動コストを避ける）」。**同心円 1 枚だとこの線が引けない**のも砂時計にする理由
+- **出典**: [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md#layered--clean-architecture-との対比) / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md) / リポジトリ実体（`TodoService` 494 行 / `TodoRepositoryProtocol`）
 
 ### T08. 小ネタ: ホームウィジェットとコントロールは別 API
 
@@ -629,6 +674,9 @@
 - [ ] T25 の 22 テストが今も緑か（`RunAllTests` or `RunSomeTests`）
 - [ ] スクショ類（Control Center の 2 / 1、削除ボタンが無反応、Snippet）を撮り直す
 - [ ] T12b / T21b / T29b（2026-08-21 追加）を本編に入れるか、既存カードと差し替えるかを決める
+- [ ] **T07b（2026-08-25 追加）は 99-script の「レイヤードアーキテクチャ」節（L73–79）と同じ話**。単独発表なら
+      片方に寄せる。両方使うなら 99 側は「なぜ UseCase を Intent にしたか（デザインとの写像）」、
+      T07b は「では従来の層とどう対応するか（砂時計・凍る方向の反転）」に役割を分ける
 - [ ] T29b の「間違っていた 4 件」は 2026-08-21 時点。**発表までに追加のサンプル読み合わせをしたら件数を更新する**
 - [ ] **Group Lab（#8011）由来の追記が T12b / T18 / T21b / T27 / T29b / T30 に入った**（2026-08-22）。
       引用はすべて**自動生成キャプション由来**なので、スライドに逐語を出すものだけ視聴して裏取りする

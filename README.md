@@ -89,13 +89,17 @@ Domain ← Repository ← TodoAppIntents ← UI ← App
 
 ### 設計思想
 
-従来の MVVM では ViewModel や UseCase にビジネスロジックを配置しますが、本プロジェクトでは **App Intent がビジネスロジックの唯一の場所** です。
+従来の MVVM では ViewModel や UseCase にビジネスロジックを配置しますが、本プロジェクトでは **App Intent がアプリ機能の唯一の入口** です。UseCase 層をパッケージとして持たない代わりに、ユースケースの**宣言**（名前・引数・戻り値）を App Intent が、**実装**（手続き・不変条件・副作用）を `TodoService` が受け持ちます。
 
-#### App Intents vs ViewModel の役割分担
+> Layered / Clean Architecture との対比（対応表・砂時計図・コードの置き場を決める判定ルール）は [docs/APP_INTENT_DRIVEN_DESIGN.md](docs/APP_INTENT_DRIVEN_DESIGN.md#layered--clean-architecture-との対比) にまとめています。
+
+#### 役割分担
 
 | 責務 | 担当 |
 |:--|:--|
-| ビジネスロジック（CRUD、バリデーション） | App Intents |
+| ユースケースの宣言（名前・パラメータ・システムへの公開） | App Intents |
+| ビジネスロジック（CRUD、バリデーション、変更後の後処理） | `TodoService` |
+| 永続化（1 レコードの CRUD） | `TodoRepositoryProtocol` |
 | UI状態管理（フィルター、ソート、検索テキスト） | ViewModel |
 
 #### Button(intent:) による宣言的なIntent実行

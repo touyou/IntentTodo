@@ -43,16 +43,22 @@ View → ViewModel → UseCase → Repository → Domain
               ビジネスロジック
 
 【App Intents中心】
-View → Intent → Repository → Domain
-         ↑
-   ビジネスロジック
-   (Siri/Shortcuts/Widget/Apple Intelligence からも実行可能)
+View ─┐
+Siri ─┼→ Intent → Service → Repository → Domain
+Widget┤    ↑         ↑
+Control┘  宣言    ビジネスロジック
+       (呼出面は対等。UIはその一つに過ぎない)
 ```
+
+- **UseCase 層は「廃止」ではなく分裂している**。ユースケースの**宣言**（名前・引数・戻り値）を `AppIntent` が、
+  **実装**（手続き・不変条件・副作用）を `TodoService` が受け持つ。
+  Layered / Clean Architecture との詳しい対比（対応表 / 砂時計図 / 置き場の判定ルール）は
+  [APP_INTENT_DRIVEN_DESIGN.md](APP_INTENT_DRIVEN_DESIGN.md#layered--clean-architecture-との対比)
 
 ### 核心原則
 
 1. **すべてのアクションはIntentとして定義**
-2. **IntentがビジネスロジックのSingle Source of Truth**
+2. **Intentがユースケースの公開契約のSingle Source of Truth**（実装の置き場は`TodoService`）
 3. **UIはIntent実行のトリガーと結果表示のみ**
 4. **ロジックの二重実装を排除**
 5. **アクションと情報が設計の原子単位** - UIやプラットフォームは二次的
