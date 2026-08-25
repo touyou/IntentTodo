@@ -74,7 +74,8 @@ public struct CompleteTodosIntent: LongRunningIntent, CancellableIntent {
             logger.notice("CompleteTodosIntent cancelled: \(String(describing: reason), privacy: .public)")
         }
 
-        let noun = completed == 1 ? "todo" : "todos"
-        return .result(dialog: IntentDialog("Completed \(completed) \(noun)."))
+        // Siri がこの dialog を読み上げるので、複数形は手書きの三項演算子ではなく
+        // inflection に任せる（他言語では単複の切り替えだけでは足りない）。
+        return .result(dialog: IntentDialog("Completed ^[\(completed) todo](inflect: true)."))
     }
 }

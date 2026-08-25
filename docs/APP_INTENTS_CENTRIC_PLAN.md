@@ -207,7 +207,10 @@
     アプリ未起動中の Focus 遷移は `current` で取り直す。`notificationFilterPredicate` の許可リストには
     失敗通知用の criteria を常置。詳細と落とし穴は insights/03「Focus filter」
   - ℹ️ `ProgressReportingIntent` は**すでに採用済み**だった（SDK で `LongRunningIntent: ProgressReportingIntent`。
-    `CompleteTodosIntent` が `progress` を更新している）。「未実装の種別」ではない
+    `CompleteTodosIntent` が `progress` を更新している）。「未実装の種別」ではない。
+    残っていた価値は 2 つで、どちらも消化: 進捗 / キャンセル観測 / inflection の 3 契約を
+    ソースで押さえる `LongRunningIntentTests` の追加と、手書きの複数形（`"todo" : "todos"`）を
+    `^[\(n) todo](inflect: true)` へ修正
   - ✅ `UISceneAppIntent` + `AppIntentSceneDelegate`: `LaunchAppIntent` / `OpenTodoIntent` を準拠させ、
     `SceneDelegate` の TODO スキャフォルドを回収。狙いはマルチウィンドウではなく **cold start**
     （`UIScene.ConnectionOptions.appIntent` を拾わないと「アプリは開くが目的の画面に行かない」）。
