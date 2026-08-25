@@ -27,7 +27,11 @@ public enum SharedModelContainer {
     public static let appGroupIdentifier = "group.com.touyou.IntentTodo"
 
     /// The URL for the shared container directory.
-    /// Returns nil when App Group entitlement is missing (preview / SPM test).
+    ///
+    /// **nil は「App Group が使えない」の信頼できる指標ではない**。iOS では
+    /// entitlement が無ければ nil が返るが、**macOS では entitlement の無い
+    /// プロセスでもパスが返る**（`~/Library/Group Containers/<id>`。ただし
+    /// 書き込み不可）。SPM テストがここで nil を期待できないのはそのため。
     public static var sharedContainerURL: URL? {
         FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupIdentifier
@@ -62,8 +66,13 @@ public enum SharedModelContainer {
     /// `fatalError` instead so the misconfig surfaces in TestFlight / App Store
     /// review rather than at unhappy users.
     ///
-    /// In `DEBUG` builds (SPM tests, previews) the same path returns a default
-    /// non-shared store so unit tests can still construct a container.
+    /// In `DEBUG` builds (previews, iOS の SPM テスト) the same path returns a
+    /// default non-shared store so unit tests can still construct a container.
+    ///
+    /// **macOS の SPM テストではこのフォールバックに入らない**。上記のとおり
+    /// `sharedContainerURL` がパスを返してしまうため、開けない共有ストアを掴んで
+    /// `createContainer()` が throw する。テスト側はそれを前提に組む
+    /// （`SharedModelContainerTests` / `createInMemoryContainer()`）。
     public static var configuration: ModelConfiguration {
         if let containerURL = sharedContainerURL {
             let storeURL = containerURL.appendingPathComponent(databaseFilename)

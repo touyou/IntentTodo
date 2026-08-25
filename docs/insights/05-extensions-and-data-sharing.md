@@ -100,6 +100,27 @@ let container = try SharedModelContainer.createContainer()
 
 **重要**: この設定はXcodeで手動で行う必要がある。
 
+### `containerURL(...) == nil` は「App Group が使えない」の指標にならない（macOS）
+
+`FileManager.containerURL(forSecurityApplicationGroupIdentifier:)` は、**iOS では
+entitlement が無ければ nil** を返すが、**macOS では entitlement の無いプロセスでも
+パスを返す**（`~/Library/Group Containers/<id>`。ディレクトリは存在するが書き込み不可。
+Xcode 27 beta 5 で実測）。
+
+この非対称のせいで、`SharedModelContainer.configuration` の「App Group が取れなければ
+DEBUG で非共有ストアにフォールバックする」経路は **macOS の SPM テストでは働かない**。
+開けない共有ストアをそのまま掴み、`createContainer()` が
+`NSCocoaErrorDomain 256` / `SQLite 23` で throw する。
+
+テスト側の扱い:
+
+- **entitlement を要する経路は SPM テストで緑にしようとしない**。
+  `SharedModelContainerTests` の「Container can be created successfully」は
+  `withKnownIssue(isIntermittent: true)` で包む。entitlement のあるホストで走れば成功し、
+  `isIntermittent` なのでその場合も緑のまま
+- ストアを実際に使うテストは `SharedModelContainer.createInMemoryContainer()` を使う
+  （`SwiftDataTodoRepository` のテストと同じ形）
+
 ### watchOS の注意点
 
 watchOS と iOS は別デバイスのため、App Groups では直接データ共有できない。Watch Connectivityを使用するか、CloudKitで同期する必要がある。
