@@ -656,32 +656,33 @@
       - ⭐ **`OwnershipProvidingEntity` は T20 と対になる**。`requestConfirmation` が**アプリが明示的に取る確認**なのに対し、
         こちらは**システムが所有権を見て自動で出す確認**。**「確認を取る」に 2 系統ある**という整理ができる。
         そして後者は **スキーマに嵌めた見返りとして付いてくる**（骨子① S18b の理由 ⑤ の実体）
-    - **`UndoableIntent`: 未着手 → 実装済み（2026-08-22 / ⚠️ 現在も作業中・未コミット）**。`DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` / `DeleteTodosIntent` / `ToggleTodoCompletionIntent` の **4 本**が準拠。**当初「ソフトデリートへの設計変更とセット」と見積もっていたが、実際は不要だった** — `TodoItemSnapshot`（Domain）で消す前の値を丸ごと控え、`TodoUndoRegistrar` が `undoManager` に「同じ id で復元する」ハンドラを登録する形で足りた（公式サンプル CosmoTunes `DeleteAlarmIntent` と同じ形）
+    - **`UndoableIntent`: 未着手 → 実装済み（2026-08-22 にコミット済み）**。`DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` / `DeleteTodosIntent` / `ToggleTodoCompletionIntent` の **4 本**が準拠。**当初「ソフトデリートへの設計変更とセット」と見積もっていたが、実際は不要だった** — `TodoItemSnapshot`（Domain）で消す前の値を丸ごと控え、`TodoUndoRegistrar` が `undoManager` に「同じ id で復元する」ハンドラを登録する形で足りた（公式サンプル CosmoTunes `DeleteAlarmIntent` と同じ形）
       - **カードとして使えるオチ**: 「T29 の逆パターンです。**"設計変更が要ると思っていたら、要らなかった"**。見積もりのほうが古かった」
-      - ⚠️ **発表前に再確認**: 数字（4 本）とトグルの undo セマンティクス（逆再生ではなく元の値へ戻す）は作業が固まってから確定させる
+      - 数字（4 本）とトグルの undo セマンティクス（**逆トグルではなく元の値を `setCompletion` で絶対値指定**）は
+        2026-08-28 時点のコードで確定済み
 - **出典**: [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md) / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md) / [../../CLAUDE.md](../../CLAUDE.md)
 
 ---
 
-## 発表前チェックリスト
+## 発表前チェック
 
-- [ ] T01 の数字（Intent 24 / 型 23 / Entity 4 / Query 4 / AppShortcut 8）を発表直前のコードで再カウント
-      - 2026-08-22 実測: **Intent ファイル 24 ✅ / AppShortcut 8 ✅**。`Entities/` は 7 ファイル・`Queries/` は 4 ファイルあるので、**「AppEntity 4 種」は `TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` / `TodoListSummaryEntity` を指す**（`TodoListType` は `AppEnum`、`TodoOrCategory` は `@UnionValue`、`NavigationDestination` は別枠）と注釈をつけないと突っ込まれる
-- [ ] **T14 を 2026-08-22 に更新済み**（`[.main]` 固定が 13 Intent / 二重登録は「撤廃不可」ではなく役割分離 / `IntentExecutionTargetsTests` で宣言漏れ検出）。**T13 → T14 が「落とし穴 → 運用解」の流れになったので、話し方も繋げ直す**
-- [ ] **T30 の `UndoableIntent` は実装済みに変わった**（⚠️ 現在も別作業で進行中・未コミット）。**発表前に数字と結論を確定**。「未着手リスト」が 1 つ減るので T30 の「代償」列とのバランスも見直す
-- [ ] T10 の件数（20 / 3 / 3 / 8→0）は当時の実測値。**現在は Intent 23 / Entity 4 / Query 4** なので「当時の実測」と断って出す
-- [ ] T12 の「フレーズに String 不可」/ T10 の「アプリあたり 1 つ」は一次ソース未確認。**観測ベースと明言する**
-- [ ] T19 / T20 / T08 の実測は iOS 27 / Xcode 27 beta 5 時点。**SDK が上がっていたら再確認**
-- [ ] T25 の 22 テストが今も緑か（`RunAllTests` or `RunSomeTests`）
-- [ ] スクショ類（Control Center の 2 / 1、削除ボタンが無反応、Snippet）を撮り直す
-- [ ] T12b / T21b / T29b（2026-08-21 追加）を本編に入れるか、既存カードと差し替えるかを決める
-- [ ] **T07b（2026-08-25 追加）は 99-script の「レイヤードアーキテクチャ」節（L73–79）と同じ話**。単独発表なら
-      片方に寄せる。両方使うなら 99 側は「なぜ UseCase を Intent にしたか（デザインとの写像）」、
-      T07b は「では従来の層とどう対応するか（砂時計・凍る方向の反転）」に役割を分ける
-- [ ] T29b の「間違っていた 4 件」は 2026-08-21 時点。**発表までに追加のサンプル読み合わせをしたら件数を更新する**
-- [ ] **Group Lab（#8011）由来の追記が T12b / T18 / T21b / T27 / T29b / T30 に入った**（2026-08-22）。
-      引用はすべて**自動生成キャプション由来**なので、スライドに逐語を出すものだけ視聴して裏取りする
-      （優先度と手順は [03-group-lab-evidence.md](03-group-lab-evidence.md) §0-3）
-- [x] ~~§未調査 4 件~~ → **2026-08-22 に 4 件とも調査完了**（[03-group-lab-evidence.md](03-group-lab-evidence.md) §4-4）
-- [ ] CLAUDE.md の展開マトリクス「物理的なトリガーが自然」の行に **Apple Pencil Pro squeeze** を足す（現在 Action Button のみ）
-- [ ] 骨子① の S24 から続ける前提。単独発表するなら T01 の前に「App Intents とは」1 枚を足す
+チェックリストは **[#67](https://github.com/touyou/IntentTodo/issues/67)** に移した（数字の再カウント / 一次ソースの裏取り /
+スクショ / 言い方の判断）。ドキュメントには `- [ ]` を残さない運用のため
+（[AGENTS.md の「ドキュメント運用」](../../AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)）。
+
+この骨子で使う数字の **2026-08-28 時点の実測**:
+
+| 項目 | 値 | 注意 |
+|---|---|---|
+| Intent ファイル / 型 | **25** | うち `isDiscoverable = false` が 6 / watchOS 除外 1 / iOS 限定 1 |
+| `AppEntity` | **4 種** | `TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` / `TodoListSummaryEntity`（Transient）|
+| `AppEnum` / `@UnionValue` | **3 / 1** | `TodoListType` は `AppEnum`、`TodoOrCategory` は `@UnionValue`、`NavigationDestination` は別枠。**この注釈なしで「Entity 4 種」と言うと突っ込まれる** |
+| Query | **4** | うち 1 つは `IntentValueQuery`（Visual Intelligence 用） |
+| AppShortcut | **8** | うち 5 件がパラメータ入りフレーズ |
+| `allowedExecutionTargets = [.main]` | 書き込み系すべて | 宣言漏れは `IntentExecutionTargetsTests` が検出 |
+
+- T10 の件数（20 / 3 / 3 / 8→0）は**当時の実測値**。上の表と混ぜず「当時の実測」と断って出す
+- T13 → T14 は「落とし穴 → 運用解」の流れ。二重登録は「撤廃不可」ではなく**役割分離**
+- T19 / T20 / T08 の実測は iOS 27 / Xcode 27 beta 5 時点（GM での再確認は #57）
+- T07b は 99-script のレイヤードアーキテクチャ節（L73–79）と同じ話。両方使うなら役割を分ける
+- 骨子① の S24 から続ける前提

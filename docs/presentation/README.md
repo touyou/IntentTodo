@@ -23,6 +23,8 @@ App Intents 中心設計についての登壇・発表用の素材置き場。
 
 ## 使い方
 
+- **発表前にやることは [#67](https://github.com/touyou/IntentTodo/issues/67) に集約**（数字の再カウント / 一次ソースの裏取り /
+  スクショ / 言い方の判断）。骨子ファイルにチェックリストは置かない
 - 骨子ファイルは **1 スライド = 1 見出し（`### S<番号>.`）**。`見せるもの` / `話の要点` / `出典` の 3 点セットで書いてある
 - `.script.md` は同じスライド ID を並べただけの空ファイル。喋る想定の原稿はここに書き足す（骨子側に混ぜない）
 - 骨子の内容は原則すべて既存ドキュメントに裏取りがある。参照元は各スライドの `出典` を見る
@@ -37,4 +39,5 @@ App Intents 中心設計についての登壇・発表用の素材置き場。
 | [../insights/](../insights/) | 骨子② のほぼ全部 |
 | [../devlog/](../devlog/) | 骨子② の「どう気づいたか」部分 |
 | [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md) | 骨子② の思想的背景（他概念との比較）+ **T07b / C-3x の元ネタ**（Layered / Clean Architecture との対比） |
-| [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md) | 骨子② の検証状況・不適合リスト |
+| [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md) | 骨子② の検証状況 |
+| [../APP_INTENTS_API_COVERAGE.md](../APP_INTENTS_API_COVERAGE.md) | 骨子② の「適合しなかったもの / 使っていないもの」リスト（採用状況の一次情報） |

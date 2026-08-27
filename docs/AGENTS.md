@@ -67,29 +67,33 @@ Control┘  宣言    ビジネスロジック
 
 ## パッケージ構成
 
+レイヤーごと + **表示先別の葉ノード**という 2 軸で分ける。
+
 ```
 ProjectRoot/
 ├── ProjectName/              # アプリターゲット
-│   ├── ProjectNameApp.swift  # エントリーポイント
-│   └── AppShortcuts.swift    # AppShortcutsProvider（必ずここに配置）
+│   ├── ProjectNameApp.swift  # エントリーポイント（AppDependencyManager 登録）
+│   └── AppShortcuts.swift    # AppShortcutsProvider（★必ずここに配置）
 ├── ProjectName.xcodeproj
 └── Packages/
-    ├── Domain/               # データモデル（SwiftData @Model）
-    │   └── Package.swift
-    ├── Repository/           # データアクセス層
-    │   └── Package.swift     # → Domain に依存
-    ├── TodoAppIntents/       # ★コア：Intent + ビジネスロジック
-    │   └── Package.swift     # → Repository に依存
-    └── UI/                   # Views, ViewModels
-        └── Package.swift     # → TodoAppIntents に依存
+    ├── Domain/               # データモデル（SwiftData @Model）、ActivityAttributes
+    ├── Repository/           # データアクセス層          → Domain
+    ├── TodoAppIntents/       # ★コア：Intent + TodoService → Repository
+    ├── UI/                   # iOS/iPadOS/macOS/visionOS の View → TodoAppIntents
+    ├── LiveActivity/         # ActivityKit 管理 + ロック画面 View（iOS 限定）
+    ├── WidgetUI/             # ホームウィジェットの View
+    └── WatchUI/              # watchOS の View + Complication（watchOS 限定）
 ```
+
+Extension ターゲット（Widget / LiveActivity / WatchApp）は `@main` / `WidgetBundle` /
+`ActivityConfiguration` などの**スキャフォルドのみ**に保ち、View・状態管理・データ取得は SPM 側へ置く。
 
 ### 依存関係の方向
 
 ```
-Domain ← Repository ← AppIntents ← UI ← App
-  ↑                       ↑
- 最も基底              コア層
+Domain ← Repository ← TodoAppIntents ← UI / LiveActivity / WidgetUI / WatchUI ← App / Extensions
+  ↑                        ↑
+ 最も基底               コア層
 ```
 
 ---
@@ -310,28 +314,34 @@ public struct TodoEntityQuery: EntityQuery, EntityStringQuery {
 
 ## App Shortcuts
 
-### 配置場所
+### 配置場所 — **アプリターゲット直下必須**
 
-**AppShortcutsProvider はパッケージ内で定義可能**ですが、メインアプリターゲットから `@_exported import` で再エクスポートする必要があります。
+Intent / Entity / Query はパッケージから**アプリの統合メタデータに集約される**が、
+**`AppShortcutsProvider` だけは集約されず `autoShortcuts: 0` になる**。App Shortcut がビルドエラー無しで
+Siri / Shortcuts / Spotlight に出ない、という形で顕在化する。
 
 ```swift
-// Packages/TodoAppIntents/Sources/TodoAppIntents/Shortcuts/TodoAppShortcuts.swift
-public struct TodoAppShortcuts: AppShortcutsProvider {
-    public static var appShortcuts: [AppShortcut] {
+// IntentTodo/TodoAppShortcuts.swift（★アプリターゲット直下）
+import AppIntents
+import TodoAppIntents  // Intent はパッケージから import する
+
+struct TodoAppShortcuts: AppShortcutsProvider {
+    static var appShortcuts: [AppShortcut] {
         AppShortcut(
             intent: AddTodoIntent(),
             phrases: ["Add a todo in \(.applicationName)"],
             shortTitle: LocalizedStringResource("Add Todo"),
             systemImageName: "plus.circle"
         )
-        // ... other shortcuts
+        // ... 全 8 件
     }
-}
 
-// IntentTodo/TodoAppShortcuts.swift（メインアプリターゲット）
-import AppIntents
-@_exported import TodoAppIntents  // パッケージのShortcutsも公開される
+    static var shortcutTileColor: ShortcutTileColor { .navy }
+}
 ```
+
+検出方法（ビルド緑でも壊れるため）: `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`
+で `autoShortcuts` の件数を見る。詳細: `docs/insights/03-app-intents-core.md`
 
 ### フレーズの制限
 
@@ -345,6 +355,9 @@ phrases: ["Add \(\.$title) to \(.applicationName)"]  // エラー
 // ✅ AppEnum型は埋め込み可能
 phrases: ["Show \(\.$filter) todos in \(.applicationName)"]  // OK
 ```
+
+**パラメータ入りフレーズは `updateAppShortcutParameters()` が一度も呼ばれていないと機能しない**。
+本アプリでは `App.init()` での初回実行と、`TodoService.dataDidChange()` からの通知で配線済み。
 
 ---
 
@@ -510,14 +523,23 @@ struct TodoListView: View {
 
 ## テスト戦略
 
-### メタデータと Repository 層のテスト
+### 3 層で分担する
 
-`@Dependency` は `AppDependencyManager` 経由で解決されるため、SPM テスト（ホストアプリなし）では `perform()` の実行テストは難しい。以下の方針でカバーする：
+`@Dependency` は `AppDependencyManager` 経由で解決されるため、**SPM テスト（ホストアプリなし）では
+`perform()` を実行できない**。実経路の実行は AppIntentsTesting（UI テストバンドル必須）で押さえる。
 
-- **Repository 層**: 通常のモック注入 + ユニットテストで網羅
-- **Intent メタデータ**: `title` / `supportedModes` / `parameterSummary` 等の静的プロパティをテスト
-- **ビジネスロジック**: 可能な限り `perform()` から分離し、静的メソッド/Repository 側でテスト
-- **E2E**: 実機 Shortcuts / Siri での動作確認で補完
+| 層 | 場所 | 何を見るか |
+|---|---|---|
+| **SPM ユニットテスト** | `Packages/*/Tests/` | Repository / `TodoService` のビジネスロジック、Intent の静的メタデータ（`title` / `supportedModes` / `allowedExecutionTargets` / `parameterSummary`）、ヘルパー |
+| **AppIntentsTesting** | `IntentTodoUITest/AppIntents/`（23 テスト） | Intent の実経路実行（`makeIntent().run()`）、entity の id 解決 / `allEntities` / `suggestedEntities`、Spotlight index、`viewAnnotations()`、Intent の連鎖 |
+| **XCUITest** | `IntentTodoUITest/` | UI 経路だけで壊れるもの（`requestConfirmation` を含む Intent が `Button(intent:)` から無言失敗する類） |
+
+- **手で実機検証する前に、AppIntentsTesting に寄せられる観点かを先に検討する**
+- **条件付き assert を書かない**（`if element.waitForExistence(...) { XCTAssert... }` は要素が無いと緑になる）
+- 自動化できないのは「システム UI の見え方」（dialog の読み上げ / snippet の描画 / Control の表示 /
+  Siri のフレーズルーティング）。これは #30 で手動追跡する
+- watchOS では AppIntentsTesting の `run()` が `LNPerformActionPrebuiltErrorCodeActionNotAllowed` で落ちるため、
+  watchOS 固有の観点は手動確認になる
 
 ```swift
 import Testing
@@ -540,31 +562,34 @@ struct AddTodoIntentTests {
 
 ---
 
-## チェックリスト
+## 実装時に確認すること
 
-### Intent実装時
+> タスク管理ではなく**実装時に毎回目を通す条件**。未完了タスクは issue 側に置く
+> （[AGENTS.md の「ドキュメント運用」](../AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)）。
 
-- [ ] `@MainActor` を `perform()` に付与
-- [ ] バリデーションロジックを `perform()` 内に実装
-- [ ] 適切な `IntentResult` 型を返却
-- [ ] エラーは `LocalizedError` 準拠の型でthrow
+**Intent**
 
-### AppEntity実装時
+- `@MainActor` を `perform()` に付与（`TodoService` が `@MainActor`）
+- ビジネスロジックは `TodoService` に置き、Intent は接続点に薄く保つ
+- 適切な `IntentResult` 型を返却。エラーは `IntentError`（`CustomAppIntentErrorConvertible`）
+- **SwiftData を書き換えるなら `allowedExecutionTargets = [.main]` を宣言**（`IntentExecutionTargetsTests` が検出）
+- 破壊的 / 不可逆なら `UndoableIntent` + `TodoUndoRegistrar`
+- 内部用なら `isDiscoverable = false`。`requestConfirmation` / `requestChoice` を含むなら UI から呼ばない
 
-- [ ] `id` プロパティを定義
-- [ ] `typeDisplayRepresentation` を実装
-- [ ] `displayRepresentation` を実装
-- [ ] `defaultQuery` を実装
-- [ ] Spotlight対応なら `IndexedEntity` 準拠
+**AppEntity**
 
-### App Shortcuts実装時
+- `id` は**起動・デバイスをまたいで安定**していること
+- `typeDisplayRepresentation` / `displayRepresentation` / `defaultQuery` を実装
+- 実行時の値は `"\(value)"` の補間形式で渡す（`LocalizedStringResource(stringLiteral:)` は使わない）
+- システムに見せる属性は `@Property`（`@ComputedProperty` / `@DeferredProperty` も選択肢）
+- Spotlight 対応なら `IndexedEntity` + `@Property(indexingKey:)`。`attributeSet` との**二重書きを避ける**
 
-- [ ] パッケージで定義可能だが、メインアプリから `@_exported import` で再エクスポート
-- [ ] String型パラメータはフレーズに埋め込まない
-- [ ] `shortTitle` と `systemImageName` を設定
-- [ ] 複数のAppShortcutsProviderを作らない
+**App Shortcuts**
 
----
+- **`AppShortcutsProvider` はアプリターゲット直下**（パッケージに置くと `autoShortcuts: 0` で無言に壊れる）
+- String 型パラメータはフレーズに埋め込まない（`AppEntity` / `AppEnum` のみ）
+- `shortTitle` と `systemImageName` を設定。パラメータ無しのフレーズも 1 つ残す
+- `AppShortcutsProvider` は 1 つだけ。パラメータ入りフレーズには `updateAppShortcutParameters()` の配線が必要
 
 ---
 

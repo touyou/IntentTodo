@@ -126,18 +126,24 @@ macOS で使えない理由は**フレームワークの有無ではなく API �
 
 つまり `onAppIntentExecution` のクロージャが**先**に実行され、その後に Intent の `perform()` が呼ばれる。両方でナビゲーションを行うと二重実行になるため、どちらか一方に統一することを推奨。
 
-### ⚠️ cold start ナビゲーションは iOS 26.4 でも不安定な場合がある
+### ⚠️ cold start では `onAppIntentExecution` に頼らない
 
-アプリが kill されている状態（cold start）での `onAppIntentExecution` 経由ナビゲーションは、Workshop PDF が "In iOS 26.4 and above this works as before" と書いていても、実機では 26.4 でも安定して完走しないケースが残る。
+アプリが kill されている状態（cold start）での `onAppIntentExecution` 経由ナビゲーションは、
+実機で安定して完走しないケースがある（Workshop PDF の "In iOS 26.4 and above this works as before"
+という記述に反する挙動を実体験している）。
 
-そのため本プロジェクトでは **`@Dependency var navigationModel` + `perform()` 内で NavigationModel に書き込む**パターンを基本とし、`onAppIntentExecution` 経路は補助的にしか使わない（詳細は本ドキュメントの「AppDependencyManager + perform()」セクション参照）。現状コードベース上で `.onAppIntentExecution` は実際にはどこにも使われておらず（`LaunchAppIntent` が `TargetContentProvidingIntent` に準拠しているのみ）、`@Dependency` + `perform()` パターンへ完全移行済みのためこの cold start 問題は現在アクティブなコードパスではない。
+**本プロジェクトは `.onAppIntentExecution` を使っていない**。ナビゲーションは
+`@Dependency var navigationModel` + `perform()`（+ 後述の `UISceneAppIntent` /
+`AppIntentSceneDelegate`）に寄せている。
 
 経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)
 
 ### 関連API
 
-- **`AppIntentSceneDelegate`**: シーンレベルで Intent をハンドリングするプロトコル。`scene(_:willPerformAppIntent:)` メソッドで受信。
+- **`AppIntentSceneDelegate`**: シーンレベルで Intent をハンドリングするプロトコル
+  （`scene(_:willPerformAppIntent:)`）。本アプリは `SceneDelegate` で採用済み
 - **`UISceneAppIntent`**: `TargetContentProvidingIntent` を継承し、特定のシーンをターゲットにする Intent。
+  `LaunchAppIntent` / `OpenTodoIntent` が準拠（下記「UISceneAppIntent は Swift Package 内でも定義できる」）
 
 ### TargetContentProvidingIntent
 
