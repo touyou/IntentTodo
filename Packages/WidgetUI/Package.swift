@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "WidgetUI",
+    defaultLocalization: "en",
     platforms: [
         .iOS(.v27),
         .macOS(.v27),
@@ -24,6 +25,9 @@ let package = Package(
             dependencies: [
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "TodoAppIntents", package: "TodoAppIntents")
+            ],
+            resources: [
+                .process("Resources")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")

@@ -87,47 +87,47 @@ public struct AddTodoView: View {
     public var body: some View {
         Form {
             Section {
-                TextField("Title", text: $title)
+                TextField(.copy("Title"), text: $title)
                     .accessibilityIdentifier("todoTitleField")
                 #if os(iOS)
                     .textInputAutocapitalization(.sentences)
                 #endif
 
-                TextField("Description (optional)", text: $todoDescription, axis: .vertical)
+                TextField(.copy("Description (optional)"), text: $todoDescription, axis: .vertical)
                     .accessibilityIdentifier("todoDescriptionField")
                     .lineLimit(3...6)
             }
 
             Section {
-                Toggle("Set Due Date", isOn: $hasDueDate.animation())
+                Toggle(.copy("Set Due Date"), isOn: $hasDueDate.animation())
                     .accessibilityIdentifier("dueDateToggle")
 
                 if hasDueDate {
                     DatePicker(
-                        "Date",
+                        .copy("Date"),
                         selection: $dueDate,
                         displayedComponents: [.date]
                     )
                     .accessibilityIdentifier("dueDatePicker")
 
                     DatePicker(
-                        "Time",
+                        .copy("Time"),
                         selection: $dueDate,
                         displayedComponents: [.hourAndMinute]
                     )
                     .accessibilityIdentifier("dueTimePicker")
                 }
 
-                Toggle("Mark as Favorite", isOn: $isFavorite)
+                Toggle(.copy("Mark as Favorite"), isOn: $isFavorite)
                     .accessibilityIdentifier("favoriteToggle")
             }
 
-            Section("Details") {
-                Toggle("Set Estimated Duration", isOn: $hasEstimatedDuration.animation())
+            Section(.copy("Details")) {
+                Toggle(.copy("Set Estimated Duration"), isOn: $hasEstimatedDuration.animation())
                     .accessibilityIdentifier("estimatedDurationToggle")
 
                 if hasEstimatedDuration {
-                    Picker("Duration", selection: $estimatedDurationMinutes) {
+                    Picker(.copy("Duration"), selection: $estimatedDurationMinutes) {
                         ForEach(Self.durationOptions, id: \.self) { minutes in
                             Text(Self.durationLabel(minutes: minutes)).tag(minutes)
                         }
@@ -135,13 +135,13 @@ public struct AddTodoView: View {
                     .accessibilityIdentifier("estimatedDurationPicker")
                 }
 
-                TextField("Assignee (optional)", text: $assignee)
+                TextField(.copy("Assignee (optional)"), text: $assignee)
                     .accessibilityIdentifier("assigneeField")
                 #if os(iOS)
                     .textInputAutocapitalization(.words)
                 #endif
 
-                TextField("Location (optional)", text: $location)
+                TextField(.copy("Location (optional)"), text: $location)
                     .accessibilityIdentifier("locationField")
                 #if os(iOS)
                     .textInputAutocapitalization(.words)
@@ -153,13 +153,13 @@ public struct AddTodoView: View {
         // grouped にして iOS と同じインセット付きカード見た目に揃える。
         .formStyle(.grouped)
         #endif
-        .navigationTitle("New Todo")
+        .navigationTitle(.copy("New Todo"))
         #if os(iOS)
         .navigationBarTitleDisplayMode(.inline)
         #endif
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel") {
+                Button(.copy("Cancel")) {
                     dismiss()
                 }
                 .accessibilityIdentifier("cancelButton")
@@ -167,7 +167,7 @@ public struct AddTodoView: View {
 
             ToolbarItem(placement: .confirmationAction) {
                 Button(intent: addTodoIntent) {
-                    Text("Add")
+                    Text(.copy("Add"))
                 }
                 .accessibilityIdentifier("addButton")
                 .disabled(!isValid)

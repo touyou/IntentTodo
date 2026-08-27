@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "WatchUI",
+    defaultLocalization: "en",
     platforms: [
         .watchOS(.v27)
     ],
@@ -22,6 +23,9 @@ let package = Package(
             dependencies: [
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "TodoAppIntents", package: "TodoAppIntents")
+            ],
+            resources: [
+                .process("Resources")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")

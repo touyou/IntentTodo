@@ -3,6 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "UI",
+    defaultLocalization: "en",
     platforms: [
         .iOS(.v27),
         .macOS(.v27),
@@ -27,6 +28,9 @@ let package = Package(
                 .product(name: "TodoAppIntents", package: "TodoAppIntents"),
                 .product(name: "Domain", package: "Domain"),
                 .product(name: "LiveActivity", package: "LiveActivity")
+            ],
+            resources: [
+                .process("Resources")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")

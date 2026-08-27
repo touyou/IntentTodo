@@ -1,0 +1,297 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add" : {
+
+    },
+    "Add to favorites" : {
+
+    },
+    "Add to Favorites" : {
+
+    },
+    "Add todo" : {
+
+    },
+    "Add Todo" : {
+
+    },
+    "Add todo titled ${title}" : {
+
+    },
+    "All" : {
+
+    },
+    "All Done!" : {
+
+    },
+    "Apply" : {
+
+    },
+    "Assignee" : {
+
+    },
+    "Assignee (optional)" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Category" : {
+
+    },
+    "Choose a todo from the list to view details." : {
+
+    },
+    "Complete ${todos}" : {
+
+    },
+    "Complete some todos to see them here." : {
+
+    },
+    "completed" : {
+
+    },
+    "Completed" : {
+
+    },
+    "Created" : {
+
+    },
+    "Date" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete “%@”?" : {
+
+    },
+    "Delete ${entities}" : {
+
+    },
+    "Delete ${todo}" : {
+
+    },
+    "Delete ${todo} without confirming" : {
+
+    },
+    "Delete todo" : {
+
+    },
+    "Delete Todo" : {
+
+    },
+    "Description" : {
+
+    },
+    "Description (optional)" : {
+
+    },
+    "Details" : {
+
+    },
+    "due %@" : {
+
+    },
+    "Due Date" : {
+
+    },
+    "Due Date (Earliest)" : {
+
+    },
+    "Due Date (Latest)" : {
+
+    },
+    "Due in %@" : {
+
+    },
+    "Due Soon" : {
+
+    },
+    "Duration" : {
+
+    },
+    "Estimated Duration" : {
+
+    },
+    "favorite" : {
+
+    },
+    "Favorite" : {
+
+    },
+    "Favorites" : {
+
+    },
+    "Filter" : {
+
+    },
+    "Filter and sort" : {
+
+    },
+    "Filtered by Focus" : {
+
+    },
+    "Focus filter paused" : {
+
+    },
+    "Get todo summary" : {
+
+    },
+    "Hiding completed" : {
+
+    },
+    "Incomplete" : {
+
+    },
+    "Info" : {
+
+    },
+    "Location" : {
+
+    },
+    "Location (optional)" : {
+
+    },
+    "Manual" : {
+
+    },
+    "Mark as complete" : {
+
+    },
+    "Mark as Favorite" : {
+
+    },
+    "Mark as incomplete" : {
+
+    },
+    "Modified" : {
+
+    },
+    "New Todo" : {
+
+    },
+    "Newest First" : {
+
+    },
+    "No Completed Todos" : {
+
+    },
+    "No Favorites" : {
+
+    },
+    "No Results" : {
+
+    },
+    "No Todos" : {
+
+    },
+    "No todos match your search." : {
+
+    },
+    "Oldest First" : {
+
+    },
+    "Open ${target}" : {
+
+    },
+    "Overdue" : {
+
+    },
+    "Overdue by %@" : {
+
+    },
+    "Pick a todo from the sidebar to view details." : {
+
+    },
+    "Remove from favorites" : {
+
+    },
+    "Remove from Favorites" : {
+
+    },
+    "Search for ${query}" : {
+
+    },
+    "Search todos" : {
+
+    },
+    "Select a Todo" : {
+
+    },
+    "Set Due Date" : {
+
+    },
+    "Set Estimated Duration" : {
+
+    },
+    "Show ${filter} todos" : {
+
+    },
+    "Show All" : {
+
+    },
+    "Snooze ${todo}" : {
+
+    },
+    "Snooze ${todo} by 30 minutes" : {
+
+    },
+    "Sort" : {
+
+    },
+    "Star a todo to add it to favorites." : {
+
+    },
+    "Subtasks" : {
+
+    },
+    "Tap + to add your first todo." : {
+
+    },
+    "Tap the + button to add your first todo." : {
+
+    },
+    "This todo may have been deleted." : {
+
+    },
+    "Time" : {
+
+    },
+    "Title" : {
+
+    },
+    "Title A-Z" : {
+
+    },
+    "Title Z-A" : {
+
+    },
+    "Todo Not Found" : {
+
+    },
+    "Todos" : {
+
+    },
+    "Toggle completion of ${todo}" : {
+
+    },
+    "Toggle favorite of ${todo}" : {
+
+    },
+    "Update ${todo}" : {
+
+    },
+    "Urgent only" : {
+
+    },
+    "Viewing %@" : {
+
+    },
+    "You've completed all your todos!" : {
+
+    }
+  },
+  "version" : "1.0"
+}

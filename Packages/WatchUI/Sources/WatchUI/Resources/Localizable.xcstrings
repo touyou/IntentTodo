@@ -1,0 +1,137 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld incomplete" : {
+
+    },
+    "%lld todos" : {
+
+    },
+    "%lld todos • Next: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld todos • Next: %2$@"
+          }
+        }
+      }
+    },
+    "%lld/%lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld/%2$lld"
+          }
+        }
+      }
+    },
+    "Add" : {
+
+    },
+    "Add Favorite" : {
+
+    },
+    "Add todo titled ${title}" : {
+
+    },
+    "All Done!" : {
+
+    },
+    "Complete ${todos}" : {
+
+    },
+    "Couldn't load" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete “%@”?" : {
+
+    },
+    "Delete ${entities}" : {
+
+    },
+    "Delete ${todo}" : {
+
+    },
+    "Delete ${todo} without confirming" : {
+
+    },
+    "Description" : {
+
+    },
+    "Details" : {
+
+    },
+    "Done" : {
+
+    },
+    "Due Date" : {
+
+    },
+    "Due Soon" : {
+
+    },
+    "Get todo summary" : {
+
+    },
+    "New Todo" : {
+
+    },
+    "No incomplete todos" : {
+
+    },
+    "Open ${target}" : {
+
+    },
+    "Open the app to retry." : {
+
+    },
+    "Remove Favorite" : {
+
+    },
+    "Search for ${query}" : {
+
+    },
+    "Show ${filter} todos" : {
+
+    },
+    "Snooze ${todo}" : {
+
+    },
+    "Snooze ${todo} by 30 minutes" : {
+
+    },
+    "todo" : {
+
+    },
+    "Todo Not Found" : {
+
+    },
+    "Todo title" : {
+
+    },
+    "Todos" : {
+
+    },
+    "Todos —" : {
+
+    },
+    "Toggle completion of ${todo}" : {
+
+    },
+    "Toggle favorite of ${todo}" : {
+
+    },
+    "Upcoming" : {
+
+    },
+    "Update ${todo}" : {
+
+    }
+  },
+  "version" : "1.0"
+}

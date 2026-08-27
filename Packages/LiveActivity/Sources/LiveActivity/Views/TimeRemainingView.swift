@@ -32,7 +32,7 @@ public struct TimeRemainingView: View {
         switch style {
         case .minimal:
             if isOverdue {
-                Text("Overdue")
+                Text(.copy("Overdue"))
                     .font(.caption2)
                     .foregroundStyle(.red)
             } else {
@@ -45,14 +45,14 @@ public struct TimeRemainingView: View {
         case .compact:
             VStack(alignment: .trailing) {
                 if isOverdue {
-                    Text("Overdue")
+                    Text(.copy("Overdue"))
                         .font(.caption.bold())
                         .foregroundStyle(.red)
                 } else {
                     Text(timerInterval: Date()...dueDate, countsDown: true)
                         .monospacedDigit()
                         .font(.caption.bold())
-                    Text("remaining")
+                    Text(.copy("remaining"))
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -63,7 +63,7 @@ public struct TimeRemainingView: View {
                 Image(systemName: isOverdue ? "exclamationmark.triangle.fill" : "timer")
                     .foregroundStyle(isOverdue ? .red : .orange)
                 if isOverdue {
-                    Text("Overdue")
+                    Text(.copy("Overdue"))
                         .font(.subheadline.bold())
                         .foregroundStyle(.red)
                 } else {

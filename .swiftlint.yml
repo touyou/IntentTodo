@@ -116,6 +116,21 @@ custom_rules:
     message: "GCDは使用禁止です。Swift Concurrencyを使用してください。"
     severity: error
 
+  # UI コピーをパッケージ同梱の String Catalog に載せるための縛り。
+  #
+  # SwiftUI の `Text("Cancel")` 形（LocalizedStringKey）は実行時に Bundle.main を引くため、
+  # SPM パッケージに同梱した catalog には当たらない。`Text(.copy("Cancel"))` の形で
+  # `LocalizedStringResource.copy(_:)`（各パッケージが Bundle.module に向けて定義）を通す。
+  # `\(date, style:)` のような LocalizedStringKey 専用の補間だけは `bundle: .module` を
+  # 明示した形が正解なので、その行は `// swiftlint:disable:this` で理由付きで抑止する。
+  ui_copy_needs_module_bundle:
+    name: "UI copy must go through .copy(_:)"
+    included: ".*/Packages/(UI|WatchUI|WidgetUI|LiveActivity)/Sources/.*"
+    regex: "(Text|Label|Button|Toggle|TextField|Picker|Section|Menu|LabeledContent|ContentUnavailableView|DatePicker|navigationTitle|accessibilityLabel|confirmationDialog|alert)\\(\\s*\""
+    match_kinds: [identifier, string]
+    message: "パッケージ内の UI コピーは .copy(\"...\") 経由で Bundle.module の String Catalog を引いてください。"
+    severity: error
+
 # ルール設定
 line_length:
   warning: 120

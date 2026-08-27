@@ -194,6 +194,19 @@ IntentTodoWatchApp/                 # watchOS アプリ
 - `GeometryReader`より`containerRelativeFrame()`や`visualEffect()`を優先
 - `AnyView`は必要最小限に
 
+#### UI コピーは `LocalizedStringResource` で運ぶ（SPM パッケージでは `.copy(_:)` 経由）
+
+- **文言を `String` 型のプロパティ / パラメータで運ばない**。`Text` / `Label` は `String` を渡すと
+  verbatim 初期化子を選ぶため、リテラルが String Catalog に**抽出されない**（データの verbatim 表示
+  ——`todo.title` など——は対象外）
+- SwiftUI の `Text("Cancel")` 形は実行時に `Bundle.main` を引く。UI コピーを持つパッケージ
+  （`UI` / `WatchUI` / `WidgetUI` / `LiveActivity`）は自前の catalog を同梱しているので、
+  **必ず各パッケージの `LocalizedStringResource.copy(_:)` を通す**（`Text(.copy("Cancel"))`）。
+  素のリテラルで書くと catalog に載っても実行時に引けない
+- `\(date, style: .relative)` のような `LocalizedStringKey` 専用の補間だけは
+  `Text("...", bundle: .module)` 形で書く。数値だけの表示は `Text(value, format: .number)`
+- 抽出結果の確認は `xcodebuild -exportLocalizations`。詳細: `docs/insights/04-ui-integration.md`
+
 #### SwiftData（CloudKit使用時）
 
 [Apple 公式: Define a CloudKit compatible schema](https://developer.apple.com/documentation/swiftdata/syncing-model-data-across-a-persons-devices#Define-a-CloudKit-compatible-schema) より:

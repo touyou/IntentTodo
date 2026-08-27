@@ -23,20 +23,20 @@ public struct WatchAddTodoView: View {
 
     public var body: some View {
         VStack(spacing: 16) {
-            TextField("Todo title", text: $title)
+            TextField(.copy("Todo title"), text: $title)
                 .textContentType(.none)
                 .accessibilityIdentifier("todoTitleField")
 
             // Button(intent:) で発火することで、Intent の @Dependency が
             // AppDependencyManager から解決される (直接 perform() 呼びは不可)。
             Button(intent: AddTodoIntent(title: trimmedTitle)) {
-                Label("Add", systemImage: "plus.circle.fill")
+                Label(.copy("Add"), systemImage: "plus.circle.fill")
             }
             .buttonStyle(.borderedProminent)
             .disabled(trimmedTitle.isEmpty)
             .accessibilityIdentifier("addButton")
         }
-        .navigationTitle("New Todo")
+        .navigationTitle(.copy("New Todo"))
         .task { baselineCount = todoItems.count }
         .onChange(of: todoItems.count) { _, newValue in
             if newValue > baselineCount { dismiss() }

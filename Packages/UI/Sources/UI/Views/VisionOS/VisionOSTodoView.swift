@@ -38,7 +38,7 @@ public struct VisionOSTodoListView: View {
                 viewModel: $viewModel,
                 selectedTodo: $navigationModel.selectedTodo
             )
-            .navigationTitle("Todos")
+            .navigationTitle(.copy("Todos"))
         } detail: {
             VisionOSDetailPane(selectedTodo: navigationModel.selectedTodo)
         }
@@ -100,7 +100,7 @@ private struct VisionOSSidebar: View {
                 }
             }
         }
-        .searchable(text: $viewModel.searchText, prompt: "Search todos")
+        .searchable(text: $viewModel.searchText, prompt: .copy("Search todos"))
     }
 }
 
@@ -109,11 +109,11 @@ private struct VisionOSEmptyView: View {
 
     var body: some View {
         ContentUnavailableView {
-            Label("No Todos", systemImage: "checklist")
+            Label(.copy("No Todos"), systemImage: "checklist")
         } description: {
-            Text("Tap the + button to add your first todo.")
+            Text(.copy("Tap the + button to add your first todo."))
         } actions: {
-            Button("Add Todo") { navigationModel.showAddTodo() }
+            Button(.copy("Add Todo")) { navigationModel.showAddTodo() }
                 .buttonStyle(.borderedProminent)
         }
     }
@@ -129,9 +129,9 @@ private struct VisionOSDetailPane: View {
             VisionOSTodoDetailView(todo: todo)
         } else {
             ContentUnavailableView(
-                "Select a Todo",
+                .copy("Select a Todo"),
                 systemImage: "hand.tap",
-                description: Text("Choose a todo from the list to view details.")
+                description: Text(.copy("Choose a todo from the list to view details."))
             )
         }
     }
@@ -148,7 +148,7 @@ private struct VisionOSBottomOrnament: View {
             Menu {
                 FilterPicker(selection: $viewModel.filter)
             } label: {
-                Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
+                Label(.copy("Filter"), systemImage: "line.3.horizontal.decrease.circle")
             }
             .buttonStyle(.borderless)
 
@@ -157,7 +157,7 @@ private struct VisionOSBottomOrnament: View {
             Menu {
                 SortPicker(selection: $viewModel.sortOrder)
             } label: {
-                Label("Sort", systemImage: "arrow.up.arrow.down")
+                Label(.copy("Sort"), systemImage: "arrow.up.arrow.down")
             }
             .buttonStyle(.borderless)
 
@@ -166,7 +166,7 @@ private struct VisionOSBottomOrnament: View {
             Button {
                 navigationModel.showAddTodo()
             } label: {
-                Label("Add Todo", systemImage: "plus.circle.fill")
+                Label(.copy("Add Todo"), systemImage: "plus.circle.fill")
             }
             .buttonStyle(.borderedProminent)
         }

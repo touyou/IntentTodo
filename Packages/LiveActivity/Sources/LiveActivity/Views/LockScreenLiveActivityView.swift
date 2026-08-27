@@ -35,7 +35,7 @@ public struct LockScreenLiveActivityView: View {
                     .foregroundStyle(.orange)
                     .font(.title3)
 
-                Text("Due Soon")
+                Text(.copy("Due Soon"))
                     .font(.headline)
                     .foregroundStyle(.orange)
 
@@ -50,14 +50,14 @@ public struct LockScreenLiveActivityView: View {
 
             HStack(spacing: 16) {
                 Button(intent: ToggleTodoCompletionIntent(todo: todoEntity)) {
-                    Label("Mark Complete", systemImage: "checkmark.circle.fill")
+                    Label(.copy("Mark Complete"), systemImage: "checkmark.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
 
                 Button(intent: QuickSnoozeTodoIntent(todo: todoEntity)) {
-                    Label("Snooze 30m", systemImage: "clock.arrow.circlepath")
+                    Label(.copy("Snooze 30m"), systemImage: "clock.arrow.circlepath")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)

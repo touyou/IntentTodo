@@ -18,13 +18,15 @@ public struct StatusBadge: View {
         case prominent
     }
 
-    private let title: String
+    /// 文言は `LocalizedStringResource` で受ける。`String` で受けると呼出側の
+    /// リテラルが String Catalog に抽出されない（verbatim 扱いになる）。
+    private let title: LocalizedStringResource
     private let systemImage: String
     private let color: Color
     private let size: Size
 
     public init(
-        title: String,
+        title: LocalizedStringResource,
         systemImage: String,
         color: Color,
         size: Size = .compact

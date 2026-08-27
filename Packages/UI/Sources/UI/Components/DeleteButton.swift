@@ -33,10 +33,10 @@ public struct DeleteButton: View {
         // 確認付きの `DeleteTodoIntent` はアプリ内ボタンからだと確認を出す面が無く
         // 失敗する（docs/insights/06-control-widget-ios26.md 参照）。
         Button(intent: DeleteTodoImmediatelyIntent(todo: todo)) {
-            Label("Delete", systemImage: "trash")
+            Label(.copy("Delete"), systemImage: "trash")
         }
         .tint(.red)
-        .accessibilityLabel("Delete todo")
+        .accessibilityLabel(.copy("Delete todo"))
     }
 }
 
