@@ -35,7 +35,7 @@ WWDC 2026 で「App Schema を採用すればフレーズは Apple 側が持つ�
 | 対象 | 実態 |
 |---|---|
 | `knownRegions` | `en, Base` のみ |
-| `UI` / `WatchUI` / `WidgetUI` / `LiveActivity` | 計 187 キー、**翻訳ロケールは 0 件**（`sourceLanguage: en`、`localizations` が空。`WatchUI` だけ `en` エントリあり） |
+| `UI` / `WatchUI` / `WidgetUI` / `LiveActivity` | 計 187 キー、**非英語の翻訳ロケールは 0 件**（`sourceLanguage: en`。`WatchUI` のみ `en` エントリを持ち、他の 3 つは `localizations` 自体が空） |
 | アプリターゲット | `Localizable.xcstrings` が無い。Intent 側のコピーは AppIntents メタデータ経由でここに集約される経路（[04-ui-integration.md](04-ui-integration.md) で実測済み）なのに受け皿が無い |
 
 `docs/devlog/04-ui-integration.md` に書いた作業で入ったのは「**抽出できる土台**」であって、翻訳の
