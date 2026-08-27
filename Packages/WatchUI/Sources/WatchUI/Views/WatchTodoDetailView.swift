@@ -64,6 +64,13 @@ public struct WatchTodoDetailView: View {
             Section { WatchTodoDetailActionsSection(todo: todo, entity: entity) }
         }
         .navigationTitle(.copy("Details"))
+        // Onscreen entity (WWDC 2026 #343): 開いている todo を Siri /
+        // Apple Intelligence に知らせ、「これを完了して」を解決できるようにする。
+        //
+        // iOS 側は `.userActivity` に `appEntityIdentifier` を載せる形（Handoff の
+        // タイトルも一緒に出したいため）。watchOS は Handoff の当て先が無いので、
+        // Info.plist の `NSUserActivityTypes` 宣言が要らない単一 annotation を使う。
+        .appEntityIdentifier(EntityIdentifier(for: entity))
     }
 }
 
