@@ -5,6 +5,10 @@
 > 「分かりやすい例」として App Schema を挙げたが、それに限らず **各セッションの要素を網羅的に試す**。
 >
 > 作成: 2026-06-10 / 検証ブランチ: `xcode27`（27 世代ベータ SDK 用、**2026-08-27 に `main` へマージ済み**。以降の作業は `main`）
+>
+> **このファイルは「何をどこまで検証したか」の記録**。これからやることは GitHub issue に置く
+> （実機検証 = #30 / GM SDK 棚卸し = #57 / reminder 本体スキーマ = #56 / 未採用 API の消化 = #68）。
+> API ごとの採用状況は [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) を参照。
 
 ---
 
@@ -58,7 +62,7 @@
 
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
-| App Schema 適合 | `@AppEntity(schema: .reminders.*)` `@AppIntent(schema:)` | Todo を reminders ドメインへ意味的適合 | B/R | ⬜ |
+| App Schema 適合 | `@AppEntity(schema: .reminders.*)` `@AppIntent(schema:)` | Todo を reminders ドメインへ意味的適合 | B/R | ✅ list / listType / `.system.searchInApp` / ⏳ reminder 本体は SSU バグでブロック（#56 / #57） |
 | Transferable export | `Transferable` `ProxyRepresentation` `ValueRepresentation` | Entity を他アプリへエクスポート（title / IntentPerson / PlaceDescriptor） | B | ✅ (#44) |
 | Onscreen recognition | `userActivity` `appEntityIdentifier` | 詳細画面の単一 Todo（済）+ 一覧の `forSelectionType:`（#46） | R | ✅ U（2026-08-12 `viewAnnotations()` を実 run） |
 
@@ -229,34 +233,29 @@
 
 ---
 
-## 未着手の候補（2026-08-21 の全ソース走査で拾ったもの）
+## 未採用 API の扱い
 
-「ドキュメントには出てくるが、このリポジトリで一度も使っていない API」を `.swift` 全走査で洗い出した残り。
-**どれも不具合ではなく、着手すれば価値が出る候補**。判断が要るものは理由を添えてある。
-経緯: [docs/devlog/03-app-intents-core.md](devlog/03-app-intents-core.md)（2026-08-21）
+かつてここに「未着手の候補」表を置いていたが、**API ごとの採用状況は
+[docs/APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) に一元化**した（採用済み / 意図的不使用 /
+対象外 / 未採用候補を全 API 分 1 行ずつ）。次の拡張を考えるとき・新しい API を見つけたときはそちらを見る / 足す。
 
-| 候補 | 何が得られるか | 見送っている理由 / 前提 |
-|------|--------------|----------------------|
-| ~~`SpotlightSearchTool` + `LanguageModelSession`~~（wwdc2026-246、#52） | 自分の todo に対する会話型検索（RAG） | 前提の「Spotlight への entity 寄付」は済んでいる（`TodoSpotlightIndex` + `@Property(indexingKey:)`）。**2026-08-27 にスコープ外として決着**: 残りは FoundationModels 側の導線（`LanguageModelSession` + tool 登録）と結果表示 UI で、作業の主体が App Intents から離れる。本リポジトリが示したい「App Intents を設計の中心に据えるとどう組み立てられるか」には寄与しない。着手するなら別リポジトリ / 別タスク |
-| `requestValue` | Siri で不足パラメータを能動的に聞く | 非 optional パラメータはシステムが自動で聞き返すため、現状の Intent 構成では出番が薄い |
-| `EntityPropertyQuery` | Shortcuts の Find を自前実装 | **不要**。`EnumerableEntityQuery` が Find と絞り込みを自動生成する。必要になるのは "many thousands of entities" 規模（上の Phase 1 の記述参照） |
-| `relatedAppEntityIdentifier` | 子アイテム（添付等）を親 entity に紐づけ | todo に子の searchable item が無いので対象なし |
-| `widgetAccentedRenderingMode` | ティント表示時のウィジェット画像制御 | ウィジェットは SF Symbols のみなので実害が薄い |
+- **着手すると決めたものの消化**: #68
+- **決着済みの判断**（コード側に痕跡が残らないので、ここに結論だけ残す）:
+  - `SpotlightSearchTool` + `LanguageModelSession`（#52）— **2026-08-27 にスコープ外で決着**。前提の
+    Spotlight への entity 寄付は済んでいる（`TodoSpotlightIndex` + `@Property(indexingKey:)`）が、
+    残りは FoundationModels 側の導線と結果表示 UI で、作業の主体が App Intents から離れる
+  - UI タップ由来の donation の再導入（#53）— **2026-08-27 に「入れない」で決着**。公式の 2 方式は
+    どちらも「UI からは Intent を直接呼ぶ」前提で、本アプリの「UI も `Button(intent:)` で Siri と同じ
+    経路を通す」原則と両立しない。**再訪の条件**: `PredictableIntent` による提案を機能として欲しくなったとき
+  - watchOS の onscreen annotation（#54）— **2026-08-27 に実装**。行ごとの単一 annotation
+    （`List` に selection が無く `forSelectionType:` が効かない）。自動テスト不可のため手動確認は #30
+- 2026-08-22 に消化した候補（`UndoableIntent` / Spotlight client state バッチ / `synonyms:` /
+  `displayRepresentations(for:)` / `findIntentDescription` / `shortcutTileColor` / エラー文言 / inflection /
+  visionOS の onscreen annotation / `systemExtraLargePortrait`）は上の Phase 10 を参照。
 
-### 公式サンプル 4 本との突き合わせで出た候補（2026-08-21）
-
-WWDC26 サンプル（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）を読んで拾ったもの。
-実装形は [docs/insights/03-app-intents-core.md](insights/03-app-intents-core.md) の Phase 9 に、
-経緯は [docs/devlog/03-app-intents-core.md](devlog/03-app-intents-core.md)（2026-08-21）にある。
-
-| 候補 | 何が得られるか | 見送っている理由 / 前提 |
-|------|--------------|----------------------|
-| ~~UI タップ由来の donation の再導入~~（#53） | Siri の予測 / 提案の質。`perform()` 内 donate は規約違反なので 2026-08-21 に撤去し、**現在 donation はゼロ** | **2026-08-27 に「入れない」で決着**。公式の 2 方式（CometCal の `donateIntent:` フラグ / CosmoTunes の UI タップ地点）はどちらも「UI からは Intent を直接呼ぶ」前提で、本アプリの「UI も `Button(intent:)` で Siri と同じ経路を通す」原則と両立しない。`callAsFunction(donate:)` で一部の UI 経路だけ直接実行に変える案は、**設計の核（唯一の実行経路）を donation のために崩す**ことになるので採らない。「Intent に呼出元フラグを持たせる」案は 2026-08-26 に却下済み。**再訪の条件**: Siri の予測 / 提案（`PredictableIntent`）を機能として欲しくなったとき。その時点では「原則の例外を作る」ことが目的に対する対価として釣り合う |
-| ~~watchOS の onscreen annotation~~（#54） | 「これ」の解決を watchOS でも成立させる | **2026-08-27 に実装**。`WatchTodoRow` / `WatchTodoDetailView` に行ごとの単一 annotation（`List` に selection が無く `forSelectionType:` が効かないため）。**自動テストは不可**（watchOS では AppIntentsTesting の `run()` が `LNPerformActionPrebuiltErrorCodeActionNotAllowed` で落ち、前提データを作れない）→ 手動確認は #30 |
-
-> 上表のうち `UndoableIntent` / Spotlight client state バッチ / `synonyms:` / `displayRepresentations(for:)` /
-> `findIntentDescription` / `shortcutTileColor` / エラー文言 / inflection / visionOS の onscreen annotation /
-> `systemExtraLargePortrait` は **2026-08-22 に実装済み**（上の Phase 10 参照）。
+> 洗い出しの経緯（`.swift` 全走査 / 公式サンプル 4 本との突き合わせ）は
+> [docs/devlog/03-app-intents-core.md](devlog/03-app-intents-core.md)（2026-08-21）、
+> 実装形は [docs/insights/03-app-intents-core.md](insights/03-app-intents-core.md) の Phase 9 にある。
 
 ---
 

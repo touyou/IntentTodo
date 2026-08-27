@@ -24,16 +24,17 @@ Packages/
 3. **TodoAppIntents がコア**: ビジネスロジックの唯一の場所
 4. **UI 系は薄く**: Intent 実行トリガーと結果表示のみ
 5. **Extension ターゲットは scaffold のみ**: View 層・Activity 管理・Complication 定義は全て SPM 側に配置して、プレビュー高速化とテスト可能化を得る
-6. **`WatchUI` は `.watchOS(.v26)` のみ宣言**: iOS / macOS 側ターゲットから誤って import した際にコンパイル時に弾ける
+6. **`WatchUI` は `.watchOS(.v27)` のみ宣言**: iOS / macOS 側ターゲットから誤って import した際にコンパイル時に弾ける
 
-### @_exported import の活用
+### `@_exported import` は現在使っていない
 
 ```swift
-// Repository.swift
+// 例: Repository.swift で書けば、Repository を import しただけで Domain の型も使える
 @_exported import Domain
 ```
 
-これにより、Repositoryをimportするだけで自動的にDomainの型も使用可能になる。
+依存の隠蔽になり、どのモジュールの型を使っているかが読めなくなるため、**現在は各ファイルで
+必要なモジュールを明示的に import している**（`Domain` と `TodoAppIntents` を並べて書く）。
 
 ---
 

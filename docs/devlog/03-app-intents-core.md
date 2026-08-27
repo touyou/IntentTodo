@@ -630,7 +630,8 @@ CosmoTunes / PhotosDomainExample、計 240 Swift ファイル）を `~/Developer
 `displayRepresentations(for:)`、`findIntentDescription`、`shortcutTileColor`、
 `AppIntentError(wrapping:)`、visionOS / watchOS の onscreen annotation 欠落、
 リストのコレクション annotation の未テスト、`#if DEBUG` seed Intent 方式。
-理由と前提は PLAN の「未着手の候補」に、実装形は insights の Phase 9 に書いた。
+理由と前提は PLAN の「未着手の候補」に、実装形は insights の Phase 9 に書いた
+（その後 2026-08-28 に採用状況の記録は `docs/APP_INTENTS_API_COVERAGE.md` へ移した）。
 
 ### このとき分かった注意点
 

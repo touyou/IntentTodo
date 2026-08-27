@@ -97,7 +97,7 @@ IntentTodoWatchApp/                 # watchOS アプリ
 - **visionOS**: 空間UI（NavigationSplitView、Ornament、ホバーエフェクト）
 - **ウィジェット**: Small/Medium/Large/ExtraLargePortrait サイズ対応（Todo一覧表示、アプリ起動は `Link(destination:)` を使用）
 
-> **Widget でのアプリ起動**: [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) に "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`" と明記。アプリを開くだけの用途には `Button(intent:)` より `Link` が公式推奨。
+> **アプリを開くだけの用途は `Button(intent:)` ではなく `Link` / `widgetURL(_:)`**（[公式](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities): "An interaction with a button or toggle should do more than open the app"）。
 - **ライブアクティビティ**: Dynamic Island + ロック画面（期限1時間以内で自動表示、`LiveActivityIntent` 使用）
 - **コントロールセンター**: アプリを開く / 単発アクションは `ControlWidgetButton(action:)`、2 状態の切り替えは `ControlWidgetToggle(isOn:action:)` + `SetValueIntent`（対象を固定するため `AppIntentControlConfiguration` で設定可能にする）
 
@@ -140,7 +140,7 @@ IntentTodoWatchApp/                 # watchOS アプリ
 
 #### コード内コメント（経緯は書かない）
 
-ドキュメントと同じ切り分けをコードにも適用する（[docs/devlog/README.md](docs/devlog/README.md) の運用方針）。
+ドキュメントと同じ切り分けをコードにも適用する（下記「ドキュメント運用」/ [docs/devlog/README.md](docs/devlog/README.md)）。
 
 - **書く**: なぜこの形なのかという**現在の理由**、非自明な制約、公式ドキュメント / WWDC セッションの引用（`wwdc2026-345 16:30` のように位置まで）
 - **書かない**: 調査の経緯、失敗した仮説、「以前は〜していたが」「かつては〜」という履歴。これらは `docs/devlog/` に書く
@@ -174,8 +174,8 @@ IntentTodoWatchApp/                 # watchOS アプリ
   **落ちても他のテストでは捕まらない**経路を優先する。手作業の実機検証に行く前に、まずここで押さえられ
   ないかを検討する（詳細と落とし穴: `docs/insights/03-app-intents-core.md`）
 - **条件付き assert を書かない**。`if element.waitForExistence(...) { XCTAssert... }` は、要素が
-  見つからないと中身が一度も実行されず緑になる。実際にこの形で「削除がまったく動いていない」のを
-  長期間見逃した（経緯: `docs/devlog/06-control-widget-ios26.md` 2026-08-12）
+  見つからないと中身が一度も実行されず緑になる（この形で「削除がまったく動いていない」のを
+  長期間見逃した実例あり。経緯: `docs/devlog/06-control-widget-ios26.md`）
 
 ### Swift/SwiftUI ガイドライン
 
@@ -256,20 +256,22 @@ struct IntentTodoAppIntentsPackage: AppIntentsPackage {
 
 宣言先: `IntentTodo` / `IntentTodoWidget` / `IntentTodoLiveActivity` / `IntentTodoWatchApp` の 4 ターゲット。
 
-> かつては「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」として意図的に外していたが、2026-08-12 の再検証で採用に切り替えた。根拠:
-> 1. 全バンドルの `Metadata.appintents` の件数が宣言の有無で**完全一致**（DerivedData ごと消したクリーンビルドでも `actions` 23 = intent 型数 23 で重複なし）
-> 2. 宣言した状態で **AppIntentsTesting の全テストがグリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る）
-> 3. **Shortcuts アプリで実機確認済み**（アクション一覧・パラメータ表示が壊れていない）
->
-> **未確認なのは App Shortcut の「フレーズ」ルーティング（Siri）のみ**。AppIntentsTesting は型名で intent を引くためフレーズ経路を通らず、これは Apple の想定どおり手動確認の領域（上記「検証の梯子」）。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
+> メタデータの重複が起きないこと・AppIntentsTesting が全緑になること・Shortcuts アプリでの表示が壊れないことは確認済み。
+> 唯一未確認なのは **App Shortcut の「フレーズ」ルーティング（Siri）**で、これは自動化できない領域（追跡: #30）。
+> 経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)（2026-08-12 の A-1 決着）
 
-> **⚠️ 例外: `AppShortcutsProvider` はパッケージに置けない。** Intent / Entity / Query はパッケージから集約されるが、`AppShortcutsProvider`（App Shortcut のフレーズ登録）だけはアプリの統合メタデータに集約されず `autoShortcuts: 0` になる。App Shortcut がビルドエラー無しで Siri / Shortcuts / Spotlight に出ない、という形で顕在化する。**必ずアプリターゲット直下に置く**（本プロジェクトでは `IntentTodo/IntentTodo/TodoAppShortcuts.swift`、`import TodoAppIntents` で Intent を参照）。詳細は `docs/insights/03-app-intents-core.md`。
+> **⚠️ 例外: `AppShortcutsProvider` はパッケージに置けない。** Intent / Entity / Query は集約されるが、
+> フレーズ登録だけは集約されず `autoShortcuts: 0` になり、**ビルドエラー無しで App Shortcut が
+> Siri / Shortcuts / Spotlight に出ない**という形で顕在化する。**必ずアプリターゲット直下**
+> （`IntentTodo/TodoAppShortcuts.swift`、Intent は `import TodoAppIntents` で参照）。
+> 詳細: `docs/insights/03-app-intents-core.md`
 
 ### 1 アクション 1 Intent が既定（呼出元ごとに複製しない）
 
 同じアクションは呼出元が違っても**同じ Intent を使う**。Live Activity のボタンも Siri も `ToggleTodoCompletionIntent(todo:)` を呼ぶ。Live Activity が持っているのが id と title だけでも、`TodoAppEntity(id:title:)` で組んで渡せばよい（システムが `perform()` 前に `TodoEntityQuery.entities(for:)` で id から再解決する）。
 
-> **経緯**: かつては「Primary（`TodoAppEntity` パラメータ）/ FromExtension（`String` パラメータ、`isDiscoverable = false`）」に分けていた。理由は entity の事前解決中に SwiftData が `EXC_BREAKPOINT` で落ちる実績があったこと。**2026-08-12 に iOS 27 で再現しないことを実測確認**（`entities(for:)` も `perform()` もメインアプリプロセスで走る。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠でも同じ）し、分離を撤去した。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
+> iOS 27 では `entities(for:)` も `perform()` もメインアプリプロセスで走る（cold start でも、`LiveActivityIntent` 非準拠でも同じ）。
+> 呼出元プロセスの都合で Intent を複製する必要はない。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)（Primary / FromExtension 分離の撤去）
 
 **別 Intent に分けてよいのは「振る舞いが違う」場合だけ**。現存する分岐は次の 2 つで、どちらも呼出元プロセスの都合ではなく**対話できるかどうか**が理由:
 
@@ -279,7 +281,9 @@ struct IntentTodoAppIntentsPackage: AppIntentsPackage {
 | `DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` | 前者は `requestConfirmation` で確認を取る。UI は SwiftUI の `.confirmationDialog` で確認してから後者を実行する |
 | `ToggleTodoCompletionIntent` / `SetTodoCompletionIntent` | 前者はトグル、後者は絶対値セット（`SetValueIntent`）。Control の `ControlWidgetToggle` は on/off を渡してくるのでトグルでは表現できない |
 
-> **⚠️ `requestConfirmation` / `requestChoice` を含む Intent をアプリ内の `Button(intent:)` から呼んではいけない**。応答する面が無いため `LNPerformActionErrorCodeUnsupportedValueType` で失敗し、**エラー表示も出ずに何も起きない**（2026-08-12 実測）。Siri / Shortcuts / AppIntentsTesting 経由では成功するので、AppIntentsTesting では検出できず **UI テストが要る**。
+> **⚠️ `requestConfirmation` / `requestChoice` を含む Intent をアプリ内の `Button(intent:)` から呼んではいけない**。
+> 応答する面が無いため `LNPerformActionErrorCodeUnsupportedValueType` で失敗し、**エラー表示も出ずに何も起きない**。
+> Siri / Shortcuts / AppIntentsTesting 経由では成功するので **AppIntentsTesting では検出できず、UI テストが要る**。
 
 内部用（`isDiscoverable = false`）の Intent は AppShortcuts に登録しない。
 
@@ -314,7 +318,9 @@ Intent の実行結果をユーザーに伝える方法は呼出元で見え方�
 | Widget `Button(intent:)` | 表示なし | 表示なし | 表示 ✅ |
 | **Control (`ControlWidgetButton` / `ControlWidgetToggle`)** | **表示なし** | **表示なし** | 表示 ✅ |
 
-> Control の 2 つの「表示なし」はいずれも**実機確認済み**（dialog: 2026-04-14 / snippet: 2026-08-12）。snippet は、同一 Intent・同一 snippet を Spotlight から呼ぶと出て Control から呼ぶと出ない、という比較で確定させた（実行プロセスを `[.main]` に固定しても、Button / Toggle どちらの形でも出ない）。**ドキュメントの肯定リストから「Control は非対応」と推論するのは禁止** — 一度その推論で設計を誤っており、wwdc2025-275 1:40–1:59 の "control" 実演とも矛盾する。判断は必ず「呼出元だけ変えて同じ Intent を走らせる」比較で行う。経緯: [docs/devlog/06-control-widget-ios26.md](docs/devlog/06-control-widget-ios26.md)
+> Control の 2 つの「表示なし」は**実機確認済み**（dialog / snippet とも）。**ドキュメントの肯定リストから
+> 「Control は非対応」と推論してはいけない** — 一度その推論で設計を誤っている。判断は必ず
+> **「呼出元だけ変えて同じ Intent を走らせる」比較**で行う。経緯: [docs/devlog/06-control-widget-ios26.md](docs/devlog/06-control-widget-ios26.md)
 
 使い分けルール:
 - **Control から呼ばれる Intent** (`SetTodoCompletionIntent` 等): フィードバックの主経路は `perform()` 完了時の自動リロードによる**コントロール自身の再描画**。dialog も snippet も出ないので返さない。**失敗時のみローカル通知** (`ControlNotificationHelper.sendErrorNotification`) — 失敗すると前の状態のまま再描画されて「何も起きなかった」と区別できないため。読ませたい情報が主目的なら `LaunchAppIntent` でアプリの該当画面に送る
@@ -335,7 +341,10 @@ defer { Self.dataDidChange() }
 try repository.update(item)
 ```
 
-> Widget 内の `Button(intent:)` から呼ばれた Intent は、システムが `perform()` 完了時に自動でタイムラインをリロードすることを保証している（wwdc2023-10028 13:47/10:02）。手動呼び出しが本当に必要なのは Siri / Shortcuts / アプリ UI など Widget 起点でない経路のケース。全変更で無条件に呼ぶ現在のルールは判定を省いた安全側の運用（呼び出し重複はコスト的に無視できる。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
+> Widget 内の `Button(intent:)` から呼ばれた Intent は、システムが `perform()` 完了時に自動でタイムラインを
+> リロードする（wwdc2023-10028 13:47/10:02）ので、手動呼び出しが必要なのは Widget 起点でない経路だけ。
+> **判定を省いて全変更で無条件に呼ぶ**のが現在のルール（重複のコストは無視できる）。
+> 経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
 
 ### App Shortcut のフレーズにはパラメータを埋める
 
@@ -400,7 +409,8 @@ struct AddTodoIntent: AppIntent {
 | 同上 | `.background` + `allowedExecutionTargets = [.main]`（書き込み系はすべてこれ） | **メインアプリに固定** | `App.init()` のみ |
 | Live Activity ボタン | `LiveActivityIntent` / 素の `AppIntent` | `perform()` はアプリプロセス（Apple 公式）。`TodoAppEntity` の事前 entity 解決 (`entities(for:)`) も**アプリプロセス**で走る（iOS 27 実測。cold start でも、`LiveActivityIntent` 非準拠でも同じ） | アプリ側 (`App.init()`) のみで足りる |
 
-> 二重登録（`App.init()` と `WidgetBundle.init()` の両方）は**撤廃ではなく役割分離**。書き込み系を `[.main]` に固定した結果、Widget Extension 側の `TodoService` 登録は読み取り系 Intent・entity 解決・snippet 描画のためだけに残っている（詳細は `docs/insights/03-app-intents-core.md`、経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)）。
+> Widget Extension 側の `TodoService` 登録は、**読み取り系 Intent・entity 解決・snippet 描画のため**に必要
+> （書き込み系は `[.main]` 固定なので Extension では走らない）。詳細: `docs/insights/03-app-intents-core.md`
 
 ```swift
 // Widget Extension 側でも同様に同期登録
@@ -421,15 +431,10 @@ struct IntentTodoWidgetBundle: WidgetBundle {
 プロセスごとに `AppDependencyManager.shared` は独立インスタンスなので、そのプロセスで `@Dependency` を使う Intent がある場合は、そのプロセスの起点（`App.init()` / `WidgetBundle.init()` 等）で登録する必要がある。
 
 > **⚠️ 登録漏れは「クラッシュ」ではなく「無音の失敗」になる**。未登録の依存を解決しようとした Intent は
-> `Failed to retrieve dependency of type X. Please register your dependency with AppDependencyManager
-> before performing a dependent intent.` を stderr に出して**実行だけが失敗**する。`Button(intent:)`
-> 経由だとエラー表示も無く、画面は何も変わらない。
->
-> 実例: watch アプリが `NavigationModel` を登録しておらず、`AddTodoIntent`（完了時に
-> `navigationModel.dismissAddTodo()` を呼ぶ）が失敗して **watchOS では Todo 追加が一切できない**
-> 状態だった（2026-08-27 に実機シミュレータで確認して修正）。**そのプロセスで走る Intent が触る依存は
-> 全部登録する**。プラットフォームごとに Intent の集合が違わない（同じパッケージが全ターゲットに
-> リンクされる）ことを忘れやすい。経緯: [docs/devlog/07-platform-specific.md](docs/devlog/07-platform-specific.md)
+> `Failed to retrieve dependency of type X.` を stderr に出して**実行だけが失敗**し、`Button(intent:)`
+> 経由だとエラー表示も無く画面は何も変わらない。**そのプロセスで走る Intent が触る依存は全部登録する**
+> （同じパッケージが全ターゲットにリンクされるので、プラットフォームごとに Intent の集合は変わらない）。
+> 経緯: [docs/devlog/07-platform-specific.md](docs/devlog/07-platform-specific.md)（watch で Todo 追加が一切できなかった実例）
 
 ### Intent Modes
 
@@ -488,9 +493,9 @@ NavigationStack {
 - `AppIntentSceneDelegate` プロトコルでシーンレベルのハンドリングも可能
 - **macOS / watchOS では使えない**。前提の `TargetContentProvidingIntent` が SDK 側で `@available(macOS, unavailable)` / `@available(watchOS, unavailable)`（Xcode 27 beta 5 で実測）。`_AppIntents_SwiftUI` フレームワーク自体は macOS SDK にも存在するので `canImport` では判定できない。準拠は `#if os(iOS) || os(visionOS)` でガードし、macOS では `@Dependency` + `perform()` パターンを使う
 
-**iOS バージョンによる動作差**
-- **iOS 26.4 以降**: cold start でも正常動作（ワークショップPDF "In iOS 26.4 and above this works as before"）
-- **初期 iOS 26（〜26.3）**: cold start 時タイムアウトでナビゲーション失敗の可能性あり。その場合は `AppDependencyManager` + `@Dependency var navigationModel` + `perform()` でナビゲーション状態を書き込むパターンに切り替える（詳細は `docs/insights/04-ui-integration.md` 参照）
+**本プロジェクトでは使っていない**。cold start で確実に目的の画面へ行かせるため、
+`@Dependency var navigationModel` + `perform()`（+ `UISceneAppIntent` / `AppIntentSceneDelegate`）に寄せている。
+使い分けの判断は `docs/insights/04-ui-integration.md`。
 
 ### LiveActivityIntent（Live Activity専用）
 
@@ -511,12 +516,10 @@ struct CompleteTodoFromActivityIntent: LiveActivityIntent {
 }
 ```
 
-[ActivityKit / Activity](https://developer.apple.com/documentation/activitykit/activity) より: "You can update or end a Live Activity while your app is in the background, but you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a `LiveActivityIntent`."
+公式が保証していること 2 つ:
 
-さらに [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action) が明記する実行プロセスの差：
-> "If you adopt the `LiveActivityIntent` or `AudioPlaybackIntent` protocol, the system runs the app intent in the app's process. [...] If you adopt the `AppIntent` protocol, add your custom app intent to your widget extension target and your app target."
-
-つまり `LiveActivityIntent` の `perform()` はアプリプロセスで実行される。通常の `AppIntent` を Widget 経由で呼ぶ場合の実行プロセスは固定ではなくヒューリスティクスで決まる（「実行プロセスと登録先」節参照）。なお `LiveActivityIntent` が公式に保証するのは `perform()` の実行プロセスだが、`TodoAppEntity` の事前 entity 解決も iOS 27 の実測ではアプリプロセスで走る（「1 アクション 1 Intent」参照）。
+- **バックグラウンドから開始できるのは `LiveActivityIntent` 経由のときだけ**（[Activity](https://developer.apple.com/documentation/activitykit/activity): "you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a `LiveActivityIntent`"）
+- **`perform()` はアプリプロセスで走る**（[Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities#Add-an-app-intent-that-performs-the-action): "the system runs the app intent in the app's process"）。素の `AppIntent` を Widget 経由で呼ぶ場合はヒューリスティクス（「実行プロセスと登録先」節）
 
 | Intent種別 | 用途 | 特徴 |
 |-----------|------|------|
@@ -540,8 +543,8 @@ struct TodoEntity: AppEntity, IndexedEntity {
 
 `attributeSet` には **`@Property(indexingKey:)` で表現できない属性だけ**を書く。同じ
 `CSSearchableItemAttributeSet` キーを両方から埋めるとどちらが勝つかは公式に定義がなく、
-「セマンティック検索に載るはずの本文が固定文に置き換わる」形で静かに壊れる（2026-08-21 に
-`contentDescription` の二重書きを撤去）。詳細: `docs/insights/03-app-intents-core.md`
+「セマンティック検索に載るはずの本文が固定文に置き換わる」形で静かに壊れる。
+詳細: `docs/insights/03-app-intents-core.md` / 経緯: `docs/devlog/03-app-intents-core.md`
 
 ### Entity の表示表現（実行時文字列・音声・検索一致）
 
@@ -613,7 +616,7 @@ interface, and **not to interactions started by Siri or the Shortcuts app**."
 - [x] visionOS 空間UI
 - [x] ホーム画面ウィジェット（Small/Medium/Large/ExtraLargePortrait）
 - [x] ライブアクティビティ（Dynamic Island + ロック画面）
-- [x] コントロールセンター（クイック追加/Todo数/緊急Todo）
+- [x] コントロールセンター（クイック追加 / Todo数 / 完了トグル）
 - [x] Siri/Shortcuts（TodoAppShortcuts）
 
 ### 拡張ロードマップ（WWDC 2026 要素の検証）
@@ -625,18 +628,43 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 | **Entity強化** | プロパティマクロ / 値表現 | @ComputedProperty, @DeferredProperty, @Property(indexingKey:)(#43), Transferable + ValueRepresentation→IntentPerson/PlaceDescriptor(#44) | ✅ |
 | **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier（単一）/ .appEntityIdentifier(forSelectionType:)（一覧, #46）/ 通知 appEntityIdentifiers(#46) | ✅ |
 | **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ |
-| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ list+search適合（watchOSは Xcode 27 beta 2 で非対応→フォールバック/除外）/ reminder本体は据え置き(#48) |
-| **高度な Intent** | 対話/寄付/system/部分更新/取り消し | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, UndoableIntent, IntentDialog(full:supporting:), IntentParameter.valueState(#45) | ✅（RelevantEntities は不適合 / donation は撤去済み） |
+| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ list + search 適合（watchOS はフォールバック / 除外）。reminder 本体は SSU バグでブロック（#56） |
+| **高度な Intent** | 対話/寄付/system/部分更新/取り消し | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, UndoableIntent, IntentDialog(full:supporting:), IntentParameter.valueState(#45) | ✅（`RelevantEntities` は適合不能 / donation は不採用 #53） |
 | **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, CancellableIntent, allowedExecutionTargets(.main/.appIntentsExtension/.widgetKitExtension, #42), @UnionValue, SyncableEntity | ✅ |
 | **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor, semanticContentSearch | ✅ |
 | **テスト基盤** | Intent 実経路テスト | AppIntentsTesting (makeIntent/run, UIテストバンドル) | ✅ |
 | **Intent Modes** | 動的実行制御 | `.background` / `.foreground(.immediate)` は採用。`.foreground(.dynamic)` は**不採用**（#55、適所なしと結論） | ✅ |
+| **Intent 種別の消化** | 未採用だった種別 | SetFocusFilterIntent（集中モード）, UISceneAppIntent + AppIntentSceneDelegate（cold start）, URLRepresentableEntity / URLRepresentableIntent（ディープリンク） | ✅ |
 
-> 検証は `xcode27` ブランチ（27 世代ベータ SDK 用）で行い、**2026-08-27 に `main` へマージ済み**。状態・コミット・残タスクは `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
-> **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（#48 で再評価 → マクロ生成 init + 入れ子サブエンティティの再設計が必要なため据え置き、再評価は #56。list 適合 + 自前 Intent で新 Siri 連携は成立）、`OwnershipProvidingEntity` / `requestValue`（#47、個人利用主体で優先度低）、EventKit/Contacts 連携（別フレームワーク軸）。
-> **意図的不使用（API は把握済み・このアプリに不要と判断）**: `DynamicOptionsProvider` / `IntentParameterDependency`（パラメータ間の動的依存が発生するユースケースがない。選択肢は `AppEnum` ベースの静的リストで十分）。`.foreground(.dynamic)` / `continueInForeground`（#55。「アプリを開く」は `OpensIntent` + `LaunchAppIntent` の Intent 合成、「対話」は `requestChoice` / `requestConfirmation`、「読ませる」は dialog + snippet で埋まっており、**背景実行 → 条件付き前面**が勝つ経路が無い。詳細: `docs/insights/03-app-intents-core.md`）。UI タップ由来の donation（#53。`Button(intent:)` を唯一の実行経路とする原則を崩す対価に見合わない）。`SpotlightSearchTool` + `LanguageModelSession`（#52。残りが FoundationModels 側の作業になりスコープ外）。
-> **未着手の候補（着手すれば価値が出るもの）**: `SpotlightSearchTool`(wwdc2026-246、FoundationModels 前提でスコープ外。#52) / `requestValue` / UI タップ由来の donation 再導入(#53)。理由と前提つきの一覧は [docs/APP_INTENTS_CENTRIC_PLAN.md の「未着手の候補」](docs/APP_INTENTS_CENTRIC_PLAN.md#未着手の候補2026-08-21-の全ソース走査で拾ったもの)。
-> **watchOS での assistant schema 非対応 (Xcode 27 beta 2〜、beta 5 でも継続を実ビルドで確認)**: `reminders` / `system` ドメインの assistant schema は watchOS で unavailable。TodoAppIntents は watchOS でもコンパイルされるため、`@AppEntity(schema: .reminders.list)`（`CategoryAppEntity`）と `@AppEnum(schema: .reminders.listType)`（`TodoListType`）は `#if os(watchOS)` で素の `AppEntity`/`AppEnum` にフォールバック（マクロ付き宣言は `#if` で分割不可なので型を2系統で全書き。**フォールバック側は型名も変える** — `WatchCategoryAppEntity` / `WatchTodoListType` + `typealias`。同じ mangled type name にスキーマ付き / 無しの 2 形が居ると、iOS アプリの統合メタデータへのマージでスキーマ無し側が勝ち、出荷メタデータから `reminders.ListEntity` が消える。**フォールバック側には `@Property(title:)` も明示する**（マクロ変種はマクロが生成するが素の `AppEntity` は 0 件になる）。どちらもビルド緑で通るので `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py` で検出する）、`@AppIntent(schema: .system.searchInApp)`（`ShowTodoSearchResultsIntent`）は watchOS に検索遷移先が無いため `#if !os(watchOS)` で丸ごと除外。`.visualIntelligence.*` は元々 `#if canImport(VisualIntelligence)`（iOS 限定）で保護済み。
+> 検証は `xcode27` ブランチで行い、**2026-08-27 に `main` へマージ済み**。何をどこまで検証したかは
+> `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md`。
+
+**API ごとの採用状況は [docs/APP_INTENTS_API_COVERAGE.md](docs/APP_INTENTS_API_COVERAGE.md) に一元化**した
+（採用済み / 意図的不使用 / 対象外 / 未採用候補を全 API 分）。次の拡張を考えるときも、新しい API を
+見つけたときもここを見る / ここに足す。着手すると決めたものは **#68**。要点だけ:
+
+| 分類 | 主なもの |
+|------|---------|
+| **適合不能 / ブロック中** | `RelevantEntities`（todo 向けの `AppEntityContext` が無い）/ `.reminders.reminder` 本体適合（SSU バグ待ち、#56） |
+| **意図的不使用** | `DynamicOptionsProvider` / `IntentParameterDependency` / `EntityPropertyQuery` / `.foreground(.dynamic)`（#55）/ UI タップ由来の donation（#53）/ `SpotlightSearchTool`（#52） |
+| **未採用候補** | `AppShortcuts.xcstrings` / `ShortcutsLink` / `.controlWidgetStatus(_:)` / `Toggle(isOn:intent:)` / `RelevantIntent`（#68） |
+
+#### watchOS では assistant schema が使えない（フォールバックが必要）
+
+`reminders` / `system` ドメインの assistant schema は watchOS で unavailable（Xcode 27 beta 5 時点。
+GM での再確認は #57）。`TodoAppIntents` は watchOS でもコンパイルされるので次の形で回避している。
+
+- `CategoryAppEntity`（`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)` で
+  素の `AppEntity` / `AppEnum` にフォールバック。マクロ付き宣言は `#if` で分割できないので**型を 2 系統で全書き**する
+- **フォールバック側は型名も変える**（`WatchCategoryAppEntity` / `WatchTodoListType` + `typealias`）。
+  同じ mangled type name にスキーマ付き / 無しの 2 形が居ると、iOS アプリの統合メタデータへのマージで
+  スキーマ無し側が勝ち、出荷メタデータから `reminders.ListEntity` が**消える**
+- **フォールバック側には `@Property(title:)` も明示する**（マクロ変種はマクロが生成するが、素の `AppEntity` は 0 件になる）
+- `ShowTodoSearchResultsIntent`（`.system.searchInApp`）は watchOS に検索遷移先が無いため `#if !os(watchOS)` で除外
+- `.visualIntelligence.*` は `#if canImport(VisualIntelligence)` で保護済み
+
+> どちらの事故も**ビルド緑で通る**。検出は `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`
+> でメタデータを直接見る。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
 
 ## 開発フロー（TDD）
 
@@ -666,10 +694,34 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 
 Types: feat, fix, refactor, test, docs, chore
 
+## ドキュメント運用（現在のルール / 経緯 / 残タスク の三分割）
+
+置き場を 3 つに分け、**同じ情報を 2 箇所に書かない**。
+
+| 書くもの | 置き場 | 性質 |
+|---------|-------|------|
+| **現在のルール・結論** | `AGENTS.md` / `docs/insights/` / `docs/AGENTS.md` など | 読めば今どうすべきかが分かる。履歴を混ぜない |
+| **経緯**（いつ何を試して何が間違っていて、どのコミットで直したか） | `docs/devlog/` | 追記のみの時系列ログ。過去形で書き、後から書き換えない |
+| **残タスク**（これからやること・判断待ち・未検証） | **GitHub issue** | 状態が変わるもの。ドキュメントに置くと必ず腐る |
+
+ルール:
+
+- **ドキュメントに `- [ ]` を残さない**。未完了のタスクが出てきたら issue を立て、ドキュメント側には
+  「詳細は #NN」というポインタを 1 行置く。逆に issue には「なぜこの形なのか」を書かず docs を指す
+- **未検証 / 実機確認が必要**なものは #30（実機検証チェックリスト）に集約。SDK 更新にぶら下がるものは #57
+- **未採用の API**は個別 issue にせず、まず [docs/APP_INTENTS_API_COVERAGE.md](docs/APP_INTENTS_API_COVERAGE.md)
+  に 1 行足す（**状態の地図**であってタスクリストではない）。「やる」と決めた時点で issue にする（消化は #68）
+- devlog に「残タスクとして残した」と書くときも、**同時に issue へ起票してポインタを併記**する。
+  devlog を読み返してタスクを発掘する運用にはしない
+- 判断が「やらない」で決着したら、**理由つきで docs 側に残す**（`⏸ 意図的不使用` / `🚫 対象外`）。
+  同じ検討を半年後にもう一度させないことがこの記録の目的
+
 ## 参照ドキュメント
 
-- `docs/PLAN.md` - 開発計画
-- `docs/APP_INTENTS_CENTRIC_PLAN.md` - WWDC 2026 セッション要素の検証計画と結果（セッション別チェックリスト + コミット + 残タスク）
+- `docs/PLAN.md` - 開発計画（要件・展開マトリクス）
+- `docs/APP_INTENTS_CENTRIC_PLAN.md` - WWDC 2026 セッション要素の検証計画と結果（セッション別チェックリスト + コミット）
+- `docs/APP_INTENTS_API_COVERAGE.md` - **App Intents API の採用状況マップ**（採用済み / 意図的不使用 / 対象外 / 未採用候補）。次の拡張を考えるときはここから
+- `docs/WWDC_APP_INTENTS_SESSIONS.md` - WWDC 2022〜2026 のセッション別 API 一覧と非推奨タイムライン
 - `docs/AGENTS.md` - App Intents中心設計の詳細ガイド
 - `docs/APP_INTENT_DRIVEN_DESIGN.md` - 関連概念の整理と比較
 - `docs/INSIGHTS.md` - 開発中に得られた技術的インサイト（目次）
@@ -677,6 +729,8 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/devlog/` - 各ドキュメントの現在のルールがどういう経緯で決まったか（調査・失敗・再検証の記録）
 - `docs/presentation/` - 登壇・発表用のスライド骨子と想定スクリプト（① WWDC 時系列での基本説明 / ② 実践で見えた制約と工夫）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
+- **GitHub issues** - これからやること。#30 実機検証チェックリスト / #56 reminder 本体スキーマの再評価 /
+  #57 GM SDK 到来時の棚卸し / #67 登壇準備 / #68 未採用 API の消化
 - `~/Developer/Private/wwdc26-app-intents-samples/` - WWDC26 App Intents 公式サンプル 4 本（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）。**リポジトリ外に置く**（`docs/` 配下だと Xcode がサンプルの `.xcodeproj` を `project.pbxproj` へ書き込む）。取得元と突き合わせ結果は `docs/insights/03-app-intents-core.md` の Phase 9
 
 ## 設計思想の背景

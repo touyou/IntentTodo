@@ -182,9 +182,12 @@ Button(intent: ToggleTodoCompletionIntent(todo: todoEntity)) {
 
 Activity の状態を触る Intent（`activity.end` / `activity.update`）は `#if os(iOS)` で `LiveActivityIntent` に準拠させる。
 
-> **経緯**: 以前は「LA ボタンから呼ぶ Intent は `@Parameter var todoId: String` にする」というルールだった。entity の事前解決中に SwiftData が `EXC_BREAKPOINT` で落ちる実績があったため。**2026-08-12 に iOS 27 で再現しないことを実測確認**（`entities(for:)` も `perform()` もメインアプリプロセスで走る。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠でも同じ）し、String 版（FromExtension 系）を撤去して 1 アクション 1 Intent に統一した。`IntentTodoLiveActivityBundle.init()` は今も `AppDependencyManager` に何も登録していないが、解決がアプリ側で走るため問題にならない。詳細: `03-app-intents-core.md`。
+**LA ボタンからも `TodoAppEntity` パラメータの Intent をそのまま呼ぶ**（id / title だけしか無くても
+`TodoAppEntity(id:title:)` で組んで渡す）。iOS 27 では `entities(for:)` も `perform()` もメインアプリ
+プロセスで走るため、`IntentTodoLiveActivityBundle.init()` が `AppDependencyManager` に何も登録して
+いなくても問題にならない。詳細: `03-app-intents-core.md`
 
-経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
+経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md) / [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
 ---
 

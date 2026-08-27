@@ -6,8 +6,11 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 - **App Intents 中心設計**: すべてのアクションを App Intent として定義し、`Button(intent:)` で統一的に実行
 - **SwiftData**: モダンなデータ永続化（CloudKit対応）
-- **マルチプラットフォーム**: iOS / macOS / watchOS / visionOS 対応
-- **Extension対応**: Widget / Live Activity / Control Center / Siri Shortcuts
+- **マルチプラットフォーム**: iOS / iPadOS / macOS（ネイティブ）/ watchOS / visionOS 対応
+- **Extension対応**: Widget / Live Activity / Control Center / Complication / Siri Shortcuts / Spotlight / 集中モード
+- **WWDC 2026 の App Intents 要素を網羅検証**: App Schema / Visual Intelligence / AppIntentsTesting /
+  `UndoableIntent` / `LongRunningIntent` / `SyncableEntity` など（採用状況は
+  [docs/APP_INTENTS_API_COVERAGE.md](docs/APP_INTENTS_API_COVERAGE.md)）
 - **TDD**: テスト駆動開発で実装
 
 ## 要件
@@ -20,72 +23,110 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 ### プラットフォーム別
 
-| プラットフォーム | 実行パターン | AppIntent活用 | 公式Doc | 検証状況 |
-|:--|:--|:--|:--|:--|
-| **iOS / iPadOS** | `Button(intent:)` | ✅ 全アクション | ✅ 記載あり | ✅ 検証済み |
-| **macOS** | `Button(intent:)` | ✅ 全アクション | ✅ 記載あり | 🔲 未検証 |
-| **watchOS** | `Button(intent:)` | ✅ 全アクション | ✅ 記載あり | 🔲 未検証 |
-| **visionOS** | `Button(intent:)` + Spatial UI | ✅ 全アクション | ✅ 記載あり | 🔲 未検証 |
+| プラットフォーム | 実行パターン | AppIntent活用 | 検証状況 |
+|:--|:--|:--|:--|
+| **iOS / iPadOS** | `Button(intent:)` | ✅ 全アクション | ✅ 検証済み |
+| **macOS**（ネイティブ、Catalyst ではない） | `Button(intent:)` | ✅ 全アクション | 🔶 主要アクション + CloudKit 同期は確認済み、残りは [#30](https://github.com/touyou/IntentTodo/issues/30) |
+| **watchOS** | `Button(intent:)` | ✅ 全アクション | 🔲 実機確認は [#30](https://github.com/touyou/IntentTodo/issues/30) |
+| **visionOS** | `Button(intent:)` + Spatial UI | ✅ 全アクション | 🔲 実機確認は [#30](https://github.com/touyou/IntentTodo/issues/30) |
 
 ### Extension別
 
 | Extension | 実行パターン | 備考 |
 |:--|:--|:--|
-| **Home Widget** | `Button(intent:)` / `Link(destination:)` | Large Widget の Add Todo は `Button(intent: LaunchAppIntent.addTodo())` で動作確認済み。単純なアプリ起動は `Link` 推奨（[公式ドキュメント](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities)）|
-| **Control Center** | `ControlWidgetButton(action:)` | `.foreground(.immediate)` で `LaunchAppIntent`、`.background` で `ToggleUrgentTodoIntent` / `ShowTodoCountIntent` を呼出（`kind` は reverse-domain 形式必須） |
-| **Live Activity** | `Button(intent:)` | `ToggleTodoCompletionIntent` / `SnoozeTodoIntent` が `LiveActivityIntent` 条件付き準拠 |
-| **Siri / Shortcuts** | `AppShortcutsProvider` | Siri フレーズ定義済み |
-| **Spotlight** | `IndexedEntity` | iOS / macOS |
-| **Complication** (watchOS) | 表示のみ | データ表示用 |
+| **Home Widget** | `Button(intent:)` / `Link(destination:)` | Small / Medium / Large / ExtraLargePortrait。単純なアプリ起動は `Link` が公式推奨（[公式ドキュメント](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities)）。行タップは `TodoDeepLink` 経由で該当 Todo の詳細へ |
+| **Control Center** | `ControlWidgetButton(action:)` / `ControlWidgetToggle(isOn:action:)` | クイック追加 / 未完了数 / 完了トグル（対象を設定で固定）。値の供給は `ControlValueProvider`、`kind` は reverse-DNS 形式必須 |
+| **Live Activity** | `Button(intent:)` | `ToggleTodoCompletionIntent` / `QuickSnoozeTodoIntent` が `LiveActivityIntent` に条件付き準拠 |
+| **Siri / Shortcuts** | `AppShortcutsProvider` | 8 件。うち 5 件はフレーズにパラメータを埋め込み |
+| **Spotlight** | `IndexedEntity` + `@Property(indexingKey:)` | iOS / macOS。名前付き index + client state バッチ |
+| **Visual Intelligence** | `IntentValueQuery` + `.visualIntelligence.semanticContentSearch` | iOS / macOS（`#if canImport(VisualIntelligence)`） |
+| **集中モード** | `SetFocusFilterIntent` | カテゴリ / 急ぎのみ / 完了を隠す。リストとウィジェットの両方に効く |
+| **Complication** (watchOS) | 表示のみ | Circular / Corner / Rectangular / Inline |
 
-### 定義済み AppIntent 一覧
+### 定義済み AppIntent 一覧（25 本）
 
 すべての Intent を `TodoAppIntents` SPM パッケージに集約。Extension からも `import TodoAppIntents` で参照する。
+**SwiftData を書き換える Intent は `allowedExecutionTargets = [.main]`** を宣言する（表の「本体固定」列）。
 
-| Intent | プロトコル | Mode | 用途 |
-|:--|:--|:--|:--|
-| `AddTodoIntent` | `AppIntent` | `[.background, .foreground(.deferred)]` | Todo 追加 |
-| `ToggleTodoCompletionIntent` | `AppIntent` + `LiveActivityIntent` (iOS) | `.background` | 完了/未完了切替（完了時に対応する Live Activity を終了） |
-| `DeleteTodoIntent` | `AppIntent` | `.background` | Todo 削除 |
-| `ToggleFavoriteIntent` | `AppIntent` | `.background` | お気に入り切替 |
-| `ShowTodosIntent` | `AppIntent` | `.foreground` | Todo 表示（filter で絞り込み） |
-| `LaunchAppIntent` | `AppIntent` + `TargetContentProvidingIntent` (iOS/visionOS) | `.foreground(.immediate)` | 画面指定でアプリ起動（target で遷移先指定） |
-| `SnoozeTodoIntent` | `AppIntent` + `LiveActivityIntent` (iOS) | `.background` | 期限を 30 分延長（Live Activity も更新） |
-| `ToggleUrgentTodoIntent` | `AppIntent` | `.background` | 最緊急 Todo の完了切替 + 通知（Control Center 用） |
-| `ShowTodoCountIntent` | `AppIntent` | `.background` | 未完了数を通知で表示（Control Center 用） |
+| Intent | プロトコル / 特徴 | Mode | 本体固定 | 用途 |
+|:--|:--|:--|:--:|:--|
+| `AddTodoIntent` | `OpensIntent` | `.background` | ✅ | Todo 追加 |
+| `UpdateTodoIntent` | `IntentParameter.valueState` | `.background` | ✅ | 部分更新（新値 / 明示クリア / 据え置き） |
+| `ToggleTodoCompletionIntent` | `UndoableIntent` + `LiveActivityIntent`(iOS) | `.background` | ✅ | 完了切替（完了時に Live Activity を終了） |
+| `SetTodoCompletionIntent` | `SetValueIntent`（内部用） | `.background` | ✅ | 完了状態の絶対値セット（Control のトグル用） |
+| `CompleteTodosIntent` | `LongRunningIntent` + `CancellableIntent` + `EntityCollection` | `.background` | ✅ | バルク完了（進捗 / キャンセル対応） |
+| `DeleteTodoIntent` | `UndoableIntent` + `requestConfirmation` | `.background` | ✅ | 削除（確認あり。Siri / Shortcuts 用） |
+| `DeleteTodoImmediatelyIntent` | `UndoableIntent`（内部用） | `.background` | ✅ | 削除（確認なし。UI は `.confirmationDialog` で確認してから呼ぶ） |
+| `DeleteTodosIntent` | `DeleteIntent` + `UndoableIntent` | `.background` | ✅ | バルク削除 |
+| `ToggleFavoriteIntent` | — | `.background` | ✅ | お気に入り切替 |
+| `SnoozeTodoIntent` | `requestChoice` | `.background` | ✅ | スヌーズ（期間を選ばせる） |
+| `QuickSnoozeTodoIntent` | `LiveActivityIntent`（内部用） | `.background` | ✅ | スヌーズ 30 分即実行（Live Activity のボタン用） |
+| `ToggleUrgentTodoIntent` | — | `.background` | ✅ | 最緊急 Todo の完了切替（Control 用） |
+| `ReorderTodosIntent` | 内部用 | `.background` | ✅ | 並び替え（UI 専用） |
+| `ShowTodosIntent` | `IntentDialog(full:supporting:)` + `OpensIntent` | `.foreground` | — | Todo 表示（filter で絞り込み） |
+| `ShowTodoCountIntent` | — | `.background` | — | 未完了数を通知で表示（Control 用） |
+| `GetTodoSummaryIntent` | `TransientAppEntity` を返す | `.background` | — | 統計サマリ（Shortcuts の条件分岐に使える） |
+| `SearchEverythingIntent` | `@UnionValue` | `.background` | — | Todo + Category 横断検索 |
+| `ShowTodoSearchResultsIntent` | `@AppIntent(schema: .system.searchInApp)`（watchOS 除外） | — | — | Siri からアプリ内検索 UI へ |
+| `TodoSemanticContentSearchIntent` | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | — | — | Visual Intelligence の「もっと見る」 |
+| `OpenTodoIntent` | `OpenIntent` + `URLRepresentableIntent` + `UISceneAppIntent` | `.foreground(.immediate)` | — | Todo 詳細を開く（Spotlight / ウィジェットのタップ先） |
+| `OpenCategoryIntent` | `OpenIntent` | `.foreground(.immediate)` | — | カテゴリを開く（Mac の visual search 要件） |
+| `LaunchAppIntent` | `TargetContentProvidingIntent`(iOS/visionOS) + `UISceneAppIntent` | `.foreground(.immediate)` | — | 画面指定でアプリ起動 |
+| `TodoFocusFilterIntent` | `SetFocusFilterIntent` | `.background` | — | 集中モード連携 |
+| `TodoSnippetIntent` / `TodoSummarySnippetIntent` | `SnippetIntent`（内部用） | — | — | Siri 応答のインタラクティブ表示 |
+
+### Entity / Query
+
+| 型 | 種別 | 備考 |
+|:--|:--|:--|
+| `TodoAppEntity` | `AppEntity` + `IndexedEntity` + `SyncableEntity` + `Transferable` + `URLRepresentableEntity` | `@ComputedProperty` / `@DeferredProperty` / `@Property(indexingKey:)` / `IntentPerson`・`PlaceDescriptor` への `ValueRepresentation` |
+| `CategoryAppEntity` | `AppEntity` | `@AppEntity(schema: .reminders.list)`（watchOS は素の `AppEntity` にフォールバック） |
+| `SubTaskAppEntity` | `AppEntity` | — |
+| `TodoListSummaryEntity` | `TransientAppEntity` | `GetTodoSummaryIntent` の戻り値 |
+| `TodoOrCategory` | `@UnionValue` | 横断検索 / Visual Intelligence の結果型 |
+| `TodoEntityQuery` | `EntityQuery` + `EntityStringQuery` + `EnumerableEntityQuery` + `IndexedEntityQuery` | Shortcuts の Find は `EnumerableEntityQuery` で自動生成される |
+| `CategoryEntityQuery` / `SubTaskEntityQuery` | `EntityQuery` + `EntityStringQuery` | — |
+| `TodoVisualIntelligenceQuery` | `IntentValueQuery` | `SemanticContentDescriptor` → `[TodoOrCategory]` |
 
 ## アーキテクチャ
 
 ```
 IntentTodo/
 ├── IntentTodo/                  # アプリターゲット (App.init で AppDependencyManager 登録)
+│   ├── TodoAppShortcuts.swift   # ★AppShortcutsProvider はここ必須（パッケージ不可）
+│   └── SceneDelegate.swift      # AppIntentSceneDelegate（cold start のナビゲーション）
 ├── IntentTodoWidget/            # Widget + Control Center (WidgetBundle.init でも登録)
 ├── IntentTodoLiveActivity/      # Live Activity
-├── IntentTodoWatchApp/          # watchOS
+├── IntentTodoWatchApp/          # watchOS アプリ + Complication
+├── IntentTodoUITest/            # XCUITest + AppIntentsTesting（Intent の実経路テスト）
 └── Packages/
     ├── Domain/                  # データモデル（SwiftData @Model）, ActivityAttributes
     ├── Repository/              # データアクセス層
-    ├── TodoAppIntents/          # ★コア：全 Intent + AppShortcuts + 通知ヘルパー
-    └── UI/                      # Views, ViewModels, LiveActivityMonitor
+    ├── TodoAppIntents/          # ★コア：全 Intent + TodoService + Entity / Query + ヘルパー
+    ├── UI/                      # iOS/iPadOS/macOS/visionOS の Views, ViewModels
+    ├── LiveActivity/            # ActivityKit 管理 + ロック画面 View（iOS 限定）
+    ├── WidgetUI/                # ホームウィジェットの View
+    └── WatchUI/                 # watchOS の View + Complication View（watchOS 限定）
 ```
 
 ### 依存関係
 
 ```
-Domain ← Repository ← TodoAppIntents ← UI ← App
-                              ↑
-              Extensions (Widget / LiveActivity / WatchApp)
+Domain ← Repository ← TodoAppIntents ← UI / LiveActivity / WidgetUI / WatchUI ← App / Extensions
 ```
 
 ### DI パターン
 
-`@Dependency var modelContainer: ModelContainer` / `@Dependency var navigationModel: NavigationModel` で Intent から共有状態にアクセス。`AppDependencyManager.shared.add(dependency:)` を **`App.init()` と `WidgetBundle.init()` で同期登録**することで、各プロセスで `@Dependency` が解決される。
+`@Dependency var todoService: TodoService` / `@Dependency var navigationModel: NavigationModel` で Intent から共有状態にアクセス。`AppDependencyManager.shared.add(dependency:)` を **`App.init()` と `WidgetBundle.init()` で同期登録**することで、各プロセスで `@Dependency` が解決される。
 
 | 呼出元 / モード | 実行プロセス | 登録場所 |
 |----------------|------------|---------|
 | Siri / Shortcuts / UI | メインアプリ | `App.init()` |
 | Widget `Button(intent:)` + `.foreground(.immediate)` | メインアプリ | `App.init()` |
-| Widget `ControlWidgetButton` + `.background` | Widget Extension | `WidgetBundle.init()` |
+| 書き込み系（`allowedExecutionTargets = [.main]`） | メインアプリに固定 | `App.init()` |
+| 読み取り系 + Widget / Control 起点 | ヒューリスティクスで決定（アプリ起動中は本体優先、未起動なら Extension） | **両方**（`WidgetBundle.init()` も必要） |
+
+> **登録漏れはクラッシュせず「無音の失敗」になる**（stderr に `Failed to retrieve dependency of type X` が出るだけで、`Button(intent:)` 経由では画面が何も変わらない）。そのプロセスで走る Intent が触る依存は全部登録する。
 
 ### 設計思想
 
@@ -143,28 +184,36 @@ open IntentTodo.xcodeproj
 
 ## テスト
 
-各パッケージで個別にテスト実行可能：
+3 層で分担している（詳細は [docs/AGENTS.md](docs/AGENTS.md#テスト戦略)）。
+
+| 層 | 場所 | 実行方法 |
+|:--|:--|:--|
+| ユニット（Repository / `TodoService` / Intent の静的メタデータ） | `Packages/*/Tests/` | `cd Packages/<name> && swift test` |
+| **AppIntentsTesting**（Intent を実経路で実行 / Query / Spotlight / onscreen annotation） | `IntentTodoUITest/AppIntents/` | Xcode の `IntentTodoUITest` スキーム（**UI テストバンドル必須**） |
+| XCUITest（UI 経路だけで壊れるもの） | `IntentTodoUITest/` | 同上 |
 
 ```bash
-# 全テスト
-cd Packages/UI && swift test
-
-# 個別パッケージ
 cd Packages/Domain && swift test
 cd Packages/Repository && swift test
 cd Packages/TodoAppIntents && swift test
+cd Packages/UI && swift test
 ```
 
 ## App Shortcuts
 
-以下の Siri フレーズで操作可能：
+8 件を `IntentTodo/TodoAppShortcuts.swift`（アプリターゲット直下）で定義。
+フレーズにはできるだけパラメータ（`AppEntity` / `AppEnum`）を埋め込んでいる。
 
-| フレーズ | 機能 |
+| フレーズ（代表） | 機能 |
 |---------|------|
 | "Add a todo in IntentTodo" | Todo 追加 |
-| "Show my todos in IntentTodo" | Todo 一覧表示 |
-| "Show incomplete todos in IntentTodo" | 未完了 Todo 表示 |
-| "Show favorite todos in IntentTodo" | お気に入り Todo 表示 |
+| "Show my \<filter\> todos in IntentTodo" | Todo 一覧表示（フィルタ付き） |
+| "Complete \<todo\> in IntentTodo" | 完了切替 |
+| "Star \<todo\> in IntentTodo" | お気に入り切替 |
+| "Delete \<todo\> in IntentTodo" | 削除 |
+| "Snooze \<todo\> in IntentTodo" | スヌーズ |
+| "Toggle urgent todo in IntentTodo" | 最緊急 Todo の完了切替 |
+| "Show todo count in IntentTodo" | 未完了数 |
 
 ## Claude Code skill として配布
 
@@ -176,10 +225,27 @@ cd Packages/TodoAppIntents && swift test
 
 ## ドキュメント
 
-- [docs/AGENTS.md](docs/AGENTS.md) - App Intents 中心設計ガイド
+**現在のルール**
+
+- [docs/AGENTS.md](docs/AGENTS.md) - App Intents 中心設計ガイド（実装パターン）
 - [docs/INSIGHTS.md](docs/INSIGHTS.md) - 開発中に得られた技術的インサイト（目次→7トピック別ファイル）
-- [docs/PLAN.md](docs/PLAN.md) - 開発計画
-- [docs/APP_INTENT_DRIVEN_DESIGN.md](docs/APP_INTENT_DRIVEN_DESIGN.md) - 関連概念の整理と比較
+- [docs/APP_INTENT_DRIVEN_DESIGN.md](docs/APP_INTENT_DRIVEN_DESIGN.md) - 関連概念の整理と比較（Layered / Clean Architecture との対比）
+
+**API の地図**
+
+- [docs/APP_INTENTS_API_COVERAGE.md](docs/APP_INTENTS_API_COVERAGE.md) - **App Intents API の採用状況マップ**（採用済み / 意図的不使用 / 対象外 / 未採用候補）
+- [docs/WWDC_APP_INTENTS_SESSIONS.md](docs/WWDC_APP_INTENTS_SESSIONS.md) - WWDC 2022〜2026 のセッション別 API 一覧と非推奨タイムライン
+- [docs/APP_INTENTS_CENTRIC_PLAN.md](docs/APP_INTENTS_CENTRIC_PLAN.md) - WWDC 2026 要素の検証結果（何をどこまで検証したか）
+- [docs/PLAN.md](docs/PLAN.md) - 開発計画（要件・マルチプラットフォーム展開マトリクス）
+
+**経緯と残タスク**
+
+- [docs/devlog/](docs/devlog/README.md) - 各ルールがどういう調査・失敗・再検証を経て今の形になったか
+- [GitHub issues](https://github.com/touyou/IntentTodo/issues) - **これからやること**（実機検証 #30 / GM SDK 棚卸し #57 / 未採用 API の消化 #68）
+- [docs/presentation/](docs/presentation/README.md) - 登壇用のスライド骨子と想定スクリプト
+
+> ドキュメントは「現在のルール（docs）/ 経緯（devlog）/ 残タスク（issue）」の三分割で運用している。
+> 詳細は [AGENTS.md の「ドキュメント運用」](AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)。
 
 ## ライセンス
 

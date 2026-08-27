@@ -2,6 +2,7 @@
 
 `docs/INSIGHTS.md` と `docs/insights/` 配下がどう再編されてきたかの更新履歴。
 
+- 2026-08-28: docs 全体の役割分担を「現在のルール / 経緯 / 残タスク（issue）」の三分割に整理し、`insights/01` の `@_exported import`（現在未使用）と `insights/04` の cold start 場合分け（iOS 27 ベースラインなので不要）を訂正。詳細: [2026-08-28-docs-role-split.md](2026-08-28-docs-role-split.md)
 - 2026-08-26 (3): `05-extensions-and-data-sharing.md` に「`containerURL(...) == nil` は『App Group が使えない』の指標にならない（macOS）」を新設。macOS では entitlement の無いプロセスでもパスが返る（書き込み不可）ため DEBUG フォールバックが働かないことを実測で記録し、entitlement を要する経路を SPM テストで緑にしようとしない方針（`withKnownIssue(isIntermittent:)` / `createInMemoryContainer()`）を記載。
 - 2026-08-26 (2): `03-app-intents-core.md` の「ユーザー入力との突き合わせは `localizedStandardContains(_:)`」を「文字列の突き合わせは**すべて**」に広げ、適用先 4 箇所（2 つの EntityQuery / `SearchEverythingIntent` / `TodoVisualIntelligenceQuery` / UI の検索フィールド）を表で明示（Visual Intelligence のラベルも例外にしない）。
 - 2026-08-26: `03-app-intents-core.md`「donation は『アプリ UI 起点の操作』だけ」に、**却下した 3 案目（Intent に呼出元フラグを持たせる形）**を追記。素のプロパティは `@Parameter` でないため実行プロセスに届かず、`@Parameter` にすると Siri / Shortcuts から立てられる、という機械的な理由 2 点と、Apple のガイダンスが「呼出元で分岐せよ」ではなく「`perform()` の中では donate するな（二重計上）」である点、および donation が AppIntentsTesting で観測できないコストを明記。

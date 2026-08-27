@@ -82,15 +82,18 @@ Action-Centered Designの指針に従い、アクション/情報の特性に応
 - **アクション**: 完了マーク、30分スヌーズ
 - **終了**: 完了時または期限15分経過後
 
-#### コントロールセンター (iOS 18+)
-- **クイック追加**: `.background` Intentでローカル通知を送信→アプリ操作を案内
-- **Todo数表示**: `.background` Intentで未完了数をローカル通知で表示
-- **緊急Todo切り替え**: 最も期限が近いTodoの完了切り替え（`.background`データ操作）
+#### コントロールセンター
+- **クイック追加**: `ControlWidgetButton(action:)` + `.foreground(.immediate)` の `LaunchAppIntent` で追加画面へ
+- **Todo数表示**: `ControlValueProvider` で未完了数を供給し、コントロール面に表示
+- **完了トグル**: `ControlWidgetToggle(isOn:action:)` + `SetTodoCompletionIntent`。対象 Todo は
+  `AppIntentControlConfiguration` で固定し、`.promptsForUserConfiguration()` で未設定のまま置かせない
 
-> **Note**: iOS 26ではControl WidgetからのOpenIntent/foregroundモードによるアプリ起動が動作しない（Apple側のバグの可能性）。詳細は [insights/06-control-widget-ios26.md](insights/06-control-widget-ios26.md)
+> **Control では dialog も snippet も出ない**（実機確認済み）。成功のフィードバックはコントロール自身の
+> 再描画で、失敗時のみローカル通知。詳細は [insights/06-control-widget-ios26.md](insights/06-control-widget-ios26.md)
 
-#### Action Button対応
-- 物理ボタンでクイックTodo追加
+#### Action Button / Apple Pencil Pro
+- 物理ボタン（Action Button）/ Apple Pencil Pro のスクイーズでクイック Todo 追加。
+  **既存の App Shortcuts が何も書かずにそのまま出口として増える**
 
 ### 設計フロー
 
@@ -101,191 +104,38 @@ Action-Centered Designの指針に従い、アクション/情報の特性に応
 
 ## 拡張可能性（Future Enhancements）
 
-App Intents中心設計をさらに深化させる次のフェーズ：
+> このセクションは**方向性だけ**を書く。API ごとの採用状況は
+> [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md)、
+> 「これからやる」ものは GitHub issue（未採用 API の消化は #68）にある。
+> WWDC 2026 要素の検証結果は [APP_INTENTS_CENTRIC_PLAN.md](APP_INTENTS_CENTRIC_PLAN.md)。
 
-### Apple Intelligence統合（FoundationModels）
+### すでに入っているもの（当初の「将来フェーズ」から昇格）
 
-| Intent | 説明 | 実装方針 |
-|--------|------|----------|
-| GenerateTodosIntent | 「買い物リストを作って」でTodo自動生成 | LanguageModelSession + @Generable |
-| SummarizeTodosIntent | 今日のTodoをサマリー表示 | Guided Generation |
-| SmartCategorizeIntent | AI によるカテゴリ自動分類 | Tool Calling連携 |
-| SuggestEmojiIntent | Todoの内容に合わせた絵文字提案 | Guided Generation |
+Entity 強化（`@ComputedProperty` / `@DeferredProperty` / `@Property(indexingKey:)`）、
+Interactive Snippets、Visual Intelligence（`IntentValueQuery` + `SemanticContentDescriptor`）、
+Onscreen Entities（単一 / コレクション）、Intent Modes（`.background` / `.foreground(.immediate)` /
+`.foreground(.deferred)`）、`UISceneAppIntent` + `AppIntentSceneDelegate`（cold start）、
+`URLRepresentableEntity`（ディープリンク）、集中モード連携（`SetFocusFilterIntent`）、
+`UndoableIntent`、`LongRunningIntent` + `CancellableIntent`、`SyncableEntity`、AppIntentsTesting。
 
-```swift
-// Tool Calling例: LLMからTodoIntentを呼び出し
-struct TodoSearchTool: Tool {
-    func call(arguments: Arguments) async throws -> ToolOutput {
-        let todos = try await repository.search(term: arguments.query)
-        return .string(todos.map { $0.title }.joined(separator: "\n"))
-    }
-}
+### 次に効きそうな方向
 
-// 絵文字提案例: Todoの内容に合わせた絵文字
-@Generable(description: "Todoに適した絵文字の提案")
-struct TodoEmojiSuggestion {
-    @Guide(description: "Todoの内容に最も適した絵文字1つ")
-    var emoji: String
-}
+1. **入口の多言語化** — `AppShortcuts.xcstrings` でフレーズをローカライズする。UI コピーは
+   全パッケージで String Catalog 化済みなのに、Siri フレーズだけ英語のまま
+2. **アプリ内の発見性** — `SiriTipView` は入れてあるので、`ShortcutsLink` で Shortcuts アプリへの導線を足す
+3. **フィードバック経路の拡張** — Control は dialog も snippet も出ないため、`.controlWidgetStatus(_:)` が
+   実際に出るなら通知に頼らない経路が 1 本増える
+4. **提案** — `RelevantIntent` は donation なしで成立する（`PredictableIntent` は donation ゼロだと出ない）
+5. **visionOS ウィジェット強化** — `supportedMountingStyles` / `widgetTexture` / `levelOfDetail`
 
-func suggestEmoji(for todoTitle: String) async throws -> String {
-    let session = LanguageModelSession(instructions: """
-        Todoの内容を分析し、最も適切な絵文字を1つ提案してください。
-        買い物→🛒、運動→🏃、仕事→💼、勉強→📚、料理→🍳 のように。
-        """)
-    let result = try await session.respond(to: todoTitle, generating: TodoEmojiSuggestion.self)
-    return result.content.emoji
-}
-```
+### 対象外と決めたもの
 
-### Visual Intelligence
-
-- **IntentValueQuery**: カメラで撮影したメモや付箋からTodo項目を認識
-- **Onscreen Entities**: 表示中のTodoについてSiri/ChatGPTに質問可能
-
-```swift
-// 画面上のTodoをSiriに認識させる
-.userActivity("ViewingTodo") { activity in
-    activity.appEntityIdentifier = EntityIdentifier(for: todoEntity)
-}
-```
-
-### Intent Modes ✅ 実装済み
-
-`supportedModes` で Intent の実行挙動を宣言。[Apple 公式 supportedModes ドキュメント](https://developer.apple.com/documentation/appintents/appintent/supportedmodes)より:
-
-- `.background` — 完全にバックグラウンド実行（`openAppWhenRun = false` と同等の挙動）
-- `.foreground(.immediate)` — パラメータ解決後すぐフォアグラウンド（`openAppWhenRun = true` と同等の挙動）
-- `.foreground(.dynamic)` — `perform()` 内で動的に判断（`ForegroundContinuableIntent` の後継）
-- `.foreground(.deferred)` — 初期バックグラウンド → `perform()` 内 or 返却時に自動フォアグラウンド化
-
-本プロジェクトでの実装:
-- `AddTodoIntent`: `[.background, .foreground(.deferred)]` — 通常はバックグラウンド、必要に応じて foreground
-- `LaunchAppIntent`: `[.foreground(.immediate)]` — 起点から即時フォアグラウンド
-- `ToggleTodoCompletionIntent` / `DeleteTodoIntent` / `ToggleFavoriteIntent` / `ToggleUrgentTodoIntent` / `ShowTodoCountIntent`: `.background`
-
-> **未検証**: Control Widget からの `continueInForeground()` 呼び出しは現状未検証。かつて失敗していた記録があるが、それは `IntentTodoAppIntentsPackage` 重複 Bug 下での話で、fix 後は再検証していない。
-
-### AppDependencyManager + @Dependency + perform() による Intent → UI 連携 ✅ 実装済み
-
-`AppDependencyManager` に同期登録した `NavigationModel` を `@Dependency` で受け取り、`perform()` 内でナビゲーション状態を書き込む。View は `@Observable` の変化を受けて反映する。
-
-```swift
-public struct LaunchAppIntent: AppIntent {
-    public static let supportedModes: IntentModes = [.foreground(.immediate)]
-
-    @Parameter(title: "Target")
-    public var target: AppScreenTarget
-
-    @Dependency
-    var navigationModel: NavigationModel
-
-    @MainActor
-    public func perform() async throws -> some IntentResult {
-        navigationModel.navigateToRoot()
-        switch target {
-        case .addTodo:
-            navigationModel.showAddTodo()
-        case .todoList, .incompleteTodos, .favoriteTodos:
-            break
-        }
-        return .result()
-    }
-}
-```
-
-- `TargetContentProvidingIntent` はwatchOSでは利用不可。条件付きextension（`#if os(iOS) || os(visionOS)`）で準拠。
-- `SceneDelegate`（UIWindowSceneDelegate）を基盤として設置済み。`UISceneAppIntent` はSwift Package内のIntentでは利用不可のため、将来のマルチウィンドウ対応時に拡張予定。
-
-### Interactive Snippets
-
-Siri応答にインタラクティブなボタンを追加：
-
-```swift
-struct TodoSnippetIntent: SnippetIntent {
-    var snippet: some View {
-        VStack {
-            Text(todo.title)
-            HStack {
-                Button("完了にする") { /* ToggleTodoCompletionIntent */ }
-                Button("30分延長") { /* SnoozeTodoIntent */ }
-            }
-        }
-    }
-}
-```
-
-### Entity強化（部分実装済み）
-
-Spotlight検索属性（`attributeSet`）は実装済み。`@ComputedProperty`/`@DeferredProperty`は将来フェーズ：
-
-```swift
-// ✅ 実装済み: Spotlight検索属性
-#if os(iOS) || os(macOS)
-extension TodoAppEntity: IndexedEntity {
-    public var attributeSet: CSSearchableItemAttributeSet {
-        let attributes = CSSearchableItemAttributeSet()
-        attributes.displayName = title
-        attributes.contentDescription = isCompleted ? "Completed" : "Incomplete"
-        if let dueDate { attributes.dueDate = dueDate }
-        attributes.keywords = buildKeywords()  // favorite, completed等のコンテキスト別キーワード
-        return attributes
-    }
-}
-#endif
-
-// 🔜 将来: 動的プロパティ
-@ComputedProperty var isFavorite: Bool { ... }
-@DeferredProperty var subtaskCount: Int { ... }
-```
-
-### Liquid Glass対応強化
-
-```swift
-// Widget: アクセントモード対応
-struct TodoWidgetView: View {
-    @Environment(\.widgetRenderingMode) var renderingMode
-
-    var body: some View {
-        VStack {
-            Text(todo.title)
-                .widgetAccentable()  // アクセントグループ
-            // ...
-        }
-    }
-}
-
-// App: ガラスボタンスタイル
-Button("Add Todo") { }
-    .buttonStyle(.glass)
-```
-
-### visionOS Widget強化
-
-```swift
-struct TodoWidget: Widget {
-    var body: some WidgetConfiguration {
-        StaticConfiguration(...) { entry in
-            TodoWidgetView(entry: entry)
-        }
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLarge])
-        .supportedMountingStyles([.elevated, .recessed])
-        .widgetTexture(.glass)
-    }
-}
-
-struct TodoWidgetView: View {
-    @Environment(\.levelOfDetail) var levelOfDetail  // 近接認識
-
-    var body: some View {
-        if levelOfDetail == .simplified {
-            // 遠距離: 大きいフォント、シンプル表示
-        } else {
-            // 近距離: 詳細表示
-        }
-    }
-}
-```
+- **Apple Intelligence 統合（FoundationModels）** — `GenerateTodosIntent` のような LLM 前提の Intent、
+  および `SpotlightSearchTool` + `LanguageModelSession` による会話型検索は **#52 でスコープ外に決着**。
+  前提となる Spotlight への entity 寄付は済んでいるが、残りの作業主体が App Intents から離れ、
+  本リポジトリが示したい「App Intents を設計の中心に据えるとどう組み立てられるか」に寄与しない
+- **UI タップ由来の donation** — #53 で不採用（「UI も `Button(intent:)` で Siri と同じ経路を通す」原則を崩す）
+- **`.foreground(.dynamic)` / `continueInForeground`** — #55 で「適所なし」と結論
 
 ## SwiftUI, Swiftなどについて
 

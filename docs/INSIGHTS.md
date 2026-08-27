@@ -1,8 +1,14 @@
 # IntentTodo 開発インサイト集
 
 このドキュメントは、IntentTodoアプリの開発中に得られた技術的なインサイトの目次です。
-各トピックの詳細は個別ファイルを参照してください。各ルールがどういう経緯で決まったかは
-[docs/devlog/](devlog/README.md) を参照。
+各トピックの詳細は個別ファイルを参照してください。
+
+- **各ルールがどういう経緯で決まったか** → [docs/devlog/](devlog/README.md)
+- **これからやること（未検証・未採用の消化）** → GitHub issue（#30 / #57 / #68）
+- **App Intents API ごとの採用状況** → [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md)
+
+> insights には**現在のルールだけ**を書く。経緯は devlog、残タスクは issue
+> （[AGENTS.md の「ドキュメント運用」](../AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)）。
 
 ---
 
@@ -10,7 +16,7 @@
 
 ### [01. Swift Package 設計](insights/01-swift-package-design.md)
 
-- 依存関係設計（単方向依存、`@_exported import`）
+- 依存関係設計（7 パッケージ / 単方向依存 / `@_exported import` を使わない理由）
 - DevDock式パッケージ構成（独立Package.swift + 相対パス依存）
 - ルートPackage.swift方式との比較
 
