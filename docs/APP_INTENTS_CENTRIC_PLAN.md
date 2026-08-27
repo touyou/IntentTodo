@@ -237,7 +237,7 @@
 
 | 候補 | 何が得られるか | 見送っている理由 / 前提 |
 |------|--------------|----------------------|
-| `SpotlightSearchTool` + `LanguageModelSession`（wwdc2026-246、追跡: **#52**） | 自分の todo に対する会話型検索（RAG） | 前提の「Spotlight への entity 寄付」は済んでいる（`TodoSpotlightIndex`）。**残りは FoundationModels の導線と UI** なので独立タスク向き（FoundationModels は本計画のスコープ外） |
+| ~~`SpotlightSearchTool` + `LanguageModelSession`~~（wwdc2026-246、#52） | 自分の todo に対する会話型検索（RAG） | 前提の「Spotlight への entity 寄付」は済んでいる（`TodoSpotlightIndex` + `@Property(indexingKey:)`）。**2026-08-27 にスコープ外として決着**: 残りは FoundationModels 側の導線（`LanguageModelSession` + tool 登録）と結果表示 UI で、作業の主体が App Intents から離れる。本リポジトリが示したい「App Intents を設計の中心に据えるとどう組み立てられるか」には寄与しない。着手するなら別リポジトリ / 別タスク |
 | `requestValue` | Siri で不足パラメータを能動的に聞く | 非 optional パラメータはシステムが自動で聞き返すため、現状の Intent 構成では出番が薄い |
 | `EntityPropertyQuery` | Shortcuts の Find を自前実装 | **不要**。`EnumerableEntityQuery` が Find と絞り込みを自動生成する。必要になるのは "many thousands of entities" 規模（上の Phase 1 の記述参照） |
 | `relatedAppEntityIdentifier` | 子アイテム（添付等）を親 entity に紐づけ | todo に子の searchable item が無いので対象なし |
@@ -251,7 +251,7 @@ WWDC26 サンプル（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample�
 
 | 候補 | 何が得られるか | 見送っている理由 / 前提 |
 |------|--------------|----------------------|
-| UI タップ由来の donation の再導入（追跡: **#53**） | Siri の予測 / 提案の質。`perform()` 内 donate は規約違反なので 2026-08-21 に撤去し、**現在 donation はゼロ** | 本アプリは UI も `Button(intent:)` で Intent を走らせるため、CometCal の `donateIntent:` フラグ方式も CosmoTunes の UI タップ地点方式も直接は当てはまらない。`AppIntent.callAsFunction(donate:)` で一部 UI 経路を直接実行に変える判断が要る（2026-08-22 に改めて見送りを選択）。**「Intent に呼出元フラグを持たせる」案は 2026-08-26 に却下**（素のプロパティは実行プロセスに届かず、`@Parameter` にすると Siri / Shortcuts から立てられる。そもそも `perform()` は donate の置き場所ではない）|
+| ~~UI タップ由来の donation の再導入~~（#53） | Siri の予測 / 提案の質。`perform()` 内 donate は規約違反なので 2026-08-21 に撤去し、**現在 donation はゼロ** | **2026-08-27 に「入れない」で決着**。公式の 2 方式（CometCal の `donateIntent:` フラグ / CosmoTunes の UI タップ地点）はどちらも「UI からは Intent を直接呼ぶ」前提で、本アプリの「UI も `Button(intent:)` で Siri と同じ経路を通す」原則と両立しない。`callAsFunction(donate:)` で一部の UI 経路だけ直接実行に変える案は、**設計の核（唯一の実行経路）を donation のために崩す**ことになるので採らない。「Intent に呼出元フラグを持たせる」案は 2026-08-26 に却下済み。**再訪の条件**: Siri の予測 / 提案（`PredictableIntent`）を機能として欲しくなったとき。その時点では「原則の例外を作る」ことが目的に対する対価として釣り合う |
 | ~~watchOS の onscreen annotation~~（#54） | 「これ」の解決を watchOS でも成立させる | **2026-08-27 に実装**。`WatchTodoRow` / `WatchTodoDetailView` に行ごとの単一 annotation（`List` に selection が無く `forSelectionType:` が効かないため）。**自動テストは不可**（watchOS では AppIntentsTesting の `run()` が `LNPerformActionPrebuiltErrorCodeActionNotAllowed` で落ち、前提データを作れない）→ 手動確認は #30 |
 
 > 上表のうち `UndoableIntent` / Spotlight client state バッチ / `synonyms:` / `displayRepresentations(for:)` /
@@ -267,7 +267,7 @@ WWDC26 サンプル（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample�
 | `@ComputedProperty` / `@DeferredProperty` | Entity 強化（#345） | ✅ keep | `e7321a9` |
 | Onscreen Entities | 外部連携（#240/#343） | ✅ keep | `88deb66` |
 | Interactive Snippet | ビジュアル応答（#343） | ✅ keep | `f96f0ca` |
-| Intent Modes `.foreground(.dynamic)`（OpensIntent 廃止を伴う） | Intent 合成を外す副作用 → 取り消し | ↩︎ revert | `cab8e67` |
+| Intent Modes `.foreground(.dynamic)`（OpensIntent 廃止を伴う） | Intent 合成を外す副作用 → 取り消し。**2026-08-27 に「適所なし」と結論**（#55、下記） | ↩︎ revert | `cab8e67` |
 
 ---
 

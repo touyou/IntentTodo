@@ -867,3 +867,55 @@ so a donation there would double-count." で、**`perform()` は donate の置�
 あわせて `TodoService.swift` が 500 行 / 型本体 300 行の SwiftLint 閾値を超えたため、Spotlight
 反映を `TodoService+Spotlight.swift` へ切り出した。`repository` と `inflightSpotlightTasks` は
 呼び手が両ファイルに分かれるため private → internal にしている（理由をコード側にも 1 行残した）。
+
+## 2026-08-27: `.foreground(.dynamic)` は「適所なし」で決着（#55）
+
+`cab8e67` の revert 時に「dynamic モード自体は有用なので、後段でより適した Intent に対して
+別途検討する」と書いて #55 に残していた分の結論。
+
+全 21 intent の `supportedModes` と対話手段を一覧にして見直した。`.background` が 17 本、
+`.foreground(.immediate)` が 3 本（`LaunchAppIntent` / `OpenTodoIntent` / `OpenCategoryIntent`
+＝アプリを開くこと自体が目的）、`.foreground` が 1 本（`ShowTodosIntent`、`OpensIntent` で
+`LaunchAppIntent` を合成）。
+
+`.foreground(.dynamic)` が刺さるのは「背景で始めて、途中で前面が必要になる」形だが、
+**その形の操作がこのアプリに無い**:
+
+- 「アプリの該当画面へ送る」は `OpensIntent` + `LaunchAppIntent` の Intent 合成で足りている。
+  しかも `OpensIntent` は返り値の型に現れるので「条件によっては開かない」を表現できず、
+  dynamic を使うなら合成を外すしかない（＝ `cab8e67` で取り消した形に戻る）
+- 「実行中に選ばせる / 確認を取る」は `requestChoice` / `requestConfirmation` が担当。前面へ
+  上げる必要がない（むしろ Live Activity など UI の無い呼出元では上げられない）
+- 「結果を読ませる」は dialog + snippet
+- 「時間がかかる」は `LongRunningIntent` + `CancellableIntent`
+
+唯一の候補だった `ShowTodosIntent`（「該当が 0 件ならアプリを開かず読み上げだけで済ませる」）は
+UX として筋は通るが、対価が Intent 合成の廃止であり、**本リポジトリの主眼（Intent を組み合わせて
+組み立てる）と真正面からぶつかる**。`cab8e67` の判断を追認して #55 を閉じた。
+
+当て先ができる条件も一緒に記録した（`docs/insights/03-app-intents-core.md`）: 「途中でカメラや
+地図のような別 UI を出さないと完了できない操作」が生えたとき。API を使うこと自体を目的に
+しないための歯止め。
+
+## 2026-08-27: donation は「入れない」で決着（#53）
+
+`perform()` 内 donate の撤去（2026-08-21）以降、**donation はゼロ**のまま。UI タップ地点で
+donate する案を最終判断した。
+
+公式サンプルの 2 方式（CometCal の `donateIntent:` フラグ / CosmoTunes の UI タップ地点で
+donate）はどちらも「UI からは Intent を直接呼ぶ」前提に立っている。本アプリは UI も
+`Button(intent:)` でシステム dispatch を通す設計で、タップ地点に donate を差す隙が無い
+（`Button(intent:)` はタップのコールバックを渡さない）。差すには
+`AppIntent.callAsFunction(donate:)` で**一部の UI 経路だけ直接実行に変える**ことになり、
+「App Intents を唯一の実行経路とする」という設計の核を donation のために崩す形になる。
+
+得られるのは Siri の予測 / 提案の質（`PredictableIntent` は donation ゼロでは提案が出ない）。
+現状それを機能として求めていないので、対価が見合わないと判断して #53 を閉じた。
+**再訪の条件**（予測 / 提案が欲しくなったとき）を `docs/APP_INTENTS_CENTRIC_PLAN.md` に残した。
+
+## 2026-08-27: `SpotlightSearchTool` はスコープ外で決着（#52）
+
+前提（Spotlight への entity 寄付 = `TodoSpotlightIndex` + `@Property(indexingKey:)`）は
+揃っているが、残りは `LanguageModelSession` + tool 登録と結果表示 UI で、**作業の主体が
+FoundationModels 側になる**。本リポジトリが示したいのは「App Intents を設計の中心に据えると
+どう組み立てられるか」なので、ここから先は別題材と結論して #52 を閉じた。
