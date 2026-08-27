@@ -647,7 +647,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 |------|---------|
 | **適合不能 / ブロック中** | `RelevantEntities`（todo 向けの `AppEntityContext` が無い）/ `.reminders.reminder` 本体適合（SSU バグ待ち、#56） |
 | **意図的不使用** | `DynamicOptionsProvider` / `IntentParameterDependency` / `EntityPropertyQuery` / `.foreground(.dynamic)`（#55）/ UI タップ由来の donation（#53）/ `SpotlightSearchTool`（#52） |
-| **未採用候補** | `AppShortcuts.xcstrings` / `ShortcutsLink` / `.controlWidgetStatus(_:)` / `Toggle(isOn:intent:)` / `RelevantIntent`（#68） |
+| **未採用候補** | `.controlWidgetStatus(_:)` / `Toggle(isOn:intent:)` / `RelevantIntent` / `AudioPlaybackIntent`（#68）。`AppShortcuts.xcstrings` は ja 対応エピック #70 の最終工程 |
 
 #### watchOS では assistant schema が使えない（フォールバックが必要）
 

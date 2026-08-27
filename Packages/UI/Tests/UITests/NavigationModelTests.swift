@@ -152,6 +152,30 @@ struct NavigationModelTests {
 
         #expect(!model.showingAddTodo)
     }
+
+    // MARK: - inAppAddCount Tests
+
+    @Test("Adding through the sheet counts as an in-app add")
+    func inAppAddCountsSheetAdds() {
+        let model = NavigationModel()
+        #expect(model.inAppAddCount == 0)
+
+        model.showAddTodo()
+        model.dismissAddTodo()
+
+        #expect(model.inAppAddCount == 1)
+    }
+
+    @Test("Adding without the sheet open does not count")
+    func inAppAddIgnoresBackgroundAdds() {
+        let model = NavigationModel()
+
+        // Siri / Shortcuts / ウィジェット経由: シートは開いていない。
+        model.dismissAddTodo()
+        model.dismissAddTodo()
+
+        #expect(model.inAppAddCount == 0)
+    }
 }
 
 // MARK: - NavigationDestination Tests

@@ -131,3 +131,69 @@ visionOS / macOS の 4 destination でビルド成功、SwiftLint 0 violation。
   無い。ここだけは `Text("...", bundle: .module)` 形が正解（`WatchUI` の Inline complication）
 - 数値だけの `Text("\(count)")` を `.copy` に通すとキーが `"%lld"` になってしまう。
   `Text(count, format: .number)` に置き換えた
+
+## 2026-08-28: `SiriTipView` を一覧の一等地から降ろし、`ShortcutsLink` を設定に置いた
+
+「`SiriTipView` が `List` の先頭に常設されているのが気になる。最近のアプリで使っているのを見ない。
+設定的な画面の連携セクションに逃がすか、どちらも無しでもいいのでは」という疑問から棚卸しした。
+
+まず**まだ使えるのかを確認**した（Xcode 27 beta 5 の `_AppIntents_SwiftUI.swiftinterface` を直読み）。
+
+- `SiriTipView` / `SiriTipViewStyle`: iOS 16 / tvOS 16 / watchOS 9 / visionOS。macOS + macCatalyst
+  unavailable。deprecated ではない
+- `ShortcutsLink` / `ShortcutsLinkStyle`: iOS 16 / visionOS。**macOS と watchOS の SDK には宣言
+  そのものが無い**（`@available` ではなく `#if` が必要）。deprecated ではない
+
+次に**推奨が生きているのか**を確認した。ローカルの WWDC 控え全文検索で、この 2 つに触れている
+セッションは wwdc2022-10169 / 10170 と wwdc2023-10102 だけ。2024 / 2025 / 2026 のセッション
+（343 / 345 / 240 / 310 / 260 を含む）には一度も出てこない。WWDC26 公式 App Intents サンプル 4 本
+（Calendar / Messaging / Music / Photo）も両方 0 件使用。discoverability の主題は Spotlight
+インデックスと schema / Apple Intelligence 側に移っている。
+
+そして**当時のガイダンスが、当時の実装をすでに否定していた**ことが分かった。10169 `18:58` は
+「carefully select moments ... immediately before or after completing an action that they may want
+to repeat」、10102 `11:14` は「best placed contextually」と言っている。リスト先頭への無条件常設は
+どちらにも当たっていない（`SiriTipView(intent: AddTodoIntent(), isVisible: @AppStorage)` を
+`List` の第 1 行に置いていた）。ユーザーの違和感のほうが正しかった。
+
+判断は「両方消す」ではなく「役割どおりの置き場に直す」。このリポジトリは登壇素材（#67）と API
+カバレッジの地図を兼ねているので、**置き場を間違えると邪魔になる API を正しい置き場に直した実例**
+のほうが、消すより残る。
+
+やったこと:
+
+1. `SiriTipRow`（`List` の行）を削除し、`SiriTipBanner`（一覧上端の `safeAreaInset`）へ移設。
+   `FocusFilterBanner` / `MissedFeedbackBanner` と同じ枠に入れた。行から外したので
+   `.appEntityIdentifier(forSelectionType:)` と `.reorderable()` の対象に異物が混ざらなくなった
+2. 表示ポリシーを `SiriTipModel` に切り出した。**アプリ UI 起点の追加を 3 回**で出し、通算 2 回
+   まで、閉じたら以後出さない。UI 起点の判定は `NavigationModel.dismissAddTodo()` で「シートが
+   開いていたか」を見る形にし、`inAppAddCount` として公開（Siri / Shortcuts / ウィジェット経由の
+   追加は数えない = 既にフレーズを使える人には出さない）
+3. `SettingsView`（iOS / visionOS）を新規作成し、「Siri & Shortcuts」セクションに `ShortcutsLink`
+   を置いた。入口は一覧ツールバー左の歯車。macOS には出さない（`ShortcutsLink` が無く空になる）
+4. 常設していた頃の `@AppStorage("siriTip.addTodo.isVisible")` が `false`（= 既に閉じた）の人を
+   再教育しないよう、`SiriTipModel` が旧キーを見て「終了済み」と解釈する
+
+検証: `UI` パッケージのユニットテスト 55 件グリーン（`SiriTipModelTests` 7 件 +
+`NavigationModelTests` に 2 件追加）。iOS / macOS / visionOS / watchOS の 4 destination で
+ビルド成功。UI テスト `testSettingsShowsShortcutsLink` を追加して実機シミュレータで通した
+（`ShortcutsLink` はシステム提供 View なので、消えてもアプリ内では何も壊れて見えない経路）。
+
+Tip の配線（`onChange` → `recordInAppAdd` → 描画）はユニットテストでは押さえられないので
+シミュレータで 1 度通した。**最初の試行では出なかった**。原因は端末の defaults に旧キー
+`siriTip.addTodo.isVisible = false` が残っていたこと——つまり移行ロジックが意図どおり
+「もう閉じた人」と判定していた。旧キーを消した端末では、追加直後に一覧上端へ
+「"Add a todo in Intento" と言ってください」が出て、× で消すと `isDismissed = true` が
+永続化されることを確認した。
+
+> このとき「配線が壊れている」と早合点しかけた。ユニットテストが緑でシミュレータで出ない
+> ときは、**まず端末に残っている永続状態を疑う**（`xcrun simctl get_app_container <dev>
+> <bundle-id> data` 配下の `Library/Preferences/*.plist` を直接見る）。なお `simctl spawn
+> defaults write` や plist の直接編集は cfprefsd のキャッシュに勝てないので、状態を作り直す
+> なら `simctl uninstall` してから入れ直すほうが確実。
+
+副産物: SDK 27 の assistant schema ドメインに **music と health は無い**（photos / reminders /
+whiteboard / spreadsheet / browser / calendar / mail / camera / visualIntelligence / reader /
+journal / books / system）。「Apple Music 連携 / ヘルスケア連携を連携セクションに足す」案は
+schema 適合の話にはならず、App Intents 側の見せ場は `AudioPlaybackIntent`（未採用の Intent 種別）
+になる。カバレッジの穴リストに追記した。

@@ -19,6 +19,7 @@ import TodoAppIntents
 public struct VisionOSTodoListView: View {
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
+    @State private var showingSettings = false
     @Environment(NavigationModel.self) private var navigationModel
 
     private var filteredTodos: [TodoAppEntity] {
@@ -36,7 +37,8 @@ public struct VisionOSTodoListView: View {
             VisionOSSidebar(
                 todos: filteredTodos,
                 viewModel: $viewModel,
-                selectedTodo: $navigationModel.selectedTodo
+                selectedTodo: $navigationModel.selectedTodo,
+                showingSettings: $showingSettings
             )
             .navigationTitle(.copy("Todos"))
         } detail: {
@@ -47,6 +49,11 @@ public struct VisionOSTodoListView: View {
         }
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             VisionOSAddTodoSheet()
+        }
+        .sheet(isPresented: $showingSettings) {
+            NavigationStack {
+                SettingsView()
+            }
         }
         // Apply a filter pushed by LaunchAppIntent (Siri "show my favorite todos", …)
         // so the app lands on the list the caller asked for, like TodoListView does.
@@ -71,6 +78,7 @@ private struct VisionOSSidebar: View {
     let todos: [TodoAppEntity]
     @Binding var viewModel: TodoListViewModel
     @Binding var selectedTodo: TodoAppEntity?
+    @Binding var showingSettings: Bool
     @Environment(NavigationModel.self) private var navigationModel
 
     var body: some View {
@@ -92,6 +100,16 @@ private struct VisionOSSidebar: View {
             }
         }
         .toolbar {
+            // 連携（Shortcuts など）の入口。`ShortcutsLink` は visionOS SDK にもある。
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    showingSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel(.copy("Settings"))
+            }
+
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     navigationModel.showAddTodo()
