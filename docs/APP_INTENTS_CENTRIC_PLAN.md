@@ -252,7 +252,7 @@ WWDC26 サンプル（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample�
 | 候補 | 何が得られるか | 見送っている理由 / 前提 |
 |------|--------------|----------------------|
 | UI タップ由来の donation の再導入（追跡: **#53**） | Siri の予測 / 提案の質。`perform()` 内 donate は規約違反なので 2026-08-21 に撤去し、**現在 donation はゼロ** | 本アプリは UI も `Button(intent:)` で Intent を走らせるため、CometCal の `donateIntent:` フラグ方式も CosmoTunes の UI タップ地点方式も直接は当てはまらない。`AppIntent.callAsFunction(donate:)` で一部 UI 経路を直接実行に変える判断が要る（2026-08-22 に改めて見送りを選択）。**「Intent に呼出元フラグを持たせる」案は 2026-08-26 に却下**（素のプロパティは実行プロセスに届かず、`@Parameter` にすると Siri / Shortcuts から立てられる。そもそも `perform()` は donate の置き場所ではない）|
-| watchOS の onscreen annotation（追跡: **#54**） | 「これ」の解決を watchOS でも成立させる | visionOS は 2026-08-22 に対応済み。watchOS は Siri 連携そのものの優先度判断が先 |
+| ~~watchOS の onscreen annotation~~（#54） | 「これ」の解決を watchOS でも成立させる | **2026-08-27 に実装**。`WatchTodoRow` / `WatchTodoDetailView` に行ごとの単一 annotation（`List` に selection が無く `forSelectionType:` が効かないため）。**自動テストは不可**（watchOS では AppIntentsTesting の `run()` が `LNPerformActionPrebuiltErrorCodeActionNotAllowed` で落ち、前提データを作れない）→ 手動確認は #30 |
 
 > 上表のうち `UndoableIntent` / Spotlight client state バッチ / `synonyms:` / `displayRepresentations(for:)` /
 > `findIntentDescription` / `shortcutTileColor` / エラー文言 / inflection / visionOS の onscreen annotation /

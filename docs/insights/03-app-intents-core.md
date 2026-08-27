@@ -1518,8 +1518,17 @@ CosmoTunes `TimerView` のコメントが明言している:
 で `AppEntityUIElement(identifier:bounds:state:)` を明示的に返す。
 
 本アプリの `TodoListView`（iOS / macOS）と `VisionOSTodoListView`（visionOS）はどちらも
-`List(selection:)` + `.tag(todo)` なので `forSelectionType:` がそのまま効く形。**watchOS 側には
-まだ annotation が無い**（Siri 連携そのものの優先度判断が先）。
+`List(selection:)` + `.tag(todo)` なので `forSelectionType:` がそのまま効く形。
+
+**watchOS は行ごとの単一 annotation に落とす**（2026-08-27）。`WatchTodoListView` も `List` だが
+**selection を持たない**（行が `Button(intent:)` で、タップは完了トグル）。`forSelectionType:` は
+selection 値の型を手がかりにする仕組みなので、当て先が無い。`WatchTodoRow` / `WatchTodoDetailView`
+に `.appEntityIdentifier(EntityIdentifier(for: entity))` を 1 つずつ付ける形にした
+（`.appEntityIdentifier` 自体は watchOS 11.4+ で使える）。
+
+詳細画面側で iOS は `.userActivity` に `appEntityIdentifier` を載せているが、watchOS では
+単一 annotation の modifier を使う。こちらは `Info.plist` の `NSUserActivityTypes` 宣言が要らない
+（watch アプリは `GENERATE_INFOPLIST_FILE = YES` で plist 実体を持たない）。
 
 ### テスト: `viewAnnotations()` と `#if DEBUG` の seed / reset Intent
 
@@ -1528,6 +1537,12 @@ CosmoTunes `TimerView` のコメントが明言している:
   テストを持つ。本アプリは詳細画面（単一 annotation）と一覧（コレクション annotation）の 2 本。
   一覧側は「作った 2 件が両方 annotation に出る」を superset で見る（他のテストが残した todo が
   混ざりうるので、件数の完全一致では見ない）。
+- **watchOS ではこの手が使えない**（2026-08-27 実測）。`AppIntentsTesting` は watchOS SDK にも
+  あり、`IntentDefinitions` / `suggestedEntities()` / `viewAnnotations()` まではリンクも実行も
+  通るが、**intent の `run()` が `LNPerformActionPrebuiltErrorCodeActionNotAllowed`（
+  `LNPerformIntentPrebuiltErrorDomain` code 4025）で落ちる**。テストの前提データを作る
+  `AddTodoIntent` が走らないので、annotation を読むところまで到達できない。
+  watchOS 側は実機 / シミュレータでの手動確認（#30）に残す。
 - サンプルは `#if DEBUG` + `isDiscoverable = false` の `ResetTestDataIntent` /
   `SeedSampleEventsIntent` / `ClearSpotlightIntent` をアプリターゲットに同梱し、`setUp()` で
   `run()` して既知状態から始める。本アプリは「一意タイトルを作って最後に消す」自己クリーンアップ

@@ -560,7 +560,9 @@ interface, and **not to interactions started by Siri or the Shortcuts app**."
 
 ### Onscreen annotation の適用先
 
-`.appEntityIdentifier(forSelectionType:)` は **`List` に付けたときだけ効く**（CosmoTunes
+`.appEntityIdentifier(forSelectionType:)` は **`List` に付けたときだけ効く**（正確には `List` の
+**selection 値の型**を手がかりにする。selection の無い `List` — watchOS の一覧のように行が
+`Button(intent:)` の形 — では効かないので行ごとの単一 annotation に落とす）（CosmoTunes
 `TimerView` のコメントで明言）。`ScrollView { VStack { ForEach } }` では行ごとの単一
 `.appEntityIdentifier(_:)` に落とす。`Canvas` などビュー階層から bounds を推測できない描画は
 `.appEntityUIElements { ... }` で明示する。
@@ -622,7 +624,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 > 検証は `xcode27` ブランチ（27 世代ベータ SDK 用）で行い、**2026-08-27 に `main` へマージ済み**。状態・コミット・残タスクは `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
 > **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（#48 で再評価 → マクロ生成 init + 入れ子サブエンティティの再設計が必要なため据え置き、再評価は #56。list 適合 + 自前 Intent で新 Siri 連携は成立）、`OwnershipProvidingEntity` / `requestValue`（#47、個人利用主体で優先度低）、EventKit/Contacts 連携（別フレームワーク軸）。
 > **意図的不使用（API は把握済み・このアプリに不要と判断）**: `DynamicOptionsProvider` / `IntentParameterDependency`（パラメータ間の動的依存が発生するユースケースがない。選択肢は `AppEnum` ベースの静的リストで十分）。
-> **未着手の候補（着手すれば価値が出るもの）**: `SpotlightSearchTool`(wwdc2026-246、FoundationModels 前提でスコープ外。#52) / `requestValue` / UI タップ由来の donation 再導入(#53) / watchOS の onscreen annotation(#54)。理由と前提つきの一覧は [docs/APP_INTENTS_CENTRIC_PLAN.md の「未着手の候補」](docs/APP_INTENTS_CENTRIC_PLAN.md#未着手の候補2026-08-21-の全ソース走査で拾ったもの)。
+> **未着手の候補（着手すれば価値が出るもの）**: `SpotlightSearchTool`(wwdc2026-246、FoundationModels 前提でスコープ外。#52) / `requestValue` / UI タップ由来の donation 再導入(#53)。理由と前提つきの一覧は [docs/APP_INTENTS_CENTRIC_PLAN.md の「未着手の候補」](docs/APP_INTENTS_CENTRIC_PLAN.md#未着手の候補2026-08-21-の全ソース走査で拾ったもの)。
 > **watchOS での assistant schema 非対応 (Xcode 27 beta 2〜、beta 5 でも継続を実ビルドで確認)**: `reminders` / `system` ドメインの assistant schema は watchOS で unavailable。TodoAppIntents は watchOS でもコンパイルされるため、`@AppEntity(schema: .reminders.list)`（`CategoryAppEntity`）と `@AppEnum(schema: .reminders.listType)`（`TodoListType`）は `#if os(watchOS)` で素の `AppEntity`/`AppEnum` にフォールバック（マクロ付き宣言は `#if` で分割不可なので型を2系統で全書き。**フォールバック側は型名も変える** — `WatchCategoryAppEntity` / `WatchTodoListType` + `typealias`。同じ mangled type name にスキーマ付き / 無しの 2 形が居ると、iOS アプリの統合メタデータへのマージでスキーマ無し側が勝ち、出荷メタデータから `reminders.ListEntity` が消える。**フォールバック側には `@Property(title:)` も明示する**（マクロ変種はマクロが生成するが素の `AppEntity` は 0 件になる）。どちらもビルド緑で通るので `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py` で検出する）、`@AppIntent(schema: .system.searchInApp)`（`ShowTodoSearchResultsIntent`）は watchOS に検索遷移先が無いため `#if !os(watchOS)` で丸ごと除外。`.visualIntelligence.*` は元々 `#if canImport(VisualIntelligence)`（iOS 限定）で保護済み。
 
 ## 開発フロー（TDD）

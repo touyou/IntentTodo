@@ -37,6 +37,23 @@ IntentTodoWatchApp/                # watchOS Extension
 
 `WatchUI` は `Package.swift` で `.watchOS(.v26)` のみを宣言することで、iOS/macOS/visionOS 側ターゲットから誤って import された場合にコンパイル時に弾ける。
 
+### Onscreen annotation は行ごとに付ける（`forSelectionType:` は効かない）
+
+一覧の `WatchTodoListView` は `List` だが **selection を持たない**（行が `Button(intent:)` で、
+タップは完了トグル）。`.appEntityIdentifier(forSelectionType:)` は `List` の selection 値の型を
+手がかりにする仕組みなので当て先が無い。`WatchTodoRow` / `WatchTodoDetailView` に
+`.appEntityIdentifier(EntityIdentifier(for: entity))` を 1 つずつ付ける
+（`.appEntityIdentifier` は watchOS 11.4+）。
+
+詳細画面で iOS が使っている `.userActivity` + `appEntityIdentifier` 形は使わない。watch アプリは
+`GENERATE_INFOPLIST_FILE = YES` で plist 実体を持たず `NSUserActivityTypes` を宣言できないため、
+宣言の要らない単一 annotation の modifier のほうが素直。
+
+**watchOS ではこの経路を自動テストできない**（2026-08-27 実測）。`AppIntentsTesting` は watchOS
+にもあり `IntentDefinitions` / `suggestedEntities()` までは通るが、intent の `run()` が
+`LNPerformActionPrebuiltErrorCodeActionNotAllowed`（code 4025）で落ちるため、前提データを
+作れない。手動確認は #30 に置いている。
+
 ---
 
 ## macOS native 対応: Delegate の `#if` 分岐 + NotificationHandler 共通化
