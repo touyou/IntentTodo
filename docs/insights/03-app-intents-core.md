@@ -566,7 +566,8 @@ public enum TodoFilterType: String, AppEnum {
 
 ## Xcode 27 / WWDC 2026 で採用した API
 
-> `xcode27` ブランチ（26.x ベータ SDK 検証用、main 未マージ）で採用。ベータ仕様のため変更の可能性あり。
+> `xcode27` ブランチ（27 世代ベータ SDK 検証用）で採用し、2026-08-27 に `main` へマージ済み。
+> ベータ SDK 時点の仕様に基づくため、GM SDK で変更されている可能性がある。
 
 ### @ComputedProperty / @DeferredProperty（Entity プロパティマクロ）
 

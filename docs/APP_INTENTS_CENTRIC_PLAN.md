@@ -1,10 +1,10 @@
 # App Intents 中心設計 — WWDC 2026 要素 検証計画
 
 > このリポジトリの主眼は **「App Intents を設計の中心に据えると、アプリをどう組み立てられるか」の実証**。
-> 本計画のゴールは **指定 6 セッションから抽出した要素を `xcode27` ブランチで実装し、しっかり検証できること**。
+> 本計画のゴールは **指定 6 セッションから抽出した要素を実装し、しっかり検証できること**。
 > 「分かりやすい例」として App Schema を挙げたが、それに限らず **各セッションの要素を網羅的に試す**。
 >
-> 作成: 2026-06-10 / 対象ブランチ: `xcode27`（ベータ SDK 検証用、`main` 未マージ）
+> 作成: 2026-06-10 / 検証ブランチ: `xcode27`（27 世代ベータ SDK 用、**2026-08-27 に `main` へマージ済み**。以降の作業は `main`）
 
 ---
 
@@ -289,8 +289,9 @@ WWDC26 サンプル（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample�
 
 ## availability 方針
 
-`main` は iOS 26 ベースライン維持。`xcode27` で 27 世代 API を試す際は、deployment 26 でビルドして
-"is only available in ... or newer" が出るかで 26/27 を判定し、27 専用なら `@available(iOS 27, *)` でガード。
+`main` は iOS 27 ベースライン（`.reminders` 系 assistant schema が 27+ 限定のため `ed22d80` で引き上げ、
+2026-08-27 のマージで `main` にも反映）。それより新しい世代の API を試す際は、deployment 27 でビルドして
+"is only available in ... or newer" が出るかで世代を判定し、新世代専用なら `@available(iOS 28, *)` 相当でガード。
 実装の落とし穴は `docs/insights/03-app-intents-core.md`「Xcode 27 / WWDC 2026 で採用した API」を参照。
 
 ## 参考（iOS 26 ベースラインの土台）

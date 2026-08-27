@@ -12,8 +12,8 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 ## 要件
 
-- iOS 26.0+ / macOS 26.0+ / watchOS 26.0+ / visionOS 26.0+
-- Xcode 26.0+
+- iOS 27.0+ / macOS 27.0+ / watchOS 27.0+ / visionOS 27.0+
+- Xcode 27.0+
 - Swift 6.0+
 
 ## App Intents 中心設計の適応状況

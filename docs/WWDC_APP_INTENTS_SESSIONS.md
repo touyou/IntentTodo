@@ -306,7 +306,7 @@ App Intents / Apple Intelligence 専用の Q&A セッションが開催された
 ## WWDC 2026 — App Schemas / SyncableEntity / テスト基盤（iOS 27）
 
 App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フレームワーク、SyncableEntity など大幅拡張。  
-本プロジェクトの `xcode27` ブランチで全セッションを検証済み（詳細は `docs/APP_INTENTS_CENTRIC_PLAN.md` 参照）。
+本プロジェクトで全セッションを検証済み（`xcode27` ブランチで実施し 2026-08-27 に `main` へマージ。詳細は `docs/APP_INTENTS_CENTRIC_PLAN.md` 参照）。
 
 | セッション番号 | タイトル | 概要 |
 |---|---|---|

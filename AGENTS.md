@@ -111,11 +111,13 @@ IntentTodoWatchApp/                 # watchOS アプリ
 ## 技術要件
 
 ### ターゲット
-- iOS 26.0+ / iPadOS 26.0+
-- macOS 26.0+
-- watchOS 26.0+
-- visionOS 26.0+
+- iOS 27.0+ / iPadOS 27.0+
+- macOS 27.0+
+- watchOS 27.0+
+- visionOS 27.0+
 - Swift 6.0+
+
+`.reminders` 系の assistant schema が iOS 27+ 限定のため、deployment target は 27 世代で揃えている。
 
 ### コーディング規約
 
@@ -589,7 +591,7 @@ interface, and **not to interactions started by Siri or the Shortcuts app**."
 
 ### 拡張ロードマップ（WWDC 2026 要素の検証）
 
-Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要素を `xcode27` ブランチで検証済み（指定6セッション網羅。深度 **B**=ビルド/型成立まで。R=実機 Siri/Visual Intelligence、U=実 run は手動/CI）：
+Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要素を検証済み（指定6セッション網羅。深度 **B**=ビルド/型成立まで。R=実機 Siri/Visual Intelligence、U=実 run は手動/CI）：
 
 | フェーズ | 機能 | 概要 | 状態 |
 |---------|------|------|------|
@@ -603,7 +605,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 | **テスト基盤** | Intent 実経路テスト | AppIntentsTesting (makeIntent/run, UIテストバンドル) | ✅ |
 | **Intent Modes** | 動的実行制御 | .foreground(.dynamic)（適所を再選定中） | 保留（#2 revert 済） |
 
-> 検証は `xcode27` ブランチ（26.x ベータ SDK 用、**main 未マージ**）。状態・コミット・残タスクは `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
+> 検証は `xcode27` ブランチ（27 世代ベータ SDK 用）で行い、**2026-08-27 に `main` へマージ済み**。状態・コミット・残タスクは `docs/APP_INTENTS_CENTRIC_PLAN.md`、実装パターンと落とし穴は `docs/insights/03-app-intents-core.md` を参照。
 > **不適合/保留**: `RelevantEntities`（todo/reminders 向け `AppEntityContext` が無い）、コア `TodoAppEntity` の `.reminders.reminder` スキーマ適合（#48 で再評価 → マクロ生成 init + 入れ子サブエンティティの再設計が必要なため据え置き。list 適合 + 自前 Intent で新 Siri 連携は成立）、`OwnershipProvidingEntity` / `requestValue`（#47、個人利用主体で優先度低）、EventKit/Contacts 連携（別フレームワーク軸）。
 > **意図的不使用（API は把握済み・このアプリに不要と判断）**: `DynamicOptionsProvider` / `IntentParameterDependency`（パラメータ間の動的依存が発生するユースケースがない。選択肢は `AppEnum` ベースの静的リストで十分）。
 > **未着手の候補（着手すれば価値が出るもの）**: `SpotlightSearchTool`(#246、FoundationModels 前提でスコープ外) / `requestValue` / UI タップ由来の donation 再導入 / watchOS の onscreen annotation。理由と前提つきの一覧は [docs/APP_INTENTS_CENTRIC_PLAN.md の「未着手の候補」](docs/APP_INTENTS_CENTRIC_PLAN.md#未着手の候補2026-08-21-の全ソース走査で拾ったもの)。
