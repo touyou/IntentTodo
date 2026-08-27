@@ -10,6 +10,10 @@
 import ActivityKit
 import Domain
 import Foundation
+import os.log
+import TodoAppIntents
+
+private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoLiveActivityManager")
 
 /// Manager for starting and updating Live Activities.
 @MainActor
@@ -24,7 +28,20 @@ public final class TodoLiveActivityManager {
     ///   - title: The todo's title.
     ///   - dueDate: The todo's due date.
     public func startActivity(todoId: String, title: String, dueDate: Date) async throws {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
+        // 設定でライブアクティビティが無効なときは throw せず抜ける（呼出側の
+        // reconcile は毎回全 todo を回すので、error にすると同じログで溢れる）。
+        // ただし無言で消えるとユーザーは「期限が近い todo が出てこない」理由に
+        // 到達できないので、ログと `MissedFeedback` の記録は残す。アプリの一覧が
+        // 設定誘導のバナーを出す。
+        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
+            logger.warning(
+                "startActivity skipped for todoId=\(todoId, privacy: .public): Live Activities are disabled in Settings"
+            )
+            MissedFeedback.record(.liveActivity)
+            return
+        }
+        // 有効に戻っていれば古い記録は消す（バナーを出し続けない）。
+        MissedFeedback.clear(.liveActivity)
 
         let existingActivity = Activity<TodoDeadlineActivityAttributes>.activities.first {
             $0.attributes.todoId == todoId

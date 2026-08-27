@@ -1,6 +1,9 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Actions from Control Center and widgets can't report failures." : {
+
+    },
     "Add" : {
 
     },
@@ -91,6 +94,9 @@
     "Details" : {
 
     },
+    "Dismiss" : {
+
+    },
     "due %@" : {
 
     },
@@ -148,6 +154,9 @@
     "Info" : {
 
     },
+    "Live Activities are turned off" : {
+
+    },
     "Location" : {
 
     },
@@ -190,10 +199,16 @@
     "No todos match your search." : {
 
     },
+    "Notifications are turned off" : {
+
+    },
     "Oldest First" : {
 
     },
     "Open ${target}" : {
+
+    },
+    "Open Settings" : {
 
     },
     "Overdue" : {
@@ -272,6 +287,9 @@
 
     },
     "Todos" : {
+
+    },
+    "Todos due within the hour can't appear on the Lock Screen." : {
 
     },
     "Toggle completion of ${todo}" : {

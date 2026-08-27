@@ -195,6 +195,21 @@ struct LiveActivityMonitorModifier: ViewModifier {
 #endif
 ```
 
+### 設定で無効なときに無言で消えない
+
+`Activity.request` の前に `ActivityAuthorizationInfo().areActivitiesEnabled` を見て抜けるのは
+必須（無効な端末で毎回 throw させると reconcile のたびにエラーが溢れる）。ただし**そこで
+無言 return すると、ユーザーは「期限が近い todo がロック画面に出てこない」理由に到達できない**。
+
+`TodoLiveActivityManager.startActivity` では抜ける前に:
+
+- `logger.warning` に todoId 付きで残す（`error` にしないのは、ユーザー設定に沿った正常系のため）
+- `MissedFeedback.record(.liveActivity)` で記録し、アプリの一覧が設定誘導のバナーを出す
+- 逆に有効に戻っていたら記録を消す（バナーを出し続けない）
+
+仕組みの本体は `docs/insights/06-control-widget-ios26.md`「唯一の伝達手段が塞がれたら記録して
+設定へ送る」。
+
 ---
 
 ## Widget への Button(intent:) 統合

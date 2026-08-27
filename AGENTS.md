@@ -318,6 +318,7 @@ Intent の実行結果をユーザーに伝える方法は呼出元で見え方�
 
 使い分けルール:
 - **Control から呼ばれる Intent** (`SetTodoCompletionIntent` 等): フィードバックの主経路は `perform()` 完了時の自動リロードによる**コントロール自身の再描画**。dialog も snippet も出ないので返さない。**失敗時のみローカル通知** (`ControlNotificationHelper.sendErrorNotification`) — 失敗すると前の状態のまま再描画されて「何も起きなかった」と区別できないため。読ませたい情報が主目的なら `LaunchAppIntent` でアプリの該当画面に送る
+- **伝達手段そのものが塞がれている場合を無言にしない**: 通知が拒否されていると上記の唯一の経路が死ぬ（`add` は許可が無くてもエラーを返さない）。送信前に `authorizationStatus` を見て、出せなかったら `MissedFeedback.record(_:)` に記録する。アプリの一覧が設定誘導のバナーを出して記録を消す。ライブアクティビティが設定で無効なときも同じ扱い。詳細: `docs/insights/06-control-widget-ios26.md`
 - **Siri / Shortcuts 前提の Intent** (`ShowTodosIntent`, `ShowTodoCountIntent`, `GetTodoSummaryIntent` 等): **Dialog + Snippet**。`IntentDialog(full:supporting:)` で音声単独用と視覚併用を分け、`snippetIntent:` でインタラクティブな結果表示を添える
 - **UI Button 経由が中心の Intent** (Add/Toggle/Delete 等): Dialog も通知も不要 (UI が即座に反映するため)
 

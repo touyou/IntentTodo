@@ -1559,6 +1559,26 @@ Swift の API 名は ObjC ヘッダと違う（Swift 3 のリネームが効い�
 
 ダイジェストの性質（32 バイト / 順序非依存 / 内容変化を検出）は `TodoSpotlightIndexTests` で押さえる。
 
+### 差分 index の失敗は数える（省略の裏で index が壊れたままになる）
+
+上の省略と組み合わせると、**壊れたまま復旧しない**状態が作れてしまう。差分反映
+（`reindexSpotlight` / `deindexSpotlight`）は fire-and-forget で、失敗しても Intent の呼出側には
+伝えない（Spotlight の不調で todo の操作自体を失敗させるべきではない）。一方 client state は
+差分の成否と無関係に「最新」のままなので、次回起動の全件再インデックスも省略される。結果、
+index が壊れた端末は Spotlight / Siri から todo を引けない状態が続く。**アプリ内では正常に見える**。
+
+そこで連続失敗を数える（`TodoSpotlightIndex.recordFailure` / `recordSuccess`）。
+
+- 閾値（3 回）に達したら `UserDefaults` に「次回起動でフル再インデックス」の要求を立て、
+  `indexAllForSpotlight()` は client state 一致でも**省略しない**
+- 1 回の失敗で倒さないのは、`quotaExceeded` / 一時的な `indexUnavailable` のようなその場限りの
+  失敗にフル再インデックスをぶつけても直らないため
+- 成功したら連続カウントを畳む。フル再インデックスが通ったら要求を降ろす
+- todo が 0 件のときも要求は降ろす（直す対象が無い）
+
+判定は全部 `UserDefaults` の読み書きなので、`TodoSpotlightIndexTests` の
+`TodoSpotlightIndexSelfHealingTests` がテスト用 suite を注入して押さえている。
+
 ### サンプル側にも古い書き方は残っている（無批判に真似しない）
 
 - UnicornChat `DraftMessageIntent` / PhotosDomainExample の `DeleteAssetsIntent` /

@@ -190,6 +190,30 @@ Control に**公式に**用意されているフィードバック経路は次�
 > Control 側は「その場で完結する即時アクション + 状態表示」に徹し、読ませたい情報が
 > 主目的なら `LaunchAppIntent` でアプリの該当画面に送る（`TodoCountControl` が未完了一覧を開くのがこれ）。
 
+### 唯一の伝達手段が塞がれたら記録して設定へ送る（`MissedFeedback`）
+
+Control の失敗報告がローカル通知の一本足なので、**通知が拒否されていると失敗が完全に無音になる**。
+`UNUserNotificationCenter.add` は許可が無くても error を返さない（システムが黙って捨てる）ため、
+`add` の completion を見ているだけでは検出できない。
+
+そこで送信前に `notificationSettings().authorizationStatus` を見る
+（`ControlNotificationHelper.schedule`）。`.authorized` / `.provisional` 以外なら通知は出ないので、
+ログを残しつつ **App Group の `UserDefaults` に「伝えられなかった」記録**を置く（`MissedFeedback`）。
+書き手が Control / Widget の Extension プロセスになり得るため、記録はプロセスをまたげる場所に置く。
+
+読み手はアプリの一覧画面（`MissedFeedbackBanner`）。設定アプリへのリンク付きバナーを出し、
+閉じたら記録を消す。
+
+- 出す条件は「設定が無効」ではなく **実際に取りこぼしたとき**。ユーザーが意図的に切っている
+  設定を毎回蒸し返さないため
+- 経路が使えるようになったら記録を消す（`requestAuthorization` が `true` を返した起動 /
+  ライブアクティビティが有効に戻ったとき）。古い記録でバナーを出し続けない
+- `.ephemeral`（App Clip）は watchOS で unavailable なので許可判定の候補から外す。
+  `#if` で分けるより「このアプリは App Clip を持たない」と割り切るほうが素直
+
+同じ仕組みをライブアクティビティにも使う（`ActivityAuthorizationInfo().areActivitiesEnabled` が
+`false` のときの無言 return）。詳細: `docs/insights/07-platform-specific.md`。
+
 ### Extension プロセスでも `TodoEntityStore` を登録する
 
 `SnippetIntent`（`TodoSnippetIntent` / `TodoSummarySnippetIntent`）と `TodoAppEntity` の deferred property は `@Dependency` を使えないため `TodoEntityStore.container` からコンテナを読む。アプリ側 (`IntentTodoApp.init`) だけに登録していると、**Widget Extension プロセスで解決されたときに中身が空になり「Todo not found」を描く**。Widget / Control の Intent は既定でどちらのプロセスでも実行されうるので、`IntentTodoWidgetBundle.init()` でも登録しておく。
