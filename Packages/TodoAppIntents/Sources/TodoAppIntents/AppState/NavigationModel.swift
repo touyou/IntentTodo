@@ -47,6 +47,17 @@ public final class NavigationModel {
     /// than just opening the app.
     public var pendingFilter: TodoFilterType?
 
+    /// 追加シートが開いている状態で `AddTodoIntent` が成功した回数（起動中のみ）。
+    ///
+    /// 「アプリの UI で手作業している人」だけを数えるためのカウンタ。シートが開いて
+    /// いないときの追加（Siri / Shortcuts / ウィジェット / コントロール）は数に入らない
+    /// ので、**既にフレーズを使えている人に App Shortcut の教育を出さずに済む**
+    /// （UI タップ起点に限る、という donation の判断と同じ理屈）。
+    ///
+    /// 表示ポリシー（何回目で出すか・何回まで出すか）は持たない。読み手は UI 側の
+    /// `SiriTipModel`。詳細: docs/insights/04-ui-integration.md
+    public private(set) var inAppAddCount = 0
+
     // MARK: - Initialization
 
     public init() {}
@@ -98,7 +109,14 @@ public final class NavigationModel {
     }
 
     /// Dismisses the add todo sheet.
+    ///
+    /// `AddTodoIntent.perform()` の成功時だけ呼ばれる（Cancel ボタンは
+    /// `@Environment(\.dismiss)` を通るのでここには来ない）。シートが開いていた場合は
+    /// アプリ UI 起点の追加なので ``inAppAddCount`` を進める。
     public func dismissAddTodo() {
+        if showingAddTodo {
+            inAppAddCount += 1
+        }
         showingAddTodo = false
     }
 }

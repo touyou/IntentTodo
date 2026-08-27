@@ -26,6 +26,9 @@ public struct TodoListView: View {
     @State private var focusFilterStore = TodoFocusFilterStore.shared
     /// 通知 / ライブアクティビティが塞がれて伝えられなかった記録。
     @State private var missedFeedback = MissedFeedbackModel()
+    /// App Shortcut のフレーズをいつ教えるか。
+    @State private var siriTip = SiriTipModel()
+    @State private var showingSettings = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(NavigationModel.self) private var navigationModel
     @Environment(\.modelContext) private var modelContext
@@ -78,22 +81,40 @@ public struct TodoListView: View {
             }
             .navigationTitle(.copy("Todos"))
             // 一覧が空になる原因が Focus のときも見えている必要があるので、List の中
-            // ではなく List の外（上端）に出す。
+            // ではなく List の外（上端）に出す。一覧が空で ContentUnavailableView に
+            // 切り替わっても safeAreaInset は残るため、初回追加直後の Siri Tip も届く。
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     FocusFilterBanner(store: focusFilterStore)
                     // 記録の書き手は Extension プロセスにもなり購読できないので、
                     // 表示のたびと前面復帰のたびに読み直す。
                     MissedFeedbackBanner(model: missedFeedback)
+                    SiriTipBanner(model: siriTip)
                 }
             }
             .onAppear { missedFeedback.refresh() }
             .onChange(of: scenePhase) { _, phase in
-                guard phase == .active else { return }
+                guard phase == .active else {
+                    // 前面から外れたら教育は引っ込める（閉じた扱いにはしない）。
+                    siriTip.hide()
+                    return
+                }
                 missedFeedback.refresh()
             }
+            // アプリの追加シートから Todo が追加された瞬間 = そのフレーズを覚えると
+            // 次から短縮できる瞬間。Siri / Shortcuts / ウィジェット経由の追加では
+            // カウンタが動かないので、既に使えている人には出ない。
+            //
+            // macOS では記録もしない。`SiriTipView` が unavailable で一度も出せない
+            // プラットフォームなのに、出した回数（上限 2 回）だけが減っていく状態を
+            // 残さないため。
+            #if !os(macOS)
+            .onChange(of: navigationModel.inAppAddCount) { _, _ in
+                siriTip.recordInAppAdd()
+            }
+            #endif
             .toolbar {
-                TodoListToolbar(viewModel: $viewModel)
+                TodoListToolbar(viewModel: $viewModel, showingSettings: $showingSettings)
             }
             .searchable(text: $viewModel.searchText, prompt: .copy("Search todos"))
             // sidebar 既定幅は TodoRowView には狭いため ideal を広めに固定 (iPad/macOS)。
@@ -117,6 +138,13 @@ public struct TodoListView: View {
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             AddTodoSheet()
         }
+        #if os(iOS)
+        .sheet(isPresented: $showingSettings) {
+            NavigationStack {
+                SettingsView()
+            }
+        }
+        #endif
         // Apply a search term pushed by ShowTodoSearchResultsIntent (.system.searchInApp).
         .onChange(of: navigationModel.pendingSearchText) { _, newValue in
             applyPendingSearch(newValue)
@@ -174,8 +202,6 @@ private struct TodoListSidebar: View {
         // body 評価のたびに `[String]` 配列を再アロケートしていたため、件数が増える
         // ほどスクロールがカクついていた。
         List(selection: $selection) {
-            SiriTipRow()
-
             // `.reorderable()` (WWDC 2026) turns any container into a drag-to-reorder
             // one. It's 27+ only, so gate it; on older OSes (or non-manual sort) the
             // rows render exactly as before.
@@ -203,97 +229,6 @@ private struct TodoListSidebar: View {
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 DeleteButton(todo: todo)
             }
-    }
-}
-
-// MARK: - Focus Filter Banner
-
-/// 集中モードで一覧が絞られていることを示し、その場で解除できるようにする。
-///
-/// 標準アプリ（カレンダー）が Focus filter 適用中に「Focus で絞り込み中」の表示と
-/// 解除手段を並べて出しているのと同じ扱い（wwdc2022-10121 2:04）。表示だけ出して
-/// 解除手段が無いと、絞られていることに気づいたユーザーが設定アプリまで行くしかない。
-private struct FocusFilterBanner: View {
-    let store: TodoFocusFilterStore
-
-    var body: some View {
-        if store.filter.isActive {
-            HStack(spacing: 8) {
-                Image(systemName: "moon.fill")
-                    .foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(store.isSuspended ? .copy("Focus filter paused") : .copy("Filtered by Focus"))
-                        .font(.footnote)
-                    FocusFilterConditions(filter: store.filter)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                Spacer()
-                Button(store.isSuspended ? .copy("Apply") : .copy("Show All")) {
-                    store.isSuspended.toggle()
-                }
-                .font(.footnote)
-                .buttonStyle(.borderless)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-            // Liquid Glass 時代のクロームは自前で塗らずシステムマテリアルに任せる。
-            .background(.bar)
-            .accessibilityElement(children: .combine)
-        }
-    }
-}
-
-/// 効いている条件の内訳。文言を `String` に連結せず `Text` を並べることで、
-/// このファイルの他の文言と同じくローカライズ対象のまま扱える
-/// （カテゴリ名だけはユーザーデータなので `verbatim`）。
-private struct FocusFilterConditions: View {
-    let filter: TodoFocusFilter
-
-    var body: some View {
-        HStack(spacing: 6) {
-            if let categoryName = filter.categoryName {
-                Text(verbatim: categoryName)
-            }
-            if filter.showsUrgentOnly {
-                Text(.copy("Urgent only"))
-            }
-            if filter.hidesCompleted {
-                Text(.copy("Hiding completed"))
-            }
-        }
-    }
-}
-
-// MARK: - Siri Tip
-
-/// App Shortcut の存在をアプリ内で知らせる 1 行。
-///
-/// App Shortcut は Spotlight / Siri / Shortcuts からは自動で見つかるが、**ユーザーが
-/// 「言えること」を知らない**限り使われない。HIG (App Shortcuts / Best practices) の
-/// "Make App Shortcuts discoverable in your app" に対応する標準コンポーネントが
-/// `SiriTipView` で、渡した Intent に対応するフレーズをそのまま表示してくれる
-/// (フレーズを View 側にハードコードしないので、`TodoAppShortcuts` を直せば追従する)。
-///
-/// 一度閉じたら出さない。`isVisible` に `@AppStorage` を渡しているので、
-/// `SiriTipView` の閉じるボタンがそのまま永続化される。
-///
-/// **macOS では出さない**: `SiriTipView` / `SiriTipViewStyle` は SDK で
-/// `@available(macOS, unavailable)`。Mac では Shortcuts アプリ側の一覧が導線になる。
-/// 詳細: docs/insights/03-app-intents-core.md
-private struct SiriTipRow: View {
-    @AppStorage("siriTip.addTodo.isVisible") private var isVisible = true
-
-    var body: some View {
-        #if os(macOS)
-        EmptyView()
-        #else
-        if isVisible {
-            SiriTipView(intent: AddTodoIntent(), isVisible: $isVisible)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-        }
-        #endif
     }
 }
 
@@ -427,6 +362,7 @@ private struct TodoListEmptyView: View {
 
 private struct TodoListToolbar: ToolbarContent {
     @Binding var viewModel: TodoListViewModel
+    @Binding var showingSettings: Bool
     @Environment(NavigationModel.self) private var navigationModel
 
     /// `.topBarTrailing` は macOS で利用不可のため分岐。
@@ -439,6 +375,20 @@ private struct TodoListToolbar: ToolbarContent {
     }
 
     var body: some ToolbarContent {
+        #if os(iOS)
+        // 連携（Shortcuts など）の入口。`SettingsView` は macOS では出さない
+        // （`ShortcutsLink` が macOS SDK に無い）ので、ボタンごと iOS 限定にする。
+        ToolbarItem(placement: .topBarLeading) {
+            Button {
+                showingSettings = true
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .accessibilityIdentifier("settingsButton")
+            .accessibilityLabel(.copy("Settings"))
+        }
+        #endif
+
         ToolbarItem(placement: .primaryAction) {
             Button {
                 navigationModel.showAddTodo()

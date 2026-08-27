@@ -361,6 +361,67 @@ TextField(.copy("Title"), text: $title)
 
 ---
 
+## App Shortcut をアプリ内で知らせる 2 つの面（`SiriTipView` / `ShortcutsLink`）
+
+App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、**ユーザーが「言えること」を
+知らない**限り使われない。アプリ内の導線は 2 つあり、**役割が違うので置き場も違う**。
+
+| API | 役割 | 置き場 | 可用性（SDK 27 実測） |
+|---|---|---|---|
+| `SiriTipView` | **今やった操作**のフレーズを教える | iOS / iPadOS の一覧上端（`SiriTipBanner`）。文脈のある瞬間だけ | iOS / tvOS / watchOS / visionOS。**macOS unavailable**（macCatalyst も） |
+| `ShortcutsLink` | App Shortcut を**一覧して探索**させる | iOS / visionOS の設定「Siri & Shortcuts」（`SettingsView`） | iOS / visionOS。**macOS / watchOS は SDK に型が無い**（`#if` が必要、`@available` では足りない） |
+
+> API として使えるプラットフォームと、**このアプリが実際に出しているプラットフォームは違う**。
+> Tip は iOS / iPadOS だけ（visionOS の一覧は `VisionOSTodoListView` で別実装、watchOS は
+> `WatchUI`。どちらも教育を差し込む余白が無い）。macOS は Tip もリンクも出ない。
+
+どちらも SDK 27 で deprecated ではない。ただし **Apple が最後にこの 2 つに触れたのは
+wwdc2022-10169 / 10170 と wwdc2023-10102** で、2024 以降のセッションには一度も出てこない
+（WWDC26 の公式 App Intents サンプル 4 本も両方 0 件使用）。discoverability の主題は Spotlight
+インデックスと schema 側に移っている。**「使うなら置き場を間違えないこと」**が現在のルール。
+
+### `SiriTipView` は常設しない
+
+公式の設計ガイダンスが場所ではなく**タイミング**を指定している。
+
+> "It's important that you **carefully select moments** within your app to surface these tips, at a
+> time when people are likely to benefit from the education, such as **immediately before or after
+> completing an action that they may want to repeat** in the future." — wwdc2022-10169 `18:58`
+
+> "Siri Tips are **best placed contextually** so that they are relevant to the content onscreen."
+> — wwdc2023-10102 `11:14`
+
+本アプリの「文脈のある瞬間」は **アプリの追加シートで Todo を追加した直後**。ポリシーは
+`SiriTipModel` に閉じてある（何回目で出すか / 何回まで出すか / 閉じたら以後出さない）。
+
+- **数えるのはアプリ UI 起点の追加だけ**。`NavigationModel.dismissAddTodo()` は
+  `AddTodoIntent.perform()` の成功時にしか呼ばれず、そこで**シートが開いていたか**を見れば
+  UI 起点かどうかが分かる（Cancel は `@Environment(\.dismiss)` を通るのでここに来ない）。
+  Siri / Shortcuts / ウィジェット経由の追加は数に入らない = **既にフレーズを使えている人には
+  出さない**（UI タップ起点に限る、という donation の判断と同じ理屈）
+- **`List` の行にしない**。行にすると `.appEntityIdentifier(forSelectionType:)` の対象コンテナと
+  `.reorderable()` の兄弟に Todo でない行が混ざる。一覧上端（`safeAreaInset`）なら
+  `FocusFilterBanner` / `MissedFeedbackBanner` と同じ「今だけ出ている」枠に収まり、一覧が空で
+  `ContentUnavailableView` に切り替わっても消えない
+
+### `ShortcutsLink` は設定に置く
+
+> "we've also included a new `ShortcutsLink` that will launch to a list of Shortcuts from your app.
+> This new element is **great if your app has a lot of App Shortcuts and you want to let users
+> explore all of them**." — wwdc2022-10170 `20:19`
+
+探索の導線であって主要動線ではないので、一覧の一等地ではなく設定（連携）画面に置く。macOS には
+型自体が無いため、**ボタンごと `#if os(iOS)` にしてある**（空の設定画面を Mac に出さない）。
+Mac の導線は Shortcuts アプリ側の一覧。
+
+置き場を動かしても**アプリ内では何も壊れて見えない**経路なので、到達可能性は UI テストで押さえる
+（`IntentTodoUITest.testSettingsShowsShortcutsLink`）。
+
+> `SiriTipView` を UI テストで押さえるのは難しい（3 回の追加が前提）。表示ポリシーは
+> `SiriTipModelTests` で押さえ、UI テストは `ShortcutsLink` 側だけにしている。
+
+---
+
 ## SPM パッケージの UI コピーと String Catalog
 
 View を SPM パッケージに置くと、UI コピーのローカライズで**2 つの独立した罠**を踏む。どちらも

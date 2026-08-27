@@ -342,13 +342,11 @@ type will be created.**" パラメータ入りフレーズを入れるなら、`
 
 守り方: `AppShortcutParameterUpdaterTests`（create / toggle / delete で通知が飛ぶことを数える）。通知を外すと落ちることを確認済み。
 
-### アプリ内の導線: `SiriTipView`（**macOS では unavailable**）
+### アプリ内の導線: `SiriTipView` / `ShortcutsLink`
 
-App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、ユーザーが「言えること」を知らなければ使われない。HIG（App Shortcuts / Best practices）の "Make App Shortcuts discoverable in your app" に対応する標準部品が `SiriTipView(intent:isVisible:)` で、フレーズを View 側に複製せずに表示できる。
+App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、ユーザーが「言えること」を知らなければ使われない。アプリ内の導線は 2 つあり、**役割が違うので置き場も違う**（`SiriTipView` はその場のフレーズを教えるので文脈のある瞬間に、`ShortcutsLink` は一覧を探索させるので設定画面に）。
 
-- `isVisible` に `@AppStorage` を渡すと、閉じるボタンがそのまま永続化される
-- **`SiriTipView` / `SiriTipViewStyle` は `@available(macOS, unavailable)`**（Xcode 27 beta 5 の `_AppIntents_SwiftUI` swiftinterface で確認）。共有 UI パッケージから使うなら `#if os(macOS)` で分岐が要る。visionOS では利用可（実ビルドで確認）
-- Shortcuts アプリを開く導線が欲しい場合は `ShortcutsLink` / `ShortcutsUIButton`（未採用）
+置き場の判断根拠・プラットフォーム可用性・実装は UI 側の話なので **`docs/insights/04-ui-integration.md`「App Shortcut をアプリ内で知らせる 2 つの面」に一元化**した。
 
 ---
 

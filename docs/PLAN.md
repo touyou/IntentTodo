@@ -120,10 +120,12 @@ Onscreen Entities（単一 / コレクション）、Intent Modes（`.background
 
 ### 次に効きそうな方向
 
-1. **アプリ内の発見性** — `SiriTipView` は入れてあるので、`ShortcutsLink` で Shortcuts アプリへの導線を足す
-2. **フィードバック経路の拡張** — Control は dialog も snippet も出ないため、`.controlWidgetStatus(_:)` が
+1. **フィードバック経路の拡張** — Control は dialog も snippet も出ないため、`.controlWidgetStatus(_:)` が
    実際に出るなら通知に頼らない経路が 1 本増える
-3. **提案** — `RelevantIntent` は donation なしで成立する（`PredictableIntent` は donation ゼロだと出ない）
+2. **提案** — `RelevantIntent` は donation なしで成立する（`PredictableIntent` は donation ゼロだと出ない）。
+   on/off の置き場は設定の連携セクション（`SettingsView`）にできた
+3. **連携先の拡張** — `AudioPlaybackIntent`（「この Todo をやる間これを流す」）。未採用の Intent 種別で、
+   設定の連携セクションが受け皿になる。なお SDK 27 の assistant schema に music / health ドメインは無い
 4. **visionOS ウィジェット強化** — `supportedMountingStyles` / `widgetTexture` / `levelOfDetail`
 5. **多言語化（ja）** — `knownRegions` / 4 パッケージ catalog / Intent コピーの bundle 決定 /
    `AppShortcuts.xcstrings` を通しでやる（#70）。**現状はアプリ全体が英語のみ**で、catalog は

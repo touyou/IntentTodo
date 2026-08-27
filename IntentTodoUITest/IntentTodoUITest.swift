@@ -403,6 +403,31 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(backButton.waitForExistence(timeout: 3), "Back button should exist on detail view")
     }
 
+    // MARK: - Test: Settings (Shortcuts の導線)
+
+    /// 設定画面から `ShortcutsLink` に到達できること。
+    ///
+    /// `ShortcutsLink` はシステム提供の View なので、置き場を動かしても**アプリ内では
+    /// 何も壊れて見えない**（リンクが消えても一覧は正常）。到達可能性をここで押さえる。
+    @MainActor
+    func testSettingsShowsShortcutsLink() throws {
+        let settingsButton = app.buttons["settingsButton"]
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5), "Settings button should exist")
+        settingsButton.tap()
+
+        let shortcutsLink = app.descendants(matching: .any)["shortcutsLink"]
+        XCTAssertTrue(shortcutsLink.waitForExistence(timeout: 5), "ShortcutsLink should exist in settings")
+
+        let doneButton = app.buttons["settingsDoneButton"]
+        XCTAssertTrue(doneButton.exists, "Done button should exist")
+        doneButton.tap()
+
+        XCTAssertTrue(
+            app.buttons["addTodoButton"].waitForExistence(timeout: 5),
+            "Dismissing settings should return to the list"
+        )
+    }
+
     // MARK: - Test: Launch Performance
 
     @MainActor

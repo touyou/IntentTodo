@@ -164,8 +164,8 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `AppShortcutsProvider.shortcutTileColor` | Shortcuts タイルの色 | ✅ | 設定済み |
 | `AppShortcuts.xcstrings` | フレーズのローカライズ | ⏸ | **アプリ全体が英語のみ**（`knownRegions` は `en, Base`、4 パッケージ catalog の翻訳実体は 0 件）。フレーズだけ訳しても英語の Intent が英語で応答するので単体では成立しない。ja 対応エピック **#70** の最終工程。加えて schema 適合した Intent はフレーズも訓練も Apple 側が持つため訳す対象に入らない（wwdc2026-8011 `59:03`） |
 | negative phrases API | 特定フレーズに反応させない | ⏸ | 誤爆の報告がないので未着手 |
-| `SiriTipView` | アプリ内でフレーズを見せる | ✅ | `TodoListView`（macOS は SDK で unavailable） |
-| `ShortcutsLink` | Shortcuts アプリへの導線 | ⬜ | `SiriTipView` と対になる導線が空いている（#68） |
+| `SiriTipView` | アプリ内でフレーズを見せる | ✅ | `SiriTipBanner`。一覧上端に**アプリ内で 3 回目の追加をした直後だけ**出す（常設しない。macOS は SDK で unavailable） |
+| `ShortcutsLink` | Shortcuts アプリへの導線 | ✅ | `SettingsView` の「Siri & Shortcuts」（探索の導線なので一覧の一等地には置かない。macOS / watchOS は SDK に型が無い） |
 
 ## 9. App Schema（意味ドメイン適合）
 
@@ -237,14 +237,17 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 
 着手判断は **#68** で行う。理由と前提は各行の「このアプリでの扱い」列に書いてある。
 
-1. `ShortcutsLink` — `SiriTipView` の対になる導線
-2. `.controlWidgetStatus(_:)` — Control のフィードバック経路がもう 1 本増える可能性
-3. `Toggle(isOn:intent:)` — 完了切り替えの意味論に合う
-4. `invalidatableContent()` / `SnippetIntent.reload()` — 表示の追随
-5. `RelevantIntent` — donation なしで成立する提案経路
-6. visionOS ウィジェット強化（`supportedMountingStyles` / `widgetTexture` / `levelOfDetail`）
+1. `.controlWidgetStatus(_:)` — Control のフィードバック経路がもう 1 本増える可能性
+2. `Toggle(isOn:intent:)` — 完了切り替えの意味論に合う
+3. `invalidatableContent()` / `SnippetIntent.reload()` — 表示の追随
+4. `RelevantIntent` — donation なしで成立する提案経路。**設定の連携セクションに on/off の置き場ができた**
+5. visionOS ウィジェット強化（`supportedMountingStyles` / `widgetTexture` / `levelOfDetail`）
+6. `AudioPlaybackIntent` — 「この Todo をやる間これを流す」。未採用の Intent 種別
 
 ブロック中のものは #56（reminder 本体スキーマ）/ #57（GM SDK 棚卸し）。
+
+`ShortcutsLink` はこのリストから外した（採用済み。置き場は設定画面）。
+経緯: [docs/devlog/04-ui-integration.md](devlog/04-ui-integration.md)（2026-08-28 の Siri Tip / ShortcutsLink の置き場）
 
 `AppShortcuts.xcstrings` はこのリストから外した（長く 1 位に置いていたが前提が事実と違った）。
 アプリ全体が英語のみでフレーズだけ訳しても成立せず、ja 対応を通しでやる **#70** の最終工程になる。

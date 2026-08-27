@@ -37,6 +37,9 @@
     "Assignee (optional)" : {
 
     },
+    "Browse every action this app adds to Shortcuts, then combine them into your own automations." : {
+
+    },
     "Cancel" : {
 
     },
@@ -95,6 +98,9 @@
 
     },
     "Dismiss" : {
+
+    },
+    "Done" : {
 
     },
     "due %@" : {
@@ -241,10 +247,16 @@
     "Set Estimated Duration" : {
 
     },
+    "Settings" : {
+
+    },
     "Show ${filter} todos" : {
 
     },
     "Show All" : {
+
+    },
+    "Siri & Shortcuts" : {
 
     },
     "Snooze ${todo}" : {
