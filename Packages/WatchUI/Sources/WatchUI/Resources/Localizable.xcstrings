@@ -33,6 +33,9 @@
     "Add Favorite" : {
 
     },
+    "Add todo" : {
+
+    },
     "Add todo titled ${title}" : {
 
     },
@@ -76,6 +79,12 @@
 
     },
     "Get todo summary" : {
+
+    },
+    "Mark as complete" : {
+
+    },
+    "Mark as incomplete" : {
 
     },
     "New Todo" : {

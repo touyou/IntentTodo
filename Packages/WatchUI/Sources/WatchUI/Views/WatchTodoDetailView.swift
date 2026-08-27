@@ -10,19 +10,44 @@ import SwiftUI
 import TodoAppIntents
 
 /// Detail view for a todo item on watchOS.
+///
+/// 受け取るのは `TodoAppEntity`。一覧からの `NavigationLink` も
+/// `OpenTodoIntent`（Siri / Spotlight）が `NavigationModel.path` に積む値も
+/// entity なので、両方が同じ入口を通る。iOS の `TodoDetailView` と同じ形。
 public struct WatchTodoDetailView: View {
+    private let todo: TodoAppEntity
+
+    public init(todo: TodoAppEntity) {
+        self.todo = todo
+    }
+
+    public var body: some View {
+        // id の parse に失敗したら `@Query` を投げずに不在表示へ落とす
+        // （ランダム UUID で必ずヒットしないクエリを投げるより安い）。
+        if let targetId = UUID(uuidString: todo.id) {
+            WatchTodoDetailQueryView(targetId: targetId)
+        } else {
+            ContentUnavailableView(
+                .copy("Todo Not Found"),
+                systemImage: "questionmark.circle"
+            )
+        }
+    }
+}
+
+/// `@Query` を発行するのは id の parse 成功後のみ。
+private struct WatchTodoDetailQueryView: View {
     @Query private var todoItems: [TodoItem]
     @Environment(\.dismiss) private var dismiss
 
     private var todo: TodoItem? { todoItems.first }
     private var entity: TodoAppEntity? { todo.map { TodoAppEntity(from: $0) } }
 
-    public init(todo: TodoItem) {
-        let targetId = todo.id
+    init(targetId: UUID) {
         _todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
     }
 
-    public var body: some View {
+    var body: some View {
         Group {
             if let todo, let entity {
                 detailContent(todo: todo, entity: entity)

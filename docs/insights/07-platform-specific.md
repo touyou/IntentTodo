@@ -37,10 +37,32 @@ IntentTodoWatchApp/                # watchOS Extension
 
 `WatchUI` は `Package.swift` で `.watchOS(.v26)` のみを宣言することで、iOS/macOS/visionOS 側ターゲットから誤って import された場合にコンパイル時に弾ける。
 
+### ナビゲーションは iOS と同じ `NavigationModel` に載せる
+
+watch アプリも `NavigationModel` を `AppDependencyManager` に登録し、`.environment()` で View に
+渡す。`WatchTodoListView` は `NavigationStack(path: $navigationModel.path)` +
+`.navigationDestination(for: NavigationDestination.self)`（iOS の NavigationSplitView +
+`selectedTodo` に対するスタック版）。
+
+これで 3 つが揃う:
+
+- **`AddTodoIntent` が動く**。この Intent は完了時に `navigationModel.dismissAddTodo()` を呼ぶので、
+  未登録だと watch では追加が**無音で失敗する**（2026-08-27 に実機シミュレータで確認。
+  詳細は `AGENTS.md` の `@Dependency` 節）
+- **`OpenTodoIntent`（Siri / Spotlight の「この Todo を開く」）が watch でも遷移先を持つ**。
+  `NavigationModel.showDetail(for:)` が `path` に積む値と、一覧の `NavigationLink(value:)` が
+  積む値が同じ `NavigationDestination.todoDetail(entity)` なので、両方が同じ入口を通る
+- **追加シートの閉じ方が iOS と揃う**。`@Query` の件数差分で閉じる形（旧 watch 実装）は他デバイス /
+  ウィジェットからの追加で誤クローズするため使わない
+
+行のタップ先は 2 つに分ける（純正リマインダーの watch アプリと同じ）: 左の丸が完了トグル
+（`Button(intent: ToggleTodoCompletionIntent)`）、行本体が詳細への `NavigationLink`。
+行全体を完了トグルにすると、説明文や期限の時刻を watch から見る手段が無くなる。
+
 ### Onscreen annotation は行ごとに付ける（`forSelectionType:` は効かない）
 
-一覧の `WatchTodoListView` は `List` だが **selection を持たない**（行が `Button(intent:)` で、
-タップは完了トグル）。`.appEntityIdentifier(forSelectionType:)` は `List` の selection 値の型を
+一覧の `WatchTodoListView` は `List` だが **selection を持たない**（行はトグル +
+`NavigationLink`）。`.appEntityIdentifier(forSelectionType:)` は `List` の selection 値の型を
 手がかりにする仕組みなので当て先が無い。`WatchTodoRow` / `WatchTodoDetailView` に
 `.appEntityIdentifier(EntityIdentifier(for: entity))` を 1 つずつ付ける
 （`.appEntityIdentifier` は watchOS 11.4+）。

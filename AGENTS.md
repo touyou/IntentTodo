@@ -420,6 +420,17 @@ struct IntentTodoWidgetBundle: WidgetBundle {
 
 プロセスごとに `AppDependencyManager.shared` は独立インスタンスなので、そのプロセスで `@Dependency` を使う Intent がある場合は、そのプロセスの起点（`App.init()` / `WidgetBundle.init()` 等）で登録する必要がある。
 
+> **⚠️ 登録漏れは「クラッシュ」ではなく「無音の失敗」になる**。未登録の依存を解決しようとした Intent は
+> `Failed to retrieve dependency of type X. Please register your dependency with AppDependencyManager
+> before performing a dependent intent.` を stderr に出して**実行だけが失敗**する。`Button(intent:)`
+> 経由だとエラー表示も無く、画面は何も変わらない。
+>
+> 実例: watch アプリが `NavigationModel` を登録しておらず、`AddTodoIntent`（完了時に
+> `navigationModel.dismissAddTodo()` を呼ぶ）が失敗して **watchOS では Todo 追加が一切できない**
+> 状態だった（2026-08-27 に実機シミュレータで確認して修正）。**そのプロセスで走る Intent が触る依存は
+> 全部登録する**。プラットフォームごとに Intent の集合が違わない（同じパッケージが全ターゲットに
+> リンクされる）ことを忘れやすい。経緯: [docs/devlog/07-platform-specific.md](docs/devlog/07-platform-specific.md)
+
 ### Intent Modes
 
 [Apple 公式 `supportedModes` ドキュメント](https://developer.apple.com/documentation/appintents/appintent/supportedmodes)より:
