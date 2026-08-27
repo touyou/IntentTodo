@@ -73,7 +73,7 @@ public struct TodoListView: View {
                     )
                 }
             }
-            .navigationTitle("Todos")
+            .navigationTitle(.copy("Todos"))
             // 一覧が空になる原因が Focus のときも見えている必要があるので、List の中
             // ではなく List の外（上端）に出す。
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -82,7 +82,7 @@ public struct TodoListView: View {
             .toolbar {
                 TodoListToolbar(viewModel: $viewModel)
             }
-            .searchable(text: $viewModel.searchText, prompt: "Search todos")
+            .searchable(text: $viewModel.searchText, prompt: .copy("Search todos"))
             // sidebar 既定幅は TodoRowView には狭いため ideal を広めに固定 (iPad/macOS)。
             .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 480)
             #if os(iOS)
@@ -95,9 +95,9 @@ public struct TodoListView: View {
                 TodoDetailView(todo: selected)
             } else {
                 ContentUnavailableView(
-                    "Select a Todo",
+                    .copy("Select a Todo"),
                     systemImage: "checklist",
-                    description: Text("Pick a todo from the sidebar to view details.")
+                    description: Text(.copy("Pick a todo from the sidebar to view details."))
                 )
             }
         }
@@ -243,10 +243,10 @@ private struct FocusFilterConditions: View {
                 Text(verbatim: categoryName)
             }
             if filter.showsUrgentOnly {
-                Text("Urgent only")
+                Text(.copy("Urgent only"))
             }
             if filter.hidesCompleted {
-                Text("Hiding completed")
+                Text(.copy("Hiding completed"))
             }
         }
     }
@@ -346,10 +346,13 @@ private struct NavigationBarMinimizeOnScroll: ViewModifier {
 
 private struct TodoListEmptyView: View {
     /// `ContentUnavailableView` 1 つ分の文言。
+    ///
+    /// 文言は `LocalizedStringResource` で持つ。`String` にすると `Label` / `Text` が
+    /// verbatim 初期化子を選び、リテラルが String Catalog に抽出されない。
     private struct EmptyContent {
-        let title: String
+        let title: LocalizedStringResource
         let icon: String
-        let description: String
+        let description: LocalizedStringResource
     }
 
     let filter: TodoFilter
@@ -364,7 +367,7 @@ private struct TodoListEmptyView: View {
             Text(content.description)
         } actions: {
             if filter == .all && searchText.isEmpty {
-                Button("Add Todo") { navigationModel.showAddTodo() }
+                Button(.copy("Add Todo")) { navigationModel.showAddTodo() }
                     .buttonStyle(.borderedProminent)
             }
         }
@@ -373,35 +376,35 @@ private struct TodoListEmptyView: View {
     private var emptyContent: EmptyContent {
         if !searchText.isEmpty {
             return EmptyContent(
-                title: "No Results",
+                title: .copy("No Results"),
                 icon: "magnifyingglass",
-                description: "No todos match your search."
+                description: .copy("No todos match your search.")
             )
         }
         switch filter {
         case .all:
             return EmptyContent(
-                title: "No Todos",
+                title: .copy("No Todos"),
                 icon: "checklist",
-                description: "Tap + to add your first todo."
+                description: .copy("Tap + to add your first todo.")
             )
         case .incomplete:
             return EmptyContent(
-                title: "All Done!",
+                title: .copy("All Done!"),
                 icon: "checkmark.circle",
-                description: "You've completed all your todos!"
+                description: .copy("You've completed all your todos!")
             )
         case .completed:
             return EmptyContent(
-                title: "No Completed Todos",
+                title: .copy("No Completed Todos"),
                 icon: "circle",
-                description: "Complete some todos to see them here."
+                description: .copy("Complete some todos to see them here.")
             )
         case .favorites:
             return EmptyContent(
-                title: "No Favorites",
+                title: .copy("No Favorites"),
                 icon: "star",
-                description: "Star a todo to add it to favorites."
+                description: .copy("Star a todo to add it to favorites.")
             )
         }
     }
@@ -430,22 +433,22 @@ private struct TodoListToolbar: ToolbarContent {
                 Image(systemName: "plus")
             }
             .accessibilityIdentifier("addTodoButton")
-            .accessibilityLabel("Add todo")
+            .accessibilityLabel(.copy("Add todo"))
         }
 
         ToolbarItem(placement: filterSortPlacement) {
             Menu {
                 FilterPicker(selection: $viewModel.filter)
                 Divider()
-                Menu("Sort") {
+                Menu(.copy("Sort")) {
                     SortPicker(selection: $viewModel.sortOrder)
                 }
             } label: {
-                Label("Filter", systemImage: "line.3.horizontal.decrease.circle")
+                Label(.copy("Filter"), systemImage: "line.3.horizontal.decrease.circle")
                     .labelStyle(.iconOnly)
             }
             .accessibilityIdentifier("filterSortMenu")
-            .accessibilityLabel("Filter and sort")
+            .accessibilityLabel(.copy("Filter and sort"))
         }
     }
 }

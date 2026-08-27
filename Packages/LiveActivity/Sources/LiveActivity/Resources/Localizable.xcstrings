@@ -1,0 +1,63 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add todo titled ${title}" : {
+
+    },
+    "Complete ${todos}" : {
+
+    },
+    "Delete ${entities}" : {
+
+    },
+    "Delete ${todo}" : {
+
+    },
+    "Delete ${todo} without confirming" : {
+
+    },
+    "Due Soon" : {
+
+    },
+    "Get todo summary" : {
+
+    },
+    "Mark Complete" : {
+
+    },
+    "Open ${target}" : {
+
+    },
+    "Overdue" : {
+
+    },
+    "remaining" : {
+
+    },
+    "Search for ${query}" : {
+
+    },
+    "Show ${filter} todos" : {
+
+    },
+    "Snooze ${todo}" : {
+
+    },
+    "Snooze ${todo} by 30 minutes" : {
+
+    },
+    "Snooze 30m" : {
+
+    },
+    "Toggle completion of ${todo}" : {
+
+    },
+    "Toggle favorite of ${todo}" : {
+
+    },
+    "Update ${todo}" : {
+
+    }
+  },
+  "version" : "1.0"
+}

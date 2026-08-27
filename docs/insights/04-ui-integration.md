@@ -347,11 +347,119 @@ public final class TodoListViewModel {
 iOS専用APIは `#if os(iOS)` で分岐する。
 
 ```swift
-TextField("Title", text: $title)
+TextField(.copy("Title"), text: $title)
 #if os(iOS)
     .textInputAutocapitalization(.sentences)
 #endif
 ```
+
+---
+
+## SPM パッケージの UI コピーと String Catalog
+
+View を SPM パッケージに置くと、UI コピーのローカライズで**2 つの独立した罠**を踏む。どちらも
+**アプリ内では正常に見える**（en しか無い間は key がそのまま表示される）ため、翻訳に着手した
+時点で初めて「一部の文言だけ英語のまま残る」形で顕在化する。
+
+### 罠 1: パッケージ自身に catalog が無いと、文言はどこにも抽出されない
+
+`xcodebuild -exportLocalizations` で確認できる。`UI` パッケージに String Catalog を置く前は、
+`Text("Todos")` のようなリテラルが **1 件も** xcloc に現れない（アプリターゲット側の catalog にも
+入らない）。抽出は**ターゲット単位**で、受け皿の catalog を持つターゲットの分しか出てこない。
+
+必要なのは 2 つ:
+
+```swift
+// Package.swift
+let package = Package(
+    name: "UI",
+    defaultLocalization: "en",   // これが無いと catalog がローカライズ資源として扱われない
+    ...
+    targets: [
+        .target(
+            name: "UI",
+            resources: [.process("Resources")]   // Sources/UI/Resources/Localizable.xcstrings
+        )
+    ]
+)
+```
+
+`AppIntents` の `LocalizedStringResource`（Intent の title 等）だけは例外で、catalog が無くても
+アプリの統合メタデータ経由でアプリターゲットの catalog に出てくる。これがあるため
+「パッケージの文言も抽出されている」と誤読しやすい。
+
+### 罠 2: `Text("...")` は実行時に `Bundle.main` を引く
+
+`LocalizedStringKey` の既定 bundle はメインバンドル。パッケージ同梱の catalog（
+`Bundle.module` = `UI_UI.bundle`）には**当たらない**。つまり catalog に翻訳を入れても
+引かれない。各パッケージに次の口を 1 つ置き、UI コピーは必ずここを通す。
+
+```swift
+extension LocalizedStringResource {
+    static func copy(_ key: String.LocalizationValue) -> LocalizedStringResource {
+        LocalizedStringResource(key, bundle: .atURL(Bundle.module.bundleURL))
+    }
+}
+
+Text(.copy("Cancel"))
+Label(.copy("Completed"), systemImage: "checkmark.circle.fill")
+Section(.copy("Due Date")) { ... }
+```
+
+SwiftUI 側は `Text` / `Label` / `Button` / `Toggle` / `Section` / `Picker` / `TextField` /
+`LabeledContent` / `ContentUnavailableView` / `DatePicker` / `navigationTitle` /
+`accessibilityLabel` / `confirmationDialog` / `alert` / `searchable(prompt:)` に
+`LocalizedStringResource` オーバーロードが揃っているので、ViewBuilder 版に書き換える必要はない。
+
+- 宣言は **internal**（`public` にしない）。`UI` は `LiveActivity` を import するため、両方が
+  `public static func copy` を持つと同名メンバで曖昧になる。パッケージ内専用にすれば衝突しない
+- `.swiftlint.yml` の `ui_copy_needs_module_bundle` が `Text("...")` 形の直書きを検出する
+
+### 例外: `LocalizedStringKey` 専用の補間
+
+`\(date, style: .relative)` / `\(timerInterval:)` / `\(Image)` は `LocalizedStringKey` だけが
+持つ補間で、`String.LocalizationValue`（= `.copy`）では組めない。この場合だけ
+`Text("...", bundle: .module)` と bundle を明示する（引き先は `.copy` と同じ）。
+lint は行単位で `// swiftlint:disable:next ui_copy_needs_module_bundle` を添えて抑止する。
+
+数値だけを見せる `Text("\(count)")` は `.copy` に通さない。キーが `"%lld"` という翻訳不能な
+エントリになるので `Text(count, format: .number)` を使う。
+
+### 型で守る: UI コピーを `String` で運ばない
+
+`Text` / `Label` は `String` を渡すと **verbatim 初期化子**が選ばれる。コンパイルは通り表示も
+変わらないが、リテラルは catalog に載らない。UI コピーを運ぶプロパティ / パラメータ /
+`displayName` の型は `LocalizedStringResource` にする（`todo.title` のような**データ**の
+verbatim 表示は対象外）。
+
+```swift
+// ❌ 呼出側のリテラルが抽出されない
+StatusBadge(title: "Completed", ...)   // private let title: String
+
+// ✅
+StatusBadge(title: .copy("Completed"), ...)   // private let title: LocalizedStringResource
+```
+
+読み上げ用ラベルを `label += ", completed"` のように連結するのも同じ理由で不可（区切りと語順が
+ロケール依存）。要素ごとに `String(localized:)` してから `parts.formatted(.list(type:width:))`
+で並べる。
+
+### 抽出できたかの確認方法
+
+```sh
+xcodebuild -exportLocalizations -project IntentTodo.xcodeproj -scheme IntentTodo \
+  -localizationPath /tmp/loc -exportLanguage en -destination 'generic/platform=iOS'
+```
+
+`/tmp/loc/en.xcloc/Source Contents/Packages/<pkg>/.../Localizable.xcstrings` の件数を前後で
+比較する。**このコマンドはソースツリー側の catalog も更新する**ので、抽出結果をそのまま
+コミットできる。
+
+en しか無い状態では、ビルドされた `UI_UI.bundle` に `en.lproj/Localizable.strings` は**入らない**
+（翻訳が 1 つも無い言語には `.strings` が生成されない）。バンドル内のファイル有無を見るテストは
+書けないので、確認は上記 export で行う。
+
+経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)（2026-08-27 の #50 対応）
 
 ---
 

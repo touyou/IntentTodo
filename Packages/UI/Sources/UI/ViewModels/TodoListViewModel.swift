@@ -144,12 +144,14 @@ public enum TodoFilter: String, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
-    public var displayName: String {
+    /// メニュー表示用の文言。`String` で返すと `Label` / `Text` が verbatim 初期化子を
+    /// 選び、リテラルが String Catalog に抽出されない。
+    public var displayName: LocalizedStringResource {
         switch self {
-        case .all: return "All"
-        case .incomplete: return "Incomplete"
-        case .completed: return "Completed"
-        case .favorites: return "Favorites"
+        case .all: return .copy("All")
+        case .incomplete: return .copy("Incomplete")
+        case .completed: return .copy("Completed")
+        case .favorites: return .copy("Favorites")
         }
     }
 
@@ -190,15 +192,16 @@ public enum TodoSortOrder: String, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
-    public var displayName: String {
+    /// メニュー表示用の文言。型の理由は `TodoFilter.displayName` と同じ。
+    public var displayName: LocalizedStringResource {
         switch self {
-        case .createdAtDescending: return "Newest First"
-        case .createdAtAscending: return "Oldest First"
-        case .titleAscending: return "Title A-Z"
-        case .titleDescending: return "Title Z-A"
-        case .dueDateAscending: return "Due Date (Earliest)"
-        case .dueDateDescending: return "Due Date (Latest)"
-        case .manual: return "Manual"
+        case .createdAtDescending: return .copy("Newest First")
+        case .createdAtAscending: return .copy("Oldest First")
+        case .titleAscending: return .copy("Title A-Z")
+        case .titleDescending: return .copy("Title Z-A")
+        case .dueDateAscending: return .copy("Due Date (Earliest)")
+        case .dueDateDescending: return .copy("Due Date (Latest)")
+        case .manual: return .copy("Manual")
         }
     }
 }

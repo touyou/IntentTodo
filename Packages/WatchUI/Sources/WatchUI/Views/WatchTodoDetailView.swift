@@ -28,7 +28,7 @@ public struct WatchTodoDetailView: View {
                 detailContent(todo: todo, entity: entity)
             } else {
                 ContentUnavailableView(
-                    "Todo Not Found",
+                    .copy("Todo Not Found"),
                     systemImage: "questionmark.circle"
                 )
             }
@@ -45,7 +45,7 @@ public struct WatchTodoDetailView: View {
             Section { WatchTodoDetailHeaderSection(todo: todo, entity: entity) }
 
             if let dueDate = todo.dueDate {
-                Section("Due Date") {
+                Section(.copy("Due Date")) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(dueDate.formatted(date: .complete, time: .omitted))
                         Text(dueDate.formatted(date: .omitted, time: .shortened))
@@ -55,7 +55,7 @@ public struct WatchTodoDetailView: View {
             }
 
             if let description = todo.todoDescription, !description.isEmpty {
-                Section("Description") {
+                Section(.copy("Description")) {
                     Text(description)
                         .font(.caption)
                 }
@@ -63,7 +63,7 @@ public struct WatchTodoDetailView: View {
 
             Section { WatchTodoDetailActionsSection(todo: todo, entity: entity) }
         }
-        .navigationTitle("Details")
+        .navigationTitle(.copy("Details"))
     }
 }
 
@@ -109,16 +109,16 @@ private struct WatchTodoDetailActionsSection: View {
             Button(role: .destructive) {
                 isConfirmingDelete = true
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label(.copy("Delete"), systemImage: "trash")
             }
         }
         .confirmationDialog(
-            "Delete “\(entity.title)”?",
+            .copy("Delete “\(entity.title)”?"),
             isPresented: $isConfirmingDelete,
             titleVisibility: .visible
         ) {
             Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
-                Text("Delete")
+                Text(.copy("Delete"))
             }
         }
     }

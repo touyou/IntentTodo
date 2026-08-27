@@ -29,7 +29,7 @@ public struct WatchTodoListView: View {
                     todoList
                 }
             }
-            .navigationTitle("Todos")
+            .navigationTitle(.copy("Todos"))
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(destination: WatchAddTodoView()) {
@@ -47,10 +47,10 @@ public struct WatchTodoListView: View {
                 .font(.largeTitle)
                 .foregroundStyle(.green)
 
-            Text("All Done!")
+            Text(.copy("All Done!"))
                 .font(.headline)
 
-            Text("No incomplete todos")
+            Text(.copy("No incomplete todos"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -75,14 +75,14 @@ public struct WatchTodoListView: View {
 
         return List {
             if !dueSoon.isEmpty {
-                Section("Due Soon") {
+                Section(.copy("Due Soon")) {
                     ForEach(dueSoon) { todo in
                         WatchTodoRow(todo: todo)
                     }
                 }
             }
             if !others.isEmpty {
-                Section("Upcoming") {
+                Section(.copy("Upcoming")) {
                     ForEach(others.prefix(10)) { todo in
                         WatchTodoRow(todo: todo)
                     }

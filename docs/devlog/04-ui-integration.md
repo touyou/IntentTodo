@@ -87,3 +87,47 @@ cold start（Intent が先、View が後）でも取りこぼさない。
 2. `#if canImport(_AppIntents_UIKit) && !os(watchOS)` に直すと iPhone 17 Pro Max（iOS 27）/ My Mac / Apple Vision Pro の 3 destination すべてでビルド成功。
 
 つまり Package スコープは障壁ではなく、正しいガードさえ書けば置ける。probe は検証後に削除した（`UISceneAppIntent` を要するマルチウィンドウ機能がまだ無いため実装は見送り）。これは `07-platform-specific.md` の「`#if canImport(X)` だけに頼らない」の 2 例目にあたる。
+
+## 2026-08-27: UI コピーの抽出漏れは「String 型の経由」だけではなかった（#50）
+
+#50 は「`StatusBadge` / `TodoListEmptyView.EmptyContent` が UI コピーを `String` 型で運んでいるため
+`Text` / `Label` の verbatim 初期化子が選ばれ、String Catalog に抽出されない」という前提で立てた
+issue だった。着手前に `xcodebuild -exportLocalizations` でベースラインを取ったところ、前提が
+不完全だと分かった。
+
+- **パッケージ（`UI` / `WatchUI` / `WidgetUI` / `LiveActivity`）の文言は 1 件も抽出されていなかった**。
+  `String` 経由かどうかに関係なく、リテラル直書きの `Text("Todos")` も xcloc に出ない。抽出は
+  ターゲット単位で、受け皿となる String Catalog を持つターゲットの分しか出力されないため
+- 一方で `Add todo titled ${title}` のような **Intent の title は出ていた**。これは AppIntents の
+  メタデータ経由でアプリターゲットの catalog に集約されるもので、パッケージの catalog とは別経路。
+  この存在が「パッケージの文言も抽出されている」という誤読を招いていた
+
+そのため作業の単位を「issue が挙げた 2 箇所の型を直す」から「**パッケージ単位でローカライズの
+土台を入れる**」に広げた。部分適用だと「catalog には載っているのに実行時は `Bundle.main` を見て
+引けない」という、より分かりにくい壊れ方になるため（`LocalizedStringKey` の既定 bundle はメイン
+バンドルで、パッケージ同梱の catalog には当たらない）。
+
+やったこと:
+
+1. 4 パッケージに `defaultLocalization: "en"` + `Resources/Localizable.xcstrings` +
+   `resources: [.process("Resources")]`
+2. 各パッケージに internal な `LocalizedStringResource.copy(_:)`（`Bundle.module` を指す）を置き、
+   UI コピー約 100 箇所をこの形へ機械的に移送
+3. issue が挙げた 2 箇所に加え、`TodoFilter.displayName` / `TodoSortOrder.displayName`（`String`
+   戻り）と `TodoRowView.accessibilityLabel`（`", completed"` を `+=` で連結）も同類として修正
+4. `.swiftlint.yml` に `ui_copy_needs_module_bundle` を追加して、パッケージ内の `Text("...")`
+   直書きへの回帰を検出できるようにした
+
+検証は再 export での件数比較。`UI` パッケージが **71 → 97 件**（+26。増えたのは `Completed` /
+`No Results` / `Newest First` など、まさに漏れていた文言。消えたものは無し）。iOS / watchOS /
+visionOS / macOS の 4 destination でビルド成功、SwiftLint 0 violation。
+
+副産物として分かったこと:
+
+- 翻訳が 1 件も無い言語（今回は en のみ）では、ビルドされた `UI_UI.bundle` に
+  `en.lproj/Localizable.strings` は**生成されない**。「バンドルに catalog が入っているか」を
+  ユニットテストで見張ろうとしたが、この挙動のため成立しないので諦めた。確認は export で行う
+- `\(date, style: .relative)` は `LocalizedStringKey` 専用の補間で `String.LocalizationValue` には
+  無い。ここだけは `Text("...", bundle: .module)` 形が正解（`WatchUI` の Inline complication）
+- 数値だけの `Text("\(count)")` を `.copy` に通すとキーが `"%lld"` になってしまう。
+  `Text(count, format: .number)` に置き換えた

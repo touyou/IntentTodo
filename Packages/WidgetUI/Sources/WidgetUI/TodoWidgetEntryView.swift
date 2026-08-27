@@ -51,11 +51,11 @@ struct WidgetLoadFailureView: View {
             Image(systemName: "exclamationmark.triangle")
                 .font(.title3)
                 .foregroundStyle(.orange)
-            Text("Couldn't load todos")
+            Text(.copy("Couldn't load todos"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            Text("Open the app to retry.")
+            Text(.copy("Open the app to retry."))
                 .font(.caption2)
                 .foregroundStyle(.secondary)
         }
@@ -74,10 +74,10 @@ struct SmallTodoWidgetView: View {
             HStack {
                 Image(systemName: "checklist")
                     .foregroundStyle(.orange)
-                Text("Todos")
+                Text(.copy("Todos"))
                     .font(.headline)
                 Spacer()
-                Text("\(incompleteCount)")
+                Text(incompleteCount, format: .number)
                     .font(.title2.bold())
                     .foregroundStyle(.orange)
             }
@@ -90,7 +90,7 @@ struct SmallTodoWidgetView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.title)
                             .foregroundStyle(.green)
-                        Text("All done!")
+                        Text(.copy("All done!"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -117,10 +117,10 @@ struct MediumTodoWidgetView: View {
             HStack {
                 Image(systemName: "checklist")
                     .foregroundStyle(.orange)
-                Text("Todos")
+                Text(.copy("Todos"))
                     .font(.headline)
                 Spacer()
-                Text("\(incompleteCount) remaining")
+                Text(.copy("\(incompleteCount) remaining"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -132,7 +132,7 @@ struct MediumTodoWidgetView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.largeTitle)
                             .foregroundStyle(.green)
-                        Text("All done!")
+                        Text(.copy("All done!"))
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
@@ -159,10 +159,10 @@ struct LargeTodoWidgetView: View {
                 Image(systemName: "checklist")
                     .foregroundStyle(.orange)
                     .font(.title3)
-                Text("Todos")
+                Text(.copy("Todos"))
                     .font(.headline)
                 Spacer()
-                Text("\(incompleteCount) remaining")
+                Text(.copy("\(incompleteCount) remaining"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -205,10 +205,10 @@ struct ExtraLargePortraitTodoWidgetView: View {
                 Image(systemName: "checklist")
                     .foregroundStyle(.orange)
                     .font(.title3)
-                Text("Todos")
+                Text(.copy("Todos"))
                     .font(.headline)
                 Spacer()
-                Text("^[\(incompleteCount) remaining todo](inflect: true)")
+                Text(.copy("^[\(incompleteCount) remaining todo](inflect: true)"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -224,7 +224,7 @@ struct ExtraLargePortraitTodoWidgetView: View {
                     TodoWidgetRow(todo: todo, compact: false)
                 }
                 if todos.count > Self.rowLimit {
-                    Text("^[\(todos.count - Self.rowLimit) more todo](inflect: true)")
+                    Text(.copy("^[\(todos.count - Self.rowLimit) more todo](inflect: true)"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -247,9 +247,9 @@ struct WidgetAllDoneView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 48))
                     .foregroundStyle(.green)
-                Text("All done!")
+                Text(.copy("All done!"))
                     .font(.title3)
-                Text("No todos to display")
+                Text(.copy("No todos to display"))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -265,7 +265,7 @@ struct WidgetAddTodoLink: View {
         Link(destination: TodoDeepLink.addTodo.url) {
             HStack {
                 Image(systemName: "plus.circle.fill")
-                Text("Add Todo")
+                Text(.copy("Add Todo"))
             }
             .font(.subheadline.weight(.medium))
             .foregroundStyle(.orange)

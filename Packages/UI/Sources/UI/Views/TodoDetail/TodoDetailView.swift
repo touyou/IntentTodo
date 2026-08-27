@@ -27,9 +27,9 @@ public struct TodoDetailView: View {
             TodoDetailQueryView(targetId: targetId, fallbackTitle: todo.title)
         } else {
             ContentUnavailableView(
-                "Todo Not Found",
+                .copy("Todo Not Found"),
                 systemImage: "questionmark.circle",
-                description: Text("This todo may have been deleted.")
+                description: Text(.copy("This todo may have been deleted."))
             )
             .navigationTitle(todo.title)
             #if os(iOS) || os(visionOS)
@@ -64,9 +64,9 @@ private struct TodoDetailQueryView: View {
                 TodoDetailContent(todo: todo)
             } else {
                 ContentUnavailableView(
-                    "Todo Not Found",
+                    .copy("Todo Not Found"),
                     systemImage: "questionmark.circle",
-                    description: Text("This todo may have been deleted.")
+                    description: Text(.copy("This todo may have been deleted."))
                 )
             }
         }
@@ -100,13 +100,13 @@ private struct TodoDetailContent: View {
             Section { TodoDetailHeaderSection(todo: todo, entity: entity) }
 
             if let dueDate = todo.dueDate {
-                Section("Due Date") {
+                Section(.copy("Due Date")) {
                     TodoDetailDueDateSection(dueDate: dueDate, isCompleted: todo.isCompleted)
                 }
             }
 
             if let description = todo.todoDescription, !description.isEmpty {
-                Section("Description") {
+                Section(.copy("Description")) {
                     Text(description)
                         .font(.body)
                         .foregroundStyle(.secondary)
@@ -114,12 +114,12 @@ private struct TodoDetailContent: View {
             }
 
             if let subTasks = todo.subTasks, !subTasks.isEmpty {
-                Section("Subtasks") {
+                Section(.copy("Subtasks")) {
                     TodoDetailSubtasksSection(subtasks: subTasks)
                 }
             }
 
-            Section("Info") {
+            Section(.copy("Info")) {
                 TodoDetailMetadataSection(todo: todo)
             }
 
@@ -134,7 +134,7 @@ private struct TodoDetailContent: View {
         // Apple Intelligence so the person can ask about "this" todo. The
         // association is cleared automatically when the view goes away.
         .userActivity(Self.viewingTodoActivityType) { activity in
-            activity.title = String(localized: "Viewing \(todo.title)")
+            activity.title = String(localized: .copy("Viewing \(todo.title)"))
             activity.appEntityIdentifier = EntityIdentifier(for: entity)
         }
     }
@@ -159,17 +159,17 @@ private struct TodoDetailHeaderSection: View {
 
             HStack(spacing: 8) {
                 if todo.isCompleted {
-                    StatusBadge(title: "Completed", systemImage: "checkmark.circle.fill", color: .green)
+                    StatusBadge(title: .copy("Completed"), systemImage: "checkmark.circle.fill", color: .green)
                 }
                 if todo.isFavorite {
-                    StatusBadge(title: "Favorite", systemImage: "star.fill", color: .yellow)
+                    StatusBadge(title: .copy("Favorite"), systemImage: "star.fill", color: .yellow)
                 }
                 if let dueDate = todo.dueDate, !todo.isCompleted {
                     switch DueDateStatus.evaluate(date: dueDate, isCompleted: false) {
                     case .overdue:
-                        StatusBadge(title: "Overdue", systemImage: "exclamationmark.circle.fill", color: .red)
+                        StatusBadge(title: .copy("Overdue"), systemImage: "exclamationmark.circle.fill", color: .red)
                     case .dueSoon:
-                        StatusBadge(title: "Due Soon", systemImage: "clock.fill", color: .orange)
+                        StatusBadge(title: .copy("Due Soon"), systemImage: "clock.fill", color: .orange)
                     case .normal:
                         EmptyView()
                     }
@@ -224,20 +224,20 @@ private struct TodoDetailTimeRemainingLabel: View {
             let interval = date.timeIntervalSince(context.date)
             if interval <= 0 {
                 Label(
-                    "Overdue by \(Self.format(-interval))",
+                    .copy("Overdue by \(Self.format(-interval))"),
                     systemImage: "exclamationmark.triangle.fill"
                 )
                 .font(.caption)
                 .foregroundStyle(.red)
             } else if interval <= DueDateStatus.dueSoonThreshold {
                 Label(
-                    "Due in \(Self.format(interval))",
+                    .copy("Due in \(Self.format(interval))"),
                     systemImage: "clock.badge.exclamationmark.fill"
                 )
                 .font(.caption)
                 .foregroundStyle(.orange)
             } else {
-                Label("Due in \(Self.format(interval))", systemImage: "clock")
+                Label(.copy("Due in \(Self.format(interval))"), systemImage: "clock")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -296,14 +296,14 @@ private struct TodoDetailMetadataSection: View {
 
     var body: some View {
         Group {
-            LabeledContent("Created") {
+            LabeledContent(.copy("Created")) {
                 Text(todo.createdAt.formatted(date: .abbreviated, time: .shortened))
             }
-            LabeledContent("Modified") {
+            LabeledContent(.copy("Modified")) {
                 Text(todo.modifiedAt.formatted(date: .abbreviated, time: .shortened))
             }
             if let category = todo.category {
-                LabeledContent("Category") {
+                LabeledContent(.copy("Category")) {
                     HStack {
                         Circle()
                             .fill(category.colorHex.flatMap(Color.init(hex:)) ?? Color.gray)
@@ -316,17 +316,17 @@ private struct TodoDetailMetadataSection: View {
             // 値は Created/Modified と同じく plain Text に揃える (Label を value に
             // 置くと行が縦に間延びするため)。
             if let formattedDuration {
-                LabeledContent("Estimated Duration") {
+                LabeledContent(.copy("Estimated Duration")) {
                     Text(formattedDuration)
                 }
             }
             if let assignee = todo.assigneeName, !assignee.isEmpty {
-                LabeledContent("Assignee") {
+                LabeledContent(.copy("Assignee")) {
                     Text(assignee)
                 }
             }
             if let location = todo.locationName, !location.isEmpty {
-                LabeledContent("Location") {
+                LabeledContent(.copy("Location")) {
                     Text(location)
                 }
             }
@@ -347,7 +347,7 @@ private struct TodoDetailActionsSection: View {
         Group {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
                 Label(
-                    entity.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                    entity.isFavorite ? .copy("Remove from Favorites") : .copy("Add to Favorites"),
                     systemImage: entity.isFavorite ? "star.slash" : "star"
                 )
             }
@@ -358,17 +358,17 @@ private struct TodoDetailActionsSection: View {
             Button(role: .destructive) {
                 isConfirmingDelete = true
             } label: {
-                Label("Delete Todo", systemImage: "trash")
+                Label(.copy("Delete Todo"), systemImage: "trash")
             }
             .accessibilityIdentifier("deleteTodoButton")
         }
         .confirmationDialog(
-            "Delete “\(entity.title)”?",
+            .copy("Delete “\(entity.title)”?"),
             isPresented: $isConfirmingDelete,
             titleVisibility: .visible
         ) {
             Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
-                Text("Delete")
+                Text(.copy("Delete"))
             }
             .accessibilityIdentifier("confirmDeleteTodoButton")
         }

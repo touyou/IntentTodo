@@ -388,12 +388,14 @@ struct TodoFilterTests {
         #expect(TodoFilter.allCases.count == 4)
     }
 
+    // `displayName` は `LocalizedStringResource`（パッケージ同梱の String Catalog 参照）。
+    // 解決後の文字列で比較する。en では key がそのまま返る。
     @Test("Each filter has a display name")
     func displayNames() {
-        #expect(TodoFilter.all.displayName == "All")
-        #expect(TodoFilter.incomplete.displayName == "Incomplete")
-        #expect(TodoFilter.completed.displayName == "Completed")
-        #expect(TodoFilter.favorites.displayName == "Favorites")
+        #expect(String(localized: TodoFilter.all.displayName) == "All")
+        #expect(String(localized: TodoFilter.incomplete.displayName) == "Incomplete")
+        #expect(String(localized: TodoFilter.completed.displayName) == "Completed")
+        #expect(String(localized: TodoFilter.favorites.displayName) == "Favorites")
     }
 
     @Test("Each filter has a system image")
@@ -423,13 +425,13 @@ struct TodoSortOrderTests {
 
     @Test("Each sort order has a display name")
     func displayNames() {
-        #expect(TodoSortOrder.createdAtDescending.displayName == "Newest First")
-        #expect(TodoSortOrder.createdAtAscending.displayName == "Oldest First")
-        #expect(TodoSortOrder.titleAscending.displayName == "Title A-Z")
-        #expect(TodoSortOrder.titleDescending.displayName == "Title Z-A")
-        #expect(TodoSortOrder.dueDateAscending.displayName == "Due Date (Earliest)")
-        #expect(TodoSortOrder.dueDateDescending.displayName == "Due Date (Latest)")
-        #expect(TodoSortOrder.manual.displayName == "Manual")
+        #expect(String(localized: TodoSortOrder.createdAtDescending.displayName) == "Newest First")
+        #expect(String(localized: TodoSortOrder.createdAtAscending.displayName) == "Oldest First")
+        #expect(String(localized: TodoSortOrder.titleAscending.displayName) == "Title A-Z")
+        #expect(String(localized: TodoSortOrder.titleDescending.displayName) == "Title Z-A")
+        #expect(String(localized: TodoSortOrder.dueDateAscending.displayName) == "Due Date (Earliest)")
+        #expect(String(localized: TodoSortOrder.dueDateDescending.displayName) == "Due Date (Latest)")
+        #expect(String(localized: TodoSortOrder.manual.displayName) == "Manual")
     }
 
     @Test("Each sort order has unique id based on rawValue")

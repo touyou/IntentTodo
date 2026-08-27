@@ -14,9 +14,9 @@ struct CircularComplicationView: View {
         ZStack {
             AccessoryWidgetBackground()
             VStack(spacing: 0) {
-                Text("\(entry.incompleteCount)")
+                Text(entry.incompleteCount, format: .number)
                     .font(.system(size: 24, weight: .bold, design: .rounded))
-                Text("todo")
+                Text(.copy("todo"))
                     .font(.system(size: 8))
                     .foregroundStyle(.secondary)
             }
@@ -33,14 +33,14 @@ struct CornerComplicationView: View {
     }
 
     var body: some View {
-        Text("\(entry.incompleteCount)")
+        Text(entry.incompleteCount, format: .number)
             .font(.system(size: 20, weight: .bold, design: .rounded))
             .widgetCurvesContent()
             .widgetLabel {
                 Gauge(value: progress) {
-                    Text("Done")
+                    Text(.copy("Done"))
                 } currentValueLabel: {
-                    Text("\(entry.completedToday)/\(entry.totalToday)")
+                    Text(.copy("\(entry.completedToday)/\(entry.totalToday)"))
                 }
                 .gaugeStyle(.accessoryLinearCapacity)
             }
@@ -54,7 +54,7 @@ struct RectangularComplicationView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Image(systemName: "checklist")
-                Text("\(entry.incompleteCount) incomplete")
+                Text(.copy("\(entry.incompleteCount) incomplete"))
                     .font(.headline)
             }
 
@@ -95,12 +95,16 @@ struct InlineComplicationView: View {
     var body: some View {
         if let dueDate = entry.nextDueDate {
             Label {
-                Text("\(entry.incompleteCount) todos • Next: \(dueDate, style: .relative)")
+                // 相対日付の `\(_:style:)` は `LocalizedStringKey` 専用の補間なので
+                // `String.LocalizationValue`（`.copy`）では組めない。bundle を明示した
+                // `LocalizedStringKey` 形で書く（catalog の引き先は `.copy` と同じ）。
+                // swiftlint:disable:next ui_copy_needs_module_bundle
+                Text("\(entry.incompleteCount) todos • Next: \(dueDate, style: .relative)", bundle: .module)
             } icon: {
                 Image(systemName: "checklist")
             }
         } else {
-            Label("\(entry.incompleteCount) todos", systemImage: "checklist")
+            Label(.copy("\(entry.incompleteCount) todos"), systemImage: "checklist")
         }
     }
 }
@@ -141,20 +145,20 @@ struct UnavailableComplicationView: View {
     var body: some View {
         switch family {
         case .accessoryInline:
-            Label("Todos —", systemImage: "exclamationmark.triangle")
+            Label(.copy("Todos —"), systemImage: "exclamationmark.triangle")
         case .accessoryRectangular:
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Image(systemName: "exclamationmark.triangle")
-                    Text("Couldn't load")
+                    Text(.copy("Couldn't load"))
                         .font(.headline)
                 }
-                Text("Open the app to retry.")
+                Text(.copy("Open the app to retry."))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
         case .accessoryCorner:
-            Text("—")
+            Text(verbatim: "—")
                 .font(.system(size: 20, weight: .bold, design: .rounded))
                 .widgetCurvesContent()
         default:

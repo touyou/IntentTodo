@@ -41,6 +41,7 @@
 - View は struct 抽出、computed-property View は避ける
 - `@Observable` + `@MainActor`パターン
 - App Intents vs ViewModelの役割分担
+- SPM パッケージの UI コピーと String Catalog（`LocalizedStringResource.copy(_:)` / `Bundle.module` / 抽出の確認方法）
 
 ### [05. Extension とデータ共有](insights/05-extensions-and-data-sharing.md)
 

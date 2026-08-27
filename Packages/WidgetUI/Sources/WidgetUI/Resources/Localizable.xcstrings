@@ -1,0 +1,75 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "%lld remaining" : {
+
+    },
+    "^[%lld more todo](inflect: true)" : {
+
+    },
+    "^[%lld remaining todo](inflect: true)" : {
+
+    },
+    "Add Todo" : {
+
+    },
+    "Add todo titled ${title}" : {
+
+    },
+    "All done!" : {
+
+    },
+    "Complete ${todos}" : {
+
+    },
+    "Couldn't load todos" : {
+
+    },
+    "Delete ${entities}" : {
+
+    },
+    "Delete ${todo}" : {
+
+    },
+    "Delete ${todo} without confirming" : {
+
+    },
+    "Get todo summary" : {
+
+    },
+    "No todos to display" : {
+
+    },
+    "Open ${target}" : {
+
+    },
+    "Open the app to retry." : {
+
+    },
+    "Search for ${query}" : {
+
+    },
+    "Show ${filter} todos" : {
+
+    },
+    "Snooze ${todo}" : {
+
+    },
+    "Snooze ${todo} by 30 minutes" : {
+
+    },
+    "Todos" : {
+
+    },
+    "Toggle completion of ${todo}" : {
+
+    },
+    "Toggle favorite of ${todo}" : {
+
+    },
+    "Update ${todo}" : {
+
+    }
+  },
+  "version" : "1.0"
+}

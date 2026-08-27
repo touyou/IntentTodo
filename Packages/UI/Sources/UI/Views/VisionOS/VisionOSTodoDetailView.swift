@@ -26,11 +26,11 @@ struct VisionOSTodoDetailView: View {
             VisionOSTodoDetailQueryView(targetId: targetId)
         } else {
             ContentUnavailableView(
-                "Todo Not Found",
+                .copy("Todo Not Found"),
                 systemImage: "questionmark.circle",
-                description: Text("This todo may have been deleted.")
+                description: Text(.copy("This todo may have been deleted."))
             )
-            .navigationTitle("Details")
+            .navigationTitle(.copy("Details"))
         }
     }
 }
@@ -63,13 +63,13 @@ private struct VisionOSTodoDetailQueryView: View {
                 .padding(40)
             } else {
                 ContentUnavailableView(
-                    "Todo Not Found",
+                    .copy("Todo Not Found"),
                     systemImage: "questionmark.circle",
-                    description: Text("This todo may have been deleted.")
+                    description: Text(.copy("This todo may have been deleted."))
                 )
             }
         }
-        .navigationTitle("Details")
+        .navigationTitle(.copy("Details"))
     }
 }
 
@@ -95,10 +95,10 @@ private struct VisionOSHeaderSection: View {
 
             HStack(spacing: 12) {
                 if item.isCompleted {
-                    StatusBadge(title: "Completed", systemImage: "checkmark.circle.fill", color: .green, size: .prominent)
+                    StatusBadge(title: .copy("Completed"), systemImage: "checkmark.circle.fill", color: .green, size: .prominent)
                 }
                 if item.isFavorite {
-                    StatusBadge(title: "Favorite", systemImage: "star.fill", color: .yellow, size: .prominent)
+                    StatusBadge(title: .copy("Favorite"), systemImage: "star.fill", color: .yellow, size: .prominent)
                 }
             }
         }
@@ -116,7 +116,7 @@ private struct VisionOSDueDateSection: View {
         // Liquid Glass はナビゲーション層 (Ornament) と主要 surface (Header) に
         // 限定する方針。本文セクションはコンテンツ層なので plain padding で表示。
         VStack(alignment: .leading, spacing: 12) {
-            Text("Due Date")
+            Text(.copy("Due Date"))
                 .font(.headline)
                 .foregroundStyle(.secondary)
 
@@ -188,7 +188,7 @@ private struct VisionOSDescriptionSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Description").font(.headline).foregroundStyle(.secondary)
+            Text(.copy("Description")).font(.headline).foregroundStyle(.secondary)
             Text(description).font(.body)
         }
         .padding(24)
@@ -206,7 +206,7 @@ private struct VisionOSSubtasksSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Subtasks").font(.headline).foregroundStyle(.secondary)
+            Text(.copy("Subtasks")).font(.headline).foregroundStyle(.secondary)
             ForEach(sortedSubtasks, id: \.id) { subtask in
                 HStack {
                     Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
@@ -247,7 +247,7 @@ private struct VisionOSDetailsSection: View {
     var body: some View {
         if hasContent {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Details").font(.headline).foregroundStyle(.secondary)
+                Text(.copy("Details")).font(.headline).foregroundStyle(.secondary)
                 if let formattedDuration {
                     Label(formattedDuration, systemImage: "hourglass").font(.body)
                 }
@@ -275,7 +275,7 @@ private struct VisionOSActionsSection: View {
         HStack(spacing: 20) {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
                 Label(
-                    entity.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                    entity.isFavorite ? .copy("Remove from Favorites") : .copy("Add to Favorites"),
                     systemImage: entity.isFavorite ? "star.slash" : "star"
                 )
             }
@@ -288,19 +288,19 @@ private struct VisionOSActionsSection: View {
             Button(role: .destructive) {
                 isConfirmingDelete = true
             } label: {
-                Label("Delete", systemImage: "trash")
+                Label(.copy("Delete"), systemImage: "trash")
             }
             .buttonStyle(.bordered)
             .tint(.red)
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
             .confirmationDialog(
-                "Delete “\(entity.title)”?",
+                .copy("Delete “\(entity.title)”?"),
                 isPresented: $isConfirmingDelete,
                 titleVisibility: .visible
             ) {
                 Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
-                    Text("Delete")
+                    Text(.copy("Delete"))
                 }
             }
         }

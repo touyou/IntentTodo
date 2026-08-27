@@ -3,6 +3,7 @@
 //  IntentTodo
 //
 
+import Foundation
 import SwiftUI
 import TodoAppIntents
 
@@ -55,18 +56,23 @@ public struct TodoRowView: View {
 
     // MARK: - Private
 
+    /// 読み上げ用のラベル。
+    ///
+    /// 連結ではなく「要素ごとにローカライズして `.list` で並べる」形にする。区切り文字
+    /// (`", "`) と語順はロケール依存なので、`+=` で組むと翻訳できない文が残る。
     private var accessibilityLabel: String {
-        var label = todo.title
+        var parts: [String] = [todo.title]
         if todo.isCompleted {
-            label += ", completed"
+            parts.append(String(localized: .copy("completed")))
         }
         if todo.isFavorite {
-            label += ", favorite"
+            parts.append(String(localized: .copy("favorite")))
         }
         if let dueDate = todo.dueDate {
-            label += ", due \(dueDate.formatted(date: .abbreviated, time: .omitted))"
+            let formatted = dueDate.formatted(date: .abbreviated, time: .omitted)
+            parts.append(String(localized: .copy("due \(formatted)")))
         }
-        return label
+        return parts.formatted(.list(type: .and, width: .narrow))
     }
 }
 

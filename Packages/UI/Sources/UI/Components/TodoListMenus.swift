@@ -22,7 +22,7 @@ public struct FilterPicker: View {
     }
 
     public var body: some View {
-        Picker("Filter", selection: $selection) {
+        Picker(.copy("Filter"), selection: $selection) {
             ForEach(TodoFilter.allCases) { filter in
                 Label(filter.displayName, systemImage: filter.systemImage)
                     .tag(filter)
@@ -40,7 +40,7 @@ public struct SortPicker: View {
     }
 
     public var body: some View {
-        Picker("Sort", selection: $selection) {
+        Picker(.copy("Sort"), selection: $selection) {
             ForEach(TodoSortOrder.allCases) { order in
                 Text(order.displayName).tag(order)
             }
