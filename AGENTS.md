@@ -730,7 +730,7 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/presentation/` - 登壇・発表用のスライド骨子と想定スクリプト（① WWDC 時系列での基本説明 / ② 実践で見えた制約と工夫）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
 - **GitHub issues** - これからやること。#30 実機検証チェックリスト / #56 reminder 本体スキーマの再評価 /
-  #57 GM SDK 到来時の棚卸し / #67 登壇準備 / #68 未採用 API の消化
+  #57 GM SDK 到来時の棚卸し / #67 登壇準備 / #68 未採用 API の消化 / #70 多言語化（ja）
 - `~/Developer/Private/wwdc26-app-intents-samples/` - WWDC26 App Intents 公式サンプル 4 本（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）。**リポジトリ外に置く**（`docs/` 配下だと Xcode がサンプルの `.xcodeproj` を `project.pbxproj` へ書き込む）。取得元と突き合わせ結果は `docs/insights/03-app-intents-core.md` の Phase 9
 
 ## 設計思想の背景
