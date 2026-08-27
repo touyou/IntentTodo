@@ -126,7 +126,9 @@ custom_rules:
   ui_copy_needs_module_bundle:
     name: "UI copy must go through .copy(_:)"
     included: ".*/Packages/(UI|WatchUI|WidgetUI|LiveActivity)/Sources/.*"
-    regex: "(Text|Label|Button|Toggle|TextField|Picker|Section|Menu|LabeledContent|ContentUnavailableView|DatePicker|navigationTitle|accessibilityLabel|confirmationDialog|alert)\\(\\s*\""
+    # 第 1 引数がリテラル直書きの場合と、三項演算子でリテラルを選んでいる場合
+    # （`Text(cond ? "A" : "B")`）の両方を拾う。`.copy(` 形は括弧が挟まるので当たらない。
+    regex: "(Text|Label|Button|Toggle|TextField|Picker|Section|Menu|LabeledContent|ContentUnavailableView|DatePicker|navigationTitle|accessibilityLabel|confirmationDialog|alert)\\(\\s*(\"|[^\"()]*\\?\\s*\")"
     match_kinds: [identifier, string]
     message: "パッケージ内の UI コピーは .copy(\"...\") 経由で Bundle.module の String Catalog を引いてください。"
     severity: error
