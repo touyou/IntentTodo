@@ -368,8 +368,12 @@ App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、*
 
 | API | 役割 | 置き場 | 可用性（SDK 27 実測） |
 |---|---|---|---|
-| `SiriTipView` | **今やった操作**のフレーズを教える | 一覧上端（`SiriTipBanner`）。文脈のある瞬間だけ | iOS / tvOS / watchOS / visionOS。**macOS unavailable**（macCatalyst も） |
-| `ShortcutsLink` | App Shortcut を**一覧して探索**させる | 設定の「Siri & Shortcuts」（`SettingsView`） | iOS / visionOS。**macOS / watchOS は SDK に型が無い**（`#if` が必要、`@available` では足りない） |
+| `SiriTipView` | **今やった操作**のフレーズを教える | iOS / iPadOS の一覧上端（`SiriTipBanner`）。文脈のある瞬間だけ | iOS / tvOS / watchOS / visionOS。**macOS unavailable**（macCatalyst も） |
+| `ShortcutsLink` | App Shortcut を**一覧して探索**させる | iOS / visionOS の設定「Siri & Shortcuts」（`SettingsView`） | iOS / visionOS。**macOS / watchOS は SDK に型が無い**（`#if` が必要、`@available` では足りない） |
+
+> API として使えるプラットフォームと、**このアプリが実際に出しているプラットフォームは違う**。
+> Tip は iOS / iPadOS だけ（visionOS の一覧は `VisionOSTodoListView` で別実装、watchOS は
+> `WatchUI`。どちらも教育を差し込む余白が無い）。macOS は Tip もリンクも出ない。
 
 どちらも SDK 27 で deprecated ではない。ただし **Apple が最後にこの 2 つに触れたのは
 wwdc2022-10169 / 10170 と wwdc2023-10102** で、2024 以降のセッションには一度も出てこない
