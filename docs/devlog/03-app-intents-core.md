@@ -844,3 +844,26 @@ so a donation there would double-count." で、**`perform()` は donate の置�
 
 現在のルールは insights/03「donation は『アプリ UI 起点の操作』だけ」に、想定質問としての形は
 `docs/presentation/02-constraints-and-craft.md` の T21b に書いた。
+
+## 2026-08-27: client state による省略が「壊れたまま復旧しない」を作っていた（#59）
+
+起動時の全件再インデックスを client state で省略する仕組み（2026-08-21 導入）と、差分反映の失敗を
+呼出側に伝えない設計（Spotlight の不調で todo 操作を失敗させない）が組み合わさると、**index が
+壊れた端末が復旧する契機を失う**。client state は差分の成否と無関係に「最新」のままなので、
+次回起動でも省略される。Spotlight / Siri から todo を引けないのに、アプリ内では正常に見える。
+
+#32 のレビューで「失敗カウンタを持って N 回連続失敗したら次回起動で再インデックス」という案が
+挙がっていたものの未対応で残っていた（#59 の残課題 1）。今回入れた形:
+
+- `TodoSpotlightIndex.recordFailure` / `recordSuccess` で連続失敗を数える（閾値 3）
+- 閾値に達したら `needsFullReindex` を立て、`indexAllForSpotlight()` は client state 一致でも
+  省略しない。成功したら要求を降ろす
+- 1 回で倒さないのは、`quotaExceeded` / 一時的な `indexUnavailable` にフル再インデックスを
+  ぶつけても直らないため
+
+判定は `UserDefaults` の読み書きだけなので、テスト用 suite を注入して
+`TodoSpotlightIndexSelfHealingTests` で全分岐を押さえた（実機の Spotlight を壊す必要がない）。
+
+あわせて `TodoService.swift` が 500 行 / 型本体 300 行の SwiftLint 閾値を超えたため、Spotlight
+反映を `TodoService+Spotlight.swift` へ切り出した。`repository` と `inflightSpotlightTasks` は
+呼び手が両ファイルに分かれるため private → internal にしている（理由をコード側にも 1 行残した）。

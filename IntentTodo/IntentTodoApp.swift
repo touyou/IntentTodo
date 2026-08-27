@@ -152,8 +152,15 @@ struct IntentTodoApp: App {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
             if granted {
                 logger.info("Notification permission granted")
+                // 許可が戻ったら過去の取りこぼし記録は消す（設定誘導を出し続けない）。
+                // 既に許可済みの起動でも `requestAuthorization` は true を返すので、
+                // ここが毎起動の回収点になる。
+                MissedFeedback.clear(.notification)
             } else {
-                logger.info("Notification permission denied by user")
+                // 拒否されると Control / Widget から実行した Intent の失敗を伝える
+                // 経路が無くなる（dialog も snippet も出ない）。ここでは催促せず、
+                // 実際に取りこぼした時点で `MissedFeedback` 経由で一覧が設定誘導を出す。
+                logger.warning("Notification permission denied: Control / Widget failures can't be surfaced")
             }
         } catch {
             logger.error("Notification permission request failed: \(error.localizedDescription)")

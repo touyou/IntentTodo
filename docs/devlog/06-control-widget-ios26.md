@@ -331,3 +331,26 @@ if deleteButton.waitForExistence(timeout: 3) { ... XCTAssertFalse(todoCell.exist
 - テストを修正: `testDeleteTodo` の `if` を外して正しいラベルで assert、詳細画面用に `testDeleteTodoFromDetailView` を追加（確認ダイアログ → 削除まで）
 
 **教訓**: `requestConfirmation` / `requestChoice` を含む Intent は、**アプリ内 `Button(intent:)` から呼ぶと失敗する**。対話を伴う Intent は Siri / Shortcuts 専用と考え、UI からは確認なし版を用意して、確認は SwiftUI 側で取る。そして**条件付き assert（`if ... { XCTAssert }`）はテストを書いていないのと同じ**。
+
+## 2026-08-27: 通知が拒否されていると Control の失敗が完全に無音になる（#59）
+
+`ControlNotificationHelper` は「Control の失敗を伝える唯一の経路」として置いてあるが、
+**通知が拒否されている端末ではその経路自体が無言で死ぬ**ことに手当てが無かった（#32 → #59 の
+残課題 2）。`UNUserNotificationCenter.add` の completion は許可が無くても error を返さない
+（システムが黙って捨てる）ため、既存のログでは検出できていなかった。
+
+送信前に `notificationSettings().authorizationStatus` を見る形に変え、出せないと分かったら
+App Group の `UserDefaults` に記録を残すようにした（`MissedFeedback`）。書き手が Control /
+Widget の Extension プロセスになり得るため、プロセスをまたげる置き場が必要だった。
+
+**「設定が無効なら常に出す」ではなく「実際に取りこぼしたときだけ出す」にした**理由: ユーザーが
+意図的に切っている設定を毎回蒸し返すのは、silent failure を直すためにうるさい失敗を作る形になる。
+記録は経路が復活した時点（`requestAuthorization` が `true` を返した起動）でも消すようにして、
+古い記録でバナーが残らないようにした。
+
+同じ器をライブアクティビティ無効時（残課題 3）にも使った。`areActivitiesEnabled == false` の
+無言 return は、ユーザー設定に沿った正常系なので `error` ログにはせず `warning` + 記録に留めている。
+
+副産物: `UNMutableNotificationContent` / `UNNotificationRequest` は `Sendable` ではないので、
+許可確認のために `Task` を挟むと「外で組んで渡す」形が sending 違反になる。content の組み立てごと
+Task の中に移した。

@@ -63,6 +63,51 @@ enum TodoSpotlightIndex {
         }
     }
 
+    // MARK: - 失敗からの自己修復
+
+    /// 連続失敗がこの回数に達したら、次の起動でフル再インデックスをやり直す。
+    ///
+    /// 1 回の失敗で倒さないのは、`quotaExceeded` / 一時的な `indexUnavailable` のような
+    /// その場限りの失敗でフル再インデックスを走らせても直らないため。
+    static let failureThreshold = 3
+
+    private static let failureCountKey = "spotlight.consecutiveFailureCount"
+    private static let needsFullReindexKey = "spotlight.needsFullReindex"
+
+    /// 差分 index（`reindex` / `deindex`）の失敗を記録する。
+    ///
+    /// 差分の失敗は Intent の呼出側には伝えない（Spotlight の不調で todo の操作自体を
+    /// 失敗させるべきではない）ので、放っておくと **index が壊れたまま復旧しない**。
+    /// アプリ内では正常に見え、Spotlight / Siri から引けないことにユーザーは気付けない。
+    /// 閾値に達したら「次回起動でフル再インデックス」の要求を立てる。
+    static func recordFailure(_ defaults: UserDefaults = .standard) {
+        let count = defaults.integer(forKey: failureCountKey) + 1
+        defaults.set(count, forKey: failureCountKey)
+        guard count >= failureThreshold else { return }
+        defaults.set(true, forKey: needsFullReindexKey)
+        logger.error("spotlight failed \(count) times in a row; requesting a full reindex on next launch")
+    }
+
+    /// 差分 index の成功を記録する（連続失敗のカウントを畳む）。
+    static func recordSuccess(_ defaults: UserDefaults = .standard) {
+        guard defaults.integer(forKey: failureCountKey) != 0 else { return }
+        defaults.set(0, forKey: failureCountKey)
+    }
+
+    /// フル再インデックスが要求されているか。
+    ///
+    /// `true` の間は起動時の client state 一致による省略を**行わない**。省略してしまうと
+    /// 「index は壊れているが state は最新」の状態から抜け出せない。
+    static func needsFullReindex(_ defaults: UserDefaults = .standard) -> Bool {
+        defaults.bool(forKey: needsFullReindexKey)
+    }
+
+    /// フル再インデックスの要求を降ろす。成功したときだけ呼ぶ。
+    static func clearFullReindexRequest(_ defaults: UserDefaults = .standard) {
+        defaults.set(false, forKey: needsFullReindexKey)
+        defaults.set(0, forKey: failureCountKey)
+    }
+
     // MARK: - 旧 default index からの移行
 
     private static let purgeFlagKey = "spotlight.legacyDefaultIndexPurged"

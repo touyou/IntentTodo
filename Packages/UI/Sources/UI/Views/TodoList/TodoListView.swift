@@ -24,6 +24,9 @@ public struct TodoListView: View {
     @State private var viewModel = TodoListViewModel()
     /// 集中モードの絞り込み。`TodoFocusFilterIntent` が書き込むと body が再評価される。
     @State private var focusFilterStore = TodoFocusFilterStore.shared
+    /// 通知 / ライブアクティビティが塞がれて伝えられなかった記録。
+    @State private var missedFeedback = MissedFeedbackModel()
+    @Environment(\.scenePhase) private var scenePhase
     @Environment(NavigationModel.self) private var navigationModel
     @Environment(\.modelContext) private var modelContext
 
@@ -77,7 +80,17 @@ public struct TodoListView: View {
             // 一覧が空になる原因が Focus のときも見えている必要があるので、List の中
             // ではなく List の外（上端）に出す。
             .safeAreaInset(edge: .top, spacing: 0) {
-                FocusFilterBanner(store: focusFilterStore)
+                VStack(spacing: 0) {
+                    FocusFilterBanner(store: focusFilterStore)
+                    // 記録の書き手は Extension プロセスにもなり購読できないので、
+                    // 表示のたびと前面復帰のたびに読み直す。
+                    MissedFeedbackBanner(model: missedFeedback)
+                }
+            }
+            .onAppear { missedFeedback.refresh() }
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                missedFeedback.refresh()
             }
             .toolbar {
                 TodoListToolbar(viewModel: $viewModel)
