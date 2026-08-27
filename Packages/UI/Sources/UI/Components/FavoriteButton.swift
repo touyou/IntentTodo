@@ -37,7 +37,7 @@ public struct FavoriteButton: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("favorite_\(todo.id)")
-        .accessibilityLabel(todo.isFavorite ? "Remove from favorites" : "Add to favorites")
+        .accessibilityLabel(todo.isFavorite ? .copy("Remove from favorites") : .copy("Add to favorites"))
     }
 }
 

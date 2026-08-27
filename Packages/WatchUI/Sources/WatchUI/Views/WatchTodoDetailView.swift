@@ -99,7 +99,7 @@ private struct WatchTodoDetailActionsSection: View {
         Group {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
                 Label(
-                    todo.isFavorite ? "Remove Favorite" : "Add Favorite",
+                    todo.isFavorite ? .copy("Remove Favorite") : .copy("Add Favorite"),
                     systemImage: todo.isFavorite ? "star.slash" : "star"
                 )
             }

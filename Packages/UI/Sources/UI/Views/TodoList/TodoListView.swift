@@ -209,14 +209,14 @@ private struct FocusFilterBanner: View {
                 Image(systemName: "moon.fill")
                     .foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(store.isSuspended ? "Focus filter paused" : "Filtered by Focus")
+                    Text(store.isSuspended ? .copy("Focus filter paused") : .copy("Filtered by Focus"))
                         .font(.footnote)
                     FocusFilterConditions(filter: store.filter)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
-                Button(store.isSuspended ? "Apply" : "Show All") {
+                Button(store.isSuspended ? .copy("Apply") : .copy("Show All")) {
                     store.isSuspended.toggle()
                 }
                 .font(.footnote)
