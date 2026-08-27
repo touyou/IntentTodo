@@ -206,14 +206,14 @@ cd Packages/UI && swift test
 
 | フレーズ（代表） | 機能 |
 |---------|------|
-| "Add a todo in IntentTodo" | Todo 追加 |
-| "Show my \<filter\> todos in IntentTodo" | Todo 一覧表示（フィルタ付き） |
-| "Complete \<todo\> in IntentTodo" | 完了切替 |
-| "Star \<todo\> in IntentTodo" | お気に入り切替 |
-| "Delete \<todo\> in IntentTodo" | 削除 |
-| "Snooze \<todo\> in IntentTodo" | スヌーズ |
-| "Toggle urgent todo in IntentTodo" | 最緊急 Todo の完了切替 |
-| "Show todo count in IntentTodo" | 未完了数 |
+| `Add a todo in IntentTodo` | Todo 追加 |
+| `Show my <filter> todos in IntentTodo` | Todo 一覧表示（フィルタ付き） |
+| `Complete <todo> in IntentTodo` | 完了切替 |
+| `Star <todo> in IntentTodo` | お気に入り切替 |
+| `Delete <todo> in IntentTodo` | 削除 |
+| `Snooze <todo> in IntentTodo` | スヌーズ |
+| `Toggle urgent todo in IntentTodo` | 最緊急 Todo の完了切替 |
+| `Show todo count in IntentTodo` | 未完了数 |
 
 ## Claude Code skill として配布
 

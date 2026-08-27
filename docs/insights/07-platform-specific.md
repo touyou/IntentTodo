@@ -284,7 +284,7 @@ Button(intent: OpenAddTodoIntent()) {
 
 | 条件 | 用途 | 代表例 |
 |------|------|--------|
-| `#if os(iOS) \|\| os(visionOS)` | UIKit 依存コード | `@UIApplicationDelegateAdaptor`、`UISceneConfiguration`、`.navigationBarTitleDisplayMode`、`.topBarTrailing` (iOS/iPadOS/visionOS のみ) |
+| `#if os(iOS)` と `os(visionOS)` の OR | UIKit 依存コード | `@UIApplicationDelegateAdaptor`、`UISceneConfiguration`、`.navigationBarTitleDisplayMode`、`.topBarTrailing` (iOS/iPadOS/visionOS のみ) |
 | `#if os(macOS)` | AppKit 依存コード | `@NSApplicationDelegateAdaptor`、`NSApplicationDelegate` |
 | `#if os(iOS)` | ActivityKit など iOS だけの API | `Activity<...>.request`、LiveActivity 関連の全て |
 | `#if !os(visionOS)` | visionOS 非対応の API | `ControlWidget`、`ControlWidgetButton`、`StaticControlConfiguration` |

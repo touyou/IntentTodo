@@ -333,7 +333,7 @@ Intent の実行結果をユーザーに伝える方法は呼出元で見え方�
 データを変える経路は必ず `TodoService` の変更メソッドを通り、そこの `defer { Self.dataDidChange() }` が 2 つの後処理をまとめて行う。**Intent 側には書かない**。
 
 1. `WidgetReloader.reloadAllWidgets()` — `WidgetCenter.shared.reloadAllTimelines()` と `ControlCenter.shared.reloadAllControls()` の**両方**を呼ぶ（ホームウィジェットとコントロールは別 API で、前者だけではコントロールが更新されない）
-2. `AppShortcutParameterUpdater.notifyEntitiesChanged()` — パラメータ入り App Shortcut フレーズ（"Complete \<todo\> in IntentTodo"）の候補をシステムに取り直させる（wwdc2023-10102 9:24）
+2. `AppShortcutParameterUpdater.notifyEntitiesChanged()` — パラメータ入り App Shortcut フレーズ（`Complete <todo> in IntentTodo`）の候補をシステムに取り直させる（wwdc2023-10102 9:24）
 
 ```swift
 // TodoService の変更メソッド

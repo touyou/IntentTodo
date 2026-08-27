@@ -61,7 +61,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `SetFocusFilterIntent` | 集中モード連携 | ✅ | `TodoFocusFilterIntent`（カテゴリ / 急ぎのみ / 完了を隠す） |
 | `WidgetConfigurationIntent` | ウィジェットの設定 Intent | ✅ | `TodoWidgetConfiguration` |
 | `ControlConfigurationIntent` | コントロールの設定 Intent | ✅ | `SelectTodoConfigurationIntent` |
-| `TargetContentProvidingIntent` | シーンへのコンテンツ遷移 | ✅ | `LaunchAppIntent`（`#if os(iOS) \|\| os(visionOS)`） |
+| `TargetContentProvidingIntent` | シーンへのコンテンツ遷移 | ✅ | `LaunchAppIntent`（iOS / visionOS のみ準拠。macOS / watchOS は SDK で unavailable） |
 | `UISceneAppIntent` + `AppIntentSceneDelegate` | cold start でシーンに Intent を届ける | ✅ | `LaunchAppIntent` / `OpenTodoIntent` + `SceneDelegate.applyNavigation()` |
 | `URLRepresentableIntent` | Intent を URL で表現 | ✅ | `OpenTodoIntent`（`OpenIntent` との組み合わせで無償） |
 | `AudioPlaybackIntent` | 再生系 | 🚫 | 再生機能がない |
@@ -158,7 +158,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | API | 一言 | 状態 | このアプリでの扱い |
 |---|---|:--:|---|
 | `AppShortcutsProvider` | フレーズの宣言的登録 | ✅ | `TodoAppShortcuts`（**アプリターゲット直下必須**）。8 件 |
-| フレーズへの `AppEntity` / `AppEnum` 埋め込み | "Complete \<todo\> in …" | ✅ | 8 件中 5 件がパラメータ入り |
+| フレーズへの `AppEntity` / `AppEnum` 埋め込み | `Complete <todo> in <app>` の形 | ✅ | 8 件中 5 件がパラメータ入り |
 | `updateAppShortcutParameters()` | 候補の再取得 | ✅ | `App.init()` + `TodoService.dataDidChange()` から |
 | `shortTitle` / `systemImageName` | iOS 17 以降必須 | ✅ | 全件 |
 | `AppShortcutsProvider.shortcutTileColor` | Shortcuts タイルの色 | ✅ | 設定済み |

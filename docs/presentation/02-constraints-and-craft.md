@@ -477,7 +477,7 @@
 
 | 条件 | 用途 | 代表例 |
 |------|------|--------|
-| `#if os(iOS) \|\| os(visionOS)` | UIKit 依存 | `@UIApplicationDelegateAdaptor`, `TargetContentProvidingIntent` 準拠 |
+| `#if os(iOS)` と `os(visionOS)` の OR | UIKit 依存 | `@UIApplicationDelegateAdaptor`, `TargetContentProvidingIntent` 準拠 |
 | `#if os(macOS)` | AppKit 依存 | `@NSApplicationDelegateAdaptor` |
 | `#if os(iOS)` | ActivityKit | `Activity<...>.request`, `LiveActivityIntent` 準拠 |
 | `#if !os(visionOS)` | visionOS 非対応 API | `ControlWidget`, `ControlWidgetButton`, `ControlCenter` |

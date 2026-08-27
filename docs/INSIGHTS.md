@@ -74,7 +74,7 @@
 - macOS native 対応: `@UIApplicationDelegateAdaptor` / `@NSApplicationDelegateAdaptor` の `#if` 分岐 + `NotificationHandler` 共通化
 - LiveActivity: `LiveActivityIntent` vs `AppIntent`、`.task(id:)` を使った監視 Modifier
 - Widget: `Button(intent:)` 統合と `Link(destination:)` 公式推奨
-- プラットフォームガード指針 (`#if os(iOS) \|\| os(visionOS)` / `#if !os(visionOS)` / `#if os(macOS)` の使い分け)
+- プラットフォームガード指針 (`#if os(iOS) || os(visionOS)` / `#if !os(visionOS)` / `#if os(macOS)` の使い分け)
 - `#Predicate` の Optional 比較回避
 - `Button(intent:role:)` の引数順 (`role:` が先)
 
