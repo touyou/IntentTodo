@@ -580,28 +580,46 @@ public enum TodoFilterType: String, AppEnum {
 - **Entity は `@Dependency` を使えない**。Apple 公式: 「dependency injection は main app から *intent* へデータを渡すためだけに使える」。`EntityQuery` では使えるが `AppEntity` では `Unknown attribute 'Dependency'` になる。→ 共有 `ModelContainer` を App 起動時に `TodoEntityStore`（`@MainActor enum` の static）へ登録し、deferred getter から参照する（Apple サンプルの ambient `modelData` パターン相当）。
 - **プロパティマクロは非 `Hashable` な `EntityProperty` backing を生成する**ため `Hashable` / `Equatable` の自動合成が壊れる。→ `==` / `hash(into:)` を明示実装（id ベースの hash + スナップショット比較の等価）。
 
-### Intent Modes: `.foreground(.dynamic)` + `continueInForeground`
+### Intent Modes: `.foreground(.dynamic)` は使っていない（適所なし）
 
-`ShowTodosIntent` を `[.background, .foreground(.dynamic)]` にし、background 優先で実行。
+`.foreground(.dynamic)` + `continueInForeground` は「背景で走らせ、必要になったら前面に
+引き上げる」ための API（deprecated な `ForegroundContinuableIntent` の後継）。**本アプリでは
+採用していない**。API を把握した上での不採用なので、理由を残す。
 
 ```swift
+// 採用していない形
 public static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
 
 func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog {
     let entities = try todoService.listTodos(filter: filter)
     if systemContext.currentMode.canContinueInForeground {
-        do {
-            try await continueInForeground(alwaysConfirm: false)
-            navigationModel.navigateToRoot()
-        } catch { /* foreground 拒否 → background のまま */ }
+        try? await continueInForeground(alwaysConfirm: false)
+        navigationModel.navigateToRoot()
     }
     return .result(value: entities, dialog: dialog(for: entities))
 }
 ```
 
-- `.foreground(.dynamic)` は deprecated な `ForegroundContinuableIntent` の後継。
-- **`OpensIntent` 返却は dynamic background と矛盾する**（常にアプリを開いてしまう）。foreground 遷移は `continueInForeground()` 成功後に `NavigationModel` で直接行い、`OpensIntent` は使わない。
-- 「アプリを開く」専用 Intent（`LaunchAppIntent`）は `.foreground(.immediate)` を維持する。dynamic にしない。
+**`OpensIntent` と両立しない**のが判断の中心。`OpensIntent` は返り値の型に現れるので
+「条件によっては開かない」を表現できず、dynamic を使うなら Intent 合成
+（`ShowTodosIntent` → `LaunchAppIntent`）を外して `NavigationModel` 直叩きに替える必要がある。
+一度その形を入れて revert した（`93d0230` → `cab8e67`）。
+
+**代わりに埋まっている手段**（2026-08-27 に全 21 intent を見直して確認）:
+
+| やりたいこと | 使っている手段 |
+|------------|--------------|
+| アプリの該当画面へ送る | `OpensIntent` + `LaunchAppIntent`（`.foreground(.immediate)`）の Intent 合成 |
+| 実行中に選ばせる / 確認を取る | `requestChoice`（`SnoozeTodoIntent`）/ `requestConfirmation`（`DeleteTodoIntent`） |
+| 結果を読ませる / 見せる | `IntentDialog(full:supporting:)` + `snippetIntent:` |
+| 時間のかかる一括処理 | `LongRunningIntent` + `CancellableIntent`（`CompleteTodosIntent`） |
+
+残るのは「背景で始めて、途中で前面が必要になる」形だが、**このアプリの 21 intent にその形の
+操作が無い**（todo の CRUD はパラメータが揃っていれば背景で完結し、揃わないケースは
+パラメータ解決 / `requestChoice` が拾う）。`.foreground(.dynamic)` に当て先ができるのは、
+たとえば「途中でカメラや地図のような別 UI を出さないと完了できない操作」が生えたとき。
+
+経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)（2026-08-27 の #55）
 
 ### Onscreen Entities（画面コンテンツを Siri / Apple Intelligence に提供）
 
