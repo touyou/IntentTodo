@@ -162,7 +162,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `updateAppShortcutParameters()` | 候補の再取得 | ✅ | `App.init()` + `TodoService.dataDidChange()` から |
 | `shortTitle` / `systemImageName` | iOS 17 以降必須 | ✅ | 全件 |
 | `AppShortcutsProvider.shortcutTileColor` | Shortcuts タイルの色 | ✅ | 設定済み |
-| `AppShortcuts.xcstrings` | フレーズのローカライズ | ⬜ | **UI コピーは catalog 化済みなのにフレーズだけ英語のまま**。一番目立つ穴（#68） |
+| `AppShortcuts.xcstrings` | フレーズのローカライズ | ⏸ | **アプリ全体が英語のみ**（`knownRegions` は `en, Base`、4 パッケージ catalog の翻訳実体は 0 件）。フレーズだけ訳しても英語の Intent が英語で応答するので単体では成立しない。ja 対応エピック **#70** の最終工程。加えて schema 適合した Intent はフレーズも訓練も Apple 側が持つため訳す対象に入らない（wwdc2026-8011 `59:03`） |
 | negative phrases API | 特定フレーズに反応させない | ⏸ | 誤爆の報告がないので未着手 |
 | `SiriTipView` | アプリ内でフレーズを見せる | ✅ | `TodoListView`（macOS は SDK で unavailable） |
 | `ShortcutsLink` | Shortcuts アプリへの導線 | ⬜ | `SiriTipView` と対になる導線が空いている（#68） |
@@ -237,12 +237,15 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 
 着手判断は **#68** で行う。理由と前提は各行の「このアプリでの扱い」列に書いてある。
 
-1. `AppShortcuts.xcstrings` — フレーズのローカライズ。UI コピーだけ多言語で入口が英語のままなのは一番目立つ
-2. `ShortcutsLink` — `SiriTipView` の対になる導線
-3. `.controlWidgetStatus(_:)` — Control のフィードバック経路がもう 1 本増える可能性
-4. `Toggle(isOn:intent:)` — 完了切り替えの意味論に合う
-5. `invalidatableContent()` / `SnippetIntent.reload()` — 表示の追随
-6. `RelevantIntent` — donation なしで成立する提案経路
-7. visionOS ウィジェット強化（`supportedMountingStyles` / `widgetTexture` / `levelOfDetail`）
+1. `ShortcutsLink` — `SiriTipView` の対になる導線
+2. `.controlWidgetStatus(_:)` — Control のフィードバック経路がもう 1 本増える可能性
+3. `Toggle(isOn:intent:)` — 完了切り替えの意味論に合う
+4. `invalidatableContent()` / `SnippetIntent.reload()` — 表示の追随
+5. `RelevantIntent` — donation なしで成立する提案経路
+6. visionOS ウィジェット強化（`supportedMountingStyles` / `widgetTexture` / `levelOfDetail`）
 
 ブロック中のものは #56（reminder 本体スキーマ）/ #57（GM SDK 棚卸し）。
+
+`AppShortcuts.xcstrings` はこのリストから外した（長く 1 位に置いていたが前提が事実と違った）。
+アプリ全体が英語のみでフレーズだけ訳しても成立せず、ja 対応を通しでやる **#70** の最終工程になる。
+経緯: [docs/devlog/2026-08-28-appshortcuts-localization-reeval.md](devlog/2026-08-28-appshortcuts-localization-reeval.md)

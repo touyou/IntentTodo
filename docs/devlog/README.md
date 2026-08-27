@@ -29,6 +29,7 @@
 - [2026-08-11-constraint-recheck.md](2026-08-11-constraint-recheck.md) — WWDC 書き起こし全数突き合わせによる制約の再検証セッション（そのもの自体が調査ログ）
 - [2026-08-25-layering-vs-clean-architecture.md](2026-08-25-layering-vs-clean-architecture.md) — 「UseCase 層は廃止」という説明をやめ、Layered / Clean Architecture との対比を明文化した経緯
 - [2026-08-28-docs-role-split.md](2026-08-28-docs-role-split.md) — docs の残タスクを issue に逃がし、「現在のルール / 経緯 / 残タスク」の三分割に整理した経緯（+ そのとき見つかった古い記述の訂正一覧）
+- [2026-08-28-appshortcuts-localization-reeval.md](2026-08-28-appshortcuts-localization-reeval.md) — `AppShortcuts.xcstrings` を最優先の穴から降格した経緯（「catalog 化済み」を多言語化済みと誤読していた件 + schema とフレーズの関係）
 - [insights-changelog.md](insights-changelog.md) — `docs/INSIGHTS.md` / `insights/` 構成の再編履歴
 
 ## 運用方針

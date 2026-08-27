@@ -120,13 +120,14 @@ Onscreen Entities（単一 / コレクション）、Intent Modes（`.background
 
 ### 次に効きそうな方向
 
-1. **入口の多言語化** — `AppShortcuts.xcstrings` でフレーズをローカライズする。UI コピーは
-   全パッケージで String Catalog 化済みなのに、Siri フレーズだけ英語のまま
-2. **アプリ内の発見性** — `SiriTipView` は入れてあるので、`ShortcutsLink` で Shortcuts アプリへの導線を足す
-3. **フィードバック経路の拡張** — Control は dialog も snippet も出ないため、`.controlWidgetStatus(_:)` が
+1. **アプリ内の発見性** — `SiriTipView` は入れてあるので、`ShortcutsLink` で Shortcuts アプリへの導線を足す
+2. **フィードバック経路の拡張** — Control は dialog も snippet も出ないため、`.controlWidgetStatus(_:)` が
    実際に出るなら通知に頼らない経路が 1 本増える
-4. **提案** — `RelevantIntent` は donation なしで成立する（`PredictableIntent` は donation ゼロだと出ない）
-5. **visionOS ウィジェット強化** — `supportedMountingStyles` / `widgetTexture` / `levelOfDetail`
+3. **提案** — `RelevantIntent` は donation なしで成立する（`PredictableIntent` は donation ゼロだと出ない）
+4. **visionOS ウィジェット強化** — `supportedMountingStyles` / `widgetTexture` / `levelOfDetail`
+5. **多言語化（ja）** — `knownRegions` / 4 パッケージ catalog / Intent コピーの bundle 決定 /
+   `AppShortcuts.xcstrings` を通しでやる（#70）。**現状はアプリ全体が英語のみ**で、catalog は
+   「抽出できる状態」であって翻訳の実体は無い。フレーズだけ訳す形では成立しない
 
 ### 対象外と決めたもの
 
