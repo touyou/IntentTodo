@@ -127,7 +127,7 @@
     （`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)` で素の `AppEntity`/`AppEnum`
     にフォールバック、`ShowTodoSearchResultsIntent`（`.system.searchInApp`, #47）は `#if !os(watchOS)` で除外。
     watchOS はスキーマルーティング非使用のため機能損失なし。
-  - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**（#48 で優先度再考 → 据え置き）。
+  - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**（#48 で優先度再考 → 据え置き。再評価は **#56**）。
     **2026-08-12 に要求仕様を probe で全部洗い出した**（要求プロパティ・型・optional 可否・入れ子の
     `locationTrigger` / `locationTriggerEvent`。probe はビルドが通る形まで到達）。据え置き理由だった
     「マクロ生成 init が `EntityProperty<T>` 引数を要求して自前 init と衝突する」は**誤り**で、マクロは
@@ -237,7 +237,7 @@
 
 | 候補 | 何が得られるか | 見送っている理由 / 前提 |
 |------|--------------|----------------------|
-| `SpotlightSearchTool` + `LanguageModelSession`（#246） | 自分の todo に対する会話型検索（RAG） | 前提の「Spotlight への entity 寄付」は済んでいる（`TodoSpotlightIndex`）。**残りは FoundationModels の導線と UI** なので独立タスク向き（FoundationModels は本計画のスコープ外） |
+| `SpotlightSearchTool` + `LanguageModelSession`（wwdc2026-246、追跡: **#52**） | 自分の todo に対する会話型検索（RAG） | 前提の「Spotlight への entity 寄付」は済んでいる（`TodoSpotlightIndex`）。**残りは FoundationModels の導線と UI** なので独立タスク向き（FoundationModels は本計画のスコープ外） |
 | `requestValue` | Siri で不足パラメータを能動的に聞く | 非 optional パラメータはシステムが自動で聞き返すため、現状の Intent 構成では出番が薄い |
 | `EntityPropertyQuery` | Shortcuts の Find を自前実装 | **不要**。`EnumerableEntityQuery` が Find と絞り込みを自動生成する。必要になるのは "many thousands of entities" 規模（上の Phase 1 の記述参照） |
 | `relatedAppEntityIdentifier` | 子アイテム（添付等）を親 entity に紐づけ | todo に子の searchable item が無いので対象なし |
@@ -251,8 +251,8 @@ WWDC26 サンプル（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample�
 
 | 候補 | 何が得られるか | 見送っている理由 / 前提 |
 |------|--------------|----------------------|
-| UI タップ由来の donation の再導入 | Siri の予測 / 提案の質。`perform()` 内 donate は規約違反なので 2026-08-21 に撤去し、**現在 donation はゼロ** | 本アプリは UI も `Button(intent:)` で Intent を走らせるため、CometCal の `donateIntent:` フラグ方式も CosmoTunes の UI タップ地点方式も直接は当てはまらない。`AppIntent.callAsFunction(donate:)` で一部 UI 経路を直接実行に変える判断が要る（2026-08-22 に改めて見送りを選択）。**「Intent に呼出元フラグを持たせる」案は 2026-08-26 に却下**（素のプロパティは実行プロセスに届かず、`@Parameter` にすると Siri / Shortcuts から立てられる。そもそも `perform()` は donate の置き場所ではない）|
-| watchOS の onscreen annotation | 「これ」の解決を watchOS でも成立させる | visionOS は 2026-08-22 に対応済み。watchOS は Siri 連携そのものの優先度判断が先 |
+| UI タップ由来の donation の再導入（追跡: **#53**） | Siri の予測 / 提案の質。`perform()` 内 donate は規約違反なので 2026-08-21 に撤去し、**現在 donation はゼロ** | 本アプリは UI も `Button(intent:)` で Intent を走らせるため、CometCal の `donateIntent:` フラグ方式も CosmoTunes の UI タップ地点方式も直接は当てはまらない。`AppIntent.callAsFunction(donate:)` で一部 UI 経路を直接実行に変える判断が要る（2026-08-22 に改めて見送りを選択）。**「Intent に呼出元フラグを持たせる」案は 2026-08-26 に却下**（素のプロパティは実行プロセスに届かず、`@Parameter` にすると Siri / Shortcuts から立てられる。そもそも `perform()` は donate の置き場所ではない）|
+| watchOS の onscreen annotation（追跡: **#54**） | 「これ」の解決を watchOS でも成立させる | visionOS は 2026-08-22 に対応済み。watchOS は Siri 連携そのものの優先度判断が先 |
 
 > 上表のうち `UndoableIntent` / Spotlight client state バッチ / `synonyms:` / `displayRepresentations(for:)` /
 > `findIntentDescription` / `shortcutTileColor` / エラー文言 / inflection / visionOS の onscreen annotation /
@@ -284,7 +284,7 @@ WWDC26 サンプル（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample�
 > **既知の SDK 制約（beta 5 時点で未解消）**: `PlaceDescriptor` の SSU training バグ（`@Parameter`/`@Property` を
 > `String` へ退避するワークアラウンド継続中）と、watchOS での `reminders`/`system` assistant schema unavailable
 > （フォールバック継続中）。SDK 更新時は `35d772f` を revert + DerivedData クリア後クリーンビルドで再検証する
-> （SSU タスクは incremental ビルドだと stale エラーを再表示するため要注意）。
+> （SSU タスクは incremental ビルドだと stale エラーを再表示するため要注意）。GM SDK 到来時の棚卸しは **#57** で追跡。
 > 経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
 
 ## availability 方針
