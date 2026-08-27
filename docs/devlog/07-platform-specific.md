@@ -114,3 +114,53 @@ test-results tests --path <xcresult>` で読む。
 **もう 1 つ見つけたもの**: `WatchTodoDetailView` は**どこからも到達できない**（watch アプリは
 `WatchTodoListView` だけを出し、行は `Button(intent:)` で完了トグル。詳細への遷移が無い）。
 annotation は付けたが、現状は死んだ画面に付いている状態。→ #63 で追跡。
+
+## 2026-08-27: watch では Todo 追加が無音で失敗していた（#63 の副産物）
+
+#63（`WatchTodoDetailView` がどこからも到達できない）を検討する前に、依存関係を追っていて
+**もっと重い実害**が出た。
+
+`AddTodoIntent.perform()` は最後に `navigationModel.dismissAddTodo()` を呼ぶ。しかし
+`NavigationModel` を `AppDependencyManager` に登録していたのは iOS/macOS アプリだけで、
+watch アプリは `ModelContainer` と `TodoService` しか登録していなかった。`AddTodoIntent` は
+`allowedExecutionTargets = [.main]` なので watch では **watch アプリのプロセス**で走る。
+
+watchOS シミュレータ（watchOS 27）で実際に「追加 → タイトル入力 → Add」まで操作して確認した:
+
+```
+AddTodoIntent failed to execute with error: Failed to retrieve dependency of type NavigationModel.
+Please register your dependency with AppDependencyManager before performing a dependent intent.
+```
+
+- **クラッシュではない**（`fatalError` ではなく Intent 実行の失敗）
+- したがって画面は何も変わらず、エラー表示も出ない。**watch から Todo を追加する手段が
+  まったく無い**状態が、気づかれずに残っていた
+- #30 のチェックリストに「`WatchAddTodoView` で新規 Todo 追加 →`Button(intent:)` 経由
+  （`@Dependency` 解決クラッシュしないか）」という未チェック項目が残っていて、まさにここだった。
+  既存の watch UI テストは「追加画面へ遷移してボタンがあること」までしか見ていない
+  （watchOS シミュレータの `typeText` が不安定なため）ので一度も踏まれていなかった
+
+教訓を `AGENTS.md` の `@Dependency` 節に書いた: **登録漏れはクラッシュではなく無音の失敗**。
+そして「同じパッケージが全ターゲットにリンクされる」ので、プラットフォームごとに Intent の集合が
+変わらないことを忘れやすい。
+
+## 2026-08-27: #63 は「watch に詳細画面の導線を作る」で決着
+
+`WatchTodoDetailView` は実装済みだが到達不能、という中間状態の解消。**画面としては watch に必須
+ではない**（本質は「見る」「完了する」で両方一覧にある）が、上記のとおり watch にも
+`NavigationModel` を入れる必要があり、入れると `OpenTodoIntent`（`OpenIntent` = 「この entity を
+開く」）の遷移先が要る。「開く先が無いのに Open 系 Intent が居る」ほうが矛盾が大きいので、
+導線を作る側（案 A）を選んだ。
+
+行のタップ先を 2 つに分けた（純正リマインダー watch と同じ: 丸 = 完了 / 行 = 詳細）。
+watchOS シミュレータで一連の流れを実操作して確認済み:
+
+1. 追加（シート → `AddTodoIntent` → 自動クローズ）← **修正前は無音で失敗**
+2. 行の丸 = 完了トグル
+3. 行本体 = 詳細へ遷移
+4. 詳細の完了トグル
+5. 詳細の削除（確認ダイアログ → 削除 → 一覧へ自動 pop）
+
+未確認は `OpenTodoIntent` 経由の遷移だけ（watchOS では AppIntentsTesting の `run()` が 4025 で
+落ちるため自動化できず、Siri / Shortcuts での手動確認は #30）。積む値も経路も一覧の
+`NavigationLink` と同じなので、構造上は同じ入口を通る。

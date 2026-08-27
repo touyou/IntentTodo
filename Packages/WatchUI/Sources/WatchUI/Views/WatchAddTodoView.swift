@@ -3,17 +3,12 @@
 //  WatchUI
 //
 
-import Domain
-import SwiftData
 import SwiftUI
 import TodoAppIntents
 
 /// View for adding a new todo on watchOS.
 public struct WatchAddTodoView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Query private var todoItems: [TodoItem]
     @State private var title = ""
-    @State private var baselineCount = 0
 
     public init() {}
 
@@ -37,9 +32,8 @@ public struct WatchAddTodoView: View {
             .accessibilityIdentifier("addButton")
         }
         .navigationTitle(.copy("New Todo"))
-        .task { baselineCount = todoItems.count }
-        .onChange(of: todoItems.count) { _, newValue in
-            if newValue > baselineCount { dismiss() }
-        }
+        // シートを閉じるのは `AddTodoIntent` の完了時（`dismissAddTodo()` →
+        // `NavigationModel.showingAddTodo`）。件数差分で閉じる形は、他デバイスや
+        // ウィジェットからの追加で誤クローズするため使わない（iOS 側と同じ理由）。
     }
 }
