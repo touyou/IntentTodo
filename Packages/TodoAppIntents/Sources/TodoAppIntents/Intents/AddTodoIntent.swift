@@ -33,6 +33,9 @@ public struct AddTodoIntent: AppIntent {
     /// その時点で `.foreground(.dynamic)` を足す。
     public static var supportedModes: IntentModes { .background }
 
+    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
+
     public static var parameterSummary: some ParameterSummary {
         Summary("Add todo titled \(\.$title)")
     }
@@ -51,6 +54,27 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Mark as Favorite", description: "Whether to mark as favorite", default: false)
     public var isFavorite: Bool
 
+    /// Estimated time to complete. Uses the App Intents native `Duration` type
+    /// (WWDC 2026) so Siri / Shortcuts present a proper duration picker.
+    @Parameter(title: "Estimated Duration", description: "Estimated time to complete")
+    public var estimatedDuration: Duration?
+
+    /// Person to assign the todo to. Uses the App Intents native
+    /// `PersonNameComponents` type (WWDC 2026) so Siri can resolve a name.
+    @Parameter(title: "Assignee", description: "Person responsible for the todo")
+    public var assignee: PersonNameComponents?
+
+    /// Location associated with the todo.
+    ///
+    /// NOTE: Xcode 27 beta 3 の AppIntentsSSUTraining（"Generate SSU asset files"）は、
+    /// `PlaceDescriptor` を @Parameter にすると裏側のシステム Entity 型名
+    /// `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、ドットを
+    /// 含むため正規表現 `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちてエラーを emit する
+    /// (ローカルは exit 0 だが Xcode Cloud は失敗扱い、SDK 側バグの可能性大)。
+    /// 暫定で場所名の String に退避している。SDK 修正後に `PlaceDescriptor?` へ戻す。
+    @Parameter(title: "Location", description: "Place associated with the todo")
+    public var location: String?
+
     // MARK: - Dependencies
 
     @Dependency
@@ -68,29 +92,55 @@ public struct AddTodoIntent: AppIntent {
         title: String,
         todoDescription: String? = nil,
         dueDate: Date? = nil,
-        isFavorite: Bool = false
+        isFavorite: Bool = false,
+        estimatedDuration: Duration? = nil,
+        assignee: PersonNameComponents? = nil,
+        location: String? = nil
     ) {
         self.title = title
         self.todoDescription = todoDescription
         self.dueDate = dueDate
         self.isFavorite = isFavorite
+        self.estimatedDuration = estimatedDuration
+        self.assignee = assignee
+        self.location = location
     }
 
     // MARK: - Perform
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
+    public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> & ProvidesDialog & ShowsSnippetIntent {
         let entity = try todoService.create(
             title: title,
             todoDescription: todoDescription,
             dueDate: dueDate,
-            isFavorite: isFavorite
+            isFavorite: isFavorite,
+            estimatedDuration: estimatedDuration.map { Double($0.components.seconds) },
+            assigneeName: assignee.map { PersonNameComponentsFormatter().string(from: $0) },
+            locationName: location.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .flatMap { $0.isEmpty ? nil : $0 },
+            locationLatitude: nil,
+            locationLongitude: nil
         )
         // UI から呼ばれた場合は Add シートを閉じる。Siri / Shortcuts / Widget から
         // 呼ばれた場合は元から閉じているので no-op。@Query の件数差分でシートを
         // 閉じていた旧実装は他デバイス / Widget からの追加で誤クローズしたため、
         // Intent 完了 = シート閉じるという 1 対 1 対応に集約した。
         navigationModel.dismissAddTodo()
-        return .result(value: entity)
+
+        // ここで donate しない。公式 (Donations and discovery): "Restrict your donations to
+        // direct interactions with your app's interface, and not to interactions started by
+        // Siri or the Shortcuts app". `perform()` は呼出元を判別できないため、ここでの donate は
+        // Siri / Shortcuts 経由でも必ず走ってしまう。
+        // 詳細: docs/insights/03-app-intents-core.md
+
+        // WWDC 2026: Siri / Shortcuts から呼ばれた場合は作成した Todo を
+        // インタラクティブスニペットで提示し、その場で完了 / お気に入り操作を
+        // 可能にする。UI Button(intent:) 経由ではスニペット / dialog は表示されない。
+        return .result(
+            value: entity,
+            dialog: IntentDialog("Added \"\(entity.title)\"."),
+            snippetIntent: TodoSnippetIntent(todoId: entity.id)
+        )
     }
 }

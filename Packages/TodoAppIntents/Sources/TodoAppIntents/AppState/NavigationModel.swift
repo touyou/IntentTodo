@@ -2,8 +2,8 @@
 //  NavigationModel.swift
 //  TodoAppIntents
 //
-//  Single source of truth for app navigation state.
-//  Replaces NavigationViewModel — lives here so Intents can access it via @Dependency.
+//  Single source of truth for app navigation state. Lives in this package so
+//  Intents can reach it via @Dependency.
 //
 //  Register in App.init():
 //    let nav = NavigationModel()
@@ -32,6 +32,20 @@ public final class NavigationModel {
     /// Currently selected todo in NavigationSplitView layouts (visionOS, macOS).
     /// Stack-based platforms (iOS/iPadOS/watchOS) use `path` instead and leave this nil.
     public var selectedTodo: TodoAppEntity?
+
+    /// A search term an intent wants the list to apply. The list view observes
+    /// this, copies it into its `.searchable` field, then clears it back to nil.
+    /// Drives `ShowTodoSearchResultsIntent` (`.system.searchInApp`, WWDC 2026 #343/#47).
+    public var pendingSearchText: String?
+
+    /// A list filter an intent wants the list to apply. Same handshake as
+    /// ``pendingSearchText``: the list view copies it into its own filter state,
+    /// then clears it back to nil.
+    ///
+    /// Drives `LaunchAppIntent`'s list targets, so opening the app from the Todo
+    /// Count control lands on exactly the todos the number referred to — rather
+    /// than just opening the app.
+    public var pendingFilter: TodoFilterType?
 
     // MARK: - Initialization
 
@@ -69,6 +83,18 @@ public final class NavigationModel {
     /// Shows the add todo sheet.
     public func showAddTodo() {
         showingAddTodo = true
+    }
+
+    /// Navigates to the root list and asks it to run an in-app search for `term`.
+    public func showSearch(matching term: String) {
+        navigateToRoot()
+        pendingSearchText = term
+    }
+
+    /// Navigates to the root list and asks it to show only todos matching `filter`.
+    public func showList(filter: TodoFilterType) {
+        navigateToRoot()
+        pendingFilter = filter
     }
 
     /// Dismisses the add todo sheet.

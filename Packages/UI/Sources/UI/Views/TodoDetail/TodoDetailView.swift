@@ -3,6 +3,7 @@
 //  IntentTodo
 //
 
+import AppIntents
 import Domain
 import SwiftData
 import SwiftUI
@@ -86,6 +87,10 @@ private struct TodoDetailQueryView: View {
 // MARK: - Detail Content
 
 private struct TodoDetailContent: View {
+    /// Activity type advertised to Siri / Apple Intelligence as onscreen content.
+    /// Must match the `NSUserActivityTypes` entry in the app's Info.plist.
+    private static let viewingTodoActivityType = "dev.touyou.IntentTodo.ViewingTodo"
+
     let todo: TodoItem
 
     private var entity: TodoAppEntity { TodoAppEntity(from: todo) }
@@ -125,6 +130,13 @@ private struct TodoDetailContent: View {
         #if os(visionOS)
         .listStyle(.plain)
         #endif
+        // Onscreen Entities (WWDC 2026): advertise the visible todo to Siri /
+        // Apple Intelligence so the person can ask about "this" todo. The
+        // association is cleared automatically when the view goes away.
+        .userActivity(Self.viewingTodoActivityType) { activity in
+            activity.title = String(localized: "Viewing \(todo.title)")
+            activity.appEntityIdentifier = EntityIdentifier(for: entity)
+        }
     }
 }
 
@@ -234,11 +246,11 @@ private struct TodoDetailTimeRemainingLabel: View {
 
     /// `DateComponentsFormatter` はインスタンス生成が高価なため、共有 formatter を使う。
     private static let formatter: DateComponentsFormatter = {
-        let f = DateComponentsFormatter()
-        f.allowedUnits = [.day, .hour, .minute]
-        f.unitsStyle = .abbreviated
-        f.maximumUnitCount = 2
-        return f
+        let formatter = DateComponentsFormatter()
+        formatter.allowedUnits = [.day, .hour, .minute]
+        formatter.unitsStyle = .abbreviated
+        formatter.maximumUnitCount = 2
+        return formatter
     }()
 
     private static func format(_ interval: TimeInterval) -> String {
@@ -275,6 +287,13 @@ private struct TodoDetailSubtasksSection: View {
 private struct TodoDetailMetadataSection: View {
     let todo: TodoItem
 
+    /// 秒で保持された所要時間を "1h 30m" 形式へ整形する。
+    private var formattedDuration: String? {
+        guard let seconds = todo.estimatedDuration, seconds > 0 else { return nil }
+        return Duration.seconds(seconds)
+            .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
+    }
+
     var body: some View {
         Group {
             LabeledContent("Created") {
@@ -293,6 +312,24 @@ private struct TodoDetailMetadataSection: View {
                     }
                 }
             }
+            // WWDC 2026 で追加した属性 (所要時間 / 担当者 / 場所) を表示。
+            // 値は Created/Modified と同じく plain Text に揃える (Label を value に
+            // 置くと行が縦に間延びするため)。
+            if let formattedDuration {
+                LabeledContent("Estimated Duration") {
+                    Text(formattedDuration)
+                }
+            }
+            if let assignee = todo.assigneeName, !assignee.isEmpty {
+                LabeledContent("Assignee") {
+                    Text(assignee)
+                }
+            }
+            if let location = todo.locationName, !location.isEmpty {
+                LabeledContent("Location") {
+                    Text(location)
+                }
+            }
         }
         .font(.subheadline)
         .foregroundStyle(.secondary)
@@ -304,6 +341,8 @@ private struct TodoDetailMetadataSection: View {
 private struct TodoDetailActionsSection: View {
     let entity: TodoAppEntity
 
+    @State private var isConfirmingDelete = false
+
     var body: some View {
         Group {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
@@ -313,9 +352,25 @@ private struct TodoDetailActionsSection: View {
                 )
             }
 
-            Button(role: .destructive, intent: DeleteTodoIntent(todo: entity)) {
+            // 確認はアプリ側で取る。`DeleteTodoIntent` の `requestConfirmation` は
+            // アプリ内ボタンからだと提示する面が無く失敗するため、確認後に
+            // 確認なし版の Intent を実行する。
+            Button(role: .destructive) {
+                isConfirmingDelete = true
+            } label: {
                 Label("Delete Todo", systemImage: "trash")
             }
+            .accessibilityIdentifier("deleteTodoButton")
+        }
+        .confirmationDialog(
+            "Delete “\(entity.title)”?",
+            isPresented: $isConfirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
+                Text("Delete")
+            }
+            .accessibilityIdentifier("confirmDeleteTodoButton")
         }
     }
 }

@@ -2,11 +2,18 @@
 # Swift API Design Guidelines準拠
 
 # 除外パス
+#
+# `.build` は各 SPM パッケージの直下にも掘られる（`Packages/Domain/.build/...` に
+# SwiftPM 生成の `test_entry_point.swift` などが入る）ため、ルート直下だけでなく
+# 全階層を除外する。
 excluded:
-  - .build
+  - "**/.build"
   - DerivedData
   - Packages/**/Tests
   - docs/references
+  # ターゲットに属さないアイコン生成スクリプト（`swift render.swift` で直接実行する
+  # 使い捨てツール）。アプリのコード規約を適用する対象ではない。
+  - AppIcon-Assets
 
 # 有効化するオプトインルール
 opt_in_rules:
@@ -183,9 +190,18 @@ modifier_order:
     - owned
 
 # ファイルヘッダー
+#
+# 3 行目は Xcode の標準テンプレートどおり「そのファイルが属するターゲット / モジュール名」。
+# 本リポジトリは機能の大半を SPM パッケージに置いているため、ここは `IntentTodo` だけでなく
+# `TodoAppIntents` / `UI` / `WatchUI` などにもなる（150 ファイル中 90 件超がアプリターゲット外）。
+# 固定文字列にすると、規約に合わせるほどヘッダーが実態と食い違う。
+#
+# `Package.swift` だけは別形。SwiftPM のマニフェストは 1 行目が
+# `// swift-tools-version:` でなければならない（それより前に行を置くとツールバージョンを
+# 読めずビルドが失敗する）ので、Xcode 形式のヘッダーは物理的に置けない。
 file_header:
   required_pattern: |
-    \/\/
+    (\/\/ swift-tools-version:.*|\/\/
     \/\/  .*\.swift
-    \/\/  IntentTodo
-    \/\/
+    \/\/  \S.*
+    \/\/)

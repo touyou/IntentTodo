@@ -11,6 +11,9 @@ import XCTest
 final class IntentTodoWatchAppUITest: XCTestCase {
     // MARK: - Properties
 
+    // XCTest の setUp / tearDown ライフサイクルに乗せた fixture。理由は
+    // `IntentTodoUITest` と同じ。
+    // swiftlint:disable:next implicitly_unwrapped_optional
     var app: XCUIApplication!
 
     // MARK: - Setup / Teardown

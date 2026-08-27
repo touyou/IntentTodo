@@ -28,6 +28,8 @@ struct IntentTodoApp: App {
     @NSApplicationDelegateAdaptor(MacAppDelegate.self) var appDelegate
     #endif
 
+    @Environment(\.scenePhase) private var scenePhase
+
     let modelContainer: ModelContainer
 
     // Same instance stored in @State AND registered with AppDependencyManager.
@@ -41,6 +43,12 @@ struct IntentTodoApp: App {
             let container = try SharedModelContainer.createContainer()
             modelContainer = container
             AppDependencyManager.shared.add(dependency: container)
+
+            // TodoAppEntity deferred properties fetch on demand via this shared
+            // container (entities can't use @Dependency — that's intents-only).
+            MainActor.assumeIsolated {
+                TodoEntityStore.register(container: container)
+            }
         } catch {
             logger.critical("ModelContainer init failed: \(String(reflecting: error))")
             if let nsError = error as NSError? {
@@ -60,6 +68,17 @@ struct IntentTodoApp: App {
         // 件数が増えても初回フレーム描画と競合しないよう、priority を低めに固定する。
         Task(priority: .utility) {
             await todoService.indexAllForSpotlight()
+        }
+
+        // パラメータ入りの App Shortcut フレーズ ("Complete <todo> in IntentTodo") は、
+        // システムが一度 suggestedEntities を取得するまで機能しない。
+        // 更新契機はパッケージ側 (TodoService) から通知されるので、その入口を登録し、
+        // 起動時に 1 回自分で叩く (wwdc2023-10102 9:52)。
+        MainActor.assumeIsolated {
+            AppShortcutParameterUpdater.register {
+                TodoAppShortcuts.updateAppShortcutParameters()
+            }
+            AppShortcutParameterUpdater.notifyEntitiesChanged()
         }
 
         // Same NavigationModel instance is stored in @State AND registered with
@@ -85,6 +104,16 @@ struct IntentTodoApp: App {
                 .task {
                     await requestNotificationPermission()
                 }
+                // アプリが動いていない間の Focus 遷移では TodoFocusFilterIntent の
+                // perform() が呼ばれない（AppIntents Extension を持たないため。
+                // wwdc2022-10121 9:29）。起動時と復帰時に current を取り直して埋める。
+                .task {
+                    await TodoFocusFilterStore.shared.syncFromSystem()
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    guard phase == .active else { return }
+                    Task { await TodoFocusFilterStore.shared.syncFromSystem() }
+                }
                 .onOpenURL { url in
                     handleURL(url)
                 }
@@ -94,16 +123,24 @@ struct IntentTodoApp: App {
 
     // MARK: - URL Handling
 
-    /// Handle deep link URLs from widgets (e.g. intenttodo://addTodo from Home Widgets).
+    /// Handle deep link URLs from widgets and from `TodoAppEntity`'s URL
+    /// representation (`intenttodo://todo/<id>`).
+    ///
+    /// URL の綴りは `TodoDeepLink` に集約してあるので、ここでは解釈結果だけを見る。
     private func handleURL(_ url: URL) {
-        guard url.scheme == "intenttodo" else { return }
+        guard let link = TodoDeepLink(url: url) else { return }
 
-        switch url.host {
-        case "addTodo":
+        switch link {
+        case .addTodo:
             navigationModel.navigateToRoot()
             navigationModel.showAddTodo()
-        default:
-            break
+        case .todo(let id):
+            // 消された Todo の古いリンクを踏んだ場合は何もしない（エラーを見せる
+            // 価値がなく、開いた画面が空になるより現状維持のほうが混乱しない）。
+            let service = TodoService.swiftDataBacked(container: modelContainer)
+            guard let todo = service.todo(id: id) else { return }
+            navigationModel.navigateToRoot()
+            navigationModel.showDetail(for: todo)
         }
     }
 

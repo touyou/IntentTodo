@@ -4,20 +4,18 @@
 
 ### Button(intent:) の API 差異
 
-watchOS では iOS と同じ `Button(intent:role:)` シグネチャが利用できない。代わりに async パターンを使用する。
+watchOS で利用できないのは `role:` 付きの `Button(intent:role:)` シグネチャのみで、`role:` 無しの `Button(intent:)` は watchOS でも問題なく使える。
+
+経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
 
 ```swift
-// ❌ watchOS ではエラー
+// ❌ watchOS ではエラー（role: 付きシグネチャが無い）
 Button(intent: ToggleTodoCompletionIntent(todo: entity), role: .none) {
     Text("Complete")
 }
 
-// ✅ watchOS 対応パターン
-Button {
-    Task {
-        try? await ToggleTodoCompletionIntent(todo: entity).perform()
-    }
-} label: {
+// ✅ watchOS 対応パターン（role: を外すだけ。システム dispatch 経由なので @Dependency も正常解決される）
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
     Text("Complete")
 }
 ```
@@ -110,44 +108,44 @@ Live Activity から Activity の開始/更新/終了を伴うアクションを
   > "You can update or end a Live Activity while your app is in the background, but you can only start a Live Activity while the app is in the foreground, unless you adopt App Intents and start the Live Activity using a `LiveActivityIntent`."
 - `LiveActivityIntent` の `perform()` は**アプリプロセス**で実行される:
   > "If you adopt the `LiveActivityIntent` or `AudioPlaybackIntent` protocol, the system runs the app intent in the app's process."
-- 対して通常の `AppIntent` を Widget/Live Activity から呼ぶ場合は **Widget Extension プロセス**で実行される:
+- 通常の `AppIntent` を Widget から呼ぶ場合は、その Intent をウィジェット Extension ターゲットとアプリターゲットの
+  両方に追加する必要がある:
   > "If you adopt the `AppIntent` protocol, add your custom app intent to your widget extension target and your app target."
+  この一文は**ターゲットメンバーシップ**（ビルド時にどのターゲットへ含めるか）についての要件であり、実行時に必ず
+  Widget Extension プロセスで動くことを意味しない。共有パッケージの Intent がどのプロセスで実行されるかはシステムの
+  **ヒューリスティクス**（アプリが起動中ならアプリを優先、等）で決まり、固定するには `allowedExecutionTargets`
+  （`.main`/`.appIntentsExtension`/`.widgetKitExtension`）を明示する必要がある（詳細は `03-app-intents-core.md` の
+  「`allowedExecutionTargets`」節）。
 
-本プロジェクトでは `ToggleTodoCompletionIntent` と `SnoozeTodoIntent` を `#if os(iOS)` で `LiveActivityIntent` に条件付き準拠させ、Live Activity のボタン経由でアプリプロセス側で実行されるようにしている。
+本プロジェクトでは `ToggleTodoCompletionIntent` と `SnoozeTodoIntent` を `#if os(iOS)` で `LiveActivityIntent` に条件付き準拠させ、Live Activity のボタン経由で `perform()` がアプリプロセス側で実行されるようにしている。
+
+経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
 
 ### Intent種別の使い分け
 
 | Intent種別 | 用途 | 実行プロセス |
 |-----------|------|------------|
-| `AppIntent` | Siri/Shortcuts/UI/Widget | Siri/Shortcuts はアプリ、Widget は Widget Extension |
-| `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | アプリプロセス（公式保証） |
+| `AppIntent` | Siri/Shortcuts/UI/Widget | Siri/Shortcuts/UI はアプリ、Widget は `allowedExecutionTargets` 未指定ならヒューリスティクスで決定（アプリ起動中はアプリ優先）、指定すればそこに固定 |
+| `LiveActivityIntent` | Dynamic Island/ロック画面（Live Activity ボタン） | `perform()` はアプリプロセス（公式保証）。`AppEntity` パラメータの事前解決も iOS 27 実測ではアプリプロセス（後述） |
 | `ControlConfigurationIntent` | コントロールセンター設定値 | Extension 配置必須 |
 
-### Live Activity Intent のパラメータは String ID にする（Entity を取らない）
+### Live Activity ボタンにも Entity パラメータの Intent をそのまま使う
 
-Live Activity ボタンから呼ぶ Intent は `@Parameter var todo: TodoAppEntity` ではなく `@Parameter var todoId: String` を使う。
-
-**理由**: App Intents は `AppEntity` パラメータを持つ Intent を実行する前に `TodoEntityQuery.entities(for:)` を呼んで entity を解決する。Live Activity Extension プロセスで解決処理が走ると SwiftData の内部 assertion に引っかかり `EXC_BREAKPOINT` で crash する（2026-04-14 の実機検証で判明）。呼出元の LA ボタンはすでに `context.attributes.todoId` を持っているため、Entity 解決は不要。
+Live Activity のボタンは Siri / UI と同じ Intent を呼ぶ。Activity が持っているのは id と title だけだが、`TodoAppEntity(id:title:)` で組んで渡せばよい（システムが `perform()` 前に `TodoEntityQuery.entities(for:)` で id から再解決するため、他のフィールドは埋めなくても正しく動く）。
 
 ```swift
-public struct ToggleTodoCompletionFromExtensionIntent: AppIntent {
-    public static let isDiscoverable = false  // Shortcuts 非表示
-    @Parameter(title: "Todo ID") public var todoId: String
-    // ...
-}
-#if os(iOS)
-extension ToggleTodoCompletionFromExtensionIntent: LiveActivityIntent {}
-#endif
-
 // Live Activity View 側
-Button(intent: ToggleTodoCompletionFromExtensionIntent(
-    todoId: context.attributes.todoId
-)) {
+let todoEntity = TodoAppEntity(id: context.attributes.todoId, title: context.state.title)
+Button(intent: ToggleTodoCompletionIntent(todo: todoEntity)) {
     Label("Complete", systemImage: "checkmark.circle.fill")
 }
 ```
 
-Primary 系（Shortcuts / UI で呼ぶもの）は従来通り `@Parameter var todo: TodoAppEntity` のままで良い（そちらは entity 解決が正常に動く文脈で使われる）。詳細は `03-app-intents-core.md` の「Primary / FromExtension 分離パターン」参照。
+Activity の状態を触る Intent（`activity.end` / `activity.update`）は `#if os(iOS)` で `LiveActivityIntent` に準拠させる。
+
+> **経緯**: 以前は「LA ボタンから呼ぶ Intent は `@Parameter var todoId: String` にする」というルールだった。entity の事前解決中に SwiftData が `EXC_BREAKPOINT` で落ちる実績があったため。**2026-08-12 に iOS 27 で再現しないことを実測確認**（`entities(for:)` も `perform()` もメインアプリプロセスで走る。アプリ kill 済みの cold start でも、`LiveActivityIntent` 非準拠でも同じ）し、String 版（FromExtension 系）を撤去して 1 アクション 1 Intent に統一した。`IntentTodoLiveActivityBundle.init()` は今も `AppDependencyManager` に何も登録していないが、解決がアプリ側で走るため問題にならない。詳細: `03-app-intents-core.md`。
+
+経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
 
 ---
 
@@ -225,7 +223,7 @@ Button(intent: OpenAddTodoIntent()) {
 
 ## プラットフォームガードの指針
 
-プロジェクト全体で一貫した `#if` 条件を使い分ける指針（2026-04-15 確立）。
+プロジェクト全体で一貫した `#if` 条件を使い分ける指針。
 
 | 条件 | 用途 | 代表例 |
 |------|------|--------|
@@ -237,12 +235,49 @@ Button(intent: OpenAddTodoIntent()) {
 
 **根拠**:
 - `@UIApplicationDelegateAdaptor` と `@NSApplicationDelegateAdaptor` は別プロトコル依存のため完全共通化は不可。プロジェクトでは `NotificationHandler` を cross-platform 実体として共通化し、Adaptor 宣言と AppDelegate 実装だけを `#if` 分岐する（Paul Hudson / Swift by Sundell の定番パターン）。
-- `ControlWidget` は Apple 公式 "Developing a WidgetKit strategy" の対応表で iPhone / iPad / Apple Watch / Mac 対応、visionOS のみ非対応と明記されているため、正しいガードは `#if !os(visionOS)`（以前の `#if os(iOS)` は macOS / watchOS で Control が消えてしまう誤り）。
+- `ControlWidget` は Apple 公式 "Developing a WidgetKit strategy" の対応表で iPhone / iPad / Apple Watch / Mac 対応、visionOS のみ非対応と明記されているため、正しいガードは `#if !os(visionOS)`。
 - `if #available(iOS 18.0, *)` は実行時版チェックでありコンパイル時の型解決は止められない。プラットフォーム非対応 API には条件付きコンパイル（`#if`）が必須。
+
+経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
+
+### `#if canImport(X)` だけに頼らない（新 SDK で実機ビルドが落ちる罠）
+
+`canImport(FrameworkX)` は「そのフレームワークが import 可能か」しか見ず、「その中の **API が当該プラットフォームで available か**」までは保証しない。SDK が更新されてフレームワーク自体はどのプラットフォームでも import 可能になったが、特定 API は一部プラットフォーム非対応、というケースで**シミュレータは通るのに実機ビルドだけ落ちる**という見えにくい失敗になる。
+
+具体例: `VisualIntelligence`（Visual Intelligence / #297）。
+- **visionOS シミュレータ**: `canImport(VisualIntelligence)` が false → コード除外 → ビルド成功
+- **visionOS 実機 SDK**: `canImport` が true になり `.visualIntelligence.semanticContentSearch` スキーマ（visionOS 非対応 API）までコンパイル → `'visualIntelligence' is unavailable in visionOS` でビルド失敗
+
+```swift
+// ❌ import 可否しか見ていない → visionOS 実機で崩れる
+#if canImport(VisualIntelligence)
+
+// ✅ 非対応プラットフォームを明示的に外す
+#if canImport(VisualIntelligence) && !os(visionOS)
+```
+
+教訓:
+- `canImport` はあくまで「存在チェック」。API の対応プラットフォームが限定される機能では **`&& !os(...)` / `&& os(...)` を併用**する。
+- **シミュレータのビルド成功を「その OS で通る」根拠にしない**。Xcode Cloud / アーカイブは実機（device）SDK でビルドするので、実機向け（`Any <OS> Device`）でも確認する。両者で `canImport` の結果が変わりうる。
+- 機能が Intent + Query など複数ファイルの対で構成される場合、ガードは**全ファイルで揃える**（片方だけ外すと相互参照が dangling する）。
+
+経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
 
 ## `#Predicate` の Optional 比較回避
 
-`#Predicate<TodoItem> { $0.id == optionalUUID }` のように Optional を直接比較する式は visionOS 等でコンパイルが通らないことがある。回避策は:
+`#Predicate<TodoItem> { $0.id == optionalUUID }` のように **非 Optional のプロパティを Optional の値と比較する**式はコンパイルが通らない（`value of optional type 'UUID?' must be unwrapped to a value of type 'UUID'`）。
+
+Xcode 27 beta 5 / iOS 27 で再検証した結果、これは**プラットフォーム差でも toolchain バージョン差でもなく `#Predicate` マクロ固有の制約**と確定した。素の Swift や普通のクロージャでは Optional の暗黙昇格が効いて `nonOptional == optional` が通るが、`#Predicate` の展開後は両辺の型が一致していることを要求するため昇格が働かない。落ちるのは 1 パターンだけ:
+
+| 式 | 結果 |
+|---|---|
+| 非 Optional プロパティ == Optional 値（`$0.id == optionalUUID`） | ❌ コンパイルエラー |
+| Optional プロパティ == Optional 値（`$0.dueDate == optionalDate`） | ✅ |
+| Optional プロパティ == 非 Optional 値（`$0.dueDate == date`） | ✅ |
+| Optional プロパティ != nil | ✅ |
+| 素の Swift / 普通のクロージャで `$0.id == optionalUUID` | ✅（`#Predicate` の外なら通る） |
+
+回避策は:
 
 1. 非 Optional な定数を capture してから比較する（推奨）
    ```swift
@@ -252,6 +287,8 @@ Button(intent: OpenAddTodoIntent()) {
 2. どうしても難しい場合は `Query()` 全件取得 + computed property で in-memory filter
 
 `TodoItem.id` が非 Optional `UUID` である限り、上記 1 で SwiftData の store 側フィルタを効かせられる（全件フェッチよりも効率的）。
+
+経緯: [docs/devlog/07-platform-specific.md](../devlog/07-platform-specific.md)
 
 ## `Button(intent:role:)` の引数順
 

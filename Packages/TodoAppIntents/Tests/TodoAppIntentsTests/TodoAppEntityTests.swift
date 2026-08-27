@@ -84,10 +84,51 @@ struct TodoAppEntityTests {
         #expect(set.count == 1)
     }
 
-    @Test("TypeDisplayRepresentation is configured")
+    // MARK: - isOverdue (@ComputedProperty)
+
+    @Test("isOverdue is true for an incomplete todo past its due date")
+    func isOverdueWhenPastDueAndIncomplete() {
+        let entity = TodoAppEntity(
+            id: "test-id",
+            title: "Late Todo",
+            isCompleted: false,
+            dueDate: Date().addingTimeInterval(-3600)
+        )
+        #expect(entity.isOverdue == true)
+    }
+
+    @Test("isOverdue is false when the todo is completed even if past due")
+    func isNotOverdueWhenCompleted() {
+        let entity = TodoAppEntity(
+            id: "test-id",
+            title: "Done Todo",
+            isCompleted: true,
+            dueDate: Date().addingTimeInterval(-3600)
+        )
+        #expect(entity.isOverdue == false)
+    }
+
+    @Test("isOverdue is false for a future due date")
+    func isNotOverdueWhenDueInFuture() {
+        let entity = TodoAppEntity(
+            id: "test-id",
+            title: "Upcoming Todo",
+            dueDate: Date().addingTimeInterval(3600)
+        )
+        #expect(entity.isOverdue == false)
+    }
+
+    @Test("isOverdue is false when there is no due date")
+    func isNotOverdueWithoutDueDate() {
+        let entity = TodoAppEntity(id: "test-id", title: "No Due Date")
+        #expect(entity.isOverdue == false)
+    }
+
+    @Test("TypeDisplayRepresentation names the type")
     func typeDisplayRepresentationConfigured() {
         let representation = TodoAppEntity.typeDisplayRepresentation
-        #expect(representation.name != nil)
+
+        #expect(String(localized: representation.name) == "Todo")
     }
 
     @Test("DisplayRepresentation shows correct title")
@@ -95,9 +136,20 @@ struct TodoAppEntityTests {
         let entity = TodoAppEntity(id: "test-id", title: "My Todo")
         let representation = entity.displayRepresentation
 
-        // DisplayRepresentation.title contains LocalizedStringResource
-        // We verify it exists
-        #expect(representation.title != nil)
+        // 補間形式（キーは "%@"）で渡しているので、解決すると実行時の値そのものになる。
+        // `LocalizedStringResource(stringLiteral:)` に退行すると、存在しないキーの
+        // 引きになってここが "My Todo" 以外に化ける。
+        #expect(String(localized: representation.title) == "My Todo")
+    }
+
+    /// `synonyms:` は Siri のマッチ幅を広げるためのもので、アプリ内の表示には出ない。
+    /// 落としても画面上は何も変わらないため、ここで押さえる。
+    @Test("DisplayRepresentation offers synonyms for Siri matching")
+    func displayRepresentationOffersSynonyms() {
+        let entity = TodoAppEntity(id: "test-id", title: "My Todo")
+        let synonyms = entity.displayRepresentation.synonyms.map { String(localized: $0) }
+
+        #expect(synonyms == ["My Todo todo", "My Todo task"])
     }
 
     @Test("DisplayRepresentation shows completed status")
@@ -124,9 +176,18 @@ struct TodoAppEntityTests {
         #expect(representation.subtitle != nil)
     }
 
-    @Test("DefaultQuery is configured")
+    /// An empty `LocalizedStringResource("")` would become an empty localization key lookup,
+    /// so the subtitle has to be absent rather than blank.
+    @Test("DisplayRepresentation omits the subtitle when there is nothing to show")
+    func displayRepresentationOmitsEmptySubtitle() {
+        let entity = TodoAppEntity(id: "test-id", title: "Plain todo")
+        let representation = entity.displayRepresentation
+
+        #expect(representation.subtitle == nil)
+    }
+
+    @Test("DefaultQuery is TodoEntityQuery")
     func defaultQueryConfigured() {
-        let query = TodoAppEntity.defaultQuery
-        #expect(query != nil)
+        #expect(TodoAppEntity.DefaultQuery.self == TodoEntityQuery.self)
     }
 }

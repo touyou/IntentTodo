@@ -10,11 +10,22 @@ import SwiftUI
 import TodoAppIntents
 
 /// Row component for displaying a todo item in widgets.
+///
+/// 行タップはその Todo の詳細を開くだけなので `Button(intent:)` ではなく `Link` を使う
+/// （公式: "If you want to offer an interaction that opens the app, use `Link`"）。
+/// 宛先は `TodoAppEntity` の `URLRepresentableEntity` と同じ URL で、Siri /
+/// Shortcuts が `OpenTodoIntent` で指すのと同一の場所になる。
 struct TodoWidgetRow: View {
     let todo: TodoAppEntity
     let compact: Bool
 
     var body: some View {
+        Link(destination: TodoDeepLink.todo(id: todo.id).url) {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
         HStack(spacing: 8) {
             Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
                 .foregroundStyle(todo.isCompleted ? .green : .secondary)

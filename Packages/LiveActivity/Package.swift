@@ -1,34 +1,34 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.4
 import PackageDescription
 
 let package = Package(
     name: "LiveActivity",
     platforms: [
-        .iOS(.v26),
-        .macOS(.v26),
-        .watchOS(.v26),
-        .visionOS(.v26)
+        .iOS(.v27),
+        .macOS(.v27),
+        .watchOS(.v27),
+        .visionOS(.v27)
     ],
     products: [
         .library(
             name: "LiveActivity",
             targets: ["LiveActivity"]
-        ),
+        )
     ],
     dependencies: [
         .package(path: "../Domain"),
-        .package(path: "../TodoAppIntents"),
+        .package(path: "../TodoAppIntents")
     ],
     targets: [
         .target(
             name: "LiveActivity",
             dependencies: [
                 .product(name: "Domain", package: "Domain"),
-                .product(name: "TodoAppIntents", package: "TodoAppIntents"),
+                .product(name: "TodoAppIntents", package: "TodoAppIntents")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
             ]
-        ),
+        )
     ]
 )

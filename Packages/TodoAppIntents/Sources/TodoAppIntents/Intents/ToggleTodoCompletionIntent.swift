@@ -2,13 +2,18 @@
 //  ToggleTodoCompletionIntent.swift
 //  TodoAppIntents
 //
-//  Primary variant: runs in the main app process via @Dependency.
-//  For widget / Live Activity contexts, use ToggleTodoCompletionFromExtensionIntent.
+//  Siri / Shortcuts / UI / Widget / Live Activity すべての呼出元で共通に使う。
 //
 
+#if os(iOS)
+import ActivityKit
+import Domain
+#endif
 import AppIntents
 
-public struct ToggleTodoCompletionIntent: AppIntent {
+/// `UndoableIntent`: 取り消しはトグルの逆再生ではなく「元の値へ戻す」。
+/// 理由は `TodoUndoRegistrar.registerCompletionChange` のコメント参照。
+public struct ToggleTodoCompletionIntent: UndoableIntent {
     public static var title: LocalizedStringResource { "Toggle Todo Completion" }
 
     public static var description: IntentDescription {
@@ -20,6 +25,11 @@ public struct ToggleTodoCompletionIntent: AppIntent {
     }
 
     public static var supportedModes: IntentModes { .background }
+
+    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// iOS では `LiveActivityIntent` 準拠で実質アプリ実行だが、macOS / watchOS には
+    /// その保証が無いので型で明示する。
+    public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
     public static var parameterSummary: some ParameterSummary {
         Summary("Toggle completion of \(\.$todo)")
@@ -40,6 +50,38 @@ public struct ToggleTodoCompletionIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
         let result = try todoService.toggleCompletion(todoId: todo.id)
+        TodoUndoRegistrar.registerCompletionChange(
+            todoId: todo.id,
+            previousValue: !result.isNowCompleted,
+            undoManager: undoManager,
+            service: todoService
+        )
+
+        #if os(iOS)
+        if result.isNowCompleted {
+            // Live Activity は完了で用済み。`LiveActivityMonitor` の reconcile は
+            // TodoListView が画面に居るときしか走らないので、ロック画面から完了
+            // させたケースはここで畳まないと出っぱなしになる。
+            await endMatchingLiveActivity(for: todo.id)
+        }
+        #endif
+
         return .result(value: result.entity)
     }
+
+    #if os(iOS)
+    @MainActor
+    private func endMatchingLiveActivity(for todoId: String) async {
+        for activity in Activity<TodoDeadlineActivityAttributes>.activities
+        where activity.attributes.todoId == todoId {
+            await activity.end(activity.content, dismissalPolicy: .immediate)
+        }
+    }
+    #endif
 }
+
+// Live Activity のボタンから呼ばれるため、`perform()` がアプリプロセスで走ることを
+// 保証する `LiveActivityIntent` に準拠する（Activity の end 操作に必要）。
+#if os(iOS)
+extension ToggleTodoCompletionIntent: LiveActivityIntent {}
+#endif

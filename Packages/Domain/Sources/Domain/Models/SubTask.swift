@@ -14,6 +14,9 @@ import SwiftData
 public final class SubTask {
     // MARK: - Properties
 
+    // 型注釈を省かない理由は `TodoItem` と同じ（永続化スキーマの一覧として読む）。
+    // swiftlint:disable redundant_type_annotation
+
     /// Unique identifier for the sub-task.
     public var id: UUID = UUID()
 
@@ -29,6 +32,8 @@ public final class SubTask {
     /// The parent todo item this sub-task belongs to.
     public var parentTodo: TodoItem?
 
+    // swiftlint:enable redundant_type_annotation
+
     // MARK: - Initialization
 
     /// Creates a new sub-task with the specified title.
@@ -42,6 +47,24 @@ public final class SubTask {
         orderIndex: Int = 0
     ) {
         self.id = UUID()
+        self.title = title
+        self.isCompleted = isCompleted
+        self.orderIndex = orderIndex
+        self.parentTodo = nil
+    }
+
+    /// Recreates a sub-task with an explicit identifier.
+    ///
+    /// Counterpart to `TodoItem.init(id:…)` — sub-tasks are cascade-deleted with
+    /// their parent, so undoing a deletion has to bring them back under the same
+    /// ids as well. 詳細: `TodoItemSnapshot`
+    public init(
+        id: UUID,
+        title: String,
+        isCompleted: Bool,
+        orderIndex: Int
+    ) {
+        self.id = id
         self.title = title
         self.isCompleted = isCompleted
         self.orderIndex = orderIndex

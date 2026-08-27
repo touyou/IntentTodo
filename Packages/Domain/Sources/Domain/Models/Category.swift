@@ -14,6 +14,9 @@ import SwiftData
 public final class Category {
     // MARK: - Properties
 
+    // 型注釈を省かない理由は `TodoItem` と同じ（永続化スキーマの一覧として読む）。
+    // swiftlint:disable redundant_type_annotation
+
     /// Unique identifier for the category.
     public var id: UUID = UUID()
 
@@ -28,6 +31,8 @@ public final class Category {
     /// CloudKit 互換のため optional `[TodoItem]?`。読み取りは `todos ?? []` で
     /// nil 安全に扱う。
     public var todos: [TodoItem]? = []
+
+    // swiftlint:enable redundant_type_annotation
 
     // MARK: - Initialization
 

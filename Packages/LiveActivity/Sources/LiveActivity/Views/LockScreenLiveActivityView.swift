@@ -21,6 +21,13 @@ public struct LockScreenLiveActivityView: View {
         self.context = context
     }
 
+    /// ボタンに載せる entity。Activity が持っているのは id と title だけだが、
+    /// システムが `perform()` 前に `TodoEntityQuery.entities(for:)` で id から
+    /// 再解決するため、ここでは id が正しければ足りる。
+    private var todoEntity: TodoAppEntity {
+        TodoAppEntity(id: context.attributes.todoId, title: context.state.title)
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -42,14 +49,14 @@ public struct LockScreenLiveActivityView: View {
                 .lineLimit(2)
 
             HStack(spacing: 16) {
-                Button(intent: ToggleTodoCompletionFromExtensionIntent(todoId: context.attributes.todoId)) {
+                Button(intent: ToggleTodoCompletionIntent(todo: todoEntity)) {
                     Label("Mark Complete", systemImage: "checkmark.circle.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.green)
 
-                Button(intent: SnoozeTodoFromExtensionIntent(todoId: context.attributes.todoId)) {
+                Button(intent: QuickSnoozeTodoIntent(todo: todoEntity)) {
                     Label("Snooze 30m", systemImage: "clock.arrow.circlepath")
                         .frame(maxWidth: .infinity)
                 }

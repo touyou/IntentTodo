@@ -33,6 +33,10 @@ firebase-debug.log
 # References (local documentation)
 docs/references/
 
+# Python
+__pycache__/
+*.pyc
+
 # Serena
 .serena/
 
@@ -45,3 +49,4 @@ docs/references/
 # Vendored skills under .claude/skills/ are personal/local references (codex-derived).
 # The project's own redistributable skill lives under skills/ at repo root.
 .claude/skills/
+.verification/

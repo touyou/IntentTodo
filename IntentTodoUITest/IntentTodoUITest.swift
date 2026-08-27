@@ -11,6 +11,10 @@ import XCTest
 final class IntentTodoUITest: XCTestCase {
     // MARK: - Properties
 
+    // `setUpWithError()` で組み立て `tearDownWithError()` で捨てる XCTest の
+    // ライフサイクルに乗せた fixture。毎回 unwrap する Optional にしても、テスト側の
+    // 記述が増えるだけで捕まえられる失敗は増えない。
+    // swiftlint:disable:next implicitly_unwrapped_optional
     var app: XCUIApplication!
 
     // MARK: - Setup / Teardown
@@ -65,7 +69,7 @@ final class IntentTodoUITest: XCTestCase {
     /// - Parameter title: The title to search for.
     /// - Returns: The cell element if found.
     private func findTodoCell(title: String) -> XCUIElement {
-        return app.staticTexts[title].firstMatch
+        app.staticTexts[title].firstMatch
     }
 
     // MARK: - Test: App Launch
@@ -218,20 +222,56 @@ final class IntentTodoUITest: XCTestCase {
         let todoCell = findTodoCell(title: todoTitle)
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
 
-        // Swipe to delete
-        todoCell.swipeLeft()
+        // Swipe to delete。スワイプ対象は StaticText ではなく行のセル
+        // （StaticText を swipeLeft してもスワイプアクションは開かない）。
+        let row = app.cells.containing(.staticText, identifier: todoTitle).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 5), "Row cell should exist")
+        row.swipeLeft()
 
         // Tap delete button
-        let deleteButton = app.buttons["Delete"]
-        if deleteButton.waitForExistence(timeout: 3) {
-            deleteButton.tap()
+        //
+        // **条件付き assert にしないこと**。`if deleteButton.waitForExistence(...)` で
+        // 包むと、要素が見つからないまま何も検証されず緑になる。
+        // ラベルは `DeleteButton` の `.accessibilityLabel` に合わせて "Delete todo"
+        // （"Delete" ではない）。
+        // 経緯: docs/devlog/06-control-widget-ios26.md（2026-08-12 の削除ボタン不動作）
+        let deleteButton = app.buttons["Delete todo"].firstMatch
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Swipe should reveal a Delete action")
+        deleteButton.tap()
 
-            // Wait for deletion
-            sleep(1)
+        // Verify todo is deleted
+        XCTAssertTrue(
+            todoCell.waitForNonExistence(timeout: 5),
+            "Todo should be deleted"
+        )
+    }
 
-            // Verify todo is deleted
-            XCTAssertFalse(todoCell.exists, "Todo should be deleted")
-        }
+    // MARK: - Test: Delete Todo from the detail screen
+
+    /// 詳細画面の「Delete Todo」は確認ダイアログを挟んでから削除する。
+    /// この経路は `DeleteTodoIntent`（`requestConfirmation` 付き）を直接叩いていた頃、
+    /// `LNPerformActionErrorCodeUnsupportedValueType` で失敗して**何も起きなかった**。
+    @MainActor
+    func testDeleteTodoFromDetailView() throws {
+        let todoTitle = "Detail Delete Test \(Date().timeIntervalSince1970)"
+        addTodo(title: todoTitle)
+
+        let todoCell = findTodoCell(title: todoTitle)
+        XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
+        todoCell.tap()
+
+        let deleteButton = app.buttons["deleteTodoButton"]
+        XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Detail view should offer Delete Todo")
+        deleteButton.tap()
+
+        let confirmButton = app.buttons["confirmDeleteTodoButton"].firstMatch
+        XCTAssertTrue(confirmButton.waitForExistence(timeout: 5), "A confirmation dialog should appear")
+        confirmButton.tap()
+
+        XCTAssertTrue(
+            findTodoCell(title: todoTitle).waitForNonExistence(timeout: 5),
+            "Confirming should actually delete the todo"
+        )
     }
 
     // MARK: - Test: Search
@@ -305,8 +345,9 @@ final class IntentTodoUITest: XCTestCase {
         // Also check if any menu items exist (generic check)
         if !menuOpened {
             // Check for picker selections via images (checkmark.circle.fill indicates selection)
-            let checkmarkImages = app.images.matching(identifier: "checkmark")
-            if checkmarkImages.count > 0 {
+            // `XCUIElementQuery` に `isEmpty` は無い。件数は要らず「1 件でもあるか」だけ
+            // 知りたいので `firstMatch` で問い合わせる（全件の解決も避けられる）。
+            if app.images.matching(identifier: "checkmark").firstMatch.exists {
                 menuOpened = true
             }
         }

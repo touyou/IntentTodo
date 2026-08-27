@@ -41,7 +41,9 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: Intent, in context: Context) async -> Timeline<TodoWidgetEntry> {
         let entry = await fetchEntry(for: configuration)
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 15, to: Date())!
+        // リロード期限は「今から 15 分」という経過時間そのもので、暦の単位ではない。
+        // `Calendar` を通すと失敗しうる Optional になるだけで得るものがない。
+        let nextUpdate = Date(timeIntervalSinceNow: 15 * 60)
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
 
@@ -49,7 +51,7 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
     private func fetchEntry(for configuration: Intent) async -> TodoWidgetEntry {
         do {
             let repository = SwiftDataTodoRepository(modelContext: sharedWidgetModelContainer.mainContext)
-            let todos = try await repository.fetchAll()
+            let todos = try repository.fetchAll()
 
             let filteredTodos: [TodoItem]
             switch configuration.filter {
@@ -75,10 +77,19 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
                 return lhs.createdAt > rhs.createdAt
             }
 
-            let entities = sortedTodos.prefix(10).map { TodoAppEntity(from: $0) }
+            // 集中モードの絞り込みはウィジェットにも効かせる。アプリ側と同じ
+            // `TodoFocusFilter.apply` を通すので、一覧とウィジェットで結果がずれない。
+            // 設定は App Group の UserDefaults 経由で受け取る（Focus filter の
+            // `perform()` はアプリプロセスで走るため、ここでは読むだけ）。
+            let focusFilter = TodoFocusFilter.loadFromSharedDefaults()
+            let visibleTodos = focusFilter.apply(to: sortedTodos.map { TodoAppEntity(from: $0) })
+
+            let entities = visibleTodos.prefix(10)
             // 各 size view が独立して `todos.filter { !$0.isCompleted }.count` を
             // 走らせていた旧実装を、Provider 側で 1 回 precompute する形に集約。
-            let incompleteCount = sortedTodos.lazy.filter { !$0.isCompleted }.count
+            // 件数も絞り込み後の母数で数える（絞られた一覧に対して全体の件数を出すと
+            // 「表示 0 件なのに未完了 5 件」という食い違った表示になる）。
+            let incompleteCount = visibleTodos.lazy.filter { !$0.isCompleted }.count
 
             return TodoWidgetEntry(
                 date: Date(),
@@ -134,7 +145,10 @@ struct IntentTodoWidget: Widget {
         }
         .configurationDisplayName("Todo List")
         .description("View your todos at a glance.")
-        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
+        // `.systemExtraLargePortrait` は iOS/macOS 27 で追加された縦長ファミリー
+        // （WWDC 2026 #277）。本ブランチはデプロイメントターゲットが 27 なので
+        // `#available` での組み立ては不要。
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLargePortrait])
     }
 }
 
@@ -171,6 +185,24 @@ struct IntentTodoWidget: Widget {
             )
         ],
         incompleteCount: 2,
+        configuration: TodoWidgetConfigurationIntent()
+    )
+}
+
+#Preview(as: .systemExtraLargePortrait) {
+    IntentTodoWidget()
+} timeline: {
+    TodoWidgetEntry(
+        date: .now,
+        todos: (1...8).map { index in
+            TodoAppEntity(
+                id: "\(index)",
+                title: "Todo \(index)",
+                isCompleted: index.isMultiple(of: 4),
+                dueDate: Date().addingTimeInterval(Double(index) * 3600)
+            )
+        },
+        incompleteCount: 6,
         configuration: TodoWidgetConfigurationIntent()
     )
 }

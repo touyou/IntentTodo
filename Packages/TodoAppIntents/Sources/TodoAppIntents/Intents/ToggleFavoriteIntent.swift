@@ -19,6 +19,10 @@ public struct ToggleFavoriteIntent: AppIntent {
 
     public static var supportedModes: IntentModes { .background }
 
+    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// ウィジェットのボタンから呼ばれる = セッションが挙げている例そのもの。
+    public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
+
     public static var parameterSummary: some ParameterSummary {
         Summary("Toggle favorite of \(\.$todo)")
     }

@@ -39,10 +39,17 @@ public final class TodoListViewModel {
     /// Filters and sorts todos based on current UI state.
     ///
     /// This logic is UI-specific and not exposed to Siri/Shortcuts.
-    /// - Parameter todos: The source todos to filter and sort.
+    /// - Parameters:
+    ///   - todos: The source todos to filter and sort.
+    ///   - focusFilter: 集中モードの絞り込み。ユーザーが選んだフィルタより前に効く
+    ///     （システム側の制約なので、UI のフィルタで広げ直せてはいけない）。
+    ///     既定は `.inactive` で、Focus を使っていない環境では従来どおり素通し。
     /// - Returns: Filtered and sorted todos.
-    public func filteredTodos(from todos: [TodoAppEntity]) -> [TodoAppEntity] {
-        var result = todos
+    public func filteredTodos(
+        from todos: [TodoAppEntity],
+        focusFilter: TodoFocusFilter = .inactive
+    ) -> [TodoAppEntity] {
+        var result = focusFilter.apply(to: todos)
 
         // Apply filter
         switch filter {
@@ -57,9 +64,11 @@ public final class TodoListViewModel {
         }
 
         // Apply search
+        // 突き合わせは `localizedStandardContains(_:)`（`TodoEntityQuery` と同じ）。
+        // `lowercased().contains()` はロケール非依存で、かな/カナやダイアクリティカル
+        // マークを別物として扱ってしまう。
         if !searchText.isEmpty {
-            let query = searchText.lowercased()
-            result = result.filter { $0.title.lowercased().contains(query) }
+            result = result.filter { $0.title.localizedStandardContains(searchText) }
         }
 
         // Apply sort
@@ -94,17 +103,30 @@ public final class TodoListViewModel {
             return todos.sorted { compareDueDates($0.dueDate, $1.dueDate, ascending: true) }
         case .dueDateDescending:
             return todos.sorted { compareDueDates($0.dueDate, $1.dueDate, ascending: false) }
+        case .manual:
+            // Drag-to-reorder order, persisted on the model as `sortIndex`.
+            // Ties (e.g. brand-new todos still at 0) fall back to newest-first.
+            return todos.sorted {
+                $0.sortIndex != $1.sortIndex
+                    ? $0.sortIndex < $1.sortIndex
+                    : $0.createdAt > $1.createdAt
+            }
         }
     }
 
+    /// 期限なしは昇順・降順のどちらでも**末尾**に置く。
+    ///
+    /// 「日付の大小」ではなく「日付があるものを先に見せる」という並びなので、
+    /// nil の位置は `ascending` で反転させない（反転させると降順のときだけ
+    /// 期限なしが先頭に来る）。
     private func compareDueDates(_ lhs: Date?, _ rhs: Date?, ascending: Bool) -> Bool {
         switch (lhs, rhs) {
         case (nil, nil):
             return false
         case (nil, _):
-            return !ascending
+            return false
         case (_, nil):
-            return ascending
+            return true
         case let (date1?, date2?):
             return ascending ? date1 < date2 : date1 > date2
         }
@@ -139,6 +161,19 @@ public enum TodoFilter: String, CaseIterable, Identifiable, Sendable {
         case .favorites: return "star"
         }
     }
+
+    /// Bridges the intent-facing filter (`TodoFilterType`, which Siri / Shortcuts
+    /// and `LaunchAppIntent` speak) to this UI-only filter. The two enums are kept
+    /// separate because this one also carries presentation details (display name,
+    /// symbol) that don't belong in the intents layer.
+    public init(_ filterType: TodoFilterType) {
+        switch filterType {
+        case .all: self = .all
+        case .incomplete: self = .incomplete
+        case .completed: self = .completed
+        case .favorites: self = .favorites
+        }
+    }
 }
 
 /// Sort options for the todo list.
@@ -149,6 +184,9 @@ public enum TodoSortOrder: String, CaseIterable, Identifiable, Sendable {
     case titleDescending
     case dueDateAscending
     case dueDateDescending
+    /// User's drag-to-reorder order (persisted as `TodoItem.sortIndex`). Enables
+    /// the reorderable list (WWDC 2026, iOS/macOS/visionOS 27+).
+    case manual
 
     public var id: String { rawValue }
 
@@ -160,6 +198,7 @@ public enum TodoSortOrder: String, CaseIterable, Identifiable, Sendable {
         case .titleDescending: return "Title Z-A"
         case .dueDateAscending: return "Due Date (Earliest)"
         case .dueDateDescending: return "Due Date (Latest)"
+        case .manual: return "Manual"
         }
     }
 }

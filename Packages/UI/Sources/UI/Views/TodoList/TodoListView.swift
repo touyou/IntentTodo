@@ -3,6 +3,7 @@
 //  IntentTodo
 //
 
+import AppIntents
 import Domain
 #if os(iOS)
 import LiveActivity
@@ -21,7 +22,10 @@ public struct TodoListView: View {
 
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
+    /// 集中モードの絞り込み。`TodoFocusFilterIntent` が書き込むと body が再評価される。
+    @State private var focusFilterStore = TodoFocusFilterStore.shared
     @Environment(NavigationModel.self) private var navigationModel
+    @Environment(\.modelContext) private var modelContext
 
     // MARK: - Computed Properties
 
@@ -32,7 +36,10 @@ public struct TodoListView: View {
         // 1,000 件規模での map コストが問題になるなら、`TodoItem` のフィールドだけを
         // 抜き出した軽量 projection (例: SwiftData の `#Predicate` で fetch する struct)
         // を別途検討する。
-        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
+        viewModel.filteredTodos(
+            from: todoItems.map { TodoAppEntity(from: $0) },
+            focusFilter: focusFilterStore.effectiveFilter
+        )
     }
 
     // MARK: - Initialization
@@ -57,17 +64,32 @@ public struct TodoListView: View {
                 } else {
                     TodoListSidebar(
                         todos: filteredTodos,
-                        selection: $navigationModel.selectedTodo
+                        selection: $navigationModel.selectedTodo,
+                        // Drag-to-reorder is only meaningful when the list is showing
+                        // the user's manual order (WWDC 2026 reorderable containers,
+                        // 27+; gated inside the sidebar).
+                        isReorderable: viewModel.sortOrder == .manual,
+                        onReorder: persistReorder
                     )
                 }
             }
             .navigationTitle("Todos")
+            // 一覧が空になる原因が Focus のときも見えている必要があるので、List の中
+            // ではなく List の外（上端）に出す。
+            .safeAreaInset(edge: .top, spacing: 0) {
+                FocusFilterBanner(store: focusFilterStore)
+            }
             .toolbar {
                 TodoListToolbar(viewModel: $viewModel)
             }
             .searchable(text: $viewModel.searchText, prompt: "Search todos")
             // sidebar 既定幅は TodoRowView には狭いため ideal を広めに固定 (iPad/macOS)。
             .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 480)
+            #if os(iOS)
+            // WWDC 2026: shrink the nav bar as the person scrolls the list down.
+            // `.onScrollDown` is iOS-only, so it's gated; older OSes keep the bar.
+            .modifier(NavigationBarMinimizeOnScroll())
+            #endif
         } detail: {
             if let selected = navigationModel.selectedTodo {
                 TodoDetailView(todo: selected)
@@ -82,9 +104,45 @@ public struct TodoListView: View {
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             AddTodoSheet()
         }
+        // Apply a search term pushed by ShowTodoSearchResultsIntent (.system.searchInApp).
+        .onChange(of: navigationModel.pendingSearchText) { _, newValue in
+            applyPendingSearch(newValue)
+        }
+        .onAppear { applyPendingSearch(navigationModel.pendingSearchText) }
+        // Apply a filter pushed by LaunchAppIntent (Todo Count control, Siri "show
+        // my favorite todos", …) so the app lands on the list the caller asked for.
+        .onChange(of: navigationModel.pendingFilter) { _, newValue in
+            applyPendingFilter(newValue)
+        }
+        .onAppear { applyPendingFilter(navigationModel.pendingFilter) }
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
+    }
+
+    /// Copies an intent-supplied search term into the search field, then clears
+    /// the pending value so it isn't re-applied.
+    private func applyPendingSearch(_ term: String?) {
+        guard let term else { return }
+        viewModel.searchText = term
+        navigationModel.pendingSearchText = nil
+    }
+
+    /// Copies an intent-supplied filter into the list's filter state, then clears
+    /// the pending value so it isn't re-applied.
+    private func applyPendingFilter(_ filterType: TodoFilterType?) {
+        guard let filterType else { return }
+        viewModel.filter = TodoFilter(filterType)
+        navigationModel.pendingFilter = nil
+    }
+
+    /// Persists a drag-to-reorder result. The reorder gesture can't be a
+    /// `Button(intent:)`, so it calls the same `TodoService` the canonical
+    /// `ReorderTodosIntent` runs — no logic is duplicated. `modelContext.container`
+    /// is the app's shared container, so the write lands in the `@Query`'s context.
+    private func persistReorder(_ orderedIDs: [String]) {
+        let service = TodoService.swiftDataBacked(container: modelContext.container)
+        try? service.reorderTodos(orderedIDs: orderedIDs)
     }
 }
 
@@ -93,6 +151,9 @@ public struct TodoListView: View {
 private struct TodoListSidebar: View {
     let todos: [TodoAppEntity]
     @Binding var selection: TodoAppEntity?
+    let isReorderable: Bool
+    /// Receives the new, fully-ordered list of todo ids after a drag.
+    let onReorder: ([String]) -> Void
 
     var body: some View {
         // SwiftData @Query の delta 検出により List の行挿入/削除は標準で animate
@@ -100,20 +161,197 @@ private struct TodoListSidebar: View {
         // body 評価のたびに `[String]` 配列を再アロケートしていたため、件数が増える
         // ほどスクロールがカクついていた。
         List(selection: $selection) {
-            ForEach(todos, id: \.id) { todo in
-                TodoRowView(todo: todo)
-                    .tag(todo)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        DeleteButton(todo: todo)
-                    }
+            SiriTipRow()
+
+            // `.reorderable()` (WWDC 2026) turns any container into a drag-to-reorder
+            // one. It's 27+ only, so gate it; on older OSes (or non-manual sort) the
+            // rows render exactly as before.
+            if #available(iOS 27, macOS 27, visionOS 27, *), isReorderable {
+                ForEach(todos, id: \.id) { row($0) }
+                    .reorderable()
+            } else {
+                ForEach(todos, id: \.id) { row($0) }
+            }
+        }
+        // Collection onscreen (WWDC 2026 #343): advertise every visible row's
+        // entity so Siri / Apple Intelligence can resolve references like "the
+        // third one" while the list is on screen. The selection-type variant
+        // keeps overhead low for large lists by mapping ids lazily.
+        .appEntityIdentifier(forSelectionType: TodoAppEntity.self) { todo in
+            EntityIdentifier(for: TodoAppEntity.self, identifier: todo.id)
+        }
+        .modifier(ReorderContainer(enabled: isReorderable, todos: todos, onReorder: onReorder))
+    }
+
+    @ViewBuilder
+    private func row(_ todo: TodoAppEntity) -> some View {
+        TodoRowView(todo: todo)
+            .tag(todo)
+            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                DeleteButton(todo: todo)
+            }
+    }
+}
+
+// MARK: - Focus Filter Banner
+
+/// 集中モードで一覧が絞られていることを示し、その場で解除できるようにする。
+///
+/// 標準アプリ（カレンダー）が Focus filter 適用中に「Focus で絞り込み中」の表示と
+/// 解除手段を並べて出しているのと同じ扱い（wwdc2022-10121 2:04）。表示だけ出して
+/// 解除手段が無いと、絞られていることに気づいたユーザーが設定アプリまで行くしかない。
+private struct FocusFilterBanner: View {
+    let store: TodoFocusFilterStore
+
+    var body: some View {
+        if store.filter.isActive {
+            HStack(spacing: 8) {
+                Image(systemName: "moon.fill")
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(store.isSuspended ? "Focus filter paused" : "Filtered by Focus")
+                        .font(.footnote)
+                    FocusFilterConditions(filter: store.filter)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button(store.isSuspended ? "Apply" : "Show All") {
+                    store.isSuspended.toggle()
+                }
+                .font(.footnote)
+                .buttonStyle(.borderless)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 8)
+            // Liquid Glass 時代のクロームは自前で塗らずシステムマテリアルに任せる。
+            .background(.bar)
+            .accessibilityElement(children: .combine)
+        }
+    }
+}
+
+/// 効いている条件の内訳。文言を `String` に連結せず `Text` を並べることで、
+/// このファイルの他の文言と同じくローカライズ対象のまま扱える
+/// （カテゴリ名だけはユーザーデータなので `verbatim`）。
+private struct FocusFilterConditions: View {
+    let filter: TodoFocusFilter
+
+    var body: some View {
+        HStack(spacing: 6) {
+            if let categoryName = filter.categoryName {
+                Text(verbatim: categoryName)
+            }
+            if filter.showsUrgentOnly {
+                Text("Urgent only")
+            }
+            if filter.hidesCompleted {
+                Text("Hiding completed")
             }
         }
     }
 }
 
+// MARK: - Siri Tip
+
+/// App Shortcut の存在をアプリ内で知らせる 1 行。
+///
+/// App Shortcut は Spotlight / Siri / Shortcuts からは自動で見つかるが、**ユーザーが
+/// 「言えること」を知らない**限り使われない。HIG (App Shortcuts / Best practices) の
+/// "Make App Shortcuts discoverable in your app" に対応する標準コンポーネントが
+/// `SiriTipView` で、渡した Intent に対応するフレーズをそのまま表示してくれる
+/// (フレーズを View 側にハードコードしないので、`TodoAppShortcuts` を直せば追従する)。
+///
+/// 一度閉じたら出さない。`isVisible` に `@AppStorage` を渡しているので、
+/// `SiriTipView` の閉じるボタンがそのまま永続化される。
+///
+/// **macOS では出さない**: `SiriTipView` / `SiriTipViewStyle` は SDK で
+/// `@available(macOS, unavailable)`。Mac では Shortcuts アプリ側の一覧が導線になる。
+/// 詳細: docs/insights/03-app-intents-core.md
+private struct SiriTipRow: View {
+    @AppStorage("siriTip.addTodo.isVisible") private var isVisible = true
+
+    var body: some View {
+        #if os(macOS)
+        EmptyView()
+        #else
+        if isVisible {
+            SiriTipView(intent: AddTodoIntent(), isVisible: $isVisible)
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+        }
+        #endif
+    }
+}
+
+// MARK: - Reorder wiring (WWDC 2026 reorderable containers)
+
+/// Attaches `.reorderContainer(for:itemID:)` to the list when manual reordering is
+/// active and the OS supports it. Kept as a `ViewModifier` so the `#available`
+/// gate lives in one place and the list body stays readable.
+private struct ReorderContainer: ViewModifier {
+    let enabled: Bool
+    let todos: [TodoAppEntity]
+    let onReorder: ([String]) -> Void
+
+    func body(content: Content) -> some View {
+        if #available(iOS 27, macOS 27, visionOS 27, *), enabled {
+            content.reorderContainer(for: TodoAppEntity.self, itemID: \.id) { difference in
+                onReorder(difference.newOrder(from: todos))
+            }
+        } else {
+            content
+        }
+    }
+}
+
+@available(iOS 27, macOS 27, visionOS 27, *)
+private extension ReorderDifference
+where ItemID == String, CollectionID == ReorderableSingleCollectionIdentifier {
+    /// Applies this single-collection reorder to `current` and returns the new,
+    /// fully-ordered list of ids. The moved ids keep their relative order.
+    func newOrder(from current: [TodoAppEntity]) -> [String] {
+        let moving = Set(sources)
+        var ids = current.map(\.id)
+        let moved = ids.filter { moving.contains($0) }
+        ids.removeAll { moving.contains($0) }
+        switch destination.position {
+        case .before(let anchor):
+            let index = ids.firstIndex(of: anchor) ?? ids.endIndex
+            ids.insert(contentsOf: moved, at: index)
+        case .end:
+            ids.append(contentsOf: moved)
+        }
+        return ids
+    }
+}
+
+// MARK: - Toolbar minimize (WWDC 2026)
+
+#if os(iOS)
+/// Minimizes the navigation bar as the person scrolls down. `.onScrollDown` is
+/// iOS-only and 27+, so this gates it and no-ops on older OSes.
+private struct NavigationBarMinimizeOnScroll: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 27, *) {
+            content.toolbarMinimizationBehavior(.onScrollDown, for: .navigationBar)
+        } else {
+            content
+        }
+    }
+}
+#endif
+
 // MARK: - Empty View
 
 private struct TodoListEmptyView: View {
+    /// `ContentUnavailableView` 1 つ分の文言。
+    private struct EmptyContent {
+        let title: String
+        let icon: String
+        let description: String
+    }
+
     let filter: TodoFilter
     let searchText: String
     @Environment(NavigationModel.self) private var navigationModel
@@ -132,19 +370,39 @@ private struct TodoListEmptyView: View {
         }
     }
 
-    private var emptyContent: (title: String, icon: String, description: String) {
+    private var emptyContent: EmptyContent {
         if !searchText.isEmpty {
-            return ("No Results", "magnifyingglass", "No todos match your search.")
+            return EmptyContent(
+                title: "No Results",
+                icon: "magnifyingglass",
+                description: "No todos match your search."
+            )
         }
         switch filter {
         case .all:
-            return ("No Todos", "checklist", "Tap + to add your first todo.")
+            return EmptyContent(
+                title: "No Todos",
+                icon: "checklist",
+                description: "Tap + to add your first todo."
+            )
         case .incomplete:
-            return ("All Done!", "checkmark.circle", "You've completed all your todos!")
+            return EmptyContent(
+                title: "All Done!",
+                icon: "checkmark.circle",
+                description: "You've completed all your todos!"
+            )
         case .completed:
-            return ("No Completed Todos", "circle", "Complete some todos to see them here.")
+            return EmptyContent(
+                title: "No Completed Todos",
+                icon: "circle",
+                description: "Complete some todos to see them here."
+            )
         case .favorites:
-            return ("No Favorites", "star", "Star a todo to add it to favorites.")
+            return EmptyContent(
+                title: "No Favorites",
+                icon: "star",
+                description: "Star a todo to add it to favorites."
+            )
         }
     }
 }

@@ -58,12 +58,31 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         return try modelContext.fetch(descriptor).first
     }
 
+    public func fetchCategory(by id: UUID) throws -> Domain.Category? {
+        let predicate = #Predicate<Domain.Category> { category in
+            category.id == id
+        }
+        var descriptor = FetchDescriptor<Domain.Category>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
+    }
+
+    public func incompleteCount() throws -> Int {
+        // fetchCount counts at the store level without materializing TodoItem
+        // instances into memory (Apple: "without the overhead of fetching the
+        // models themselves").
+        let descriptor = FetchDescriptor<TodoItem>(
+            predicate: #Predicate { !$0.isCompleted }
+        )
+        return try modelContext.fetchCount(descriptor)
+    }
+
     // MARK: - Update
 
     public func update(_ todo: TodoItem) throws {
         // SwiftData automatically tracks changes to managed objects.
         // We just need to ensure the object is in the context and save.
-        guard modelContext.model(for: todo.persistentModelID) as? TodoItem != nil else {
+        guard modelContext.model(for: todo.persistentModelID) is TodoItem else {
             throw RepositoryError.notFound(id: todo.id)
         }
         try modelContext.save()

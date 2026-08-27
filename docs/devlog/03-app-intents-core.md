@@ -1,0 +1,846 @@
+# 開発ログ: App Intents コア設計
+
+`docs/insights/03-app-intents-core.md` および `AGENTS.md`（`CLAUDE.md` 実体）に書かれている
+「App Intents コア設計」まわりの現在のルールが、どういう調査・失敗・再検証を経て今の形になったかを
+時系列で記録する。現在のルール自体は各ドキュメント側を参照。ここは経緯のみ。
+
+## 2026-04-13: Shortcuts Intent ルーティングの謎の失敗を調査 → `AppIntentsPackage` 重複宣言が原因と結論
+
+Shortcuts から呼ぶと `LNContextErrorDomain Code=2001` / `LNPerformIntentPrebuiltErrorDomain Code=4025` で失敗する問題を調査。
+`ShowTodosIntent`（`.foreground`）だけが動作し、他は全て失敗。BackgroundShortcutRunner が
+`IntentTodoWidgetExtension` プロセスにルーティングされてしまい、Widget Extension 側に登録の無い
+`@Dependency`（`NavigationModel`, `ModelContainer`）が解決できず落ちていた。
+
+大規模リファクタ（コミット `3f6d835`、Intent routing 問題の解決と `@Dependency` パターン統一を一括で行った PR）で、
+諸悪の根源と見立てた `IntentTodoAppIntentsPackage`（アプリターゲット側の `AppIntentsPackage` 重複宣言）を削除し、
+`ModelContainer` / `NavigationModel` をメインターゲットの `AppDependencyManager` に同期登録する形に統一。
+以降「アプリターゲットに `includedPackages` 付き `AppIntentsPackage` を重複宣言してはいけない」という制約として記録していた。
+
+## 2026-04-14: Live Activity ボタンから entity パラメータ版 Intent を呼ぶと `EXC_BREAKPOINT`
+
+entity パラメータ版（`@Parameter var todo: TodoAppEntity`）の Intent を LA ボタンに直結した状態で実機実行したところ、
+`TodoEntityQuery.entities(for:) → SwiftDataTodoRepository.fetch → ModelContext.fetch` の経路で
+`EXC_BREAKPOINT` が発生（コミット `c37ee97`/`a234842`）。
+
+原因: App Intents は `@Parameter var todo: TodoAppEntity` を持つ Intent の `perform()` 実行前に、
+別フェーズで `TodoEntityQuery.entities(for:)` を呼んで entity を解決する
+（[WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) 7:37）。
+この事前解決フェーズが Live Activity Extension プロセスで走ったと見られ、
+`IntentTodoLiveActivityBundle.init()` は `AppDependencyManager` に何も登録していないため、
+`TodoEntityQuery` 側の `@Dependency var modelContainer` が解決できず落ちた。
+
+対応: 呼出元（LA ボタン）は todoId をすでに持っているため、`todo: TodoAppEntity` ではなく
+`todoId: String` を受け取る FromExtension 系 Intent に分離し、entity 解決自体を経由しないようにした
+（`ToggleTodoCompletionFromExtensionIntent` / `SnoozeTodoFromExtensionIntent`）。
+
+## 2026-04-14: Control Widget から呼んだ Intent は `.result(dialog:)` が表示されないことを実機で確認
+
+Control Center 経由で呼ぶ Intent（`ToggleUrgentTodoIntent`, `ShowTodoCountIntent`）で `.result(dialog:)` を
+試したが、Control Widget では Dialog が画面に表示されないことを実機で確認した。UI/Widget の
+`Button(intent:)` 経由でも表示されないのは把握済みだったが、Control Widget 固有の挙動として記録。
+以降 Control Center 起点の Intent はローカル通知でフィードバックする運用にした。
+
+## 2026-04-14: Control Widget からの `continueInForeground()` 不動作という記録を「未検証」に訂正
+
+それまで「`continueInForeground()` は Control Widget コンテキストでは動作しない。Shortcuts/Siri 経由での使用を想定」
+と断定的に記録していたが、見直したところ当時の失敗は `IntentTodoAppIntentsPackage` 重複宣言 Bug（上記 2026-04-13
+の一件）が原因だった可能性が高く、`continueInForeground()` 自体の制約として確定できる根拠がないと判明した
+（コミット `d71101e`、issue #24）。fix 後に Control Widget から改めて動作検証した記録は無いため、
+「動作しない」という経験則ではなく「現時点で未検証」という正確な不確実性の表現に書き換えた。
+
+## 2026-06-19: `allowedExecutionTargets` の選択肢の記録漏れを訂正（`.widgetKitExtension` も存在）
+
+WWDC 2026 セッション #345 を踏まえた追加検証（issue #42–#48）で `IntentExecutionTargets` の選択肢を確認したところ、
+それまで「`.main`（アプリ本体）/ `.appIntentsExtension`（App Intents Extension）の2択」と記録していたのは誤りで、
+`.widgetKitExtension`（WidgetKit Extension）も選択肢として存在すると判明した（Widget ボタンからの更新を本体に
+寄せてデータ競合を避ける用途）。ドキュメントを2択→3択に訂正した（コミット `4e0e09a`、docs: WWDC 2026 追加検証
+(#42-#48) を反映）。ただし FromExtension/Primary 分離の結論（`allowedExecutionTargets` では統合できない）は
+`.widgetKitExtension` の存在を踏まえても変わらない: この API が制御するのは「どのプロセスが perform するか」で
+あって、Live Activity 由来の entity 解決クラッシュ回避に必要な「パラメータ型を変えて解決自体を避ける」という
+話とは別の軸だから。パラメータ解決 (entity resolution) の実行プロセスまで `[.main]` 指定で本体に寄るかどうかは
+実機未検証のまま残した（#42 の R 深度タスク）。
+
+## 2026-07-02: 「VisualIntelligence は iOS 専用」の思い込みを実ビルドで覆す → macOS 対応
+
+macOS/visionOS のフルビルドを回したところ、Xcode 27 beta 2 で `VisualIntelligence` フレームワークが Mac にも
+import 可能になっていることが判明し、既存の `#if canImport(VisualIntelligence)` ガードがそのまま Mac でも真に
+なっていた。Mac は visual search の `IntentValueQuery` が返す entity すべてが openable（`OpenIntent` を保持）
+であることを要求するため、`TodoOrCategory` union の `CategoryAppEntity` が not openable でビルド失敗（
+`result type 'CategoryAppEntity' that is not openable ... must be associated with an OpenIntent`）。iOS
+シミュレータ/iPhone ビルドでは発火せず、macOS destination のみで顕在化した。「iOS 専用」は当時 SDK に
+フレームワークが存在しなかった時点の制約に過ぎず恒久的な不可能ではなかった、と判断し、`OpenCategoryIntent`
+（`OpenIntent`, `target: CategoryAppEntity`, `perform()` は `navigateToRoot()` のみ）を新設して union を
+全メンバ openable にし、Mac ビルドを通した（コミット `8ddc76f`）。
+
+同日中に追検証（コミット `16556e5`）で、このエラーの発火先を当初「Mac Catalyst」と記録していたのは誤りで、
+本プロジェクトの Mac ターゲットは `SUPPORTS_MACCATALYST` 無し・`macosx` SDK の native macOS アプリであり、
+正しくは「macOS destination（native）」で発火することを確認して訂正した。教訓として「プラットフォーム限定は
+当時の SDK 制約に過ぎない場合がある。SDK 更新時は `#if canImport` ガードを外して本当に不可能かを実ビルドで
+確かめる」という方針を明文化した（[[verify-platform-limits-on-sdk-updates]] に対応するプロジェクト内の実例）。
+
+## 2026-07-08: `AppShortcutsProvider` がパッケージ内にあると App Shortcut が黙って消えることを発見
+
+Siri / Shortcuts アプリ / Spotlight に App Shortcut が一切出てこない症状を調査（ビルド・実行はエラー無しで
+成功するため気付きにくかった）。Xcode 27 beta 3 / toolchain 27A5218g で、ビルド時に生成される
+`Metadata.appintents` バンドル（DerivedData の `.appintents/extract.actionsdata`、JSON）をパッケージ側と
+アプリ側で比較したところ、`actions`（20件）/`entities`（3件）/`queries`（3件）はパッケージからアプリの統合
+メタデータへ集約されるのに対し、`autoShortcuts`（`AppShortcutsProvider.appShortcuts`）だけはパッケージ側
+8 件・アプリ側 0 件で**集約されない**ことを確認した。それまでこの節には「`AppShortcutsProvider` も Swift
+Package 内に配置可能」と書いていたが、これは誤りだったと判明した（Intent 自体は集約経由で動くため、App
+Shortcut フレーズの欠落だけが長く気付かれていなかった）。
+
+`TodoAppShortcuts` をメインアプリターゲット直下（`IntentTodo/IntentTodo/TodoAppShortcuts.swift`）へ移動した
+ところ、同じ検証で `autoShortcuts` が 0 → 8 に変化することを確認し、ルールを確定した（コミット `3280bed`）。
+検証手順（`python3 -c "import json; d=json.load(open('.../Metadata.appintents/extract.actionsdata')); print('autoShortcuts:', len(d['autoShortcuts']))"`）も併せて記録した。
+
+## 2026-07-08: reminders/system ドメインの watchOS 非対応を Xcode 27 beta 3 で再確認
+
+Xcode 27 beta 2 で `reminders` / `system` の assistant schema が watchOS で unavailable になっていた件
+（`'reminders' is unavailable in watchOS` 等）について、beta 3 で解消されていないかを実ビルドで再確認した。
+`TodoListType` の `#if os(watchOS)` フォールバックを一時的に無効化して watchOS スキームをビルドしたところ、
+`'reminders'/'listType' is unavailable in watchOS` が再現し、`.system` ドメイン側でも同様に
+`'system'/'search' is unavailable in watchOS` を確認した。結論として beta 3 でも制約は解消されておらず、
+`CategoryAppEntity`/`TodoListType` の watchOS フォールバックおよび `ShowTodoSearchResultsIntent` の
+`#if !os(watchOS)` 除外は維持が必要と判断した（コミット `3280bed`、[[verify-platform-limits-on-sdk-updates]]
+の方針に沿って実ビルドで確認）。
+
+## 2026-07-08: `.system.search` が Xcode 27 beta 3 で deprecated に → `.system.searchInApp` へリネーム追従
+
+iOS ビルドでビルド警告を精査していたところ、`@AppIntent(schema: .system.search)` が Xcode 27 beta 3 で
+deprecated になっていることを発見した（`'search' is deprecated: Use .system.searchInApp instead`）。issue
+#47 起票時点では `.system.searchInApp` という表記を使っていたが、その後 SDK の正式名が `.system.search` だと
+判明して一度 `.system.search` に修正した経緯があり、beta 3 のリネームにより issue #47 の当初表記が結果的に
+正しかったことになった。`ShowInAppSearchResultsIntent` のスキーマ指定とドキュメント中の表記をすべて
+`.system.searchInApp` に統一し、iOS ビルドで警告 0 件を確認した（コミット `adccb24`。同コミットで
+`Activity.end(dismissalPolicy:)` の deprecated 警告も `end(nil, dismissalPolicy:)` に更新）。
+
+## 2026-08-11: 上記の制約を Xcode 27 beta 5 で再検証 → 断定を撤回
+
+WWDC の公式説明（wwdc2025-244 23:29–24:00「各ターゲットを App Intents Package として登録すべき」、
+wwdc2025-275 25:50 も同様の実装例）と、プロジェクトの禁止ルールが正面から矛盾していることに気づき、
+`docs/devlog/2026-08-11-constraint-recheck.md`（A-1）で再検証を実施。
+
+アプリターゲット・Widget/LiveActivity/watchOS の全 Extension ターゲットに `includedPackages: [TodoIntentsPackage.self]`
+付きの `AppIntentsPackage` を追加してビルドした結果、`Metadata.appintents` の `actions`/`entities`/`queries` 件数は
+無宣言時と完全に同一（11/1/1）で、重複はメタデータ上確認できなかった。
+
+結論: 「絶対禁止」という断定は撤回。2026-04-13 時点の破損は次のいずれかだった可能性が高いが、
+どれが真因かを確定づける再現実験は当時行われていない。
+1. 同一パッケージのメタデータが SPM 自動抽出とアプリ側宣言で二重 extraction された
+2. パッケージが複数ターゲット（Widget/Watch）にリンクされ各々で再登録された
+3. 当時の beta のバグ
+
+ビルド/メタデータレベルでの重複は無いことを確認できたが、Siri/Shortcuts の実機ルーティング
+（`LNContextErrorDomain` 系）は未再検証のまま。現状は重複宣言しない運用を維持し、複数ターゲットでの
+再利用パターンが本当に必要になった際は実機で Siri 経由の呼び出しを確認してから採用する。
+
+## 2026-08-11: `AppShortcutsProvider` がパッケージに置けない制約は独立の話と確認
+
+上記 A-1 の再検証中、`AppShortcutsProvider` を疑うついでに確認。A-1 のパターン
+（アプリ/Extension ターゲットに `AppIntentsPackage` を追加）を適用した状態でも、
+`AppShortcutsProvider` がパッケージ内にある限り `autoShortcuts` は 0 のままで、
+アプリターゲットへ移動した時点でのみ 0→8 に変化した。
+`AppIntentsPackage` 重複宣言の話（A-1）とは独立した制約であることを確認、ルール自体は変更不要。
+
+## 2026-08-11: entity 解決フェーズの実行プロセス断定を精緻化（再検証、未確定のまま）
+
+上記の「LA Extension プロセスで entity 解決が走った」という原因断定について、Apple 公式ドキュメントが
+「`LiveActivityIntent` の `perform()` はアプリプロセスで実行される」と明言している点と厳密には矛盾しうることに気づいた
+（`docs/devlog/2026-08-11-constraint-recheck.md` A-3）。
+
+git 考古学でクラッシュ自体の実在は確認済み（スタックトレース有）だが、「どこで entity 解決が走ったか」は
+Apple 文書に明記が無く未確定のまま。`perform()` はアプリプロセス保証、ただし entity の事前解決フェーズが
+どこで走るかは未文書化かつ実機 crash 歴あり、という正確な切り分けに改めた。FromExtension 分離は
+結果的に安全なので維持し、Primary 版を LA ボタンに直結して trap が再現するかどうかの実機検証は
+残タスクとして未着手のまま。
+
+## 2026-08-11: `WidgetReloader.reloadAllWidgets()` を全 Intent で無条件に呼ぶ理由を正確化
+
+wwdc2023-10028 (13:47 "As soon as your perform returns, the system will immediately initiate a reload of your
+widget timeline" / 10:02 "reloads initiated from an interaction are always guaranteed") を確認した結果、
+Widget 内 `Button(intent:)` 起点は自動リロードが保証されており、手動 reload が本当に必要なのは
+Siri / Shortcuts / アプリ UI など Widget 起点でない経路だけだと判明。ルール自体（全 Intent で無条件に呼ぶ）は
+安全側の運用として変更不要と判断し、理由の説明だけを正確化した（呼び出し重複のコストは無視できる）。
+
+## 2026-08-11: 実行プロセスの「固定表」が誤りと判明 → ヒューリスティクスに訂正
+
+wwdc2026-345 (15:59–16:55) が「共有パッケージの Intent はヒューリスティクスでプロセスが選ばれる
+（アプリが起動中ならアプリを優先）」と明言しており、SDK 実物確認（`IntentExecutionTargets` が `.default` を
+独立ケースとして持つ `OptionSet`）でも裏付けが取れた。従来「呼出元とモードで実行プロセスが固定的に決まる」と
+記録していたのは誤りで、固定するには `allowedExecutionTargets` の明示指定が必要だと訂正した。
+
+本プロジェクトは大半の Widget/Control Intent で `allowedExecutionTargets` を未指定のままにしているため、
+二重登録（`App.init()` と `WidgetBundle.init()` の両方）は撤廃できない。`CompleteTodosIntent` のみ
+`[.main]` 固定済み（詳細は `docs/insights/03-app-intents-core.md`）。
+
+## 2026-08-11: `RelevantEntities` 不適合の根拠に挙げた WWDC 実例が誤帰属と判明 → 訂正
+
+`docs/devlog/2026-08-11-constraint-recheck.md` の全項目再検証の一環で、`RelevantEntities` が todo ドメインに適合
+しないという結論の根拠として挙げていた WWDC 引用を洗い直した。それまで「提供される context は
+`.audio(.nowPlaying)` のみ」と記録していたが、wwdc2026-345（3:57 前後）が実際に挙げている例は
+`.audio(.workout(activityType: .running))`（ワークアウト開始時にプレイリストを提案する例）であり、
+`.nowPlaying` ではなかった。ただし Xcode 27 beta 5 SDK の `AppIntents.swiftinterface` を確認すると
+`AudioContext.nowPlaying` のみが存在し、`.workout(activityType:)` は HealthKit 等のオーバーレイ側にも
+まだ見当たらない（beta 未実装の可能性があり要再確認）。どちらの例で確認しても「todo を寄付するのは
+意味的に誤り（再生中メディア/ワークアウト扱いになる）」という結論自体は変わらないため、`RelevantEntities`
+適合を保留する結論は維持しつつ、引用元の記述だけを訂正した（コミット `3140e5b`）。
+
+## 2026-08-11: `IntentValueQuery` はアプリに1つだけという制約を記録し忘れていたと判明
+
+`docs/devlog/2026-08-11-constraint-recheck.md` の再検証中に wwdc2026-297（11:39）を聞き直したところ、
+「`SemanticContentDescriptor` を受ける `IntentValueQuery` はアプリに **1 つだけ**」と明言されていることに
+気づいた。Phase 5 実装時（コミット `069aa48` 前後）にはこの制約をドキュメント化しておらず、本プロジェクトは
+`TodoVisualIntelligenceQuery` の1つのみを実装していたため実害はなかったが、将来2つ目を追加しようとした
+場合に不可能だと気づかず地雷を踏む可能性があった。制約を明文化し、複数の視覚検索エンティティ種別を扱いたい
+場合は `@UnionValue` で戻り値の型を1つの query に集約するのが正しい対処だと記録した（コミット `3140e5b`）。
+
+## 2026-08-11: Visual Intelligence の openable 要件を「Mac 固有」と書いていたのは不正確と判明 → enforce の違いに訂正
+
+`docs/devlog/2026-08-11-constraint-recheck.md` の再検証で、Visual Intelligence の openable 要件（visual search の
+`IntentValueQuery` が返す entity は全て `OpenIntent` を持つ必要がある）についての記述を見直した。それまで
+「Mac 固有の追加バリデーション」と書いていたが、wwdc2025-275（9:19）が "This `OpenIntent` must exist,
+otherwise your app won't show up" と明言している通り、これは全プラットフォーム共通のルールだった。実際に
+違うのは「コンパイル時エラーとして enforce されるのが macOS destination のビルドだけ」という enforce の
+されかたであり、ルール自体が Mac 限定というわけではないと訂正した（iOS シミュレータ/iPhone ビルドでは
+コンパイルエラーとして出ない）。`TodoOrCategory` union に `CategoryAppEntity` を含めるために新設した
+`OpenCategoryIntent` の位置づけ自体（2026-07-02 の対応）は変更なし（コミット `3140e5b`）。
+
+## 2026-08-11: AppIntentsTesting に「テストランナーとアプリで同じ development team が必要」という要件があると判明
+
+`docs/devlog/2026-08-11-constraint-recheck.md` の再検証中に wwdc2026-295（2:54）を確認したところ、"AppIntentsTesting
+requires the test runner and the app to use the same development team for code signing" と明言されている
+ことに気づいた。Phase 6 実装時（コミット `0b27bf0` 前後）にはこの要件を記録しておらず、CI 環境や複数
+Apple ID を切り替える環境でこの設定がずれると原因不明の失敗になりやすい落とし穴だったため、テスト追加時に
+まず署名チームの一致を確認するようドキュメント化した（コミット `3140e5b`）。
+
+## 2026-08-11: 「`textContent` は SDK に露出していない」という記録が誤りと判明 → 訂正
+
+`docs/devlog/2026-08-11-constraint-recheck.md` の再検証で `@Property(indexingKey:)` 周りの記述を洗い直したところ、
+Phase 7 実装時（コミット `756735e`/`4e0e09a` 前後）に「`textContent` は SDK に露出していない（`title`/
+`contentDescription`/`textContentSummary`(read-only) のみ確認）」と記録していたのが誤りだったと判明した。
+実際には `CSSearchableItemAttributeSet_Messaging.h` に `NSString *textContent`（macOS 10.11 / iOS 9〜、
+tvOS・watchOS 対象外）として存在する（wwdc2026-240 のコード例、wwdc2024-10131 2:41 が言及）。さらに
+`EntityProperty.init(indexingKey:)` は `PartialKeyPath<CSSearchableItemAttributeSet>` を取るだけでローカル
+プロパティの型とキーパスの値型を静的に対応付けないため、`String?` でも `AttributedString?` でも同一の
+`indexingKey:` オーバーロードが使えることも実ビルドで確認した（SDK の `swiftinterface` 上、
+`Value.ValueType == String` と `Value.ValueType == AttributedString` の両方に同シグネチャの init 群がある
+ことを確認）。「`textContent` は `AttributedString?` 専用」という仮説も誤りだった。それでも `todoDescription`
+は `contentDescription`（`CSDocuments` カテゴリ、アイテムの説明文の意味）にマップし続けるのが妥当という
+結論自体は変わらない——`textContent`（`CSMessaging` カテゴリ、メール/メッセージ本文全文を想定）よりも
+todo の詳細説明というユースケースに近いため、型の制約ではなく意味の制約による選択だと整理し直した
+（コミット `3140e5b`）。
+
+## 2026-08-12: LA ボタンの entity 解決クラッシュは iOS 27 で再現しないと実測（A-3 決着）
+
+`docs/devlog/2026-08-11-constraint-recheck.md` の A-3 残タスク（「Primary 版 Intent を LA ボタンに直結して実機実行し、trap の再現/非再現を確認する」）を、iPhone 17 Pro Max シミュレータ（iOS 27 / Xcode 27 beta 5）で実施した。
+
+**仕込み**: `@Parameter var todo: TodoAppEntity` + `@Dependency var todoService` を持つ probe Intent を `TodoAppIntents` に置き、ロック画面 Live Activity と Dynamic Island の「Mark Complete」ボタンをそれに差し替えた。あわせて `TodoEntityQuery.entities(for:)` と probe の `perform()` に `pid` / `processName` を出すログを入れた。プロセスをまたぐログは Xcode の launch session では拾えないので、`simctl spawn <udid> log config --subsystem dev.touyou.IntentTodo --mode "level:debug,persist:debug"` で永続化してから `log show` で読んだ（アプリを kill する検証では launch session が切れるため、これが必須）。
+
+**結果**（3 ケースすべて crash 無し、entity 解決も `perform()` もメインアプリプロセス）:
+
+| ケース | `entities(for:)` | `perform()` |
+|---|---|---|
+| アプリ起動中 + `LiveActivityIntent` 準拠 | IntentTodo (pid 38962) | IntentTodo (同 pid) |
+| アプリ kill 済み + `LiveActivityIntent` 準拠 | IntentTodo (pid 47386, LA タップで起動) | IntentTodo (同 pid) |
+| アプリ kill 済み + `LiveActivityIntent` **非**準拠（素の `AppIntent`） | IntentTodo (pid 48600) | IntentTodo (同 pid) |
+
+3 ケース目が効いていて、**`LiveActivityIntent` 準拠の有無は entity 解決プロセスに影響しない**。2026-08-11 の A-3 で挙げた仮説 (a)「当時その Intent が `LiveActivityIntent` 未準拠だったのが原因」は、少なくとも現行 SDK では成立しない。仮説 (b)「LA Extension プロセスに `AppDependencyManager` 登録が無いこと」も、`IntentTodoLiveActivityBundle.init()` が今も何も登録していないまま動いているので現行 SDK では無関係。
+
+**副産物（A-5 の裏取り）**: 同じログに `IntentTodoWidgetExtension[48073] TodoEntityQuery entities(for:)` が出ていた。Widget のタイムライン描画では entity 解決が Widget Extension プロセスで走る。つまり「entity 解決は必ずアプリで走る」わけではなく、上の結論は **Live Activity ボタン経由に限った話**。Widget Extension 側の `AppDependencyManager` 登録は引き続き必要。
+
+**判断**: FromExtension 分離は現行 SDK では不要と分かったが、削除は別の設計判断（`isDiscoverable` の扱い、`endMatchingLiveActivity` の置き場所）を伴うので今回は撤去せず、ドキュメントに「現行 SDK では不要」と明記するに留めた。probe と一時ログは検証後に全て削除済み。
+
+**教訓**: プロセスをまたぐ検証では Xcode の launch session ログでは足りない。`simctl spawn ... log config --mode "persist:debug"` + `log show` にしておくと、アプリを kill した後の再起動や Extension 側のログまで一続きで読める。
+
+## 2026-08-12: FromExtension 分離を撤去（1 アクション 1 Intent へ）
+
+前項の実測で分離の根拠が消えたため、`ToggleTodoCompletionFromExtensionIntent` と `SnoozeTodoFromExtensionIntent` を削除した。
+
+**Toggle**: `ToggleTodoCompletionIntent`（`@Parameter var todo: TodoAppEntity`）に一本化。FromExtension 側にしか無かった「完了したら対応する Live Activity を畳む」副作用を `perform()` に移し、`#if os(iOS)` で `LiveActivityIntent` に準拠させた（`activity.end` を触るため、`perform()` がアプリプロセスで走る公式保証を得ておく）。`LiveActivityMonitor` の reconcile は `TodoListView` が画面に居るときしか走らないので、この副作用を落とすとロック画面から完了させた Live Activity が出っぱなしになる。
+
+**Snooze**: 一本化**しなかった**。`SnoozeTodoIntent` は `requestChoice` で期間を選ばせるが、Live Activity のボタンは背景実行で問い合わせ先の UI が無いため、期間固定の変種が要る。ただし残す理由は「entity 解決の回避」ではなく「対話できるかどうか」なので、名前を `QuickSnoozeTodoIntent` に変え、パラメータも `todoId: String` → `todo: TodoAppEntity` に揃えた。
+
+**Live Activity View 側**: Activity が持つのは id と title だけなので `TodoAppEntity(id:title:)` で組んで渡す。システムが `perform()` 前に id から再解決するため、他のフィールドは埋めなくても正しく動く（前項の実測どおり）。
+
+`SetTodoCompletionIntent`（Control 用、`SetValueIntent`）は `todoId: String` のまま。こちらも理由は「トグルではなく絶対値セット」という振る舞いの違いであって、プロセスの都合ではない。ドキュメント上の「FromExtension convention に従う」という説明だけ書き換えた。
+
+**残った教訓**: 呼出元プロセスの都合で Intent を複製すると、副作用（LA を畳む / 更新する）が片方にしか無い状態が生まれ、統合するときに拾い直しが要る。分けるなら**振る舞いが違うとき**だけにする。
+
+## 2026-08-12: 検証観点を AppIntentsTesting に寄せる（B 深度 → U 深度）
+
+「制約の再検証」を実機・シミュレータの手作業で進めていたが、AppIntentsTesting で押さえられる観点はテストに寄せた方がデグレも防げる、という方針転換。`IntentTodoUITest/AppIntentsTestingTests.swift` を 3 テスト → 10 テストに拡張し、実 run でグリーンを確認した（従来は buildForTesting までの B 深度だった）。
+
+追加したのは、**落ちても他のテストでは捕まらない**観点を優先:
+
+| テスト | 押さえている経路 |
+|---|---|
+| `testEntityResolutionByIdentifier` | `TodoEntityQuery.entities(for:)`。A-3 で問題になった、LA / Widget のボタンが `perform()` 前に通る経路 |
+| `testEntityResolutionOfUnknownIdentifierReturnsEmpty` | 削除済み todo を指す古いボタンで throw しないこと |
+| `testAllEntitiesIncludesSuggestedIncompleteTodo` | `EnumerableEntityQuery.allEntities()` / `suggestedEntities()` |
+| `testNewTodoIsIndexedInSpotlight` | `IndexedEntity` + `@Property(indexingKey:)`。落ちると検索から消えるだけで他は正常に見える |
+| `testToggleCompletionRoundTrip` | FromExtension 撤去で副作用を寄せた `ToggleTodoCompletionIntent` |
+| `testQuickSnoozePushesDueDateByThirtyMinutes` | `QuickSnoozeTodoIntent` が 30 分ちょうど押すこと |
+| `testTodoSummaryReflectsNewTodo` | `TransientAppEntity`（`TodoListSummaryEntity`）のプロパティ名込み |
+
+**実行して初めて分かった落とし穴**（insights/03 にも記録）:
+
+1. `AnyAppEntity` の dynamic member lookup で見えるのは `@Property` だけ。`entity.id` は `castingFailed(elementType: "NSNull", targetType: "String")` になる。id は `entity.identifier.instanceIdentifier` から取る。
+2. `setUp` で毎回 `app.launch()` すると、テスト数を増やしたところで `Simulator device failed to launch ... did not return a process handle nor launch error` が散発するようになった。`launch()` は起動中のアプリを terminate して再起動するため。起動済みなら `activate()` に分岐して解消。3 テストの頃は顕在化していなかった。
+3. Spotlight の index は Intent 完了と非同期。`spotlightQuery()` はタイムアウト付きでポーリングする。
+4. `requestChoice` を使う `SnoozeTodoIntent` は run できない（応答する相手が居ない）。対話しない `QuickSnoozeTodoIntent` を別に持っていたおかげでスヌーズの計算自体はテストできた。**対話版と非対話版を分けておくとテスト可能性が上がる**という、分離の思わぬ効能。
+
+**残る手作業**: 最終的にシステム UI の見え方に依存するもの（dialog の読み上げ、snippet の描画、Control の表示、Siri のルーティング）だけ。`viewAnnotations()` / `valueQueries` / `exported(as:)` はまだ未着手だが API はあるので寄せられる。
+
+## 2026-08-12: AppIntentsTesting を 22 テストへ拡張、ファイルを分割
+
+前項の方針の続き。1 ファイルに詰め込んでいたテストを `IntentTodoUITest/AppIntents/` 配下へ分割した（`IntentTodoUITest` は現在 synchronized folder なので、ファイルを置くだけでターゲットに入る。以前 insights に書いていた「synchronized folder ではない」は古い記述だったので訂正した）。
+
+- `AppIntentsTestCase.swift` — 共通基底（起動 / 後片付け / ヘルパー）
+- `TodoIntentExecutionTests.swift` — Intent 実行（作成・トグル・スヌーズ・部分更新・バルク・集計・連鎖）
+- `TodoEntityQueryTests.swift` — entity query（文字列一致・id 解決・allEntities・suggested・Spotlight・union 検索）
+- `TodoSystemIntegrationTests.swift` — アプリの外に届く部分（view annotation・ナビゲーション・ValueRepresentation）
+
+**新しく U 深度に上がった観点**: `viewAnnotations()`（onscreen entity, #46）、`exported(as: IntentPerson.self)`（ValueRepresentation, #44）、`valueState` の三状態（#45）、`CompleteTodosIntent`（LongRunningIntent + EntityCollection + `allowedExecutionTargets [.main]`）、`DeleteTodosIntent`、`SearchEverythingIntent`（`@UnionValue`）、Spotlight の de-index、`LaunchAppIntent` のナビゲーション（`@Dependency` + `perform()` パターン。`onAppIntentExecution` を使わない代替経路なので、これで C-1 の「再導入したら検証」以前に現行経路は押さえられた）。
+
+**詰まったところ 3 つ**:
+
+1. **`.set(nil)` が効かないように見えた**。`makeIntent(todoDescription: nil)` は `.set(nil)` ではなく **`.unset`**（引数を渡さなかった扱い）になる。最初これをアプリ側のバグと誤診しかけたが、`UpdateTodoIntent` の実装は正しかった。`Optional` 自身が `IntentValueExpressing` に適合しているので、`let explicitNull: any IntentValueExpressing = String?.none` のように**型付きの nil** を渡すと `.set(nil)` になり、期待どおりクリアされた。
+
+2. **クリーンビルド直後の最初のテストだけ `AppIntentsServicesMetadataErrorDomain Code=400 "dev.touyou.IntentTodo is not present"`**。App Intents のメタデータサービスが新しいアプリをまだ認識していないだけ。`setUp` で軽いクエリが通るまでポーリングしてから本体に入るようにして解消した。
+
+3. **`app.launch()` → `app.activate()`**。前項では「起動済みなら activate」と条件分岐にしていたが、クリーンビルド後は結局 `launch()` を通って落ちたので、無条件 `activate()`（未起動なら起動・起動済みなら前面化）に単純化した。`--uitesting` 起動引数はアプリ側で読んでいなかったので失うものは無い。
+
+**テストにできないと分かったもの**: `IntentValueQuery`（Visual Intelligence）。`VisualIntelligence.framework` は iOS **実機** SDK と macOS SDK にはあるが **iOS Simulator SDK には無い**ため、シミュレータビルドでは `#if canImport(VisualIntelligence)` が false になり `TodoVisualIntelligenceQuery` 自体がバイナリに入らない。`definitions.valueQueries[...]` で参照できないので、この観点だけは実機か macOS destination に回すしかない。
+
+## 2026-08-12: A-1（`includedPackages` 重複宣言）を AppIntentsTesting で追い込む
+
+2026-08-11 の A-1 は「メタデータ件数が一致することは確認したが、実機 Siri/Shortcuts ルーティングは未検証」で止まっていた。AppIntentsTesting が「Siri / Shortcuts / Spotlight と同じインフラ」を通ることを利用して、実機を待たずにもう一段追い込んだ。
+
+**手順**: wwdc2025-244 (23:29–24:00) の公式手順どおり、アプリ / Widget / LiveActivity の 3 ターゲットに `includedPackages: [TodoIntentsPackage.self]` 付きの `AppIntentsPackage` を宣言 → ビルド → メタデータ件数を採取 → AppIntentsTesting の全 22 テストを実行 → 宣言を外して同じ件数を採取。
+
+**結果**:
+
+| バンドル | actions | entities | enums | queries | autoShortcuts |
+|---|---|---|---|---|---|
+| IntentTodo.app | 24 | 4 | 4 | 3 | 8 |
+| IntentTodoWidgetExtension.appex | 26 | 4 | 5 | 3 | 0 |
+| IntentTodoLiveActivityExtension.appex | 22 | 4 | 4 | 3 | 0 |
+
+**宣言あり / なしで全項目が完全一致**。加えて、宣言した状態で AppIntentsTesting 22 テストが全部グリーン（intent 実行 / entity の id 解決 / Spotlight クエリ / view annotation / ナビゲーションまで）。つまりビルド時のメタデータ集約でも、実行時の intent ルーティングでも壊れない。
+
+**残る穴**: App Shortcut の**フレーズ**ルーティング（`LNContextErrorDomain Code=2001` 系）。AppIntentsTesting は `definitions.intents[...]` を型名で引くので、`AppShortcutsProvider` のフレーズ経路は通らない。ここだけは実機 Siri / Spotlight で確かめるしかない。
+
+**判断**: 採用すれば Apple の公式手順に沿う形になるが、まだ埋まっていない穴が Siri のフレーズという最も見えにくい部分なので、今回は非重複運用のまま据え置き、probe は削除した。採用するなら実機でフレーズを 1 つ試すのが最短の確認になる。
+
+## 2026-08-12: `.reminders.reminder` スキーマの要求仕様を洗い出した（C-6 / #48 の前提整理）
+
+据え置き中の C-6（コア `TodoAppEntity` を `@AppEntity(schema: .reminders.reminder)` に適合させる）について、**適合そのものは着手せず、スキーマが何を要求するのかだけを probe で確定させた**。エラーを 1 つずつ潰す形で回すと、ビルド時のスキーマ検証が要求プロパティ名・型・optional かどうかまで具体的に教えてくれる。
+
+**まず 1 つ前提が覆った**: 「マクロ生成の init が `EntityProperty<T>` 引数を要求するので自前 init と相性が悪い」という据え置き理由は**誤り**だった。マクロ展開を実際に読むと、生成されるのは
+
+```swift
+extension ProbeReminderSchemaEntity: AssistantSchemaEntity {
+    static let __appSchemaEntity = "reminders.reminder"
+}
+extension ProbeReminderSchemaEntity: AppEntity {}
+```
+
+の 2 つだけで、**init は生成されない**。自前 `init(from: TodoItem)` はそのまま使える。
+
+**`.reminders.reminder` の要求プロパティ（Xcode 27 beta 5 実測）**:
+
+| プロパティ | 型 | 備考 |
+|---|---|---|
+| `title` | `String` | |
+| `note` | `String?` | 本文。うちの `todoDescription` に対応 |
+| `dueDate` | `DateComponents?` | **`Date?` ではない** |
+| `isCompleted` | `Bool` | |
+| `completionDate` | `Date?` | 現状モデルに無い |
+| `creationDate` | `Date?` | **optional 必須**（非 optional だとエラー） |
+| `isFlagged` | `Bool?` | **optional 必須**。うちの `isFavorite` に対応 |
+| `tags` | `Set<String>` | **配列ではない**。現状モデルに無い |
+| `list` | `.reminders.list` 適合 entity | **非 optional 必須**。`CategoryAppEntity` が既に適合済み |
+| `recurrence` | `Calendar.RecurrenceRule?` | 現状モデルに無い |
+| `locationTrigger` | `.reminders.locationTrigger` 適合 entity（optional 可） | 下記 |
+| `urls` | `[URL]` | 現状モデルに無い |
+
+入れ子で 2 つ必要:
+
+- `@AppEntity(schema: .reminders.locationTrigger)` — `place: PlaceDescriptor` と `event: <.reminders.locationTriggerEvent 適合 enum>`
+- `@AppEnum(schema: .reminders.locationTriggerEvent)` — ケースは `arrive` / `depart`（`leave` だと `requires enum case 'depart'` で弾かれる）
+
+この形で probe はビルドが通った（= 適合自体は成立する）。probe は削除済み。
+
+**残る本当の障害は 3 つ**（#48 で着手するときの論点）:
+
+1. **`list` が非 optional**。`TodoItem.category` は CloudKit 要件で optional なので、「未分類」を表す既定の `CategoryAppEntity` を用意して埋める必要がある。
+2. **`dueDate` が `DateComponents`**。モデルは `Date?` なので相互変換が要る（`DateComponents` は「日付だけ / 時刻だけ」を表せるぶん、往復で情報が落ちうる）。
+3. **`locationTrigger` が `PlaceDescriptor` を `@Property` に強制する**。これは `35d772f` で SSU training エラー回避のために外したのと同じ型で、[[placedescriptor-ssu-workaround]] の制約に正面からぶつかる。`locationTrigger` 自体は optional だがプロパティの存在は必須なので逃げられない。**SSU バグが直るまで C-6 は実質ブロック**の可能性が高い（今回は incremental ビルドで SSU タスクが再実行されなかったため未確認。判定には DerivedData を消したクリーンビルドが要る）。
+
+`completionDate` / `tags` / `recurrence` / `urls` はモデル追加で埋まる（CloudKit 互換の primitive に落とせる）ので、障害としては軽い。
+
+## 2026-08-12: `includedPackages` 付き `AppIntentsPackage` を採用（A-1 決着）
+
+前項の検証結果を受けて、Apple 公式手順（wwdc2025-244）どおり**利用側の各ターゲットでも `includedPackages` 付きで宣言する**形に切り替えた。2026-04-13 に「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」として外して以来の方針転換。
+
+宣言先は 4 ターゲット: `IntentTodo` / `IntentTodoWidget` / `IntentTodoLiveActivity` / `IntentTodoWatchApp`（前項の probe では watch App を入れていなかったので、採用時に追加した）。
+
+**採用後の確認**:
+
+| バンドル | actions | entities | enums | queries | autoShortcuts |
+|---|---|---|---|---|---|
+| IntentTodo.app | 24 | 4 | 4 | 3 | 8 |
+| IntentTodoWidgetExtension.appex | 26 | 4 | 5 | 3 | 0 |
+| IntentTodoLiveActivityExtension.appex | 22 | 4 | 4 | 3 | 0 |
+| IntentTodoWatchApp.app | 23 | 4 | 4 | 3 | 0 |
+
+宣言前の baseline と全項目一致（重複していない）。ビルドは iOS シミュレータ / My Mac / visionOS シミュレータの 3 destination グリーン、AppIntentsTesting 22 テットを含む全 36 テストもグリーン。
+
+**残る唯一の未確認は App Shortcut の「フレーズ」ルーティング**（`LNContextErrorDomain Code=2001` 系）。AppIntentsTesting は型名で intent を引くのでフレーズ経路を通らない。実機で「Todo を追加して」のような登録フレーズを 1 回 Siri に言えば確認できる。壊れていた場合は 4 ファイルを消せば元に戻る（`*AppIntentsPackage.swift`）。
+
+## 2026-08-12: C-6 は SSU training バグでブロックと確定（クリーンビルドで実測）
+
+前項で「`.reminders.reminder` の `locationTrigger` が `PlaceDescriptor` を `@Property` に強制するので [[placedescriptor-ssu-workaround]] に衝突しそう」と書いた点を、DerivedData を消したクリーンビルドで確定させた。
+
+**probe 1: `@Parameter var placeProbe: PlaceDescriptor?` を `AddTodoIntent` に追加**（= `35d772f` が外したのと同じ形）
+
+```
+GeoToolbox.PlaceDescriptorEntity must match regular expression ^[a-zA-Z_][a-zA-Z_$0-9]*$ # variables.3.name
+Command AppIntentsSSUTraining emitted errors but did not return a nonzero exit code to indicate failure
+```
+
+**probe 2: `.reminders.locationTrigger` 適合 entity に `@Property var place: PlaceDescriptor`**（= C-6 で必須になる形）
+
+```
+GeoToolbox.PlaceDescriptorEntity must match regular expression ^[a-zA-Z_][a-zA-Z_$0-9]*$ # variables.1.name
+```
+
+variable の index が 3 → 1 と probe に応じて変わっているので、キャッシュではなく実際に再導出されている。**Xcode 27 beta 5 でも未修正**であり、`@Parameter` だけでなく **`@Property`（しかも入れ子の schema entity 側）でも同じく踏む**。
+
+**結論**: `.reminders.reminder` への適合は `locationTrigger` プロパティが必須で、その entity は `place: PlaceDescriptor` を要求する。つまり **C-6 は SSU バグが直るまで実質ブロック**（ローカルは exit 0 だが Xcode Cloud は emitted error を失敗扱いにするため）。`35d772f` の回避も引き続き必要。
+
+**副産物の注意点（今後の検証手順に効く）**: probe を消した直後のビルドで、まだ SSU エラーが出続けた。調べると `IntentTodo.app/Metadata.appintents/extract.actionsdata` に probe の痕跡（`AddTodoIntent.parameters/7` と `ProbeSSUPlaceEntity`）がそのまま残っていた。**SSU の `temp-dir` だけ消しても足りず、`Metadata.appintents` の再抽出まで走らせないと前の状態が残る**。ターゲットの build ディレクトリを部分的に消す程度では Xcode が「変更なし」と判断して再抽出しないので、判定は **DerivedData ごと消したクリーンビルド**で行うこと。
+
+クリーンな状態（probe 無し）での再確認: SSU エラー 0 件、`Metadata.appintents` に `PlaceDescriptorEntity` 0 件。**actions は 23 で、`Packages/TodoAppIntents/.../Intents/` の intent 型数 23 とちょうど一致**（`includedPackages` を 4 ターゲットに宣言した状態でも重複していない）。A-1 の「宣言あり / なしで件数一致」は incremental ビルドで採った値だったが、このクリーンビルドで独立に裏が取れた形になる。
+
+## 2026-08-12: `includedPackages` 採用後、Shortcuts アプリ側の実機確認 OK
+
+A-1 の採用後に、検証の梯子の 2 段目（Shortcuts アプリで intent の形を見る）を実機で確認した。アクション一覧とパラメータ表示は壊れていない。
+
+これで A-1 の根拠は 3 つになった: ①クリーンビルドでの metadata 件数一致（`actions` 23 = intent 型数 23、重複なし）②AppIntentsTesting 全テストグリーン ③Shortcuts アプリでの実機確認。残るのは Siri のフレーズ routing のみで、これは自動化手段が無く（前項の梯子参照）機会があるときに 1 フレーズ言えば済む。
+
+## 2026-08-21: 書き込み系 Intent を `allowedExecutionTargets = [.main]` に固定
+
+`allowedExecutionTargets` は #345 の検証時に `CompleteTodosIntent` 1 件だけで「API を通した」状態で止まって
+いた。改めて見直すと、セッションが挙げている動機（16:21–16:38 のウィジェットの favorite ボタン）が**この
+アプリの構成そのまま**だった。共有パッケージ `TodoAppIntents` が Widget Extension にもリンクされていて、
+`WidgetBundle.init()` で**読み書きできる `TodoService`** を登録しているため、`.background` の変更系 Intent が
+アプリ未起動時に Extension プロセスへ振られると、そこが SwiftData の書き手になる。
+
+**やったこと**: `TodoService` の変更メソッドを呼ぶ 13 intent に `[.main]` を宣言。
+
+Add / Update / Delete(×3) / Complete(bulk) / ToggleCompletion / SetCompletion / ToggleFavorite /
+ToggleUrgent / Snooze / QuickSnooze / Reorder。
+
+- Extension UI から実際に呼ばれていて未固定だったのは `SetTodoCompletionIntent`（Control のトグル）、
+  `ToggleFavoriteIntent`、`DeleteTodoImmediatelyIntent`。残りは Extension UI からは呼ばれないが、
+  共有パッケージ経由でリンクされているため Siri / Shortcuts 要求が Extension に振られ得る。
+- `ToggleTodoCompletionIntent` / `QuickSnoozeTodoIntent` は iOS では `LiveActivityIntent` 準拠なので
+  `perform()` のアプリ実行が公式保証されているが、その準拠は `#if os(iOS)` の中。macOS / watchOS では素の
+  `AppIntent` なので、型で明示する意味がある。
+- 読み取り系は**あえて未指定のまま**（アプリを起こさず Extension で応答できるほうが速い）。よって
+  `WidgetBundle.init()` の `TodoService` 登録は残すが、用途が「読み取り専用」に変わったのでコメントを更新。
+
+**確認**:
+
+1. iOS ビルド + watchOS ビルド成功（watch は `.main` が「watch アプリ本体」を指すので、watch UI の
+   `Button(intent:)` が壊れないかが論点。ビルドは通ったが**実機/シミュレータでの watch からの追加は未確認**）
+2. AppIntentsTesting 22 件グリーン（`TodoIntentExecutionTests` / `TodoEntityQueryTests` /
+   `TodoSystemIntegrationTests`）。固定した状態でも Siri / Shortcuts と同じ経路で実行できている
+3. パッケージテスト 75 件グリーン（`swift test`）
+4. 新規ガードテストの**失敗確認**: `Intents/` に「`todoService.delete(` を呼ぶが宣言が無い」probe intent を
+   置くと `everyMutatingIntentDeclaresExecutionTargets` が落ちる → 条件付き assert の空回りではない
+
+**気づいた副産物**: `TodoAppIntents` のパッケージテスト（既存 7 ファイル + 今回の 1 ファイル）は
+`IntentTodo` スキームの Test アクションに入っていない（Testables は `IntentTodoUITest` だけ）。つまり
+`swift test` かパッケージ単体のスキームで走らせない限り**通常の Cmd+U では実行されない**。今回のテストも
+同じ場所に置いたので、スキームに testable を追加するか CI で `swift test` を回すかを別途決める必要がある。
+
+**未確認**: Control のトグルを**アプリ完全終了状態**で叩いたときの体感（アプリのバックグラウンド起動が
+挟まる）。dialog も snippet も出ない面なので、遅延が実用上問題になるかは実機で見るしかない。
+
+## 2026-08-21: App Shortcut のフレーズをパラメータ対応にし、Spotlight の受け口を塞いだ
+
+`allowedExecutionTargets` の見直しのついでに「ドキュメントには書いてあるのに採用していない API」を
+全ソース走査で洗い出した結果、4 件を採用した。
+
+### 1. パラメータ入りフレーズ + `updateAppShortcutParameters()`
+
+`TodoAppShortcuts` の 8 件はすべて `"Complete todo in \(.applicationName)"` 型で、**フレーズに
+パラメータが 1 つも入っていなかった**。`updateAppShortcutParameters()` の呼び出しもリポジトリ全体で
+0 件。`docs/insights/03-app-intents-core.md` には「フレーズのパラメータ型制限」として
+`"Show \(\.$filter) todos in ..."` という例まで書いてあったのに、実装が追いついていなかった形。
+
+- entity 版: ToggleCompletion / ToggleFavorite / Delete / Snooze に `\(\.$todo)` を追加
+- enum 版: ShowTodos に `\(\.$filter)` を追加（3 件に分けていた頃の "Show favorite todos" が、
+  今度はフレーズレベルのパラメータとして復活した形）
+- 各 shortcut にパラメータ無しのフレーズを 1 つ残す（wwdc2023-10102 8:14）
+
+`updateAppShortcutParameters()` は provider の具体型に対する static で、その具体型はアプリ
+ターゲットにしか置けない（`AppShortcutsProvider` をパッケージに置くと統合メタデータから落ちる件）。
+そこで `AppShortcutParameterUpdater`（パッケージ側のクロージャ受け）を挟み、
+`IntentTodoApp.init()` で `TodoAppShortcuts.updateAppShortcutParameters()` を登録 + 初回 1 回実行。
+変更契機は `TodoService.dataDidChange()` に集約した（後述）。
+
+### 2. `WidgetReloader.reloadAllWidgets()` → `TodoService.dataDidChange()`
+
+`WidgetReloader` の呼び出しは実際には `TodoService` の 9 箇所だけで、Intent 側は 1 つも呼んで
+いなかった（AGENTS.md の記述が実装とズレていた）。App Shortcut の通知を足すにあたって 9 箇所に
+2 行ずつ書くのは避け、`dataDidChange()`（ウィジェット/コントロールのリロード + App Shortcut の
+パラメータ更新）にまとめた。
+
+### 3. `IndexedEntityQuery` を `TodoEntityQuery` に実装
+
+`indexAppEntities` で donate している以上、Apple 公式が受け側の実装を要求している。実装時に
+`CSSearchableIndexDescription` が non-Sendable で `@MainActor` を付けられないことに当たった
+（詳細は insights）。要求された id のうち解決できなかったものは index から削除する。
+
+### 4. Spotlight を名前付き index へ
+
+`CSSearchableIndex.default()` は公式に "only for prototyping and testing" とされている。
+`TodoSpotlightIndex`（`dev.touyou.IntentTodo.Todos`）に移し、旧 default index は初回起動で
+1 度だけ全消しして二重表示を防ぐ。
+
+### 5. `SiriTipView` をリスト先頭に（macOS 除く）
+
+App Shortcut をアプリ内から知らせる導線が無かった。`SiriTipView(intent: AddTodoIntent(),
+isVisible:)` を `@AppStorage` 付きで追加。**`SiriTipView` は macOS で unavailable** だったため
+`#if os(macOS)` で分岐（[[verify-platform-limits-on-sdk-updates]] の逆パターンで、こちらは
+実際に SDK 側の制約だった。swiftinterface で確認 → 実ビルドで確定）。
+
+### 確認
+
+- ビルド: iOS / macOS / visionOS / watchOS すべて成功（macOS は `SiriTipView` のガードを入れる前に
+  実際に落ちた。ガード後に成功）
+- AppIntentsTesting: 22/22 グリーン。特に Spotlight の 2 件が通ったことで、名前付き index に
+  移しても検索から見えることが確かめられた
+- パッケージテスト: 77/77（`AppShortcutParameterUpdaterTests` 2 件を追加）。通知を外すと落ちることを
+  確認済み
+
+### 未確認
+
+- **Siri のフレーズ実機確認**。パラメータ入りフレーズが実際に解決されるか（"Complete 牛乳を買う in
+  IntentTodo"）は AppIntentsTesting では通らない経路。Xcode の Product > App Shortcuts Preview
+  （wwdc2023-10102 16:39）で先に見るのが安い
+- Spotlight の再インデックス要求（`reindexAllEntities`）が実際にシステムから呼ばれる状況の再現
+- `SiriTipView` の実際の表示（シミュレータ実行での目視）
+
+## 2026-08-21: 上記の変更を「もっと新しいセッション」と突き合わせた（レビュー）
+
+採用の根拠が古いセッションのものだったため、2025 / 2026 のセッションと Xcode 27 beta 5 の SDK で
+上書きされていないかを確認した。結果、**方向は全部合っていた**が 3 件の修正が出た。
+
+| 確認したこと | 結果 |
+|---|---|
+| `IndexedEntityQuery` | wwdc2026-343 12:19–12:35 が「Spotlight may need your app to reindex its entities. Your app can support reindexing by adopting the new `IndexedEntityQuery`」と**最新セッションで推奨**。同 12:35 に「Core Spotlight レベルの API で再インデックスに対応済みなら不要」という但し書きもあるが、本アプリは未対応なので必要 |
+| 名前付き Spotlight index | wwdc2026-343 のコードも `CSSearchableIndex(name: indexName)`。2024-10131 も同様。default index を使う例は無い |
+| パラメータ入りフレーズ | wwdc2025-244 9:46 で健在。`updateAppShortcutParameters()` も SDK 27 で deprecated ではない |
+| `SiriTipView` | SDK 27 で deprecated ではない（`@available(macOS, unavailable)` のみ） |
+| `allowedExecutionTargets` | wwdc2026-345 が初出で最新 |
+
+### 修正 1: `suggestedEntities()` に上限を入れた
+
+wwdc2025-244 9:46: "Phrases can include up to one intent parameter. **If provided, an App Shortcut for
+each value of that type will be created.**"
+
+`TodoEntityQuery.suggestedEntities()` は未完了 todo を**全件**返していた。パラメータ無しフレーズだけの
+頃は Shortcuts のピッカーに出るだけで害が無かったが、パラメータ入りフレーズを入れた瞬間に
+「未完了の数だけ App Shortcut が生成される」に意味が変わる。上限 10 件（HIG の "not more than ten"）に
+した。`fetchIncomplete()` は `createdAt` 降順なので、先頭 10 件＝直近の未完了になる。
+
+**パラメータ化とセットで見直すべき箇所**であり、フレーズだけ足して放置すると Shortcuts / Spotlight が
+その 1 アプリで埋まる。
+
+### 修正 2: `.system.search` → `.system.searchInApp`（ドキュメント側の追従漏れ）
+
+SDK 27 で `@available(anyAppleOS, deprecated: 27.0, message: "Use .system.searchInApp instead")`。
+コード（`ShowTodoSearchResultsIntent`）は既に `searchInApp` に追従していたが、AGENTS.md /
+APP_INTENTS_CENTRIC_PLAN.md / コード中のコメント 2 箇所が旧名のままだったので揃えた
+（wwdc2026-343 も "the system searchInApp schema (formerly system.search)" と書いている）。
+
+### 修正 3: `EntityPropertyQuery` 不採用の理由を書き直した
+
+「`EntityStringQuery` で十分」と記録していたが、Shortcuts の Find アクションを生やしているのは
+`EnumerableEntityQuery` の方（公式: "you enable the Shortcuts app to generate a Find action and do
+filtering automatically"）。`EntityPropertyQuery` の出番は "many thousands of entities" 規模の性能問題
+なので、結論は同じでも根拠が違う。件数が増えたら再評価、という条件付きに直した。
+
+### 見送り: `systemExtraLargePortrait`（#277 の新ファミリー）
+
+iOS 27 / macOS 27 で追加。採用するには (1) デプロイメントターゲットが iOS 26 なので
+`supportedFamilies` を `#available` で組み立てる (2) `TodoWidgetEntryView` の `switch` が
+`default:` で Small にフォールバックするため、専用の case とレイアウトが要る。
+「API の付け忘れ」ではなく**ウィジェットのサイズ展開という設計判断**なので、ここでは入れない。
+
+## 2026-08-21: WWDC26 公式サンプル 4 本を取り込んで実装を突き合わせた
+
+これまで参照していたのは WWDC のトランスクリプトと API ドキュメントだけで、「Apple 自身が書いた
+まとまったコード」を持っていなかった。WWDC26 の App Intents 系サンプル（CometCal / UnicornChat /
+CosmoTunes / PhotosDomainExample、計 240 Swift ファイル）を `~/Developer/Private/wwdc26-app-intents-samples/` に展開し、
+本プロジェクトの書き方と 1 項目ずつ突き合わせた。
+
+現在のルールは [docs/insights/03-app-intents-core.md](../insights/03-app-intents-core.md) の
+「Phase 9」に集約した。ここには**このとき何が間違っていたか**だけ残す。
+
+### 直したもの（4 件）
+
+1. **`AddTodoIntent.perform()` の中で `donate()` を呼んでいた**。公式 (Donations and discovery) は
+   "Restrict your donations to direct interactions with your app's interface, and not to interactions
+   started by Siri or the Shortcuts app" と明記していて、CosmoTunes の `DonationManager` も同じ注意を
+   コメントに書いている。`perform()` は呼出元を判別できない（`IntentSystemContext` にあるのは
+   `currentMode` / `isVoiceOnly` だけで invocation source は無いと確認）ため、この donate は Siri /
+   Shortcuts 経由でも必ず走っていた。撤去。
+   - 副作用として **UI タップ由来の donation がゼロになった**。本アプリは UI も `Button(intent:)` で
+     同じ Intent を走らせる設計なので、CometCal の `donateIntent:` フラグ方式（UI がサービスを直接
+     呼ぶ前提）も CosmoTunes の UI タップ地点方式もそのままでは使えない。`callAsFunction(donate:)` を
+     使う案を未着手候補として PLAN に起票した。
+   - なお `deleteDonations(matching:)` は呼出元に関係なく正しい後片付けなので delete 系 3 Intent は
+     そのまま。CosmoTunes も同じ形。
+
+2. **`LocalizedStringResource(stringLiteral: title)` でランタイム値を渡していた**（`TodoAppEntity` /
+   `CategoryAppEntity` ×2 / `SubTaskAppEntity`）。これはランタイム文字列をローカライズ**キー**として
+   扱うので、存在しないキーの引きが毎回発生し String Catalog にも載らない。サンプル 4 本はすべて
+   `"\(title)"` の補間形式。あわせて `TodoAppEntity.subtitle` の「情報が無いとき
+   `LocalizedStringResource("", comment: "Empty")` を返す」も `nil` へ変更（`subtitle` は optional）。
+
+3. **`attributeSet` が `@Property(indexingKey:)` と同じ Spotlight キーを上書きしていた**。
+   `todoDescription` を `indexingKey: \.contentDescription` でセマンティックインデックスへ
+   マップしているのに、`attributeSet` 側で `contentDescription = isCompleted ? "Completed" : "Incomplete"`
+   を書いていた。どちらが勝つかは公式に定義がなく、**セマンティック検索に載せたかった本文が固定文に
+   置き換わりうる**状態だった。`attributeSet` からは撤去し、完了状態は `keywords` で表現。
+   `displayName` は `.title` とは別キーなので残した。
+
+4. **`TodoEntityQuery.entities(matching:)` が `lowercased().contains()` だった**。ユーザー全体ルール
+   （`~/.claude/CLAUDE.md` 由来の AGENTS 規約）は `localizedStandardContains()` を指定していて、
+   `CategoryEntityQuery` は既にそちらを使っていた。`TodoEntityQuery` だけ取り残されていた。
+
+### 直さず「観点」として記録したもの
+
+`UndoableIntent`、Spotlight の client state バッチ、`synonyms:` / 画像の遅延クロージャ、
+`displayRepresentations(for:)`、`findIntentDescription`、`shortcutTileColor`、
+`AppIntentError(wrapping:)`、visionOS / watchOS の onscreen annotation 欠落、
+リストのコレクション annotation の未テスト、`#if DEBUG` seed Intent 方式。
+理由と前提は PLAN の「未着手の候補」に、実装形は insights の Phase 9 に書いた。
+
+### このとき分かった注意点
+
+- **サンプルは `docs/references/` の下に置いてはいけない**。当初 `docs/references/samples/` に展開したが、
+  Xcode の同期グループ（`PBXFileSystemSynchronizedRootGroup`）がサンプルの `.xcodeproj` を拾い、
+  **追跡下の `IntentTodo.xcodeproj/project.pbxproj` に project reference を 50 行書き込んだ**。
+  `docs/references/` は gitignore 済みでもこの差分は防げない（汚れるのは pbxproj 側）。
+  副作用としてワークスペースのスキーム一覧にもサンプル側の 5 スキームが混ざる。
+  リポジトリ外（`~/Developer/Private/wwdc26-app-intents-samples/`）へ移し、pbxproj は revert した。
+- サンプル側にも旧 API（`static let openAppWhenRun = true`）が残っている。Apple のサンプルだから
+  正しいとは限らないので、採用前に該当 API のドキュメントで現行の推奨を確認する。
+
+## 2026-08-22: 前日に「観点」として棚上げした未着手候補をまとめて実装
+
+2026-08-21 の公式サンプル突き合わせで挙げた候補のうち、実機検証を伴わずに片付くものを一括で入れた。
+donation の再導入だけは設計判断が要るので明示的に見送った。現在のルールは
+`docs/insights/03-app-intents-core.md`（Phase 9 の各節を現状に合わせて書き換え済み）と
+`docs/insights/05-extensions-and-data-sharing.md`。
+
+### `UndoableIntent`: 「ソフトデリートへの設計変更が要る」は誤りだった
+
+前日は *"undo するには id ごと復元できる形（ソフトデリート等）への設計変更が要る"* と書いていたが、
+CosmoTunes と同じく **値型の snapshot を取ってから消し、同じ id で作り直す**だけで足りた。
+SwiftData は id を指定した挿入を拒まないので、削除フラグを持つ必要がない。
+
+やったこと: `Domain` に `TodoItemSnapshot`、`TodoItem` / `SubTask` に **id を受け取る init**、
+`TodoService.snapshot(todoId:)` / `restore(_:)`、登録処理を集約する `TodoUndoRegistrar`。
+対象は削除 3 Intent（`DeleteTodoIntent` / `DeleteTodoImmediatelyIntent` / `DeleteTodosIntent`）と
+`ToggleTodoCompletionIntent`。
+
+途中で分かったこと:
+
+- `UndoManager.registerUndo(withTarget:handler:)` は **ハンドラごと `@MainActor`**
+  （Foundation の swiftinterface で確認）。CosmoTunes のサンプルコードは `Task { @MainActor in }` で
+  ホップしているが、少なくとも Xcode 27 beta 5 の SDK では不要。
+- リレーションは値で持ち越せない。カテゴリは `categoryID` だけ持って復元時に引き直す形にし、
+  そのために `TodoRepositoryProtocol` へ `fetchCategory(by:)` を足した。
+- サブタスクは `deleteRule: .cascade` で一緒に消えるので、snapshot に入れて id ごと戻す。
+- 完了トグルの undo を「もう一度トグル」にすると、undo までの間に別経路で状態が変わっていたときに
+  逆へ倒れる。`setCompletion` で元の値を絶対値指定する形にした。
+
+### `AppIntentError`: `predefinedError` の受け付け可否はテストでしか分からない
+
+`IntentError` に `CustomLocalizedStringResourceConvertible` ではなく
+`CustomAppIntentErrorConvertible` を付けた（種別まで指定できるほう）。`.notFound` を
+`.Unrecoverable.entityNotFound` に載せたが、**`init(predefinedError:description:)` は受け付けない値だと
+実行時 `fatalError()`** と公式が明記している。ビルドでは分からないので、全ケースを 1 度組み立てる
+テストを `IntentErrorTests` に置いて実行し、`entityNotFound` が受理されることを確認した。
+
+### Spotlight の client state: CosmoTunes より材料を 1 つ増やした
+
+CosmoTunes は id 集合の SHA-256 をダイジェストにしている。それだと **id は同じで中身だけ変わった**
+ケース（アプリ未起動中に他デバイスの編集が CloudKit で届く等）で全件再インデックスが省略され、
+Spotlight が古い内容のまま残る。`"<id>@<modifiedAt>"` を材料にした。
+
+API 名でも 1 回詰まった。ObjC ヘッダの `beginIndexBatch` / `endIndexBatchWithClientState:` は
+Swift では `beginBatch()` / `endBatch(withClientState:)`（Swift 3 のリネームが効いている）。
+ヘッダ名のまま書くと "has been renamed to" で落ちる。
+
+### `systemExtraLargePortrait`: 前提だった `#available` は不要だった
+
+PLAN には *"デプロイメントターゲットが iOS 26 なので `supportedFamilies` を `#available` で
+組み立てる必要"* と書いていたが、`project.pbxproj` を確認したところ本ブランチは全ターゲットが
+27.0 だった（Phase 2 で 27 世代へ引き上げた際の記述の取り残し）。素直に配列へ足すだけで済んだ。
+
+`TodoWidgetEntryView` の `switch` は `default:` で Small へ落ちるので、`case` を足さないまま
+`supportedFamilies` にだけ追加すると「巨大な面積に 3 行だけ」になる。専用 case とレイアウトをセットで足した。
+
+### 見送り: UI タップ由来の donation
+
+`perform()` 内 donate が規約違反なのは前日の結論のまま。再導入するには UI の一部を
+`Button(intent:)` から `AppIntent.callAsFunction(donate:)` の直接実行に切り替えることになり、
+本プロジェクトの「`Button(intent:)` を唯一の実行経路とする」原則を部分的に崩す。
+機能追加ではなく設計判断なので、候補として PLAN に残したまま今回は触らない選択をした。
+
+### 検証範囲
+
+iOS / visionOS / macOS / watchOS の 4 destination で `BuildProject` グリーン、
+SPM テスト 89 件グリーン、AppIntentsTesting 系 23 件（iPhone 17 Pro Max シミュレータ）もグリーン。
+**実機での Siri / Shortcuts の見え方（undo メニューの文言、Shortcuts の Find アクションの説明、
+タイル色、縦長ウィジェットの実レイアウト）は未確認**。visionOS の onscreen annotation もビルドのみ。
+
+### ついでに見つけた: `testDetailViewAnnotatesItsEntity` はストア状態に依存する
+
+一覧側の annotation テストを足した流れで 23 件をまとめて走らせたとき、既存の
+`testDetailViewAnnotatesItsEntity` が 1 回だけ *"(\"6\") is not equal to (\"1\")"* で落ちた。
+単体で走らせ直すと通り、その後クラス単位で走らせても通る。原因はストアに前の（中断された）実行の
+todo が残っていたことと見られる。
+
+この失敗の仕方が示しているのは、**このテストの `XCTAssertEqual(annotations.count, 1)` が
+「ストアがほぼ空である」ことに暗黙に依存している**という点。詳細画面を push しても背後の一覧が
+annotation を出し続けているのか、それとも `OpenTodoIntent` の遷移自体が起きていなかったのかは
+この 1 回の観測では区別できない。区別できないまま assertion を緩めると「遷移していない」ことを
+検出する力を失うので、今回は**触らずに記録だけ**にした。
+
+本質的な対処は自己クリーンアップ方式（一意タイトルで作って消す）からの脱却で、サンプルが使っている
+`#if DEBUG` + `isDiscoverable = false` の `ResetTestDataIntent` を `setUp()` で走らせる形が候補
+（insights の Phase 9「テスト」節）。
+
+## 2026-08-25 — #49: `.reminders.list` 適合がアプリバンドルから消えていた
+
+### 発端の観測は「見ていたバンドルが 1 つだけ」だった
+
+issue #49 は「`CategoryAppEntity` の `properties` が 0 件で `assistantDefinedSchemas` も空」から
+始まっていて、「`@Property` を書き忘れているのでは / マクロが面倒を見てくれる前提だったのでは」
+という 2 つの仮説が並んでいた。全バンドルを一覧にしたら、そのどちらでもなかった。
+
+```
+Debug-iphonesimulator/TodoAppIntents.appintents   cat=2p schema=['ListEntity']
+Debug-iphonesimulator/IntentTodoWidgetExtension   cat=2p schema=['ListEntity']
+Debug-iphonesimulator/IntentTodo.app              cat=0p schema=[]        ← ここだけ
+Debug-xrsimulator/IntentTodo.app                  cat=2p schema=['ListEntity']
+Debug/IntentTodo.app                              cat=2p schema=['ListEntity']
+```
+
+`@AppEntity(schema: .reminders.list)` マクロは `name` / `type` の `@Property` もスキーマ登録も
+ちゃんとやっていた（パッケージ側の `.appintents` には両方出ている）。落ちていたのは
+**iOS アプリバンドルの統合メタデータだけ**。macOS と visionOS のアプリバンドルは無事。
+issue が見ていたのは iOS のアプリバンドル 1 つだったので、「マクロが動いていない」ように見えていた。
+
+同じ形で `TodoListType`（`@AppEnum(schema: .reminders.listType)`）も落ちていた。一方
+`ShowTodoSearchResultsIntent` の `.system.searchInApp`（**action** のスキーマ）は残っていた。
+entity / enum だけが消えるという非対称。
+
+### 犯人はたまたま stale だったビルド成果物が教えてくれた
+
+iOS / macOS / visionOS の違いとして残るのは「iOS アプリだけが watchOS アプリを
+`IntentTodo.app/Watch/` に埋め込む」こと。ただ相関だけでは弱い。決め手になったのは、
+`@Property` を watchOS フォールバックに足して増分ビルドした瞬間の中途半端な状態だった。
+
+```
+Debug-watchsimulator/TodoAppIntents.appintents   cat=2p   ← 再生成された（@Property あり）
+Debug-watchsimulator/WatchUI.appintents          cat=0p   ← 08-12 のまま stale
+Debug-watchsimulator/IntentTodoWatchApp.app      cat=0p   ← 統合結果
+```
+
+同じ型に 2 つの形（2 props / 0 props）が入力されたとき、統合結果は **0 props 側**になる。
+「情報が少ない方が勝つ」というマージ規則がこれで確定した。iOS アプリの 0 props も同じ規則で
+説明がつく — 埋め込んだ watchOS アプリが 0 props / スキーマ無しの `CategoryAppEntity` を持ち込む。
+
+### 型名を分けたら両方残った
+
+`#if os(watchOS)` 側を `WatchCategoryAppEntity` / `WatchTodoListType` に改名し、
+`public typealias CategoryAppEntity = WatchCategoryAppEntity` で呼出側の名前は据え置き。
+mangled type name が別物になるので衝突しない。クリーンビルドで確認:
+
+```
+Debug-iphonesimulator/IntentTodo.app
+  [('CategoryAppEntity', 2, ['ListEntity']), ('WatchCategoryAppEntity', 2, [])] enumSchemas=['ListType']
+```
+
+代償は iOS アプリのメタデータに `WatchCategoryAppEntity` が 1 件増えること。iOS 側のどの Intent も
+このパラメータを取らないので実害は見つかっていないが、Shortcuts に "List" 型が 2 つ見える可能性は
+残る。スキーマ適合が出荷メタデータに届かないほうが重いので、それを取った。
+
+`@Property(title:)` の明示はフォールバック側にも入れた。改名だけでもスキーマは戻るが、素の
+`AppEntity` は自分で書かないと watchOS で「プロパティ 0 件の entity」になる（渡せるが読めない）。
+
+### 検出手段を残す
+
+この壊れ方は **コンパイラも `XcodeRefreshCodeIssuesInFile` もビルド緑も何も言わない**。
+`AppShortcutsProvider` をパッケージに置いたときの `autoShortcuts: 0` と同型で、統合メタデータを
+直接見るしかない。`inspect_appintents_metadata.py` に「linked package にはあるのにアプリ
+バンドルに無い entity / enum スキーマ」を error にするチェックを足した（action は元から
+別チェックがある）。合わせて `schemas()` が enum も拾うようにした（それまで action と entity のみ）。
+
+1 点ハマったのが nested バンドル。`IntentTodo.app/Watch/IntentTodoWatchApp.app` は config が
+`Debug-iphonesimulator` になるので、素直に書くと iOS のパッケージと比較して誤検出する（中身は
+watchOS ビルド）。既存の action 側チェックも同じ誤検出を出していたので、両方 nested を除外した。
+standalone のコピーが `Debug-watchsimulator` 側で検査されるため、カバレッジは落ちない。
+
+### 残っている未確認
+
+**実機 Siri / Apple Intelligence で `.reminders.list` 適合が実際に効くか**は未確認のまま。
+AppIntentsTesting は型名で intent / entity を引くのでスキーマ経路を通らず、`AppEntityDefinition`
+にもスキーマやプロパティ一覧を読む API は無い（`makeReference` / `allEntities` / `suggestedEntities`
+のみ）。メタデータに載っていることは確定したので、ここから先は手動確認の領域。
+
+---
+
+## 2026-08-26: donate を「Intent の専用フラグ」で切り替える案を検討し、却下
+
+T21b（`perform()` は呼出元を判別できないので donation を書けない）に対する 3 案目として、
+**Intent に donate 用のプロパティを 1 つ持たせ、`Button(intent:)` に渡すときだけ立てる**案を検討した。
+公式サンプルの 2 方式（CometCal のサービス層フラグ / CosmoTunes の UI タップ地点）がどちらも
+「UI が Intent を通らない」前提なので、フラグを Intent 側に移せば中心設計のまま満たせるのでは、
+という発想。
+
+却下した。理由は 2 つとも機械的で、どちらに転んでも壊れる。
+
+- **素のプロパティ**にすると実行側プロセスに届かない。Intent のシリアライズ面は `@Parameter` だけ。
+  Widget / Control のように別プロセスで走る経路では `init()` からのデフォルト値に戻る。しかも
+  アプリ内 `Button(intent:)` では運ばれうるので、**アプリ内だけ通って他で静かに落ちる**形になる
+- **`@Parameter`** にすると統合メタデータに乗る。`ParameterSummary` から外せば Shortcuts エディタには
+  出ないが、モデルは値を埋められるので **Siri 起点で donate が走る = 避けたかった違反そのもの**。
+  保存済みショートカットはパラメータ込みで replay されるため、後から取り除けない契約にもなる
+
+加えて、根拠の読み直しで**規約違反より前の話**だったことが分かった。Apple の donation ガイダンスは
+"Don't donate from inside an intent's `perform()`; the system already donates the intents it runs,
+so a donation there would double-count." で、**`perform()` は donate の置き場所として単純に間違い**
+（CosmoTunes のコメントも同文）。呼出元をどう伝えるかを工夫しても、置き場所の問題は解けない。
+
+もう 1 つの決め手はテスタビリティ。donation には列挙・観測の公開 API が無く（`deleteDonations` はある）、
+**AppIntentsTesting で押さえられない**。「効いているか確認できないコードを Intent の公開スキーマに
+足す」というトレードで、フラグ案はそのコストを一番高い形で払う。
+
+結論は T21b のまま変わらず: donate する層は**呼出元を知っている層（UI）**、タイミングは**成功後**。
+やるなら `AppIntent.callAsFunction(donate:)` で一部 UI 経路を直接実行に切り替える（＝「全部
+`Button(intent:)`」を部分的にやめる）判断が必要。`deleteDonations(matching:)` を削除 3 経路に
+入れてある現状は正しいので触っていない。
+
+現在のルールは insights/03「donation は『アプリ UI 起点の操作』だけ」に、想定質問としての形は
+`docs/presentation/02-constraints-and-craft.md` の T21b に書いた。

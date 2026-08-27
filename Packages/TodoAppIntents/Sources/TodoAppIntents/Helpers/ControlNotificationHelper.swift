@@ -2,45 +2,39 @@
 //  ControlNotificationHelper.swift
 //  TodoAppIntents
 //
-//  Local notifications used by Control Center intents for user feedback.
-//  Control Center は dialog を出さないため (docs/insights/06-control-widget-ios26.md
-//  で実機検証済み)、通知が唯一のフィードバック経路。スケジュール失敗時はログを残す。
+//  Local notifications used by Control Center intents to report *failures*.
+//
+//  成功は perform() 完了時の自動リロードでコントロール自身が伝えるので通知しない
+//  (二重表示になるうえ通知センターに残る)。失敗だけは他に伝える手段が無い
+//  (dialog も snippet も Control では表示されない)。
 //
 
+import AppIntents
 import os.log
 import UserNotifications
 
 private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "ControlNotification")
 
-/// Helper for sending feedback notifications from Control Center widgets.
+/// Helper for reporting Control Center failures that have no other feedback channel.
 public enum ControlNotificationHelper {
-    public static func sendToggledNotification(todoTitle: String, isCompleted: Bool) {
-        let content = UNMutableNotificationContent()
-        content.title = isCompleted ? "Todo Completed" : "Todo Reopened"
-        content.body = "\(isCompleted ? "✅" : "⏳") \(todoTitle)"
-        content.sound = .default
-
-        schedule(content, identifierPrefix: "todo-toggle")
-    }
-
-    public static func sendTodoCountNotification(count: Int) {
-        let content = UNMutableNotificationContent()
-        content.title = "Todo Summary"
-        content.body = count > 0
-            ? "You have \(count) incomplete todo\(count == 1 ? "" : "s"). Tap to view."
-            : "All todos completed! 🎉"
-        content.sound = .default
-
-        schedule(content, identifierPrefix: "todo-count")
-    }
-
-    /// Surface a fetch / lookup error to the user when no other feedback channel
-    /// is available (Control Center context).
-    public static func sendErrorNotification(message: String) {
+    /// Surface a fetch / mutation failure to the user when no other feedback
+    /// channel is available (Control Center context).
+    ///
+    /// - Parameter todoId: The affected todo, when known. Associating it lets
+    ///   Siri / Apple Intelligence understand the notification's context even
+    ///   off-screen (WWDC 2026 #343). Requires a persistent `AppEntity`
+    ///   (`TransientAppEntity` isn't supported here).
+    public static func sendErrorNotification(message: String, todoId: String? = nil) {
         let content = UNMutableNotificationContent()
         content.title = "Todo Error"
         content.body = message
         content.sound = .default
+        // 集中モードの絞り込み中でも黙らされないようにする。`TodoFocusFilterIntent`
+        // が返す述語の許可リストは必ずこの criteria を含む（wwdc2022-10121 13:15）。
+        content.filterCriteria = TodoFocusFilter.systemNotificationCriteria
+        if let todoId {
+            content.appEntityIdentifiers = [EntityIdentifier(for: TodoAppEntity.self, identifier: todoId)]
+        }
 
         schedule(content, identifierPrefix: "todo-error")
     }

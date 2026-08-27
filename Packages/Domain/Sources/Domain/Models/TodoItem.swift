@@ -17,6 +17,11 @@ import SwiftData
 public final class TodoItem {
     // MARK: - Properties
 
+    // 永続化スキーマの宣言なので、`= UUID()` / `= Date()` のように初期化子から型が
+    // 読める場合でも型注釈を省かない。CloudKit と突き合わせる際に読む対象がここなので、
+    // 一覧として全プロパティの型が揃って並んでいることに価値がある。
+    // swiftlint:disable redundant_type_annotation
+
     /// Unique identifier for the todo item.
     public var id: UUID = UUID()
 
@@ -35,6 +40,31 @@ public final class TodoItem {
     /// Optional due date for the todo item.
     public var dueDate: Date?
 
+    /// Estimated time to complete, in seconds.
+    ///
+    /// Stored as `TimeInterval` for SwiftData/CloudKit compatibility (optional, so
+    /// no migration concerns) and bridged to the App Intents `Duration` type at the
+    /// entity boundary.
+    public var estimatedDuration: TimeInterval?
+
+    /// Display name of the person this todo is assigned to, if any.
+    ///
+    /// Stored as a formatted `String` (CloudKit-safe); the App Intents layer accepts
+    /// it as a native `PersonNameComponents` parameter and formats it here.
+    public var assigneeName: String?
+
+    /// Common name of the location associated with this todo, if any.
+    ///
+    /// Location is decomposed into CloudKit-safe primitives (name + coordinate) and
+    /// bridged to / from the App Intents `PlaceDescriptor` (GeoToolbox) type.
+    public var locationName: String?
+
+    /// Latitude of the associated location, if any.
+    public var locationLatitude: Double?
+
+    /// Longitude of the associated location, if any.
+    public var locationLongitude: Double?
+
     /// The date when the todo item was created.
     public var createdAt: Date = Date()
 
@@ -43,6 +73,14 @@ public final class TodoItem {
     /// `@Model` プロパティで `didSet` を使うと CloudKit マージ時や KVC 経由の
     /// 更新で発火しないため、更新側 (TodoService 等) で明示的に触る方針。
     public var modifiedAt: Date = Date()
+
+    /// User-defined manual ordering index (drag-to-reorder).
+    ///
+    /// Default `0` keeps this CloudKit-safe and lets SwiftData perform a
+    /// lightweight migration (no `VersionedSchema` needed). Only consulted when the
+    /// list's sort order is `.manual`; `TodoService.reorderTodos(orderedIDs:)`
+    /// assigns it by position.
+    public var sortIndex: Int = 0
 
     /// The category this todo belongs to (optional for CloudKit compatibility).
     @Relationship(deleteRule: .nullify, inverse: \Category.todos)
@@ -55,6 +93,8 @@ public final class TodoItem {
     /// schema" が `to-many relationships must be optional` を要求する。
     @Relationship(deleteRule: .cascade, inverse: \SubTask.parentTodo)
     public var subTasks: [SubTask]? = []
+
+    // swiftlint:enable redundant_type_annotation
 
     // MARK: - Initialization
 
@@ -70,7 +110,12 @@ public final class TodoItem {
         todoDescription: String? = nil,
         isCompleted: Bool = false,
         isFavorite: Bool = false,
-        dueDate: Date? = nil
+        dueDate: Date? = nil,
+        estimatedDuration: TimeInterval? = nil,
+        assigneeName: String? = nil,
+        locationName: String? = nil,
+        locationLatitude: Double? = nil,
+        locationLongitude: Double? = nil
     ) {
         self.id = UUID()
         self.title = title
@@ -78,8 +123,56 @@ public final class TodoItem {
         self.isCompleted = isCompleted
         self.isFavorite = isFavorite
         self.dueDate = dueDate
+        self.estimatedDuration = estimatedDuration
+        self.assigneeName = assigneeName
+        self.locationName = locationName
+        self.locationLatitude = locationLatitude
+        self.locationLongitude = locationLongitude
         self.createdAt = Date()
         self.modifiedAt = Date()
+        self.category = nil
+        self.subTasks = []
+    }
+
+    /// Recreates a todo with an explicit identifier and timestamps.
+    ///
+    /// Used to bring a deleted todo back (`TodoItemSnapshot.makeTodoItem(category:)`).
+    /// Restoring **under the original `id`** is what keeps the Spotlight index entry,
+    /// donations, and any `TodoAppEntity` a widget / Live Activity still holds
+    /// pointing at the same thing — a fresh UUID would silently orphan all of them.
+    ///
+    /// The ordinary `init(title:…)` deliberately doesn't take an id so normal
+    /// creation can't accidentally collide with an existing todo.
+    public init(
+        id: UUID,
+        title: String,
+        todoDescription: String? = nil,
+        isCompleted: Bool = false,
+        isFavorite: Bool = false,
+        dueDate: Date? = nil,
+        estimatedDuration: TimeInterval? = nil,
+        assigneeName: String? = nil,
+        locationName: String? = nil,
+        locationLatitude: Double? = nil,
+        locationLongitude: Double? = nil,
+        createdAt: Date,
+        modifiedAt: Date,
+        sortIndex: Int
+    ) {
+        self.id = id
+        self.title = title
+        self.todoDescription = todoDescription
+        self.isCompleted = isCompleted
+        self.isFavorite = isFavorite
+        self.dueDate = dueDate
+        self.estimatedDuration = estimatedDuration
+        self.assigneeName = assigneeName
+        self.locationName = locationName
+        self.locationLatitude = locationLatitude
+        self.locationLongitude = locationLongitude
+        self.createdAt = createdAt
+        self.modifiedAt = modifiedAt
+        self.sortIndex = sortIndex
         self.category = nil
         self.subTasks = []
     }

@@ -1,7 +1,8 @@
 # IntentTodo 開発インサイト集
 
 このドキュメントは、IntentTodoアプリの開発中に得られた技術的なインサイトの目次です。
-各トピックの詳細は個別ファイルを参照してください。
+各トピックの詳細は個別ファイルを参照してください。各ルールがどういう経緯で決まったかは
+[docs/devlog/](devlog/README.md) を参照。
 
 ---
 
@@ -30,6 +31,7 @@
 - App Shortcuts（`AppShortcutsProvider`、フレーズのパラメータ型制限）
 - Intent統合のベストプラクティス
 - AppEnum
+- WWDC26 公式サンプル 4 本との突き合わせ（Phase 9）: 表示表現とローカライズ、Siri が読む subtitle、donation の置き場所、Spotlight 属性の二重書き、onscreen annotation の適用先
 
 ### [04. UI層とIntent統合](insights/04-ui-integration.md)
 
@@ -51,12 +53,13 @@
 ### [06. Control Widget と iOS 26](insights/06-control-widget-ios26.md)
 
 - `supportedModes` の使い分け（`openAppWhenRun` と同等挙動の記述あり）
+- **Button と Toggle の使い分け**（Toggle には固定された対象と `SetValueIntent` が要る）
 - `ControlWidgetButton(action:)` + `.foreground(.immediate)` パターン
 - **`ControlValueProvider`** で値を供給するパターン（body 直 fetch より推奨）
 - `kind` は reverse-DNS 形式 (`dev.touyou.IntentTodo.<Target>.<WidgetName>`) に統一
-- `ControlConfigurationIntent` の制約
+- `ControlConfigurationIntent` の制約とモジュール境界
 - visionOS 非対応: `#if !os(visionOS)` ガード
-- `.background` モードによるバックグラウンドアクションとローカル通知フィードバック
+- **Control では dialog も snippet も出ない** → 成功はコントロール自身の再描画、失敗のみローカル通知
 
 ### [07. プラットフォーム固有の知見](insights/07-platform-specific.md)
 
@@ -79,7 +82,4 @@
 
 ## 更新履歴
 
-- 2026-04-15 (2): `IntentDependencies` / `IntentAppState` 削除、`TodoEntityQuery` を `@Dependency` 化、Control Widgets を `ControlValueProvider` パターンに、`TodoItem.didSet` 撤去 + `TodoActions` で明示更新、AppShortcuts 8 件に整理、Widget/Complication `kind` の reverse-DNS 統一、通知タップの `NotificationHandler.navigationModel` 注入方式、主要 3 View を `private struct` 抽出。insights ドキュメントを全面的に最新化。
-- 2026-04-15: Extension 内の View を 3 パッケージ（`LiveActivity` / `WidgetUI` / `WatchUI`）に分離し、Extension はターゲット固有のスキャフォルドのみに絞る構成に移行。macOS native ビルド対応（`AppDelegate` / `MacAppDelegate` を `#if os(...)` で分離し `NotificationHandler` を共通化）。visionOS ビルド修復（`#Predicate` の Optional UUID 回避、`Button(intent:role:)` 引数順、ControlWidget の `#if !os(visionOS)` ガード）。`Domain.DueDateStatus` を導入して overdue/dueSoon 判定の重複を解消。
-- 2026-04-13: Shortcuts Intent ルーティング問題の根本原因（`IntentTodoAppIntentsPackage` のメインターゲット重複宣言）が判明。誤った知見（`.background + 通知ワークアラウンド`、`IntentAppState` フォールバック、`IntentDependencies.shared` パターン）を削除し、`@Dependency + AppDependencyManager` パターンを標準として記述更新。
-- 2026-03-19: 18セクションを7ファイルに分割・整理
+このドキュメント・insights/ 配下の再編の経緯は [docs/devlog/insights-changelog.md](devlog/insights-changelog.md) を参照。

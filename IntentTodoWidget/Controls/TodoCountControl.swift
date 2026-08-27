@@ -16,22 +16,27 @@ import WidgetKit
 private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoCountControl")
 
 /// Control widget showing incomplete todo count.
-/// Tapping sends a notification with the current count summary.
+/// Tapping opens the app's incomplete list.
+///
+/// 未完了数はコントロール面に出ているので、タップでそれを見せ直しても二重表示に
+/// なるだけ（Control は dialog も snippet も提示しない）。グランスは数字、
+/// タップはドリルイン。
 struct TodoCountControl: ControlWidget {
     static let kind = "dev.touyou.IntentTodo.IntentTodoWidget.TodoCountControl"
 
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: Self.kind, provider: Provider()) { count in
-            ControlWidgetButton(action: ShowTodoCountIntent()) {
+            ControlWidgetButton(action: LaunchAppIntent.incompleteTodos()) {
                 Label {
                     Text("\(count)")
                 } icon: {
                     Image(systemName: "checklist")
                 }
+                .controlWidgetActionHint("Show Incomplete Todos")
             }
         }
         .displayName("Todo Count")
-        .description("Shows incomplete todo count. Tap for summary.")
+        .description("Shows incomplete todo count. Tap to open the list.")
     }
 }
 

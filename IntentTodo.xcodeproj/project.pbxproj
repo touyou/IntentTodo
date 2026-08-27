@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		46AFBE922F2C1C7200444306 /* UI in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBE912F2C1C7200444306 /* UI */; };
-		46F00B00000000000000FAC1 /* LiveActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00C00000000000000FAC1 /* LiveActivity */; platformFilter = ios; };
 		46AFBEC02F2CFEA400444306 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEBF2F2CFEA400444306 /* WidgetKit.framework */; };
 		46AFBEC22F2CFEA400444306 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 46AFBEC12F2CFEA400444306 /* SwiftUI.framework */; };
 		46AFBECF2F2CFEA500444306 /* IntentTodoWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 46AFBEBE2F2CFEA400444306 /* IntentTodoWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -25,31 +24,10 @@
 		46AFBFAA2F2D731900444306 /* Domain in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBEDF2F2D6E6A00444306 /* Domain */; };
 		46AFBFAB2F2D731900444306 /* TodoAppIntents in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBEE02F2D6E6A00444306 /* TodoAppIntents */; };
 		46AFBFF72F32BC5000444306 /* TodoAppIntents in Frameworks */ = {isa = PBXBuildFile; productRef = 46AFBFF62F32BC5000444306 /* TodoAppIntents */; };
-		46AFC0092F33047800444306 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46AFC0022F33047800444306 /* Assets.xcassets */; };
-		46AFC00B2F33047800444306 /* TodoWidgetConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFBFFA2F33047800444306 /* TodoWidgetConfiguration.swift */; };
-		46AFC00D2F33047800444306 /* WidgetModelContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFBFFD2F33047800444306 /* WidgetModelContainer.swift */; };
-		46AFC0102F33047800444306 /* IntentTodoWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0042F33047800444306 /* IntentTodoWidget.swift */; };
-		46AFC0112F33047800444306 /* IntentTodoWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0052F33047800444306 /* IntentTodoWidgetBundle.swift */; };
-		46AFC0202F33047B00444306 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46AFC01A2F33047B00444306 /* Assets.xcassets */; };
-		46AFC0262F33047B00444306 /* IntentTodoLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC01C2F33047B00444306 /* IntentTodoLiveActivityBundle.swift */; };
-		46AFC0272F33047B00444306 /* TodoLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC01E2F33047B00444306 /* TodoLiveActivity.swift */; };
-		46AFC0392F33047D00444306 /* IntentTodoWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0312F33047D00444306 /* IntentTodoWatchApp.swift */; };
-		46AFC03A2F33047D00444306 /* TodoComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0322F33047D00444306 /* TodoComplication.swift */; };
-		46AFC03B2F33047D00444306 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46AFC02F2F33047D00444306 /* Assets.xcassets */; };
-		46AFC0432F33048000444306 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC03C2F33048000444306 /* AppDelegate.swift */; };
-		46AFC0452F33048000444306 /* IntentTodoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0412F33048000444306 /* IntentTodoApp.swift */; };
-		46AFC0462F33048000444306 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 46AFC03E2F33048000444306 /* Assets.xcassets */; };
-		46AFC1012F34F73500444306 /* IntentTodoUITest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC0FE2F34F73500444306 /* IntentTodoUITest.swift */; };
-		46AFC1152F34F76300444306 /* IntentTodoWatchAppUITest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1122F34F76300444306 /* IntentTodoWatchAppUITest.swift */; };
-		46AFC1212F33048100444306 /* QuickAddTodoControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1202F33048100444306 /* QuickAddTodoControl.swift */; };
-		46AFC1232F33048100444306 /* TodoCountControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1222F33048100444306 /* TodoCountControl.swift */; };
-		46AFC1252F33048100444306 /* ToggleUrgentTodoControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */; };
-		46D8865E2F6B857A0029BF80 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */; };
-		46F0000A000000000000FAC1 /* MacAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F00009000000000000FAC1 /* MacAppDelegate.swift */; };
-		46F0000C000000000000FAC1 /* NotificationHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46F0000B000000000000FAC1 /* NotificationHandler.swift */; };
 		46F00300000000000000FAC1 /* LiveActivity in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00400000000000000FAC1 /* LiveActivity */; };
 		46F00600000000000000FAC1 /* WidgetUI in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00700000000000000FAC1 /* WidgetUI */; };
 		46F00900000000000000FAC1 /* WatchUI in Frameworks */ = {isa = PBXBuildFile; productRef = 46F00A00000000000000FAC1 /* WatchUI */; };
+		46F00B00000000000000FAC1 /* LiveActivity in Frameworks */ = {isa = PBXBuildFile; platformFilter = ios; productRef = 46F00C00000000000000FAC1 /* LiveActivity */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -118,39 +96,8 @@
 
 /* Begin PBXFileReference section */
 		46AFBC392F2BA68C00444306 /* IntentTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		46AFBE8B2F2C1C3B00444306 /* Domain */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Domain; sourceTree = "<group>"; };
-		46AFBE8C2F2C1C3B00444306 /* Repository */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = Repository; sourceTree = "<group>"; };
-		46AFBE8D2F2C1C3B00444306 /* TodoAppIntents */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = TodoAppIntents; sourceTree = "<group>"; };
-		46AFBE8E2F2C1C3B00444306 /* UI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = UI; sourceTree = "<group>"; };
-		46F00100000000000000FAC1 /* LiveActivity */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = LiveActivity; sourceTree = "<group>"; };
-		46F00500000000000000FAC1 /* WidgetUI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WidgetUI; sourceTree = "<group>"; };
-		46F00800000000000000FAC1 /* WatchUI */ = {isa = PBXFileReference; lastKnownFileType = wrapper; path = WatchUI; sourceTree = "<group>"; };
 		46AFBE932F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		46AFBE942F2C241700444306 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
-		46AFBE952F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
-		46AFBE962F2C241700444306 /* AppIntents-Updates.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "AppIntents-Updates.md"; sourceTree = "<group>"; };
-		46AFBE972F2C241700444306 /* AppKit-Implementing-Liquid-Glass-Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "AppKit-Implementing-Liquid-Glass-Design.md"; sourceTree = "<group>"; };
-		46AFBE982F2C241700444306 /* Foundation-AttributedString-Updates.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Foundation-AttributedString-Updates.md"; sourceTree = "<group>"; };
-		46AFBE992F2C241700444306 /* FoundationModels-Using-on-device-LLM-in-your-app.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "FoundationModels-Using-on-device-LLM-in-your-app.md"; sourceTree = "<group>"; };
-		46AFBE9A2F2C241700444306 /* Implementing-Assistive-Access-in-iOS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Implementing-Assistive-Access-in-iOS.md"; sourceTree = "<group>"; };
-		46AFBE9B2F2C241700444306 /* Implementing-Visual-Intelligence-in-iOS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Implementing-Visual-Intelligence-in-iOS.md"; sourceTree = "<group>"; };
-		46AFBE9C2F2C241700444306 /* MapKit-GeoToolbox-PlaceDescriptors.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "MapKit-GeoToolbox-PlaceDescriptors.md"; sourceTree = "<group>"; };
-		46AFBE9D2F2C241700444306 /* StoreKit-Updates.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "StoreKit-Updates.md"; sourceTree = "<group>"; };
-		46AFBE9E2F2C241700444306 /* Swift-Charts-3D-Visualization.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Swift-Charts-3D-Visualization.md"; sourceTree = "<group>"; };
-		46AFBE9F2F2C241700444306 /* Swift-Concurrency-Updates.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Swift-Concurrency-Updates.md"; sourceTree = "<group>"; };
-		46AFBEA02F2C241700444306 /* Swift-InlineArray-Span.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Swift-InlineArray-Span.md"; sourceTree = "<group>"; };
-		46AFBEA12F2C241700444306 /* SwiftData-Class-Inheritance.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftData-Class-Inheritance.md"; sourceTree = "<group>"; };
-		46AFBEA22F2C241700444306 /* SwiftUI-AlarmKit-Integration.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-AlarmKit-Integration.md"; sourceTree = "<group>"; };
-		46AFBEA32F2C241700444306 /* SwiftUI-Implementing-Liquid-Glass-Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-Implementing-Liquid-Glass-Design.md"; sourceTree = "<group>"; };
-		46AFBEA42F2C241700444306 /* SwiftUI-New-Toolbar-Features.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-New-Toolbar-Features.md"; sourceTree = "<group>"; };
-		46AFBEA52F2C241700444306 /* SwiftUI-Styled-Text-Editing.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-Styled-Text-Editing.md"; sourceTree = "<group>"; };
-		46AFBEA62F2C241700444306 /* SwiftUI-WebKit-Integration.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "SwiftUI-WebKit-Integration.md"; sourceTree = "<group>"; };
-		46AFBEA72F2C241700444306 /* UIKit-Implementing-Liquid-Glass-Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "UIKit-Implementing-Liquid-Glass-Design.md"; sourceTree = "<group>"; };
-		46AFBEA82F2C241700444306 /* WidgetKit-Implementing-Liquid-Glass-Design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "WidgetKit-Implementing-Liquid-Glass-Design.md"; sourceTree = "<group>"; };
-		46AFBEA92F2C241700444306 /* Widgets-for-visionOS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "Widgets-for-visionOS.md"; sourceTree = "<group>"; };
-		46AFBEAB2F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
-		46AFBEAC2F2C241700444306 /* INSIGHTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = INSIGHTS.md; sourceTree = "<group>"; };
-		46AFBEAD2F2C241700444306 /* PLAN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = PLAN.md; sourceTree = "<group>"; };
 		46AFBEAF2F2C241700444306 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
 		46AFBEB02F2C241700444306 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		46AFBEBE2F2CFEA400444306 /* IntentTodoWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IntentTodoWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -158,46 +105,85 @@
 		46AFBEC12F2CFEA400444306 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = /System/Library/Frameworks/SwiftUI.framework; sourceTree = "<absolute>"; };
 		46AFBEDF2F2D6D9C00444306 /* IntentTodoLiveActivityExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = IntentTodoLiveActivityExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodoWatchApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		46AFBFFA2F33047800444306 /* TodoWidgetConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoWidgetConfiguration.swift; sourceTree = "<group>"; };
-		46AFBFFD2F33047800444306 /* WidgetModelContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WidgetModelContainer.swift; sourceTree = "<group>"; };
-		46AFC0022F33047800444306 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		46AFC0032F33047800444306 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		46AFC0042F33047800444306 /* IntentTodoWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWidget.swift; sourceTree = "<group>"; };
-		46AFC0052F33047800444306 /* IntentTodoWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWidgetBundle.swift; sourceTree = "<group>"; };
-		46AFC0062F33047800444306 /* IntentTodoWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IntentTodoWidgetExtension.entitlements; sourceTree = "<group>"; };
-		46AFC01A2F33047B00444306 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		46AFC01B2F33047B00444306 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		46AFC01C2F33047B00444306 /* IntentTodoLiveActivityBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoLiveActivityBundle.swift; sourceTree = "<group>"; };
-		46AFC01D2F33047B00444306 /* IntentTodoLiveActivityExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IntentTodoLiveActivityExtension.entitlements; sourceTree = "<group>"; };
-		46AFC01E2F33047B00444306 /* TodoLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoLiveActivity.swift; sourceTree = "<group>"; };
-		46AFC02F2F33047D00444306 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		46AFC0302F33047D00444306 /* IntentTodoWatchApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IntentTodoWatchApp.entitlements; sourceTree = "<group>"; };
-		46AFC0312F33047D00444306 /* IntentTodoWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWatchApp.swift; sourceTree = "<group>"; };
-		46AFC0322F33047D00444306 /* TodoComplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoComplication.swift; sourceTree = "<group>"; };
-		46AFC03C2F33048000444306 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		46AFC03E2F33048000444306 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		46AFC03F2F33048000444306 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		46AFC0402F33048000444306 /* IntentTodo.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = IntentTodo.entitlements; sourceTree = "<group>"; };
-		46AFC0412F33048000444306 /* IntentTodoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoApp.swift; sourceTree = "<group>"; };
 		46AFC0F32F34F72800444306 /* IntentTodoUITest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IntentTodoUITest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		46AFC0FE2F34F73500444306 /* IntentTodoUITest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoUITest.swift; sourceTree = "<group>"; };
 		46AFC1072F34F75C00444306 /* IntentTodoWatchAppUITest.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = IntentTodoWatchAppUITest.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		46AFC1122F34F76300444306 /* IntentTodoWatchAppUITest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntentTodoWatchAppUITest.swift; sourceTree = "<group>"; };
-		46AFC1202F33048100444306 /* QuickAddTodoControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddTodoControl.swift; sourceTree = "<group>"; };
-		46AFC1222F33048100444306 /* TodoCountControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodoCountControl.swift; sourceTree = "<group>"; };
-		46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToggleUrgentTodoControl.swift; sourceTree = "<group>"; };
-		46D886522F6B7E500029BF80 /* APP_INTENT_DRIVEN_DESIGN.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = APP_INTENT_DRIVEN_DESIGN.md; sourceTree = "<group>"; };
-		46D886562F6B804A0029BF80 /* 01-swift-package-design.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "01-swift-package-design.md"; sourceTree = "<group>"; };
-		46D886572F6B804A0029BF80 /* 02-swiftdata-concurrency.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "02-swiftdata-concurrency.md"; sourceTree = "<group>"; };
-		46D886582F6B804B0029BF80 /* 03-app-intents-core.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "03-app-intents-core.md"; sourceTree = "<group>"; };
-		46D886592F6B804B0029BF80 /* 04-ui-integration.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "04-ui-integration.md"; sourceTree = "<group>"; };
-		46D8865A2F6B804C0029BF80 /* 05-extensions-and-data-sharing.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "05-extensions-and-data-sharing.md"; sourceTree = "<group>"; };
-		46D8865B2F6B804D0029BF80 /* 06-control-widget-ios26.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "06-control-widget-ios26.md"; sourceTree = "<group>"; };
-		46D8865C2F6B804E0029BF80 /* 07-platform-specific.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "07-platform-specific.md"; sourceTree = "<group>"; };
-		46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		46F00009000000000000FAC1 /* MacAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacAppDelegate.swift; sourceTree = "<group>"; };
-		46F0000B000000000000FAC1 /* NotificationHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationHandler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		46229CAE2FF88D620043E4FD /* Exceptions for "IntentTodo" folder in "IntentTodo" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 46AFBC382F2BA68C00444306 /* IntentTodo */;
+		};
+		46229CAF2FF88D620043E4FD /* Exceptions for "IntentTodoWidget" folder in "IntentTodoWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 46AFBEBD2F2CFEA400444306 /* IntentTodoWidgetExtension */;
+		};
+		46229CB02FF88D620043E4FD /* Exceptions for "IntentTodoLiveActivity" folder in "IntentTodoLiveActivityExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 46AFBEDE2F2D6D9C00444306 /* IntentTodoLiveActivityExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		46229C662FF88D610043E4FD /* IntentTodoWatchAppUITest */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = IntentTodoWatchAppUITest;
+			sourceTree = "<group>";
+		};
+		46229C752FF88D610043E4FD /* IntentTodoWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				46229CAF2FF88D620043E4FD /* Exceptions for "IntentTodoWidget" folder in "IntentTodoWidgetExtension" target */,
+			);
+			path = IntentTodoWidget;
+			sourceTree = "<group>";
+		};
+		46229C862FF88D610043E4FD /* Packages */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		46229C892FF88D610043E4FD /* IntentTodoUITest */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = IntentTodoUITest;
+			sourceTree = "<group>";
+		};
+		46229C912FF88D610043E4FD /* IntentTodoLiveActivity */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				46229CB02FF88D620043E4FD /* Exceptions for "IntentTodoLiveActivity" folder in "IntentTodoLiveActivityExtension" target */,
+			);
+			path = IntentTodoLiveActivity;
+			sourceTree = "<group>";
+		};
+		46229C9A2FF88D610043E4FD /* IntentTodoWatchApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = IntentTodoWatchApp;
+			sourceTree = "<group>";
+		};
+		46229CA62FF88D610043E4FD /* IntentTodo */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				46229CAE2FF88D620043E4FD /* Exceptions for "IntentTodo" folder in "IntentTodo" target */,
+			);
+			path = IntentTodo;
+			sourceTree = "<group>";
+		};
+		46229CD72FF88DC70043E4FD /* docs */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = docs;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		46AFBC362F2BA68C00444306 /* Frameworks */ = {
@@ -268,16 +254,16 @@
 			children = (
 				46AFBE932F2C241700444306 /* AGENTS.md */,
 				46AFBE942F2C241700444306 /* CLAUDE.md */,
-				46AFBEAE2F2C241700444306 /* docs */,
+				46229CD72FF88DC70043E4FD /* docs */,
 				46AFBEAF2F2C241700444306 /* LICENSE */,
 				46AFBEB02F2C241700444306 /* README.md */,
-				46AFC0422F33048000444306 /* IntentTodo */,
-				46AFC1002F34F73500444306 /* IntentTodoUITest */,
-				46AFC0332F33047D00444306 /* IntentTodoWatchApp */,
-				46AFC1142F34F76300444306 /* IntentTodoWatchAppUITest */,
-				46AFC01F2F33047B00444306 /* IntentTodoLiveActivity */,
-				46AFC0082F33047800444306 /* IntentTodoWidget */,
-				46AFBE8F2F2C1C3B00444306 /* Packages */,
+				46229CA62FF88D610043E4FD /* IntentTodo */,
+				46229C892FF88D610043E4FD /* IntentTodoUITest */,
+				46229C9A2FF88D610043E4FD /* IntentTodoWatchApp */,
+				46229C662FF88D610043E4FD /* IntentTodoWatchAppUITest */,
+				46229C912FF88D610043E4FD /* IntentTodoLiveActivity */,
+				46229C752FF88D610043E4FD /* IntentTodoWidget */,
+				46229C862FF88D610043E4FD /* Packages */,
 				46AFBE902F2C1C7200444306 /* Frameworks */,
 				46AFBC3A2F2BA68C00444306 /* Products */,
 			);
@@ -296,20 +282,6 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		46AFBE8F2F2C1C3B00444306 /* Packages */ = {
-			isa = PBXGroup;
-			children = (
-				46AFBE8B2F2C1C3B00444306 /* Domain */,
-				46F00100000000000000FAC1 /* LiveActivity */,
-				46AFBE8C2F2C1C3B00444306 /* Repository */,
-				46AFBE8D2F2C1C3B00444306 /* TodoAppIntents */,
-				46AFBE8E2F2C1C3B00444306 /* UI */,
-				46F00500000000000000FAC1 /* WidgetUI */,
-				46F00800000000000000FAC1 /* WatchUI */,
-			);
-			path = Packages;
-			sourceTree = "<group>";
-		};
 		46AFBE902F2C1C7200444306 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -317,156 +289,6 @@
 				46AFBEC12F2CFEA400444306 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
-			sourceTree = "<group>";
-		};
-		46AFBEAA2F2C241700444306 /* references */ = {
-			isa = PBXGroup;
-			children = (
-				46AFBE952F2C241700444306 /* AGENTS.md */,
-				46AFBE962F2C241700444306 /* AppIntents-Updates.md */,
-				46AFBE972F2C241700444306 /* AppKit-Implementing-Liquid-Glass-Design.md */,
-				46AFBE982F2C241700444306 /* Foundation-AttributedString-Updates.md */,
-				46AFBE992F2C241700444306 /* FoundationModels-Using-on-device-LLM-in-your-app.md */,
-				46AFBE9A2F2C241700444306 /* Implementing-Assistive-Access-in-iOS.md */,
-				46AFBE9B2F2C241700444306 /* Implementing-Visual-Intelligence-in-iOS.md */,
-				46AFBE9C2F2C241700444306 /* MapKit-GeoToolbox-PlaceDescriptors.md */,
-				46AFBE9D2F2C241700444306 /* StoreKit-Updates.md */,
-				46AFBE9E2F2C241700444306 /* Swift-Charts-3D-Visualization.md */,
-				46AFBE9F2F2C241700444306 /* Swift-Concurrency-Updates.md */,
-				46AFBEA02F2C241700444306 /* Swift-InlineArray-Span.md */,
-				46AFBEA12F2C241700444306 /* SwiftData-Class-Inheritance.md */,
-				46AFBEA22F2C241700444306 /* SwiftUI-AlarmKit-Integration.md */,
-				46AFBEA32F2C241700444306 /* SwiftUI-Implementing-Liquid-Glass-Design.md */,
-				46AFBEA42F2C241700444306 /* SwiftUI-New-Toolbar-Features.md */,
-				46AFBEA52F2C241700444306 /* SwiftUI-Styled-Text-Editing.md */,
-				46AFBEA62F2C241700444306 /* SwiftUI-WebKit-Integration.md */,
-				46AFBEA72F2C241700444306 /* UIKit-Implementing-Liquid-Glass-Design.md */,
-				46AFBEA82F2C241700444306 /* WidgetKit-Implementing-Liquid-Glass-Design.md */,
-				46AFBEA92F2C241700444306 /* Widgets-for-visionOS.md */,
-			);
-			path = references;
-			sourceTree = "<group>";
-		};
-		46AFBEAE2F2C241700444306 /* docs */ = {
-			isa = PBXGroup;
-			children = (
-				46AFBEAA2F2C241700444306 /* references */,
-				46AFBEAB2F2C241700444306 /* AGENTS.md */,
-				46AFBEAC2F2C241700444306 /* INSIGHTS.md */,
-				46AFBEAD2F2C241700444306 /* PLAN.md */,
-				46D886522F6B7E500029BF80 /* APP_INTENT_DRIVEN_DESIGN.md */,
-				46D886552F6B7F680029BF80 /* insights */,
-			);
-			path = docs;
-			sourceTree = "<group>";
-		};
-		46AFBFFB2F33047800444306 /* Configuration */ = {
-			isa = PBXGroup;
-			children = (
-				46AFBFFA2F33047800444306 /* TodoWidgetConfiguration.swift */,
-			);
-			path = Configuration;
-			sourceTree = "<group>";
-		};
-		46AFBFFE2F33047800444306 /* Helpers */ = {
-			isa = PBXGroup;
-			children = (
-				46AFBFFD2F33047800444306 /* WidgetModelContainer.swift */,
-			);
-			path = Helpers;
-			sourceTree = "<group>";
-		};
-		46AFC0082F33047800444306 /* IntentTodoWidget */ = {
-			isa = PBXGroup;
-			children = (
-				46AFBFFB2F33047800444306 /* Configuration */,
-				46AFC1282F33048100444306 /* Controls */,
-				46AFBFFE2F33047800444306 /* Helpers */,
-				46AFC0022F33047800444306 /* Assets.xcassets */,
-				46AFC0032F33047800444306 /* Info.plist */,
-				46AFC0042F33047800444306 /* IntentTodoWidget.swift */,
-				46AFC0052F33047800444306 /* IntentTodoWidgetBundle.swift */,
-				46AFC0062F33047800444306 /* IntentTodoWidgetExtension.entitlements */,
-			);
-			path = IntentTodoWidget;
-			sourceTree = "<group>";
-		};
-		46AFC01F2F33047B00444306 /* IntentTodoLiveActivity */ = {
-			isa = PBXGroup;
-			children = (
-				46AFC01A2F33047B00444306 /* Assets.xcassets */,
-				46AFC01B2F33047B00444306 /* Info.plist */,
-				46AFC01C2F33047B00444306 /* IntentTodoLiveActivityBundle.swift */,
-				46AFC01D2F33047B00444306 /* IntentTodoLiveActivityExtension.entitlements */,
-				46AFC01E2F33047B00444306 /* TodoLiveActivity.swift */,
-			);
-			path = IntentTodoLiveActivity;
-			sourceTree = "<group>";
-		};
-		46AFC0332F33047D00444306 /* IntentTodoWatchApp */ = {
-			isa = PBXGroup;
-			children = (
-				46AFC02F2F33047D00444306 /* Assets.xcassets */,
-				46AFC0302F33047D00444306 /* IntentTodoWatchApp.entitlements */,
-				46AFC0312F33047D00444306 /* IntentTodoWatchApp.swift */,
-				46AFC0322F33047D00444306 /* TodoComplication.swift */,
-			);
-			path = IntentTodoWatchApp;
-			sourceTree = "<group>";
-		};
-		46AFC0422F33048000444306 /* IntentTodo */ = {
-			isa = PBXGroup;
-			children = (
-				46AFC03C2F33048000444306 /* AppDelegate.swift */,
-				46AFC03E2F33048000444306 /* Assets.xcassets */,
-				46AFC03F2F33048000444306 /* Info.plist */,
-				46AFC0402F33048000444306 /* IntentTodo.entitlements */,
-				46AFC0412F33048000444306 /* IntentTodoApp.swift */,
-				46F00009000000000000FAC1 /* MacAppDelegate.swift */,
-				46F0000B000000000000FAC1 /* NotificationHandler.swift */,
-				46D8865D2F6B857A0029BF80 /* SceneDelegate.swift */,
-			);
-			path = IntentTodo;
-			sourceTree = "<group>";
-		};
-		46AFC1002F34F73500444306 /* IntentTodoUITest */ = {
-			isa = PBXGroup;
-			children = (
-				46AFC0FE2F34F73500444306 /* IntentTodoUITest.swift */,
-			);
-			path = IntentTodoUITest;
-			sourceTree = "<group>";
-		};
-		46AFC1142F34F76300444306 /* IntentTodoWatchAppUITest */ = {
-			isa = PBXGroup;
-			children = (
-				46AFC1122F34F76300444306 /* IntentTodoWatchAppUITest.swift */,
-			);
-			path = IntentTodoWatchAppUITest;
-			sourceTree = "<group>";
-		};
-		46AFC1282F33048100444306 /* Controls */ = {
-			isa = PBXGroup;
-			children = (
-				46AFC1202F33048100444306 /* QuickAddTodoControl.swift */,
-				46AFC1222F33048100444306 /* TodoCountControl.swift */,
-				46AFC1242F33048100444306 /* ToggleUrgentTodoControl.swift */,
-			);
-			path = Controls;
-			sourceTree = "<group>";
-		};
-		46D886552F6B7F680029BF80 /* insights */ = {
-			isa = PBXGroup;
-			children = (
-				46D886562F6B804A0029BF80 /* 01-swift-package-design.md */,
-				46D886572F6B804A0029BF80 /* 02-swiftdata-concurrency.md */,
-				46D886582F6B804B0029BF80 /* 03-app-intents-core.md */,
-				46D886592F6B804B0029BF80 /* 04-ui-integration.md */,
-				46D8865A2F6B804C0029BF80 /* 05-extensions-and-data-sharing.md */,
-				46D8865B2F6B804D0029BF80 /* 06-control-widget-ios26.md */,
-				46D8865C2F6B804E0029BF80 /* 07-platform-specific.md */,
-			);
-			path = insights;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -489,6 +311,9 @@
 				46AFBEF12F2D6D9E00444306 /* PBXTargetDependency */,
 				46AFBF062F2D6E5B00444306 /* PBXTargetDependency */,
 			);
+			fileSystemSynchronizedGroups = (
+				46229CA62FF88D610043E4FD /* IntentTodo */,
+			);
 			name = IntentTodo;
 			packageProductDependencies = (
 				46AFBE912F2C1C7200444306 /* UI */,
@@ -510,6 +335,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				46229C752FF88D610043E4FD /* IntentTodoWidget */,
 			);
 			name = IntentTodoWidgetExtension;
 			packageProductDependencies = (
@@ -534,6 +362,9 @@
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				46229C912FF88D610043E4FD /* IntentTodoLiveActivity */,
+			);
 			name = IntentTodoLiveActivityExtension;
 			packageProductDependencies = (
 				46AFBEDC2F2D6E6A00444306 /* Domain */,
@@ -556,6 +387,9 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				46229C9A2FF88D610043E4FD /* IntentTodoWatchApp */,
 			);
 			name = IntentTodoWatchApp;
 			packageProductDependencies = (
@@ -580,6 +414,9 @@
 			dependencies = (
 				46AFC0FA2F34F72800444306 /* PBXTargetDependency */,
 			);
+			fileSystemSynchronizedGroups = (
+				46229C892FF88D610043E4FD /* IntentTodoUITest */,
+			);
 			name = IntentTodoUITest;
 			productName = IntentTodoUITest;
 			productReference = 46AFC0F32F34F72800444306 /* IntentTodoUITest.xctest */;
@@ -598,6 +435,9 @@
 			dependencies = (
 				46AFC10E2F34F75C00444306 /* PBXTargetDependency */,
 			);
+			fileSystemSynchronizedGroups = (
+				46229C662FF88D610043E4FD /* IntentTodoWatchAppUITest */,
+			);
 			name = IntentTodoWatchAppUITest;
 			productName = IntentTodoWatchAppUITest;
 			productReference = 46AFC1072F34F75C00444306 /* IntentTodoWatchAppUITest.xctest */;
@@ -611,7 +451,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2620;
-				LastUpgradeCheck = 2620;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					46AFBC382F2BA68C00444306 = {
 						CreatedOnToolsVersion = 26.2;
@@ -664,7 +504,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC0462F33048000444306 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -672,7 +511,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC0092F33047800444306 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -680,7 +518,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC0202F33047B00444306 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -688,7 +525,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC03B2F33047D00444306 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -713,11 +549,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC0432F33048000444306 /* AppDelegate.swift in Sources */,
-				46AFC0452F33048000444306 /* IntentTodoApp.swift in Sources */,
-				46F0000A000000000000FAC1 /* MacAppDelegate.swift in Sources */,
-				46F0000C000000000000FAC1 /* NotificationHandler.swift in Sources */,
-				46D8865E2F6B857A0029BF80 /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -725,13 +556,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC00B2F33047800444306 /* TodoWidgetConfiguration.swift in Sources */,
-				46AFC00D2F33047800444306 /* WidgetModelContainer.swift in Sources */,
-				46AFC0102F33047800444306 /* IntentTodoWidget.swift in Sources */,
-				46AFC0112F33047800444306 /* IntentTodoWidgetBundle.swift in Sources */,
-				46AFC1212F33048100444306 /* QuickAddTodoControl.swift in Sources */,
-				46AFC1232F33048100444306 /* TodoCountControl.swift in Sources */,
-				46AFC1252F33048100444306 /* ToggleUrgentTodoControl.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -739,8 +563,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC0262F33047B00444306 /* IntentTodoLiveActivityBundle.swift in Sources */,
-				46AFC0272F33047B00444306 /* TodoLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -748,8 +570,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC0392F33047D00444306 /* IntentTodoWatchApp.swift in Sources */,
-				46AFC03A2F33047D00444306 /* TodoComplication.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -757,7 +577,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC1012F34F73500444306 /* IntentTodoUITest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -765,7 +584,6 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				46AFC1152F34F76300444306 /* IntentTodoWatchAppUITest.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -804,10 +622,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=xr*]" = AppIconVision;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = IntentTodo/IntentTodo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -815,6 +635,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IntentTodo/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Intento;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -826,11 +648,11 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -843,7 +665,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.2;
+				XROS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Debug;
 		};
@@ -851,10 +673,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				"ASSETCATALOG_COMPILER_APPICON_NAME[sdk=xr*]" = AppIconVision;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = IntentTodo/IntentTodo.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -862,6 +686,8 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IntentTodo/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = Intento;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -873,11 +699,11 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -890,7 +716,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.2;
+				XROS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Release;
 		};
@@ -928,6 +754,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -951,6 +778,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -990,6 +818,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1006,6 +835,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 			};
 			name = Release;
@@ -1018,14 +848,15 @@
 				CODE_SIGN_ENTITLEMENTS = IntentTodoWidget/IntentTodoWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IntentTodoWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = IntentTodoWidget;
+				INFOPLIST_KEY_CFBundleDisplayName = IntentoWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1036,8 +867,8 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.IntentTodoWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1050,7 +881,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.2;
+				XROS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Debug;
 		};
@@ -1062,14 +893,15 @@
 				CODE_SIGN_ENTITLEMENTS = IntentTodoWidget/IntentTodoWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IntentTodoWidget/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = IntentTodoWidget;
+				INFOPLIST_KEY_CFBundleDisplayName = IntentoWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -1080,8 +912,8 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
-				MARKETING_VERSION = 1.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.IntentTodoWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -1094,7 +926,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
-				XROS_DEPLOYMENT_TARGET = 26.2;
+				XROS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Release;
 		};
@@ -1109,15 +941,15 @@
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IntentTodoLiveActivity/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = IntentTodoLiveActivity;
+				INFOPLIST_KEY_CFBundleDisplayName = IntentoLiveActivity;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.IntentTodoLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1142,15 +974,15 @@
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = IntentTodoLiveActivity/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = IntentTodoLiveActivity;
+				INFOPLIST_KEY_CFBundleDisplayName = IntentoLiveActivity;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.IntentTodoLiveActivity;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
@@ -1176,14 +1008,14 @@
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = IntentTodoWatchApp;
+				INFOPLIST_KEY_CFBundleDisplayName = IntentoWatchApp;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = dev.touyou.IntentTodo;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1195,7 +1027,7 @@
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
-				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+				WATCHOS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Debug;
 		};
@@ -1210,14 +1042,14 @@
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = IntentTodoWatchApp;
+				INFOPLIST_KEY_CFBundleDisplayName = IntentoWatchApp;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = dev.touyou.IntentTodo;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
@@ -1230,7 +1062,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				VALIDATE_PRODUCT = YES;
-				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+				WATCHOS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Release;
 		};
@@ -1239,10 +1071,11 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.IntentTodoUITest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1255,7 +1088,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_TARGET_NAME = IntentTodo;
-				XROS_DEPLOYMENT_TARGET = 26.2;
+				XROS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Debug;
 		};
@@ -1264,10 +1097,11 @@
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = B4S4333JDW;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
-				MACOSX_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 27.0;
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo.IntentTodoUITest;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1280,7 +1114,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_TARGET_NAME = IntentTodo;
-				XROS_DEPLOYMENT_TARGET = 26.2;
+				XROS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Release;
 		};
@@ -1302,7 +1136,7 @@
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				TEST_TARGET_NAME = IntentTodoWatchApp;
-				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+				WATCHOS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Debug;
 		};
@@ -1325,7 +1159,7 @@
 				TARGETED_DEVICE_FAMILY = 4;
 				TEST_TARGET_NAME = IntentTodoWatchApp;
 				VALIDATE_PRODUCT = YES;
-				WATCHOS_DEPLOYMENT_TARGET = 26.2;
+				WATCHOS_DEPLOYMENT_TARGET = 27.0;
 			};
 			name = Release;
 		};

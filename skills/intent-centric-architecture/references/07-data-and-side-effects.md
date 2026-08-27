@@ -1,150 +1,168 @@
 # 07 — Data and side effects
 
-How to make data-mutating Intents reload every system surface, stay idempotent under voice retry, and avoid foot-guns specific to SwiftData + CloudKit.
+Making a mutation land everywhere, survive repetition, and not lie to the user.
 
 ## Surface refresh is part of the action
 
-After every data-mutating Intent, every surface that displays that data must reload:
-
-- Home widgets (`WidgetCenter.shared.reloadAllTimelines()` or `reloadTimelines(ofKind:)`)
-- Control widgets (same reload mechanism)
-- Live Activities (`Activity.update(...)` or `.end(...)`)
-- watchOS complications (`CLKComplicationServer.sharedInstance().reloadTimeline(for:)` or WidgetKit equivalent)
-- Spotlight indexes (`CSSearchableIndex` updates) — only on insertion / title changes / deletion.
-
-Encapsulate this in a single helper so individual Intents do not need to remember which surfaces exist.
+**Home widgets and Control Center are separate APIs.** `WidgetCenter.shared.reloadAllTimelines()` does not touch controls, and the system only auto-reloads *the one control that ran the intent*. Every other control keeps rendering a stale value.
 
 ```swift
-@MainActor
 public enum WidgetReloader {
     public static func reloadAllWidgets() {
+        #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
+        #if !os(visionOS)                       // ControlCenter is unavailable on visionOS
+        ControlCenter.shared.reloadAllControls()
+        #endif
+        #endif
     }
 }
 ```
 
-Call it **once per logical mutation**, ideally inside the `Service`'s `defer` so individual Intents never forget:
+Measured symptom: with only `reloadAllTimelines()`, completing an item through a toggle control leaves the neighbouring count control stuck at `2`; with `reloadAllControls()` it drops to `1` at the same moment. [measured 2026-08-12, iOS 27 simulator]
+
+Call it **once per logical mutation**, from the Service's `defer`, so no intent can forget:
 
 ```swift
-@MainActor
-public final class TodoService {
-    public func toggleCompletion(id: String) throws {
-        defer { WidgetReloader.reloadAllWidgets() }
-        try repository.toggleCompletion(id: id)
-    }
-}
-```
-
-Intents that should call this in IntentTodo's vocabulary: `AddTodoIntent`, `DeleteTodoIntent`, `ToggleTodoCompletionIntent`, `ToggleFavoriteIntent`, `SnoozeTodoIntent`, `ToggleUrgentTodoIntent`, and their FromExtension variants.
-
-## Idempotency — assume the user repeats themselves
-
-Voice and Shortcuts can fire the same Intent twice in quick succession (network retry, accidental re-tap, automation loop). Design `perform()` to be safe under repetition.
-
-- **Toggles** are inherently non-idempotent. Either accept the second call as "toggle again" (often correct), or guard with a timestamp / state-check.
-- **Creates** should not de-dupe automatically — multiple "add todo X" voice commands probably mean the user wants two todos. But surface a clear dialog like `.result(dialog: "Added two more.")` if you do dedupe.
-- **Deletes** should be tolerant of "already deleted" — return success silently rather than throwing.
-
-```swift
-public func delete(id: String) throws {
+public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
     defer { WidgetReloader.reloadAllWidgets() }
-    do {
-        try repository.delete(id: id)
-    } catch RepositoryError.notFound {
-        // Idempotent: deleting an absent item is a no-op.
-        return
-    }
+    // …
 }
 ```
+
+### Is the manual reload always needed?
+
+No — an intent invoked from a widget's own `Button(intent:)` gets an automatic timeline reload when `perform()` returns, and reloads initiated by an interaction are guaranteed [Apple: wwdc2023-10028 10:02, 13:47]. It *is* needed for every non-widget path: Siri, Shortcuts, app UI, notifications. Calling it unconditionally skips the case analysis; the duplicate reload costs nothing.
+
+Other surfaces to refresh from the same place: Live Activities (`Activity.update` / `.end`), watch complications (WidgetKit reload), and the Spotlight index — but only on insert, title change and delete.
+
+## `perform()` is retriable — order the side effects
+
+The system may restart `perform()`. Do irreversible work **last**, and never report success before the write lands.
+
+1. Persist (truth of record).
+2. Update navigation / Activity state.
+3. Reload surfaces, update the index.
+4. Build the dialog / notification.
+5. Return.
+
+Reloading before persisting produces a visible stale flash; building feedback before persisting risks announcing a write that then fails.
+
+## Idempotency
+
+Voice, automations and double taps all repeat. Design for it.
+
+- **Toggles** are inherently non-idempotent — usually "toggle again" is the right semantics; if not, guard on state or a timestamp. For a control, use an absolute setter (`SetValueIntent`) instead, which is idempotent by construction.
+- **Creates** should not silently de-duplicate: two "add milk" commands usually mean two items.
+- **Deletes** should tolerate "already gone" and return success.
+
+```swift
+public func delete(todoId: String) throws {
+    defer { WidgetReloader.reloadAllWidgets() }
+    do { try repository.delete(id: todoId) }
+    catch RepositoryError.notFound { return }   // idempotent
+}
+```
+
+Deleting an entity should also drop its donations, or the system keeps suggesting an action it cannot perform:
+
+```swift
+_ = try? await IntentDonationManager.shared.deleteDonations(
+    matching: .entityIdentifiers([EntityIdentifier(for: todo)])
+)
+```
+
+This cleanup is correct regardless of who ran the delete. **Donating** is not.
+
+## Donations belong to the app's UI, never to `perform()`
+
+Apple is explicit: "Restrict your donations to direct interactions with your app's interface, and **not to interactions started by Siri or the Shortcuts app**" [Apple: *Donations and discovery*]. The system already collects the Siri/Shortcuts runs itself, so donating them again is both redundant and against the documented rule.
+
+`perform()` cannot honour that split, because **it cannot tell who called it**: `systemContext` exposes `currentMode` and `isVoiceOnly`, and there is no invocation-source property. So `donate()` inside `perform()` always fires on the Siri/Shortcuts path too. `audit`: `donate-inside-perform`
+
+Two shapes that do honour it [Apple: sample code]:
+
+| Shape | Where the donation happens | Requires |
+|---|---|---|
+| `donateIntent:` flag on the service method (CometCal) | service, defaulting to `true`; intents pass `false` | the UI reaches the service **without** going through an intent |
+| a `DonationManager` called at each UI tap site (CosmoTunes) | the view's action closure | the same |
+
+**Both assume a non-intent UI path** — which an intent-centric app deliberately does not have. If every button is `Button(intent:)`, the honest options are (a) no donations, or (b) run the intent yourself at the specific UI sites worth donating, via `AppIntent.callAsFunction(donate:)` — "runs the intent's action after resolving any parameters, and optionally donates the intent to the system". Choose deliberately and write down which; the failure mode of guessing is a documented-rule violation that nothing in the build or the test suite will surface.
+
+## Division of labour
+
+| Concern | Intent | Service |
+|---|---|---|
+| Parameter declarations, parameter summary | ✅ | — |
+| Dialog / notification text | ✅ | — |
+| Input-only validation | ✅ | — |
+| Validation that needs stored state | — | ✅ |
+| Persistence | — | ✅ |
+| Surface reload (`defer`) | — | ✅ |
+| Spotlight indexing | — | ✅ |
+| Navigation writes via `@Dependency` | ✅ | — |
+
+The payoff: the Service is unit-testable with a mock repository and no `AppDependencyManager`, and the intent file stays short enough to read in one screen.
 
 ## SwiftData + CloudKit constraints
 
-When the persistence layer is SwiftData + CloudKit, a few rules cascade into the Intent layer:
+[Apple: "Define a CloudKit compatible schema"]
 
-- **`@Attribute(.unique)` is not enforced by CloudKit.** Apple is explicit: "CloudKit is unable to enforce the unique property option." `#Unique<T>` macros use the same mechanism. Validate uniqueness in the `Service` if you actually need it.
-- **All relationships must be `optional`.** "CloudKit requires all relationships to be optional." `.deny` delete rules are unsupported.
-- **All properties need defaults or be `optional`.** New devices may sync model schema before all property values arrive.
+- **`@Attribute(.unique)` is not enforced** — "CloudKit is unable to enforce the unique property option". `#Unique<T>` relies on the same mechanism. Enforce uniqueness in the Service if you need it.
+- **All relationships must be optional**; `.deny` delete rules are unsupported.
+- **Every property needs a default or must be optional** (sync conflict handling). A new property with a default value also gets you a lightweight migration without a `VersionedSchema`.
 
-For Intent design, this means:
+Consequences at the intent boundary: do not expose a non-optional relationship on an entity when the model's is optional, and synthesise sane defaults rather than crashing on `nil`.
 
-- Don't expose a non-optional relationship in `AppEntity` if the underlying model has it as optional.
-- Be defensive when reading entity properties — synthesize sane defaults rather than crashing on `nil`.
-- Spotlight indexing should run as `Task(priority: .utility)` on launch so it doesn't compete with the user-visible cold start.
+Two more SwiftData rules worth carrying:
 
-## Side-effect ordering
+- **No `didSet` on `@Model` properties.** The macro swizzles property access; CloudKit merges and KVC writes may not fire the observer, so an "auto-update `modifiedAt`" side effect works locally and silently doesn't when syncing. Set it explicitly in the Service.
+- **`@Model` classes are not `Sendable`** (the macro adds an unavailable conformance). Keep the repository `@MainActor` rather than trying to cross actor boundaries with models.
 
-Within `perform()`, the order matters:
+### Migration is one process's job
 
-1. Do the persistence change first (truth-of-record updates).
-2. Update navigation / Activity state.
-3. Reload widgets / index Spotlight.
-4. Build the Dialog / notification feedback.
-5. Return.
+Several processes share the App Group store, and **after an update a widget can run before the app does**. If both carry a migration plan, the extension may start migrating while the app does the same.
 
-Putting the widget reload before the persistence write produces a brief race where widgets show stale data; putting feedback before persistence risks reporting success on a write that then fails.
+Give the `SchemaMigrationPlan` **only to the app's container**; extensions open the store without one and simply read the migrated file. Have the extension fall back to "open the app" if the store is not ready yet.
+
+> This one has no Apple source: it is reasoning from the shared-store situation, not a documented rule. [inferred]
+
+## The `@Query` + `.onChange` foot-gun
+
+Tempting, and broken:
 
 ```swift
-@MainActor
-func perform() async throws -> some IntentResult & ProvidesDialog {
-    // 1. Truth of record.
-    try todoService.create(title: title, dueDate: dueDate)
-    // 2. Optional navigation hint.
-    navigation.pendingScrollToTopOfList = true
-    // 3-4. Reload + feedback are inside the service via defer + helper.
-    return .result(dialog: "Added \(title).")
+// ❌ silently goes stale
+.onChange(of: todoItems, initial: true) { viewModel.update(from: todoItems) }
+```
+
+`@Query` returns `[PersistentModel]` — an array of **classes**. Array equality is identity-based, so an in-place attribute change (toggling `isCompleted`, editing a title) leaves the array "equal", `.onChange` never fires, and the cached projection goes stale. Insertions and deletions *do* change identities, which is why the bug hides until someone edits in place.
+
+Map in `body` instead — SwiftUI's dependency tracking re-evaluates on tracked-attribute changes, and mapping a few hundred items is cheap:
+
+```swift
+private var todos: [TodoAppEntity] {
+    viewModel.filtered(todoItems.map(TodoAppEntity.init))
 }
 ```
 
-## What to put in `Service` vs. `Intent`
+With thousands of rows, fix it properly: filter and sort in `@Query(filter:sort:)`, fetch a lightweight `struct` projection, or paginate. Do not reach for `.onChange` caching.
 
-| Concern | `Intent` | `Service` |
-|---|---|---|
-| Parameter type definitions | ✅ | ❌ |
-| Dialog / notification text | ✅ | ❌ (return values + side effects only) |
-| Persistence calls | ❌ | ✅ |
-| Validation that is purely about the input | ✅ (parameter validators) | ❌ |
-| Validation that needs persistence state | ❌ | ✅ |
-| `WidgetReloader.reloadAllWidgets()` | ❌ | ✅ (in `defer`) |
-| Spotlight indexing | ❌ | ✅ |
-| Navigation writes via `@Dependency var navigation` | ✅ | ❌ |
+### `#Predicate` and optionals
 
-Following this division keeps the Intent file small and the Service unit-testable in isolation, without `AppDependencyManager`.
+`#Predicate` requires both sides to have the same type; the implicit optional promotion that plain Swift gives you does not apply after macro expansion. Exactly one shape fails [measured 2026-08-12 — not a platform or toolchain difference]:
 
-## SwiftData `@Query` and `.onChange(of:)` — a frequent foot-gun
+| Expression | Result |
+|---|---|
+| non-optional property `==` optional value (`$0.id == optionalUUID`) | ❌ compile error |
+| optional property `==` optional value | ✅ |
+| optional property `==` non-optional value | ✅ |
+| optional property `!= nil` | ✅ |
+| the same expression outside `#Predicate` | ✅ |
 
-It is tempting to "optimize" away the per-`body` cost of converting `[TodoItem]` (SwiftData `@Model`) into a presentation type by caching the conversion in a `@Observable` view model and updating it via `.onChange(of: todoItems)`:
+Fix by capturing a non-optional constant first:
 
 ```swift
-// ❌ This looks reasonable but is broken.
-@MainActor @Observable
-final class TodoListViewModel {
-    public private(set) var entities: [TodoAppEntity] = []
-    public func update(from todos: [TodoItem]) {
-        entities = todos.map { TodoAppEntity(from: $0) }
-    }
-}
-
-// In the view:
-.onChange(of: todoItems, initial: true) {
-    viewModel.update(from: todoItems)
-}
+let targetId = UUID(uuidString: entity.id) ?? UUID()   // a value that cannot match
+_todoItems = Query(filter: #Predicate<TodoItem> { $0.id == targetId })
 ```
-
-**Why it breaks**: SwiftData's `@Query` returns `[PersistentModel]`, where each element is a *class*. The array's `Equatable` is identity-based — comparing two snapshots checks whether the same objects are at the same indices, not whether their attributes have changed. So when the user toggles `isCompleted` or edits a `title` in place, `todoItems` is "the same" array, `.onChange(of: todoItems)` does **not** fire, and the cached `entities` go stale. Insertion/deletion (which changes the element identities) does fire `.onChange`, which is why this bug is invisible until you start mutating in place.
-
-**The fix**: do the conversion in `body`. SwiftUI's dependency tracking re-evaluates the view when SwiftData's tracked attributes change, so the in-place mutation propagates correctly. The per-`body` `map` is cheap up to a few hundred items.
-
-```swift
-// ✅ Correct.
-private var filteredTodos: [TodoAppEntity] {
-    viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
-}
-```
-
-**If you genuinely have thousands of items**, fix it by:
-
-- Using a SwiftData fetch that returns a lightweight `struct` projection (only the fields you need), so the `map` itself is unnecessary.
-- Filtering / sorting at the `@Query(filter:sort:)` macro level so the array reaching the view is already small.
-- Pushing pagination — show 100 at a time, load more on scroll.
-
-Do not reach for `.onChange(of: todoItems)` caching. The bug is silent and surfaces in production as "toggles don't update".

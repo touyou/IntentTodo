@@ -1,28 +1,28 @@
-// swift-tools-version: 6.2
+// swift-tools-version: 6.4
 import PackageDescription
 
 let package = Package(
     name: "Repository",
     platforms: [
-        .iOS(.v26),
-        .macOS(.v26),
-        .watchOS(.v26),
-        .visionOS(.v26)
+        .iOS(.v27),
+        .macOS(.v27),
+        .watchOS(.v27),
+        .visionOS(.v27)
     ],
     products: [
         .library(
             name: "Repository",
             targets: ["Repository"]
-        ),
+        )
     ],
     dependencies: [
-        .package(path: "../Domain"),
+        .package(path: "../Domain")
     ],
     targets: [
         .target(
             name: "Repository",
             dependencies: [
-                .product(name: "Domain", package: "Domain"),
+                .product(name: "Domain", package: "Domain")
             ],
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency")
@@ -31,6 +31,6 @@ let package = Package(
         .testTarget(
             name: "RepositoryTests",
             dependencies: ["Repository"]
-        ),
+        )
     ]
 )

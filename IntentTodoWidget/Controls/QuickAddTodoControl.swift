@@ -1,3 +1,10 @@
+//
+//  QuickAddTodoControl.swift
+//  IntentTodoWidget
+//
+//  Control Center button that opens the app on the add-todo screen.
+//
+
 #if !os(visionOS)
 import AppIntents
 import SwiftUI
