@@ -383,6 +383,11 @@ try repository.update(item)
 
 パラメータ入りフレーズは **`updateAppShortcutParameters()` が一度も呼ばれていないと機能しない**。本アプリでは `IntentTodoApp.init()` での登録 + 初回実行と、上記 `dataDidChange()` からの通知で配線済み。
 
+**バリエーションは語彙を変える**。`Snooze` / `Delay` のように en は別語彙で認識経路を増やしているので、
+訳すときも「スヌーズ / 後回しにする / 先送り」のように語彙を散らす。助詞や語尾だけ違うフレーズ
+（「〜をスヌーズ」と「〜をスヌーズする」）を並べても経路は増えない。判定はパラメータ構成が同じ
+もの同士で行う（パラメータ有無の差は意図的）。詳細: `docs/insights/04-ui-integration.md`
+
 ### @Dependency + AppDependencyManager パターン
 
 Intent がアプリの共有状態（`TodoService`、`NavigationModel`、`ModelContainer` 等）にアクセスする場合、`AppDependencyManager` に同期登録し Intent 側で `@Dependency` で取得する。Intent がビジネスロジックを触るときは **`TodoService` を直接受け取る**のが基本（Repository は内包済み）。
