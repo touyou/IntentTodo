@@ -176,6 +176,16 @@ IntentTodoWatchApp/                 # watchOS アプリ
 - **条件付き assert を書かない**。`if element.waitForExistence(...) { XCTAssert... }` は、要素が
   見つからないと中身が一度も実行されず緑になる（この形で「削除がまったく動いていない」のを
   長期間見逃した実例あり。経緯: `docs/devlog/06-control-widget-ios26.md`）
+- **UI テストは空のストアで起動する**。`IntentTodoUITest` は `-uitest-ephemeral-store` を渡し、
+  アプリは DEBUG 限定でその引数を見て in-memory ストアを使う。共有ストアはプロセスを跨いで
+  残るので、渡さないと todo がテスト間で積み上がり、空状態を前提にしたテストが書けなくなる /
+  一覧の再描画が遅くなって待ち条件がタイムアウトする。**AppIntents 側のテストは渡さない**
+  （実運用と同じ共有ストアで entity 解決と Spotlight index を見たいため）
+- **固定秒で待たない**。`sleep(1)` は状態が変わっていなくても時間が過ぎれば先に進むので、
+  待ちを `waitForExistence` / `waitForNonExistence` に置く（速いだけでなく、失敗が失敗として出る）
+- **UI テストの並列実行はしない**（`IntentTodo.xcscheme` の `parallelizable` を外している）。
+  シミュレータのクローンが OS ごと起動するぶんが乗るだけで、UI テストクラスが 1 つしかない本
+  プロジェクトでは分割されない。実測と数字: `docs/devlog/2026-08-28-uitest-cost.md`
 
 ### Swift/SwiftUI ガイドライン
 

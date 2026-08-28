@@ -26,8 +26,11 @@ final class IntentTodoUITest: XCTestCase {
         // 持たない汎用コンポーネント）。ホストの macOS が ja だとシミュレータのアプリも ja で
         // 起動して英語ラベルが引けなくなるので、テスト対象のアプリの言語を en に固定する。
         // 経緯: docs/devlog/2026-08-28-ja-localization.md（ja 追加でラベル引きが壊れた件）
+        // 毎回空のストアで起動する。共有ストアはプロセスを跨いで残るので、
+        // テスト間で todo が積み上がって空状態のテストが書けず、一覧の再描画が遅くなって
+        // 待ち条件もタイムアウトしやすくなる（`IntentTodoApp.ephemeralStoreArgument`）。
         app.launchArguments = [
-            "--uitesting",
+            "-uitest-ephemeral-store",
             "-AppleLanguages", "(en)",
             "-AppleLocale", "en_US"
         ]
@@ -379,12 +382,15 @@ final class IntentTodoUITest: XCTestCase {
 
     @MainActor
     func testEmptyStateShowsAddButton() throws {
-        // If there are no todos, empty state should show "Add Todo" button
-        // This test assumes starting with an empty state or after deleting all todos
+        // 起動ごとに空のストアなので、無条件に空状態を期待できる。
+        // 以前は `if emptyStateButton.waitForExistence { ... }` で包んでいたため、
+        // 空状態が出ていなくても何も検証せず緑になっていた。
         let emptyStateButton = app.buttons["Add Todo"]
-        if emptyStateButton.waitForExistence(timeout: 3) {
-            XCTAssertTrue(emptyStateButton.isHittable, "Empty state Add Todo button should be tappable")
-        }
+        XCTAssertTrue(
+            emptyStateButton.waitForExistence(timeout: 5),
+            "Empty state should offer an Add Todo button"
+        )
+        XCTAssertTrue(emptyStateButton.isHittable, "Empty state Add Todo button should be tappable")
     }
 
     // MARK: - Test: Navigation to Detail
