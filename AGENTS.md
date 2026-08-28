@@ -388,6 +388,29 @@ try repository.update(item)
 （「〜をスヌーズ」と「〜をスヌーズする」）を並べても経路は増えない。判定はパラメータ構成が同じ
 もの同士で行う（パラメータ有無の差は意図的）。詳細: `docs/insights/04-ui-integration.md`
 
+### App Shortcut に登録する Intent の `@Parameter` に system value 型を使わない（SDK バグ）
+
+`GeoToolbox.PlaceDescriptor` / `LinkPresentation.LinkMetadata` / `MediaIntents.AudioSearch` /
+`Photos.PHAsset` を **`AppShortcutsProvider` に登録した Intent の `@Parameter`** に置くと、
+`AppIntentsSSUTraining` が `GeoToolbox.PlaceDescriptorEntity must match regular expression ...` を
+emit して **`Metadata.appintents/nlu/` が丸ごと生成されない**（そのターゲットの全 App Shortcut が
+音声理解の学習アセットを失う）。ツールは exit 0 で返すのでローカルは `BUILD SUCCEEDED` のまま、
+Xcode Cloud だけが赤くなる。公式ドキュメントがサポート型として明記している型なので、
+**アプリ側の回避策は「その型を使わない」しかない**（本アプリは `AddTodoIntent.location` /
+`TodoAppEntity.location` を `String` + 緯度経度に退避し、`TodoPlace` で組み直している）。
+
+踏まない形:
+
+- entity の `@Property`（SSU の variable にならない）
+- スキーマ由来の宣言（`@AppIntent(schema:)` / `@AppEntity(schema:)`）
+- `Transferable` の `ValueRepresentation(exporting:)` → `PlaceDescriptor`（採用中）
+- App Shortcut に登録していない Intent の `@Parameter`
+
+Apple 報告済み（追跡は **#57**）。リリース版 Xcode 26.6 でも再現するので GM を待っても直るとは限らない。
+判定は**必ずクリーンビルド**（`Metadata.appintents` が変わらないと SSU タスクは再実行されず、
+インクリメンタルのログは前回の出力を並べる）。経緯と実測値:
+[docs/devlog/2026-08-28-ssu-system-value-type-bug.md](docs/devlog/2026-08-28-ssu-system-value-type-bug.md)
+
 ### @Dependency + AppDependencyManager パターン
 
 Intent がアプリの共有状態（`TodoService`、`NavigationModel`、`ModelContainer` 等）にアクセスする場合、`AppDependencyManager` に同期登録し Intent 側で `@Dependency` で取得する。Intent がビジネスロジックを触るときは **`TodoService` を直接受け取る**のが基本（Repository は内包済み）。
@@ -664,7 +687,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 | **Entity強化** | プロパティマクロ / 値表現 | @ComputedProperty, @DeferredProperty, @Property(indexingKey:)(#43), Transferable + ValueRepresentation→IntentPerson/PlaceDescriptor(#44) | ✅ |
 | **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier（単一）/ .appEntityIdentifier(forSelectionType:)（一覧, #46）/ 通知 appEntityIdentifiers(#46) | ✅ |
 | **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ |
-| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ list + search 適合（watchOS はフォールバック / 除外）。reminder 本体は SSU バグでブロック（#56） |
+| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ list + search 適合（watchOS はフォールバック / 除外）。reminder 本体は据え置き、ブロック理由は要再測（#56） |
 | **高度な Intent** | 対話/寄付/system/部分更新/取り消し | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, UndoableIntent, IntentDialog(full:supporting:), IntentParameter.valueState(#45) | ✅（`RelevantEntities` は適合不能 / donation は不採用 #53） |
 | **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, CancellableIntent, allowedExecutionTargets(.main/.appIntentsExtension/.widgetKitExtension, #42), @UnionValue, SyncableEntity | ✅ |
 | **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor, semanticContentSearch | ✅ |
@@ -681,7 +704,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 
 | 分類 | 主なもの |
 |------|---------|
-| **適合不能 / ブロック中** | `RelevantEntities`（todo 向けの `AppEntityContext` が無い）/ `.reminders.reminder` 本体適合（SSU バグ待ち、#56） |
+| **適合不能 / ブロック中** | `RelevantEntities`（todo 向けの `AppEntityContext` が無い）/ `.reminders.reminder` 本体適合（据え置き。「SSU バグ待ち」は否定されたので理由を測り直す、#56） |
 | **意図的不使用** | `DynamicOptionsProvider` / `IntentParameterDependency` / `EntityPropertyQuery` / `.foreground(.dynamic)`（#55）/ UI タップ由来の donation（#53）/ `SpotlightSearchTool`（#52） |
 | **未採用候補** | `.controlWidgetStatus(_:)` / `Toggle(isOn:intent:)` / `RelevantIntent` / `AudioPlaybackIntent`（#68） |
 

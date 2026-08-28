@@ -136,10 +136,12 @@
     `locationTrigger` / `locationTriggerEvent`。probe はビルドが通る形まで到達）。据え置き理由だった
     「マクロ生成 init が `EntityProperty<T>` 引数を要求して自前 init と衝突する」は**誤り**で、マクロは
     conformance を 2 つ生やすだけで init を生成しない。残る障害は ①`list` が非 optional
-    ②`dueDate` が `DateComponents` ③`locationTrigger` が `PlaceDescriptor` を `@Property` に強制し
-    SSU training バグ（`35d772f`）に正面衝突、の 3 点。③ は 2026-08-12 にクリーンビルドで実測して
-    **ブロッカーと確定**（beta 6 でも未修正）。**SDK 修正待ちで着手不可**。
-    詳細: `docs/devlog/03-app-intents-core.md`。
+    ②`dueDate` が `DateComponents` の 2 点。かつて ③ として挙げていた「`locationTrigger` が
+    `PlaceDescriptor` を `@Property` に強制し SSU training バグに衝突」は **2026-08-28 に否定された**
+    （SSU の variable になるのは App Shortcut 登録済み Intent の `@Parameter` だけで、entity の
+    `@Property` やスキーマ由来の宣言は踏まない）。**「SDK 修正待ちで着手不可」ではない**ので、
+    着手判断は ①② のコストで行う。
+    詳細: `docs/devlog/2026-08-28-ssu-system-value-type-bug.md` / `docs/devlog/03-app-intents-core.md`。
     **新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な自前 Intent 群 +
     `OpenIntent`/`DeleteIntent` + `.system.searchInApp`(#47) + `indexingKey`(#43)）ため、本体適合は SDK の
     スキーママクロ init 規約が扱いやすくなるのを待つ独立タスクとして据え置く。詳細は insights/03「Phase 7」。
@@ -281,11 +283,14 @@
 | beta 5 (27A5237l) | SSU バグ・watchOS assistant schema unavailable ともに未解消を再確認。コード変更なし | `647acb6` |
 | beta 6 (27A5252f) | 同 2 件ともに未解消を再確認（revert → クリーンビルドで同一エラー / watchOS SDK の `@available(watchOS, unavailable)` 継続）。beta 6 で入った未記録の API は 4 つで、いずれも採用対象外と判定。コード変更なし | 経緯: [2026-08-28-xcode27-beta6-recheck.md](devlog/2026-08-28-xcode27-beta6-recheck.md) |
 
-> **既知の SDK 制約（beta 6 時点で未解消）**: `PlaceDescriptor` の SSU training バグ（`@Parameter`/`@Property` を
-> `String` へ退避するワークアラウンド継続中）と、watchOS での `reminders`/`system` assistant schema unavailable
-> （フォールバック継続中）。SDK 更新時は `35d772f` を revert + DerivedData クリア後クリーンビルドで再検証する
+> **既知の SDK 制約（beta 6 時点で未解消）**: system value 型（`PlaceDescriptor` ほか）の SSU training バグ
+> （**App Shortcut に登録した Intent の `@Parameter`** に置くと発火。`String` 退避のワークアラウンド継続中）と、
+> watchOS での `reminders`/`system` assistant schema unavailable（フォールバック継続中）。SDK 更新時は
+> `35d772f` を revert + DerivedData クリア後クリーンビルドで再検証する
 > （SSU タスクは incremental ビルドだと stale エラーを再表示するため要注意）。GM SDK 到来時の棚卸しは **#57** で追跡。
-> 経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
+> **SSU の件は Apple 報告済み**で、リリース版 Xcode 26.6 でも再現するため GM で直る保証はない。
+> 経緯: [docs/devlog/2026-08-28-ssu-system-value-type-bug.md](devlog/2026-08-28-ssu-system-value-type-bug.md) /
+> [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
 
 ## availability 方針
 

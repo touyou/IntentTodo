@@ -1151,6 +1151,11 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
     `name: .displayName(name)`, `handle: nil`。
   - export closure は `async throws`。値が無い todo は `throw` してその表現を出さない（空値を返さない）。
   - これが計画 doc の「ValueRepresentation(→IntentPerson)」を兼ねる。`IntentPerson` 自体も `Transferable`。
+  - **`ValueRepresentation` は SSU バグを踏まない**。踏むのは system value 型を **App Shortcut に登録した
+    Intent の `@Parameter`** に置いたときだけ（`PlaceDescriptor` / `LinkMetadata` / `AudioSearch` / `PHAsset`
+    の 4 型で実測）。`Metadata.appintents/nlu/` が丸ごと出なくなり、ローカルは `BUILD SUCCEEDED` のまま。
+    ルールは AGENTS.md「App Shortcut に登録する Intent の `@Parameter` に system value 型を使わない」、
+    実測値は [devlog 2026-08-28](../devlog/2026-08-28-ssu-system-value-type-bug.md)。Apple 報告済み（#57）。
 
 ### `IntentParameter.valueState`（部分更新、#344 / #45）
 
@@ -1211,6 +1216,8 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   `@AppEntity(schema: .reminders.section)`（`name` + `list`）と `@AppEntity(schema: .reminders.locationTrigger)`
   （`place: GeoToolbox.PlaceDescriptor` + `event`）、後者の `event` に `@AppEnum(schema: .reminders.locationTriggerEvent)`
   （`arrive` / `depart`）を要求。`locationTrigger.place` が `PlaceDescriptor` な点は本アプリの `TodoPlace` 橋渡しと相性が良い。
+  **`locationTrigger.place` は SSU バグを踏まない**（スキーマ entity の `@Property` は SSU の variable にならない。
+  2026-08-28 に最小再現プロジェクトで実測）。一時期ここをブロッカーとして記録していたが誤り。
 - **コアブロッカーは不変**: サブエンティティを揃えても、reminder スキーママクロの **生成 init が `EntityProperty<T>` 引数 +
   入れ子再帰**を要求し、モデルから組み立てる自前 init と衝突（`self.images used before being initialized`、SDK 27 の
   `@State` マクロ化と同根の初期化規約問題）。サブエンティティ追加では解消しない。
