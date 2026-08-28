@@ -162,7 +162,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `updateAppShortcutParameters()` | 候補の再取得 | ✅ | `App.init()` + `TodoService.dataDidChange()` から |
 | `shortTitle` / `systemImageName` | iOS 17 以降必須 | ✅ | 全件 |
 | `AppShortcutsProvider.shortcutTileColor` | Shortcuts タイルの色 | ✅ | 設定済み |
-| `AppShortcuts.xcstrings` | フレーズのローカライズ | ⏸ | **アプリ全体が英語のみ**（`knownRegions` は `en, Base`、4 パッケージ catalog の翻訳実体は 0 件）。フレーズだけ訳しても英語の Intent が英語で応答するので単体では成立しない。ja 対応エピック **#70** の最終工程。加えて schema 適合した Intent はフレーズも訓練も Apple 側が持つため訳す対象に入らない（wwdc2026-8011 `59:03`） |
+| `AppShortcuts.xcstrings` | フレーズのローカライズ | ✅ | ja 対応（#70）の最終工程として実施。8 キーすべて String Set で、訳ではなく発話バリエーションを並べる（全値に `${applicationName}` 必須）。schema 適合した Intent はフレーズも訓練も Apple 側が持つので対象外（wwdc2026-8011 `59:03`）。詳細: [docs/insights/04-ui-integration.md](insights/04-ui-integration.md#ja-を入れて分かった-catalog-の配置) |
 | negative phrases API | 特定フレーズに反応させない | ⏸ | 誤爆の報告がないので未着手 |
 | `SiriTipView` | アプリ内でフレーズを見せる | ✅ | `SiriTipBanner`。一覧上端に**アプリ内で 3 回目の追加をした直後だけ**出す（常設しない。macOS は SDK で unavailable） |
 | `ShortcutsLink` | Shortcuts アプリへの導線 | ✅ | `SettingsView` の「Siri & Shortcuts」（探索の導線なので一覧の一等地には置かない。macOS / watchOS は SDK に型が無い） |
@@ -250,5 +250,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 経緯: [docs/devlog/04-ui-integration.md](devlog/04-ui-integration.md)（2026-08-28 の Siri Tip / ShortcutsLink の置き場）
 
 `AppShortcuts.xcstrings` はこのリストから外した（長く 1 位に置いていたが前提が事実と違った）。
-アプリ全体が英語のみでフレーズだけ訳しても成立せず、ja 対応を通しでやる **#70** の最終工程になる。
-経緯: [docs/devlog/2026-08-28-appshortcuts-localization-reeval.md](devlog/2026-08-28-appshortcuts-localization-reeval.md)
+アプリ全体が英語のみでフレーズだけ訳しても成立しないため、ja 対応を通しでやる **#70** の
+最終工程として 2026-08-28 に実施済み。
+経緯: [2026-08-28-appshortcuts-localization-reeval.md](devlog/2026-08-28-appshortcuts-localization-reeval.md)
+（降格の判断）/ [2026-08-28-ja-localization.md](devlog/2026-08-28-ja-localization.md)（実施）

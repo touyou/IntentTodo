@@ -48,6 +48,7 @@
 - `@Observable` + `@MainActor`パターン
 - App Intents vs ViewModelの役割分担
 - SPM パッケージの UI コピーと String Catalog（`LocalizedStringResource.copy(_:)` / `Bundle.module` / 抽出の確認方法）
+- ja を入れて分かった catalog の配置（抽出はターゲット単位 / `TodoAppIntents` に catalog は不要 / `AppShortcuts.xcstrings` は String Set / pbxproj は Localization Planner に任せる）
 
 ### [05. Extension とデータ共有](insights/05-extensions-and-data-sharing.md)
 

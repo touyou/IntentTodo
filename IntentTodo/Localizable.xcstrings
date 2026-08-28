@@ -1,36 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%lld remaining" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "残り%lld件"
-          }
-        }
-      }
-    },
-    "^[%lld more todo](inflect: true)" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "ほか%lld件"
-          }
-        }
-      }
-    },
-    "^[%lld remaining todo](inflect: true)" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "残り%lld件"
-          }
-        }
-      }
-    },
     "Add Todo" : {
       "localizations" : {
         "ja" : {
@@ -51,32 +21,12 @@
         }
       }
     },
-    "All done!" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "すべて完了!"
-          }
-        }
-      }
-    },
     "Complete ${todos}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todos}を完了"
-          }
-        }
-      }
-    },
-    "Couldn't load todos" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "やることを読み込めませんでした"
           }
         }
       }
@@ -111,6 +61,16 @@
         }
       }
     },
+    "Delete Todo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることを削除"
+          }
+        }
+      }
+    },
     "Get todo summary" : {
       "localizations" : {
         "ja" : {
@@ -121,32 +81,12 @@
         }
       }
     },
-    "No todos to display" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "表示するやることはありません"
-          }
-        }
-      }
-    },
     "Open ${target}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${target}を開く"
-          }
-        }
-      }
-    },
-    "Open the app to retry." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "アプリを開いてやり直してみてください。"
           }
         }
       }
@@ -171,6 +111,26 @@
         }
       }
     },
+    "Show Todo Count" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることの件数を表示"
+          }
+        }
+      }
+    },
+    "Show Todos" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることを表示"
+          }
+        }
+      }
+    },
     "Snooze ${todo}" : {
       "localizations" : {
         "ja" : {
@@ -191,12 +151,22 @@
         }
       }
     },
-    "Todos" : {
+    "Snooze Todo" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "やること"
+            "value" : "やることをスヌーズ"
+          }
+        }
+      }
+    },
+    "Toggle Completion" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "完了を切り替え"
           }
         }
       }
@@ -211,12 +181,32 @@
         }
       }
     },
+    "Toggle Favorite" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "お気に入りを切り替え"
+          }
+        }
+      }
+    },
     "Toggle favorite of ${todo}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todo}のお気に入りを切り替え"
+          }
+        }
+      }
+    },
+    "Toggle Urgent Todo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "急ぎのやることの完了を切り替え"
           }
         }
       }

@@ -1,0 +1,210 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Add a todo in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Add a todo in ${applicationName}",
+              "Create a new todo in ${applicationName}",
+              "New todo in ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}でやることを追加",
+              "${applicationName}で新しいやることを追加",
+              "${applicationName}でやることを作成"
+            ]
+          }
+        }
+      }
+    },
+    "Complete ${todo} in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Complete ${todo} in ${applicationName}",
+              "Mark ${todo} as done in ${applicationName}",
+              "Toggle ${todo} in ${applicationName}",
+              "Toggle todo completion in ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}で${todo}を完了",
+              "${applicationName}の${todo}を完了にする",
+              "${applicationName}の${todo}の完了を切り替え",
+              "${applicationName}でやることの完了を切り替え"
+            ]
+          }
+        }
+      }
+    },
+    "Delete ${todo} in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Delete ${todo} in ${applicationName}",
+              "Remove ${todo} in ${applicationName}",
+              "Delete todo in ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}の${todo}を削除",
+              "${applicationName}から${todo}を削除",
+              "${applicationName}でやることを削除"
+            ]
+          }
+        }
+      }
+    },
+    "Show my ${filter} todos in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Show my ${filter} todos in ${applicationName}",
+              "Show ${filter} todos in ${applicationName}",
+              "Show my todos in ${applicationName}",
+              "List todos in ${applicationName}",
+              "What are my todos in ${applicationName}",
+              "Open ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}で${filter}のやることを表示",
+              "${applicationName}の${filter}のやることを見せて",
+              "${applicationName}でやることを表示",
+              "${applicationName}のやることを一覧表示",
+              "${applicationName}のやることは何",
+              "${applicationName}を開く"
+            ]
+          }
+        }
+      }
+    },
+    "Show todo count in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Show todo count in ${applicationName}",
+              "How many todos do I have in ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}でやることの件数を表示",
+              "${applicationName}のやることは何件"
+            ]
+          }
+        }
+      }
+    },
+    "Snooze ${todo} in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Snooze ${todo} in ${applicationName}",
+              "Delay ${todo} in ${applicationName}",
+              "Snooze todo in ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}の${todo}をスヌーズ",
+              "${applicationName}で${todo}をスヌーズする",
+              "${applicationName}でやることをスヌーズ"
+            ]
+          }
+        }
+      }
+    },
+    "Star ${todo} in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Star ${todo} in ${applicationName}",
+              "Favorite ${todo} in ${applicationName}",
+              "Toggle favorite in ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}の${todo}をお気に入りに追加",
+              "${applicationName}で${todo}をお気に入りにする",
+              "${applicationName}でお気に入りを切り替え"
+            ]
+          }
+        }
+      }
+    },
+    "Toggle urgent todo in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Toggle urgent todo in ${applicationName}",
+              "Complete my most urgent todo in ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "${applicationName}で急ぎのやることの完了を切り替え",
+              "${applicationName}で一番急ぎのやることを完了"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}

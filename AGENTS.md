@@ -205,7 +205,16 @@ IntentTodoWatchApp/                 # watchOS アプリ
   素のリテラルで書くと catalog に載っても実行時に引けない
 - `\(date, style: .relative)` のような `LocalizedStringKey` 専用の補間だけは
   `Text("...", bundle: .module)` 形で書く。数値だけの表示は `Text(value, format: .number)`
-- 抽出結果の確認は `xcodebuild -exportLocalizations`。詳細: `docs/insights/04-ui-integration.md`
+- `TodoAppIntents` は例外で catalog を持たない。Intent の `title` / `parameterSummary` は
+  **リンク先ターゲットそれぞれの catalog に複製抽出され、そのターゲットの main bundle から
+  引かれる**ので、`.copy(_:)` は使わず素の `LocalizedStringResource` のままにする
+- **文言を足したら 12 catalog 全部を埋める**。ソース言語は en、訳として ja が入っている
+  （`knownRegions = en, Base, ja`）。共有 Intent コピーは 6 catalog に重複して現れるので、
+  1 箇所だけ直すと呼出元によって言い回しが変わる形で壊れる（ビルドは通る）
+- 抽出結果の確認は `xcodebuild -exportLocalizations`（`-exportLanguage ja`）。
+  詳細: `docs/insights/04-ui-integration.md`
+- **`project.pbxproj` を直接編集しない**。言語追加や catalog のターゲット追加は
+  `xcode-integration:translation-coordinator` スキル経由の `LocalizationPlanner` にやらせる
 
 #### SwiftData（CloudKit使用時）
 
@@ -591,7 +600,7 @@ interface, and **not to interactions started by Siri or the Shortcuts app**."
 - [x] Todo完了/未完了の切り替え（ToggleTodoCompletionIntent）
 - [x] Todo削除（DeleteTodoIntent / DeleteTodosIntent バルク）
 - [x] お気に入り機能（ToggleFavoriteIntent）
-- [x] 緊急フラグ（ToggleUrgentTodoIntent）
+- [x] 一番急ぎの Todo を片付ける（ToggleUrgentTodoIntent — 期限が最も近い未完了 Todo の完了をトグル。urgent フラグの立て下げではない）
 - [x] スヌーズ（SnoozeTodoIntent — requestChoice でスヌーズ期間選択）
 - [x] バルク完了（CompleteTodosIntent — LongRunningIntent + CancellableIntent）
 - [x] 削除 / 完了の取り消し（UndoableIntent — TodoItemSnapshot で同じ id へ復元）
@@ -647,7 +656,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 |------|---------|
 | **適合不能 / ブロック中** | `RelevantEntities`（todo 向けの `AppEntityContext` が無い）/ `.reminders.reminder` 本体適合（SSU バグ待ち、#56） |
 | **意図的不使用** | `DynamicOptionsProvider` / `IntentParameterDependency` / `EntityPropertyQuery` / `.foreground(.dynamic)`（#55）/ UI タップ由来の donation（#53）/ `SpotlightSearchTool`（#52） |
-| **未採用候補** | `.controlWidgetStatus(_:)` / `Toggle(isOn:intent:)` / `RelevantIntent` / `AudioPlaybackIntent`（#68）。`AppShortcuts.xcstrings` は ja 対応エピック #70 の最終工程 |
+| **未採用候補** | `.controlWidgetStatus(_:)` / `Toggle(isOn:intent:)` / `RelevantIntent` / `AudioPlaybackIntent`（#68） |
 
 #### watchOS では assistant schema が使えない（フォールバックが必要）
 
@@ -730,7 +739,7 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/presentation/` - 登壇・発表用のスライド骨子と想定スクリプト（① WWDC 時系列での基本説明 / ② 実践で見えた制約と工夫）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
 - **GitHub issues** - これからやること。#30 実機検証チェックリスト / #56 reminder 本体スキーマの再評価 /
-  #57 GM SDK 到来時の棚卸し / #67 登壇準備 / #68 未採用 API の消化 / #70 多言語化（ja）
+  #57 GM SDK 到来時の棚卸し / #67 登壇準備 / #68 未採用 API の消化
 - `~/Developer/Private/wwdc26-app-intents-samples/` - WWDC26 App Intents 公式サンプル 4 本（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）。**リポジトリ外に置く**（`docs/` 配下だと Xcode がサンプルの `.xcodeproj` を `project.pbxproj` へ書き込む）。取得元と突き合わせ結果は `docs/insights/03-app-intents-core.md` の Phase 9
 
 ## 設計思想の背景

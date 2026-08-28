@@ -131,6 +131,13 @@
 			);
 			target = 46AFBEDE2F2D6D9C00444306 /* IntentTodoLiveActivityExtension */;
 		};
+		46D3924F304114F400291ED6 /* Exceptions for "IntentTodoWatchApp" folder in "IntentTodoWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Localizable.xcstrings,
+			);
+			target = 46AFBEBD2F2CFEA400444306 /* IntentTodoWidgetExtension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -167,6 +174,9 @@
 		};
 		46229C9A2FF88D610043E4FD /* IntentTodoWatchApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				46D3924F304114F400291ED6 /* Exceptions for "IntentTodoWatchApp" folder in "IntentTodoWidgetExtension" target */,
+			);
 			path = IntentTodoWatchApp;
 			sourceTree = "<group>";
 		};
@@ -481,6 +491,7 @@
 			knownRegions = (
 				en,
 				Base,
+				ja,
 			);
 			mainGroup = 46AFBC302F2BA68C00444306;
 			minimizedProjectReferenceProxies = 1;
