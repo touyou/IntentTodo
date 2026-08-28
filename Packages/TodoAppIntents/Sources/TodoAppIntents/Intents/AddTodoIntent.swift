@@ -71,7 +71,7 @@ public struct AddTodoIntent: AppIntent {
     /// `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、ドットが
     /// 正規表現 `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちて `Metadata.appintents/nlu/` が
     /// 丸ごと生成されなくなる（ローカルは exit 0、Xcode Cloud は失敗扱い）。この Intent は
-    /// `TodoAppShortcuts` に登録済みなので該当する。SDK バグ、Apple 報告済み（#57）。
+    /// `TodoAppShortcuts` に登録済みなので該当する。SDK バグ、Apple 報告済み（FB24548956 / #57）。
     /// 場所名を String で受け、緯度経度と合わせて `TodoPlace` が `PlaceDescriptor` を組み直す。
     /// 詳細: docs/insights/03-app-intents-core.md
     /// 経緯: docs/devlog/2026-08-28-ssu-system-value-type-bug.md

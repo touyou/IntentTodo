@@ -91,14 +91,16 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
 
     /// Associated location name.
     ///
-    /// `AddTodoIntent.location`（`@Parameter`）と型を揃えている。
+    /// App Intents ネイティブの `PlaceDescriptor`（GeoToolbox）で持つ。モデル側は CloudKit 互換の
+    /// primitive（名前 + 緯度経度）なので `TodoPlace` が相互変換する。
     ///
-    /// SSU バグが発火するのは App Shortcut 登録済み Intent の `@Parameter` だけで、entity の
-    /// `@Property` は SSU の variable にならないため、**ここは `PlaceDescriptor?` に戻せる可能性がある**
-    /// （未実測。判断は #57）。`PlaceDescriptor` としての提供は下の `ValueRepresentation` が担っている。
+    /// SSU training バグ（FB24548956）が発火するのは **App Shortcut に登録した Intent の
+    /// `@Parameter`** だけで、entity の `@Property` は SSU の variable にならないため、ここは
+    /// ネイティブ型のままで問題ない（`AddTodoIntent.location` は `String` 退避のまま）。
+    /// 詳細: docs/insights/03-app-intents-core.md
     /// 経緯: docs/devlog/2026-08-28-ssu-system-value-type-bug.md
     @Property(title: "Location")
-    public var location: String?
+    public var location: PlaceDescriptor?
 
     // MARK: - Derived Properties (WWDC 2026 property macros)
 
@@ -235,7 +237,11 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         self.category = todoItem.category.map(CategoryAppEntity.init(from:))
         self.estimatedDuration = todoItem.estimatedDuration.map { Duration.seconds($0) }
         self.assigneeName = todoItem.assigneeName
-        self.location = todoItem.locationName
+        self.location = TodoPlace.descriptor(
+            name: todoItem.locationName,
+            latitude: todoItem.locationLatitude,
+            longitude: todoItem.locationLongitude
+        )
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -251,7 +257,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         category: CategoryAppEntity? = nil,
         estimatedDuration: Duration? = nil,
         assigneeName: String? = nil,
-        location: String? = nil
+        location: PlaceDescriptor? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -326,13 +332,7 @@ extension TodoAppEntity: Transferable {
 
         // swiftlint:disable:next trailing_closure
         ValueRepresentation(exporting: { (todo: TodoAppEntity) -> PlaceDescriptor in
-            // `location` は SSU バグ回避のため String（場所名）に退避している。
-            // Transferable 経由の export はここで `PlaceDescriptor` に復元して従来どおり提供する。
-            guard let descriptor = TodoPlace.descriptor(
-                name: todo.location,
-                latitude: nil,
-                longitude: nil
-            ) else {
+            guard let descriptor = todo.location else {
                 throw IntentError.notFound("Todo has no location to export")
             }
             return descriptor
