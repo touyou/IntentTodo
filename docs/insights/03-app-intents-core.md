@@ -511,6 +511,79 @@ public final class TodoService {
 
 ---
 
+## Intent のコピーはどこから引かれるか
+
+Intent が共有パッケージ（`TodoAppIntents`）にあるとき、**文言の抽出と解決は別の話**で、
+どちらも直感と違う。ここを取り違えると「ビルドは緑、ソース言語では正常、訳した言語だけ
+英語のまま」という形で壊れる。
+
+### 解決先はリンク先ターゲットの main bundle。これは強制されている
+
+メタデータ（`Metadata.appintents/extract.actionsdata`）は文言を `{"key": "Add Todo"}` の形で
+**キーだけ**持ち、bundle も table も記録しない。実際にコンパイラが非 main bundle を弾く:
+
+```swift
+// ❌ コンパイルエラー: AppIntents requires 'LocalizedStringResource' to use the main bundle
+public static var title: LocalizedStringResource {
+    LocalizedStringResource("Complete Todos", bundle: .atURL(Bundle.module.bundleURL))
+}
+```
+
+つまり **UI パッケージの `.copy(_:)` パターンは Intent には使えない**。`title` /
+`IntentDescription` / `@Parameter` / `DisplayRepresentation` の訳は、リンク先ターゲット
+（アプリ / 各 Extension / watch アプリ）の `Localizable.xcstrings` に置く。
+
+### 自動で抽出されるのは `parameterSummary` だけ
+
+`TodoAppIntents` は `defaultLocalization` も resources も持たないので、**このモジュールでは
+文字列抽出そのものが走っていない**（`TodoAppIntents.build/**/Objects-normal/*.stringsdata` が
+1 つも出ない）。catalog に載っている Intent 系のキーの出どころは 2 つだけ:
+
+| 出どころ | 中身 |
+|---|---|
+| `appshortcutstringsprocessor` | 全 Intent の `parameterSummary` フォーマット文字列（+ `AppShortcuts` テーブルのフレーズ） |
+| アプリターゲットの Swift 抽出 | `TodoAppShortcuts.swift` に直書きした `shortTitle` |
+
+`title` が ja になっている Intent があるのは、**同じ文字列を `shortTitle` にも書いていた偶然**。
+`title` / `IntentDescription` / `@Parameter(title:/description:)` / `categoryName` /
+`searchKeywords` / entity・enum の `DisplayRepresentation` / `IntentDialog` はどこにも載らない。
+
+### だから手動キーで持ち、スクリプトで漏れを見る
+
+各ターゲットの catalog に `extractionState: "manual"` で入れる。コンパイラの後ろ盾が無いので、
+**メタデータと catalog の突き合わせをスクリプトでやる**:
+
+```
+python3 skills/intent-centric-architecture/scripts/check_intent_copy_localization.py
+```
+
+Intent コピーを持つ 4 ターゲット（アプリ / watch アプリ / LiveActivity / Widget）を一度に見る。
+Widget は自前の catalog を持たず watch アプリのものを共有している点に注意。
+
+副作用: 大文字小文字だけ違うキー（`todo` と `Todo`、`category` と `Category`）が同じ catalog に
+同居するため、シンボル生成が衝突する。4 ターゲットとも
+`STRING_CATALOG_GENERATE_SYMBOLS = NO`（生成シンボルはどこからも使っていない）。
+
+### `IntentDialog` の中で英語の屈折を Swift で組み立てない
+
+```swift
+// ❌ "s" / "is" / "are" は catalog に載らないまま %@ に差し込まれ、訳文に英語が残る
+let noun = count == 1 ? "todo" : "todos"
+IntentDialog(full: "You have no \(categoryLabel)s.")
+
+// ✅ 単複は訳文側に持たせる / inflect に任せる
+let noun = String(localized: count == 1 ? "todo" : "todos")
+IntentDialog(full: "You have ^[\(pending) pending todo](inflect: true).")
+```
+
+`IntentDialog` は `perform()` の中で作るのでメタデータには現れず、上のスクリプトでも
+見えない。棚卸しが必要なときは `TodoAppIntents` に一時的に `defaultLocalization` +
+`Resources/Localizable.xcstrings` を足してビルドし、Xcode が抽出したキーを読む（読んだら戻す）。
+
+経緯: [docs/devlog/2026-08-28-intent-copy-localization.md](../devlog/2026-08-28-intent-copy-localization.md)
+
+---
+
 ## Intent 統合のベストプラクティス
 
 ### 重複Intentの検出と統合

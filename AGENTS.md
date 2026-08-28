@@ -205,9 +205,21 @@ IntentTodoWatchApp/                 # watchOS アプリ
   素のリテラルで書くと catalog に載っても実行時に引けない
 - `\(date, style: .relative)` のような `LocalizedStringKey` 専用の補間だけは
   `Text("...", bundle: .module)` 形で書く。数値だけの表示は `Text(value, format: .number)`
-- `TodoAppIntents` は例外で catalog を持たない。Intent の `title` / `parameterSummary` は
-  **リンク先ターゲットそれぞれの catalog に複製抽出され、そのターゲットの main bundle から
-  引かれる**ので、`.copy(_:)` は使わず素の `LocalizedStringResource` のままにする
+- `TodoAppIntents` は catalog を持たない（**持たせても引かれない**）。Intent のコピーは
+  リンク先ターゲットの **main bundle** から引かれる。非 main bundle を指定すると
+  `AppIntents requires 'LocalizedStringResource' to use the main bundle` でコンパイルエラーになる
+  ので、`.copy(_:)` は使わず素の `LocalizedStringResource` のままにする
+- **ただし自動抽出されるのは `parameterSummary` だけ**（AppShortcuts の抽出器が全ターゲットの
+  catalog に吐く）。`title` / `IntentDescription` / `@Parameter(title:/description:)` /
+  `DisplayRepresentation` / `searchKeywords` / `IntentDialog` は**どの catalog にも載らない**。
+  これらは各ターゲットの `Localizable.xcstrings` に**手動キー**（`extractionState: manual`）として
+  持つ。漏れは `skills/intent-centric-architecture/scripts/check_intent_copy_localization.py`
+  が検出する（ビルドは緑のまま、ソース言語でも正常に見えるので他では捕まらない）
+- 大文字小文字だけ違うキー（`todo` / `Todo`）が同じ catalog に同居するため、Intent コピーを
+  持つ 4 ターゲットは `STRING_CATALOG_GENERATE_SYMBOLS = NO`（生成シンボルは未使用）
+- **`IntentDialog` の中で英語の屈折を Swift で組み立てない**。`"\(noun)s"` や
+  `count == 1 ? "is" : "are"` で継ぎ足した断片は catalog に載らないまま `%@` に差し込まれ、
+  訳文の中に英語が残る。単複は訳文側に持たせるか `^[...](inflect: true)` に任せる
 - **文言を足したら 12 catalog 全部を埋める**。ソース言語は en、訳として ja が入っている
   （`knownRegions = en, Base, ja`）。共有 Intent コピーは 6 catalog に重複して現れるので、
   1 箇所だけ直すと呼出元によって言い回しが変わる形で壊れる（ビルドは通る）
