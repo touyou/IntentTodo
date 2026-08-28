@@ -535,22 +535,27 @@ xcodebuild -exportLocalizations -project IntentTodo.xcodeproj -scheme IntentTodo
 ソース言語は **en のまま**、`ja` を訳として足す構成（`knownRegions = en, Base, ja`）。
 catalog は 12 本あり、**どのターゲットに何が入るかは「誰がその文言をリンクしているか」で決まる**。
 
-### 抽出はターゲット単位。共有パッケージの文言は全ターゲットに複製される
+### 抽出はターゲット単位。ただし Intent コピーは `parameterSummary` しか自動で載らない
 
-`TodoAppIntents` は 7 ターゲットにリンクされているので、Intent の `title` /
-`parameterSummary` は**リンク先ターゲットそれぞれの catalog に同じキーで入る**。
-`Add todo titled ${title}` のような 14 キーは 6 catalog に重複して現れる。
+`parameterSummary` は AppShortcuts の抽出器が**リンク先ターゲットそれぞれの catalog に同じキーで**
+吐く。`Add todo titled ${title}` のような 14 キーは 7 catalog に重複して現れる。
 
 **重複しているコピーは全部同じ訳にする**。1 箇所だけ直すと、呼出元によって言い回しが変わる
 という形で壊れる（ビルドは通る）。訳を変えるときは全 catalog を横断して直す。
 
-### `TodoAppIntents` に catalog は不要（`.copy(_:)` の対象外）
+一方 `title` / `IntentDescription` / `@Parameter(title:/description:)` /
+`DisplayRepresentation` / `searchKeywords` / `IntentDialog` は**どこにも抽出されない**ので、
+各ターゲットの catalog に手動キーとして持つ。仕組みと落とし穴:
+[03-app-intents-core.md](03-app-intents-core.md#intent-のコピーはどこから引かれるか)
 
-`TodoAppIntents` は自前の catalog を持たない。実行時は**リンク先ターゲットの main bundle** から
-引かれるので、パッケージ側に受け皿を置く必要が無い。ビルド成果物で確認できる:
+### `TodoAppIntents` に catalog を置いても引かれない（`.copy(_:)` の対象外）
+
+Intent コピーは**リンク先ターゲットの main bundle** から引かれる。パッケージに catalog を
+置くと Xcode は抽出してくれるが、実行時には参照されない（`bundle:` を明示しようとすると
+コンパイルエラーになる）。ビルド成果物で確認できる:
 
 ```
-IntentTodo.app/ja.lproj/Localizable.strings              Intent の title / parameterSummary
+IntentTodo.app/ja.lproj/Localizable.strings              Intent のコピー（手動キー + parameterSummary）
 IntentTodo.app/ja.lproj/AppShortcuts.strings             Siri フレーズ（String Set）
 IntentTodo.app/ja.lproj/nlu.appintents                   ja の NLU 学習データ
 IntentTodo.app/ja.lproj/InfoPlist.strings                CFBundleDisplayName 等

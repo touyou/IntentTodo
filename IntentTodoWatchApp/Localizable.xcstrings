@@ -1,12 +1,194 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@" : {
+      "extractionState" : "manual",
+      "shouldTranslate" : false
+    },
+    "%@ category" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@件のカテゴリ"
+          }
+        }
+      }
+    },
+    "%@ list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@件のリスト"
+          }
+        }
+      }
+    },
+    "%@ step" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@件のステップ"
+          }
+        }
+      }
+    },
+    "%@ subtask" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@件のサブタスク"
+          }
+        }
+      }
+    },
+    "%@ task" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@件のタスク"
+          }
+        }
+      }
+    },
+    "%@ todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@件のやること"
+          }
+        }
+      }
+    },
     "%lld" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "%lld"
+          }
+        }
+      }
+    },
+    "%lld incomplete %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未完了の%2$@が%1$lld件。"
+          }
+        }
+      }
+    },
+    "%lld overdue · %lld completed · %lld total" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "期限切れ%1$lld件 · 完了済み%2$lld件 · 合計%3$lld件"
+          }
+        }
+      }
+    },
+    "%lld pending" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未処理%lld件"
+          }
+        }
+      }
+    },
+    "%lld pending, %lld overdue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未処理%1$lld件、期限切れ%2$lld件。"
+          }
+        }
+      }
+    },
+    "%lld subtasks" : {
+      "comment" : "Number of subtasks",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld件のサブタスク"
+          }
+        }
+      }
+    },
+    "%lld todos" : {
+      "comment" : "Number of todos",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld件のやること"
+          }
+        }
+      }
+    },
+    "1 day" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1日"
+          }
+        }
+      }
+    },
+    "1 hour" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1時間"
+          }
+        }
+      }
+    },
+    "30 minutes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "30分"
+          }
+        }
+      }
+    },
+    "Add Favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入りに追加"
           }
         }
       }
@@ -31,12 +213,89 @@
         }
       }
     },
+    "Added \"%@\"." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%@」を追加しました。"
+          }
+        }
+      }
+    },
     "All" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "すべて"
+          }
+        }
+      }
+    },
+    "All caught up" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "すべて片付きました"
+          }
+        }
+      }
+    },
+    "All done." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "すべて完了です。"
+          }
+        }
+      }
+    },
+    "App Screen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "アプリの画面"
+          }
+        }
+      }
+    },
+    "Assignee" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "担当者"
+          }
+        }
+      }
+    },
+    "Categories" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カテゴリ"
+          }
+        }
+      }
+    },
+    "Category" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カテゴリ"
           }
         }
       }
@@ -61,22 +320,23 @@
         }
       }
     },
+    "Choose which todos to show while this Focus is on" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "この集中モード中に表示するやることを選びます"
+          }
+        }
+      }
+    },
     "Complete ${todos}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todos}を完了"
-          }
-        }
-      }
-    },
-    "Complete or reopen a todo you choose." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "選んだやることを完了したり、未完了に戻したりできます。"
           }
         }
       }
@@ -91,6 +351,27 @@
         }
       }
     },
+    "Complete Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることをまとめて完了"
+          }
+        }
+      }
+    },
+    "Complete or reopen a todo you choose." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "選んだやることを完了したり、未完了に戻したりできます。"
+          }
+        }
+      }
+    },
     "Completed" : {
       "localizations" : {
         "ja" : {
@@ -101,12 +382,67 @@
         }
       }
     },
+    "Completed %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%@」を完了しました。"
+          }
+        }
+      }
+    },
+    "Completed Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了済みのやること"
+          }
+        }
+      }
+    },
+    "Completed ^[%lld todo](inflect: true)." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld件のやることを完了しました。"
+          }
+        }
+      }
+    },
     "Configure your todo widget" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることウィジェットを設定"
+          }
+        }
+      }
+    },
+    "Couldn't read your todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを読み込めませんでした"
+          }
+        }
+      }
+    },
+    "Creates a new todo item" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新しいやることを作成します"
           }
         }
       }
@@ -141,12 +477,188 @@
         }
       }
     },
+    "Delete %lld todos?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld件のやることを削除しますか？"
+          }
+        }
+      }
+    },
+    "Delete Todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを削除"
+          }
+        }
+      }
+    },
+    "Delete Todo Immediately" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることをすぐに削除"
+          }
+        }
+      }
+    },
+    "Delete Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることをまとめて削除"
+          }
+        }
+      }
+    },
+    "Delete ^[%lld Todo](inflect: true)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld件のやることを削除"
+          }
+        }
+      }
+    },
+    "Delete “%@”?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%@」を削除しますか？"
+          }
+        }
+      }
+    },
+    "Deletes a todo item" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを削除します"
+          }
+        }
+      }
+    },
+    "Deletes a todo without asking for confirmation." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "確認せずにやることを削除します。"
+          }
+        }
+      }
+    },
+    "Deletes one or more todo items" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1つ以上のやることを削除します"
+          }
+        }
+      }
+    },
+    "Description" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "説明"
+          }
+        }
+      }
+    },
+    "Due Date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "期限"
+          }
+        }
+      }
+    },
     "Due Today" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "今日期限"
+          }
+        }
+      }
+    },
+    "Due: %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "期限: %@"
+          }
+        }
+      }
+    },
+    "Estimated Duration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "所要時間（目安）"
+          }
+        }
+      }
+    },
+    "Estimated time to complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了までにかかる見込み時間"
+          }
+        }
+      }
+    },
+    "Favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入り"
+          }
+        }
+      }
+    },
+    "Favorite Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入りのやること"
           }
         }
       }
@@ -171,12 +683,133 @@
         }
       }
     },
+    "Filter %@" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@で絞り込む"
+          }
+        }
+      }
+    },
+    "Filter Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを絞り込む"
+          }
+        }
+      }
+    },
+    "Finds the lists (categories) todos are organized into." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを分類しているリスト（カテゴリ）を探します。"
+          }
+        }
+      }
+    },
+    "Finds todos and categories matching a search term" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "検索語に一致するやることとカテゴリを探します"
+          }
+        }
+      }
+    },
+    "Finds todos and filters them by the conditions you specify." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを探し、指定した条件で絞り込みます。"
+          }
+        }
+      }
+    },
+    "Get Todo Summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの概要を取得"
+          }
+        }
+      }
+    },
     "Get todo summary" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることの概要を取得"
+          }
+        }
+      }
+    },
+    "Gets a summary of your todo list, including pending, completed, overdue, and favorite counts." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未処理・完了済み・期限切れ・お気に入りの件数を含む、やることリストの概要を取得します。"
+          }
+        }
+      }
+    },
+    "Here are your %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@はこちらです。"
+          }
+        }
+      }
+    },
+    "Here is your %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@はこちらです。"
+          }
+        }
+      }
+    },
+    "Hidden" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "非表示"
+          }
+        }
+      }
+    },
+    "Hide Completed Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了済みのやることを隠す"
           }
         }
       }
@@ -191,12 +824,221 @@
         }
       }
     },
+    "Incomplete Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未完了のやること"
+          }
+        }
+      }
+    },
+    "Is Overdue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "期限切れ"
+          }
+        }
+      }
+    },
+    "List" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リスト"
+          }
+        }
+      }
+    },
+    "List Type" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストの種類"
+          }
+        }
+      }
+    },
+    "Location" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "場所"
+          }
+        }
+      }
+    },
+    "Mark Complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了にする"
+          }
+        }
+      }
+    },
+    "Mark Incomplete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未完了にする"
+          }
+        }
+      }
+    },
+    "Mark Todo Incomplete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを未完了にする"
+          }
+        }
+      }
+    },
+    "Mark as Favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入り"
+          }
+        }
+      }
+    },
+    "Marks a specific todo as completed or incomplete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "指定したやることを完了または未完了にします"
+          }
+        }
+      }
+    },
+    "Marks a todo as completed or incomplete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを完了または未完了にします"
+          }
+        }
+      }
+    },
+    "Marks a todo as favorite or removes from favorites" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることをお気に入りに追加、または解除します"
+          }
+        }
+      }
+    },
+    "Marks multiple todos as completed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "複数のやることを完了にします"
+          }
+        }
+      }
+    },
+    "Name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "名前"
+          }
+        }
+      }
+    },
     "New Todo" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "新規やること"
+          }
+        }
+      }
+    },
+    "No %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@はありません。"
+          }
+        }
+      }
+    },
+    "No filtering" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "絞り込みなし"
+          }
+        }
+      }
+    },
+    "No subtasks" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サブタスクなし"
+          }
+        }
+      }
+    },
+    "Nothing due." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "期限のあるやることはありません。"
+          }
+        }
+      }
+    },
+    "Only Urgent Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "急ぎのやることのみ"
           }
         }
       }
@@ -211,6 +1053,204 @@
         }
       }
     },
+    "Open Category" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カテゴリを開く"
+          }
+        }
+      }
+    },
+    "Open Incomplete Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未完了のやることを開く"
+          }
+        }
+      }
+    },
+    "Open Todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを開く"
+          }
+        }
+      }
+    },
+    "Open Todo App" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "アプリを開く"
+          }
+        }
+      }
+    },
+    "Opens the Todo app to a specific screen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "指定した画面でアプリを開きます"
+          }
+        }
+      }
+    },
+    "Opens the app for a specific category" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "指定したカテゴリでアプリを開きます"
+          }
+        }
+      }
+    },
+    "Opens the app to a specific todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "指定したやることでアプリを開きます"
+          }
+        }
+      }
+    },
+    "Optional description for the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの説明（任意）"
+          }
+        }
+      }
+    },
+    "Optional due date for the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの期限（任意）"
+          }
+        }
+      }
+    },
+    "Ordered Todo IDs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "並べ替え後のやることID"
+          }
+        }
+      }
+    },
+    "Overdue Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "期限切れのやること"
+          }
+        }
+      }
+    },
+    "Pending Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未処理のやること"
+          }
+        }
+      }
+    },
+    "Person responsible for the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの担当者"
+          }
+        }
+      }
+    },
+    "Place associated with the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることに関連する場所"
+          }
+        }
+      }
+    },
+    "Pushes back the due date by a duration you choose" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "選んだ長さだけ期限を先送りします"
+          }
+        }
+      }
+    },
+    "Pushes back the due date by the default interval without asking" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "確認せずに既定の長さだけ期限を先送りします"
+          }
+        }
+      }
+    },
+    "Query" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "検索語"
+          }
+        }
+      }
+    },
+    "Quick Snooze Todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることをすぐスヌーズ"
+          }
+        }
+      }
+    },
     "Quickly add a new todo." : {
       "localizations" : {
         "ja" : {
@@ -221,12 +1261,56 @@
         }
       }
     },
+    "Remove Favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入りから削除"
+          }
+        }
+      }
+    },
     "Reopen Todo" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることを未完了に戻す"
+          }
+        }
+      }
+    },
+    "Reopened %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%@」を未完了に戻しました。"
+          }
+        }
+      }
+    },
+    "Reorder Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを並べ替え"
+          }
+        }
+      }
+    },
+    "Search Todos and Categories" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることとカテゴリを検索"
           }
         }
       }
@@ -251,6 +1335,17 @@
         }
       }
     },
+    "Set Todo Completion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの完了状態を設定"
+          }
+        }
+      }
+    },
     "Show ${filter} todos" : {
       "localizations" : {
         "ja" : {
@@ -261,12 +1356,56 @@
         }
       }
     },
+    "Show All Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "すべてのやることを表示"
+          }
+        }
+      }
+    },
     "Show Incomplete Todos" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "未完了のやることを表示"
+          }
+        }
+      }
+    },
+    "Show Todo Count" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの件数を表示"
+          }
+        }
+      }
+    },
+    "Show Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを表示"
+          }
+        }
+      }
+    },
+    "Shows how many todos are still incomplete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未完了のやることが何件あるかを表示します"
           }
         }
       }
@@ -293,6 +1432,17 @@
         }
       }
     },
+    "Shows your todo items" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを表示します"
+          }
+        }
+      }
+    },
     "Snooze ${todo}" : {
       "localizations" : {
         "ja" : {
@@ -309,6 +1459,216 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todo}を30分スヌーズ"
+          }
+        }
+      }
+    },
+    "Snooze Todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることをスヌーズ"
+          }
+        }
+      }
+    },
+    "Snooze “%@” for how long?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%@」をどのくらいスヌーズしますか？"
+          }
+        }
+      }
+    },
+    "Snoozed “%@” by %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%1$@」を%2$@スヌーズしました。"
+          }
+        }
+      }
+    },
+    "Standard" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "標準"
+          }
+        }
+      }
+    },
+    "Subtask" : {
+      "comment" : "Subtask type name",
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サブタスク"
+          }
+        }
+      }
+    },
+    "Subtask Progress" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "サブタスクの進捗"
+          }
+        }
+      }
+    },
+    "Target" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "移動先"
+          }
+        }
+      }
+    },
+    "Text to match against todo and category names" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やること名とカテゴリ名に照合する文字列"
+          }
+        }
+      }
+    },
+    "The category to open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "開くカテゴリ"
+          }
+        }
+      }
+    },
+    "The title of the new todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新しいやることのタイトル"
+          }
+        }
+      }
+    },
+    "The todo to delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "削除するやること"
+          }
+        }
+      }
+    },
+    "The todo to open" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "開くやること"
+          }
+        }
+      }
+    },
+    "The todo to snooze" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "スヌーズするやること"
+          }
+        }
+      }
+    },
+    "The todo to toggle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "切り替えるやること"
+          }
+        }
+      }
+    },
+    "The todo to toggle favorite status" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入りを切り替えるやること"
+          }
+        }
+      }
+    },
+    "The todo to update" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "更新するやること"
+          }
+        }
+      }
+    },
+    "The todos to complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了にするやること"
+          }
+        }
+      }
+    },
+    "The todos to delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "削除するやること"
+          }
+        }
+      }
+    },
+    "Title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タイトル"
           }
         }
       }
@@ -343,12 +1703,56 @@
         }
       }
     },
+    "Todo ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることID"
+          }
+        }
+      }
+    },
     "Todo List" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることリスト"
+          }
+        }
+      }
+    },
+    "Todo List Summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることリストの概要"
+          }
+        }
+      }
+    },
+    "Todo Snippet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることのスニペット"
+          }
+        }
+      }
+    },
+    "Todo Summary Snippet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの概要スニペット"
           }
         }
       }
@@ -363,12 +1767,56 @@
         }
       }
     },
+    "Todo not found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることが見つかりません"
+          }
+        }
+      }
+    },
     "Todos" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やること"
+          }
+        }
+      }
+    },
+    "Toggle Favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入りを切り替え"
+          }
+        }
+      }
+    },
+    "Toggle Todo Completion" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの完了を切り替え"
+          }
+        }
+      }
+    },
+    "Toggle Urgent Todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "急ぎのやることの完了を切り替え"
           }
         }
       }
@@ -393,6 +1841,28 @@
         }
       }
     },
+    "Toggles completion of the most urgent todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "期限が最も近いやることの完了を切り替えます"
+          }
+        }
+      }
+    },
+    "Total Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やること合計"
+          }
+        }
+      }
+    },
     "Track your incomplete todos." : {
       "localizations" : {
         "ja" : {
@@ -413,12 +1883,485 @@
         }
       }
     },
+    "Update Todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを更新"
+          }
+        }
+      }
+    },
+    "Updates a todo's title, description, due date, favorite flag, estimated duration, or assignee. Fields you leave blank are kept as-is." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることのタイトル・説明・期限・お気に入り・所要時間（目安）・担当者を更新します。空欄にした項目はそのまま残ります。"
+          }
+        }
+      }
+    },
+    "Urgency" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "急ぎ度"
+          }
+        }
+      }
+    },
+    "Urgent only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "急ぎのみ"
+          }
+        }
+      }
+    },
     "View your todos at a glance." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることをひと目で確認できます。"
+          }
+        }
+      }
+    },
+    "Whether to mark as favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入りにするかどうか"
+          }
+        }
+      }
+    },
+    "You have %lld %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%2$@が%1$lld件あります。"
+          }
+        }
+      }
+    },
+    "You have %lld incomplete %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未完了の%2$@が%1$lld件あります。"
+          }
+        }
+      }
+    },
+    "You have ^[%lld pending todo](inflect: true), including ^[%lld overdue](inflect: true)." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未処理のやることが%1$lld件あり、うち%2$lld件が期限切れです。"
+          }
+        }
+      }
+    },
+    "You have no %@." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@はありません。"
+          }
+        }
+      }
+    },
+    "You have no todos with a due date left to do." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "期限のある未完了のやることはありません。"
+          }
+        }
+      }
+    },
+    "You've completed every todo." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることはすべて完了しています。"
+          }
+        }
+      }
+    },
+    "^[%lld pending todo](inflect: true), %lld overdue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未処理%1$lld件、期限切れ%2$lld件"
+          }
+        }
+      }
+    },
+    "^[%lld todo](inflect: true) total (%lld done, %lld starred)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "合計%1$lld件（完了%2$lld件、お気に入り%3$lld件）"
+          }
+        }
+      }
+    },
+    "add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "追加"
+          }
+        }
+      }
+    },
+    "bulk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "まとめて"
+          }
+        }
+      }
+    },
+    "category" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カテゴリ"
+          }
+        }
+      }
+    },
+    "change" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "変更"
+          }
+        }
+      }
+    },
+    "check" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "チェック"
+          }
+        }
+      }
+    },
+    "clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "消す"
+          }
+        }
+      }
+    },
+    "complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了"
+          }
+        }
+      }
+    },
+    "create" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "作成"
+          }
+        }
+      }
+    },
+    "delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "削除"
+          }
+        }
+      }
+    },
+    "done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "済み"
+          }
+        }
+      }
+    },
+    "edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "編集"
+          }
+        }
+      }
+    },
+    "favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入り"
+          }
+        }
+      }
+    },
+    "filter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "絞り込み"
+          }
+        }
+      }
+    },
+    "find" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "探す"
+          }
+        }
+      }
+    },
+    "finish" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "終わらせる"
+          }
+        }
+      }
+    },
+    "important" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重要"
+          }
+        }
+      }
+    },
+    "list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リスト"
+          }
+        }
+      }
+    },
+    "lookup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "調べる"
+          }
+        }
+      }
+    },
+    "modify" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "修正"
+          }
+        }
+      }
+    },
+    "new" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新規"
+          }
+        }
+      }
+    },
+    "priority" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "優先"
+          }
+        }
+      }
+    },
+    "remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "削除"
+          }
+        }
+      }
+    },
+    "search" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "検索"
+          }
+        }
+      }
+    },
+    "star" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "スター"
+          }
+        }
+      }
+    },
+    "task" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タスク"
+          }
+        }
+      }
+    },
+    "todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やること"
+          }
+        }
+      }
+    },
+    "todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やること"
+          }
+        }
+      }
+    },
+    "toggle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "切り替え"
+          }
+        }
+      }
+    },
+    "trash" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "捨てる"
+          }
+        }
+      }
+    },
+    "update" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "更新"
           }
         }
       }

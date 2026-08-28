@@ -35,6 +35,7 @@
 - DI パターン（`@Dependency` + `AppDependencyManager`）
 - AppEntity / IndexedEntity / EntityQuery
 - App Shortcuts（`AppShortcutsProvider`、フレーズのパラメータ型制限）
+- Intent のコピーはどこから引かれるか（main bundle 強制 / 自動抽出は `parameterSummary` だけ）
 - Intent統合のベストプラクティス
 - AppEnum
 - WWDC26 公式サンプル 4 本との突き合わせ（Phase 9）: 表示表現とローカライズ、Siri が読む subtitle、donation の置き場所、Spotlight 属性の二重書き、onscreen annotation の適用先
