@@ -100,14 +100,52 @@ beta 5 から変わっていない（要求プロパティの検証は後段の�
 `TargetContentProvidingIntent` / `onAppIntentExecution` の `@available(macOS, unavailable)` /
 `@available(watchOS, unavailable)` も beta 6 のまま（`_AppIntents_SwiftUI` の swiftinterface で確認）。
 
-## 5. 回帰確認
+## 5. visionOS では Spotlight index が使える（唯一のコード変更）
+
+制約を 1 つずつ SDK で確かめる過程で、`@Property(indexingKey:)` を
+`#if os(iOS) || os(macOS)` で囲っている前提が beta 6 の SDK と合っていないことに気づいた。
+
+| シンボル | availability |
+|---|---|
+| `EntityProperty.init(title:indexingKey:)` | `macOS 15.4, iOS 18.4, watchOS 11.4, tvOS 18.4, visionOS 2.4` + `@available(watchOS, unavailable)` `@available(tvOS, unavailable)` |
+| `IndexedEntity` | `macOS 15.0, iOS 18.0, visionOS 2.0` |
+| `CSSearchableIndex.indexAppEntities(_:priority:)` | 同上（visionOS SDK の swiftinterface にも居る） |
+| `IndexedEntityQuery` | `macOS 27.0, iOS 27.0, visionOS 27.0` |
+
+つまり beta 6 で **unavailable なのは watchOS / tvOS だけ**。`CoreSpotlight.framework` も
+visionOS SDK にある。
+
+これまでの記録は「`indexingKey:` オーバーロードは iOS / macOS でしか vend されない。visionOS / watchOS では
+`Extra argument 'indexingKey'` + `Cannot infer key path type` でビルド失敗する」（`docs/insights/03-app-intents-core.md`）
+だった。**どの beta で測ったかを書いていなかった**ため、
+
+- Apple が途中の beta で visionOS を available にした
+- 当時の切り分けが誤っていた（watchOS で落ちたのを visionOS にも広げて書いた）
+
+のどちらなのかは今から判別できない。**今後 availability を記録するときは、落ちた面・試した面・
+測った SDK を書き分ける**（この教訓は AGENTS.md 側ではなくここに残す）。
+
+`#if os(iOS) || os(macOS)` を `|| os(visionOS)` へ広げた（4 ファイル + テスト 1 ファイル）:
+
+- `TodoAppEntity`（`indexingKey` の分岐 / `IndexedEntity` 準拠）
+- `TodoSpotlightIndex` / `TodoService+Spotlight` / `TodoEntityQuery`（`IndexedEntityQuery`）
+
+確認:
+
+- visionOS シミュレータ（Apple Vision Pro / visionOS 27.0）で `** BUILD SUCCEEDED **`
+- visionOS の出荷メタデータで `TodoAppEntity` に **`com.apple.appintents.entity.Indexed`** が付き、
+  `contentDescription`（`indexingKey` のマップ先）も入っている（`inspect_appintents_metadata.py`）
+- iOS / macOS もビルド green（watchOS は分岐が変わらないまま iOS ビルドに同梱されて緑）
+
+
+## 6. 回帰確認
 
 - iOS シミュレータ（iPhone 17 Pro Max / iOS 27.0）でクリーンビルド green
 - `AppIntentsTesting` の 23 テスト（`TodoEntityQueryTests` / `TodoIntentExecutionTests` /
   `TodoSystemIntegrationTests`）全緑
 - `inspect_appintents_metadata.py`: 11 バンドル、`checks: all clear`
 
-## 測らなかったもの
+## 7. 測らなかったもの
 
 - **watchOS の `run()` が 4025 で落ちる件**は再検証していない。使い捨ての watch テストを書いて
   watchOS シミュレータを起こす必要があり、そのシミュレータ自体が

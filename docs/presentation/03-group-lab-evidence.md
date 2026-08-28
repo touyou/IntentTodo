@@ -436,7 +436,7 @@ App Shortcut 8 件）の**公式お墨付き**。しかも Apple が**それを�
 - 「多面展開は書けば動く」ではなく **面ごとの実測が要る** = 実践パートの主題そのもの。
   **Apple 自身が「確かめろ」と言っている**のが強い
 - 本プロジェクトの実例: **watchOS で assistant schema が unavailable**（Xcode 27 beta 2 で発生、
-  beta 5 でも継続）。`CategoryAppEntity` / `TodoListType` は素の `AppEntity` / `AppEnum` にフォールバックし、
+  beta 6 でも継続）。`CategoryAppEntity` / `TodoListType` は素の `AppEntity` / `AppEnum` にフォールバックし、
   `ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外。**まさに「1 対 1 ではなかった」実例**
 
 ---

@@ -79,7 +79,7 @@
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
 | Entity の作り分け | `@AppEntity` `IndexedEntity` `TransientAppEntity` | Category/SubTask を Entity 化、`TodoListSummaryEntity`（Transient）を `GetTodoSummaryIntent` で返す | B | ✅ |
-| Spotlight セマンティック | `CSSearchableIndex` `IndexedEntity` `@Property(indexingKey:)` | title→`\.title` / description→`\.contentDescription`（#43。iOS/macOS 限定 overload） | B | ✅ (#43) |
+| Spotlight セマンティック | `CSSearchableIndex` `IndexedEntity` `@Property(indexingKey:)` | title→`\.title` / description→`\.contentDescription`（#43。overload は watchOS / tvOS で unavailable なので `#if` 分岐） | B | ✅ (#43) |
 | システムアクション Intent | `OpenIntent` `DeleteIntent`（system intent 群） | Open/Delete を system intent プロトコルへ | B | ✅ `375efd1`/`92221d0` |
 | IntentParameter.valueState | `$param.valueState`（`.set` / `.unset`） | `UpdateTodoIntent` で「新値 / 明示クリア / 据え置き」を区別 | B | ✅ U（2026-08-12 三状態を実 run。テスト側で `.set(nil)` を出すには型付き nil が要る） |
 
@@ -138,7 +138,7 @@
     conformance を 2 つ生やすだけで init を生成しない。残る障害は ①`list` が非 optional
     ②`dueDate` が `DateComponents` ③`locationTrigger` が `PlaceDescriptor` を `@Property` に強制し
     SSU training バグ（`35d772f`）に正面衝突、の 3 点。③ は 2026-08-12 にクリーンビルドで実測して
-    **ブロッカーと確定**（beta 5 でも未修正）。**SDK 修正待ちで着手不可**。
+    **ブロッカーと確定**（beta 6 でも未修正）。**SDK 修正待ちで着手不可**。
     詳細: `docs/devlog/03-app-intents-core.md`。
     **新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な自前 Intent 群 +
     `OpenIntent`/`DeleteIntent` + `.system.searchInApp`(#47) + `indexingKey`(#43)）ため、本体適合は SDK の
@@ -177,7 +177,7 @@
   - 自己クリーンアップ設計（一意タイトルで作成→削除）。詳細 insights/03。
 - **Phase 7 WWDC 2026 追加検証（#42–#48）** ✅（B 深度。iOS/visionOS/watchOS の 3 スキームで `BuildProject` グリーン）:
   - ✅ #42: `allowedExecutionTargets` に `.widgetKitExtension` がある旨を記録訂正（当時は FromExtension 統合不可の結論も不変。2026-08-12 に分離ごと撤去）
-  - ✅ #43: `@Property(indexingKey:)` で title→`\.title` / 新設 description→`\.contentDescription`（iOS/macOS 限定 overload を `#if` 分岐）
+  - ✅ #43: `@Property(indexingKey:)` で title→`\.title` / 新設 description→`\.contentDescription`（overload は watchOS / tvOS で unavailable なので `#if` 分岐。visionOS は 2026-08-28 に有効化）
   - ✅ #44: `TodoAppEntity: Transferable` + `ValueRepresentation` で title / `IntentPerson`(担当者) / `PlaceDescriptor`(場所) を export
   - ✅ #45: `UpdateTodoIntent` + `IntentParameter.valueState` + `TodoService.update`/`FieldUpdate`（新値/明示クリア/据え置きを区別）
   - ✅ #46: 一覧に `.appEntityIdentifier(forSelectionType:)` / Control のエラー通知に `UNMutableNotificationContent.appEntityIdentifiers`
@@ -279,8 +279,9 @@
 | beta 3 | `PlaceDescriptor` の SSU training バグを回避し `String` へ退避、`AppShortcutsProvider` をアプリターゲットへ移動、toolbar API 追従 | `35d772f` `3280bed` |
 | beta 4 | SSU バグ未修正・ワークアラウンド継続。`TransientAppEntity` 実装（`TodoListSummaryEntity` + `GetTodoSummaryIntent`） | `df4a2aa` |
 | beta 5 (27A5237l) | SSU バグ・watchOS assistant schema unavailable ともに未解消を再確認。コード変更なし | `647acb6` |
+| beta 6 (27A5252f) | 同 2 件ともに未解消を再確認（revert → クリーンビルドで同一エラー / watchOS SDK の `@available(watchOS, unavailable)` 継続）。beta 6 で入った未記録の API は 4 つで、いずれも採用対象外と判定。コード変更なし | 経緯: [2026-08-28-xcode27-beta6-recheck.md](devlog/2026-08-28-xcode27-beta6-recheck.md) |
 
-> **既知の SDK 制約（beta 5 時点で未解消）**: `PlaceDescriptor` の SSU training バグ（`@Parameter`/`@Property` を
+> **既知の SDK 制約（beta 6 時点で未解消）**: `PlaceDescriptor` の SSU training バグ（`@Parameter`/`@Property` を
 > `String` へ退避するワークアラウンド継続中）と、watchOS での `reminders`/`system` assistant schema unavailable
 > （フォールバック継続中）。SDK 更新時は `35d772f` を revert + DerivedData クリア後クリーンビルドで再検証する
 > （SSU タスクは incremental ビルドだと stale エラーを再表示するため要注意）。GM SDK 到来時の棚卸しは **#57** で追跡。

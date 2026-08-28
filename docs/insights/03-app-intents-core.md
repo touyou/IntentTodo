@@ -725,7 +725,8 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
   `type: TodoListType`）、`TodoListType` を `@AppEnum(schema: .reminders.listType)` に。マクロが
   `typeDisplayRepresentation` を生成するので手書きは削除、`Hashable` はマクロ backing が非 Hashable のため明示実装。
 - **落とし穴（watchOS 非対応）**: `reminders` ドメインの assistant schema は **watchOS で unavailable**
-  （`'reminders' is unavailable in watchOS` / `'list' is unavailable in watchOS`。Xcode 27 beta 3 でも解消されていないことを確認済み）。
+  （`'reminders' is unavailable in watchOS` / `'list' is unavailable in watchOS`。Xcode 27 beta 6 でも
+  watchOS SDK の swiftinterface に `@available(watchOS, unavailable)` が残っていることを確認済み）。
   `TodoAppIntents` は watchOS でもコンパイルされるため、`CategoryAppEntity`（`.reminders.list`）と
   `TodoListType`（`.reminders.listType`）を `#if os(watchOS)` で素の `AppEntity` / `AppEnum` にフォールバックした。
   **マクロ付き宣言は `#if` で頭（属性＋宣言行）と本体を分割できない**（`Expected '}' in struct` になる）ため、
@@ -818,9 +819,9 @@ App Intents は「開く」「削除する」等の共通アクションに **sy
 「次の期限/緊急 Todo」を文脈寄付する目的で `RelevantEntities.shared.updateEntities(_:for:)` を検討したが、
 **第二引数 `AppEntityContext` がドメイン固有のファクトリしか持たない**ことが判明（DocumentationSearch 確認）。
 
-- 提供される context は `.audio(.nowPlaying)` / `.audio(.workout(activityType:))`（`AudioContext`。Xcode 27 beta 5 SDK の
-  swiftinterface では `.nowPlaying` のみ確認済みで、`.workout(activityType:)` は HealthKit 等のオーバーレイ側にも
-  まだ見当たらず beta 未実装の可能性がある）と、framework overlay（HealthKit 等）が定義する domain context のみ。
+- 提供される context は `.audio(.nowPlaying)` / `.audio(.workout(activityType:))`（`AudioContext`。Xcode 27 beta 6 SDK の
+  swiftinterface でも `.nowPlaying` のみで、`.workout(activityType:)` は HealthKit 等のオーバーレイ側にも
+  まだ見当たらない。`AppEntityContext` のファクトリも `.audio(_:)` 1 つだけ）と、framework overlay（HealthKit 等）が定義する domain context のみ。
   **汎用 / reminders / todo 向けの context 値が存在しない**。
 - どちらの context 例でも todo を寄付するのは意味的に誤り（再生中メディア/ワークアウト扱いになる）という結論は変わらない。
 - → **本アプリ（reminders ドメイン）では `RelevantEntities` は現状適合不能**。Apple が todo / reminders 向け
@@ -1124,11 +1125,15 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   それでも `todoDescription` は `contentDescription`（`CSDocuments` カテゴリ、「アイテムの説明文」の意味）にマップするのが
   妥当。`textContent`（`CSMessaging` カテゴリ、メール/メッセージ本文全文を想定した意味）よりも Todo の詳細説明という
   ユースケースに近いため——これは型の制約ではなく意味の制約による選択。
-- **落とし穴（プラットフォーム）**: `indexingKey:` オーバーロードは **iOS / macOS でしか vend されない**。
-  visionOS / watchOS では `Extra argument 'indexingKey'` + `Cannot infer key path type` でビルド失敗するため、
-  既存の `IndexedEntity` 拡張と同じ `#if os(iOS) || os(macOS)` で分岐し、他プラットフォームは素の `@Property`
+- **落とし穴（プラットフォーム）**: `indexingKey:` オーバーロードは **watchOS / tvOS で unavailable**
+  （Xcode 27 beta 6 の SDK は `@available(watchOS, unavailable)` / `@available(tvOS, unavailable)`。
+  `IndexedEntity` は `macOS 15 / iOS 18 / visionOS 2`、`IndexedEntityQuery` は 27 世代の 3 OS）。
+  watchOS では `Extra argument 'indexingKey'` + `Cannot infer key path type` でビルド失敗するため、
+  `IndexedEntity` 拡張と同じ `#if os(iOS) || os(macOS) || os(visionOS)` で分岐し、watchOS は素の `@Property`
   にフォールバックする。**`XcodeRefreshCodeIssuesInFile`（iOS コンテキスト）は通っても、別プラットフォーム
   destination の `BuildProject` で初めて露見する**ので、entity 系の変更は必ずフルビルドで複数 destination を回す。
+  経緯: [docs/devlog/2026-08-28-xcode27-beta6-recheck.md](../devlog/2026-08-28-xcode27-beta6-recheck.md)（visionOS を
+  除外していた記述をビルドで確かめ直した件）
 - 既存の手書き `attributeSet`（キーワード index）とは併存可。indexingKey はセマンティック経路を足すもの。
 
 経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)

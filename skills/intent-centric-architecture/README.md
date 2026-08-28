@@ -22,6 +22,8 @@ iOS / iPadOS / macOS / visionOS / watchOS の App Intent 設計について、Cl
 
 検証ベースは iOS 27 / Xcode 27 beta 5（2026-08 時点）。記述には根拠ラベル（`[Apple]` / `[measured]` / `[inferred]`）を付けてあるので、SDK が上がったら `[measured]` を優先的に再確認すればよい。
 
+beta 6（27A5252f）では SDK 制約の棚卸しだけを行い、**記述を変える差分は無かった**（SSU training の `PlaceDescriptor` バグ / watchOS の assistant schema unavailable / `AppEntityContext` が audio のみ、のいずれも継続）。測り方と結果は [docs/devlog/2026-08-28-xcode27-beta6-recheck.md](../../docs/devlog/2026-08-28-xcode27-beta6-recheck.md)。
+
 ## 構成
 
 ```

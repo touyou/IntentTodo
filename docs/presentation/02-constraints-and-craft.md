@@ -464,8 +464,8 @@
 
 - **見せるもの**: 「iOS だけ緑 → watchOS で赤」の例 3 つ
 - **話の要点**:
-  - `@Property(indexingKey:)` の overload は **iOS / macOS でしか vend されない**。visionOS / watchOS では `Extra argument 'indexingKey'` でビルド失敗
-  - `reminders` / `system` ドメインの assistant schema は **watchOS で unavailable**（Xcode 27 beta 2 で発生、beta 5 でも継続）。→ `CategoryAppEntity` / `TodoListType` は素の `AppEntity` / `AppEnum` にフォールバック、`ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外
+  - `@Property(indexingKey:)` の overload は **watchOS / tvOS で unavailable**。watchOS では `Extra argument 'indexingKey'` でビルド失敗（当初「iOS / macOS 限定」と記録していたが、visionOS では使えると 2026-08-28 に判明して有効化した）
+  - `reminders` / `system` ドメインの assistant schema は **watchOS で unavailable**（Xcode 27 beta 2 で発生、beta 6 でも継続）。→ `CategoryAppEntity` / `TodoListType` は素の `AppEntity` / `AppEnum` にフォールバック、`ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外
   - Visual Intelligence の **openable 要件は macOS ビルドでだけコンパイルエラーになる**。visual search が返す entity は全部 `OpenIntent` を持っていなければならない（`@UnionValue` の全メンバ）。iOS シミュレータでは出ない
     - → `OpenCategoryIntent` を「**openable にすること自体が目的**」で新設した（perform は `navigateToRoot()` だけ）
   - **`XcodeRefreshCodeIssuesInFile`（iOS コンテキスト）は通る**。entity 系を触ったら iOS / macOS / visionOS / watchOS をフルビルドする

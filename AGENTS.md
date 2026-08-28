@@ -527,7 +527,7 @@ NavigationStack {
 - `perform()` が定義されている場合、アクションクロージャの**後に** `perform()` が呼ばれる（二重実行に注意、どちらか一方にナビゲーションを集約する）
 - `supportedModes` の `.background` と組み合わせることで、UIハンドリングと`.background`処理を両立可能
 - `AppIntentSceneDelegate` プロトコルでシーンレベルのハンドリングも可能
-- **macOS / watchOS では使えない**。前提の `TargetContentProvidingIntent` が SDK 側で `@available(macOS, unavailable)` / `@available(watchOS, unavailable)`（Xcode 27 beta 5 で実測）。`_AppIntents_SwiftUI` フレームワーク自体は macOS SDK にも存在するので `canImport` では判定できない。準拠は `#if os(iOS) || os(visionOS)` でガードし、macOS では `@Dependency` + `perform()` パターンを使う
+- **macOS / watchOS では使えない**。前提の `TargetContentProvidingIntent` が SDK 側で `@available(macOS, unavailable)` / `@available(watchOS, unavailable)`（Xcode 27 beta 6 で実測）。`_AppIntents_SwiftUI` フレームワーク自体は macOS SDK にも存在するので `canImport` では判定できない。準拠は `#if os(iOS) || os(visionOS)` でガードし、macOS では `@Dependency` + `perform()` パターンを使う
 
 **本プロジェクトでは使っていない**。cold start で確実に目的の画面へ行かせるため、
 `@Dependency var navigationModel` + `perform()`（+ `UISceneAppIntent` / `AppIntentSceneDelegate`）に寄せている。
@@ -687,7 +687,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 
 #### watchOS では assistant schema が使えない（フォールバックが必要）
 
-`reminders` / `system` ドメインの assistant schema は watchOS で unavailable（Xcode 27 beta 5 時点。
+`reminders` / `system` ドメインの assistant schema は watchOS で unavailable（Xcode 27 beta 6 時点。
 GM での再確認は #57）。`TodoAppIntents` は watchOS でもコンパイルされるので次の形で回避している。
 
 - `CategoryAppEntity`（`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)` で
