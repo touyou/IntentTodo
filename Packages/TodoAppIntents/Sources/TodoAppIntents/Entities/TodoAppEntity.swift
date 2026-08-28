@@ -91,10 +91,12 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
 
     /// Associated location name.
     ///
-    /// NOTE: App Intents ネイティブの `PlaceDescriptor` (GeoToolbox) を使いたいが、Xcode 27 beta 3 の
-    /// AppIntentsSSUTraining が `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、
-    /// ドットが regex `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちてビルドエラーになる（SDK バグの可能性大）。
-    /// 暫定で場所名の String に退避。SDK 修正後に `PlaceDescriptor?` へ戻す。
+    /// `AddTodoIntent.location`（`@Parameter`）と型を揃えている。
+    ///
+    /// SSU バグが発火するのは App Shortcut 登録済み Intent の `@Parameter` だけで、entity の
+    /// `@Property` は SSU の variable にならないため、**ここは `PlaceDescriptor?` に戻せる可能性がある**
+    /// （未実測。判断は #57）。`PlaceDescriptor` としての提供は下の `ValueRepresentation` が担っている。
+    /// 経緯: docs/devlog/2026-08-28-ssu-system-value-type-bug.md
     @Property(title: "Location")
     public var location: String?
 

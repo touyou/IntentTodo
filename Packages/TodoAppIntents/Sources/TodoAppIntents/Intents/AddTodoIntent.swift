@@ -66,12 +66,15 @@ public struct AddTodoIntent: AppIntent {
 
     /// Location associated with the todo.
     ///
-    /// NOTE: Xcode 27 beta 3 の AppIntentsSSUTraining（"Generate SSU asset files"）は、
-    /// `PlaceDescriptor` を @Parameter にすると裏側のシステム Entity 型名
-    /// `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、ドットを
-    /// 含むため正規表現 `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちてエラーを emit する
-    /// (ローカルは exit 0 だが Xcode Cloud は失敗扱い、SDK 側バグの可能性大)。
-    /// 暫定で場所名の String に退避している。SDK 修正後に `PlaceDescriptor?` へ戻す。
+    /// 本来は `PlaceDescriptor?`（GeoToolbox）にしたいが、**App Shortcut に登録した Intent の
+    /// `@Parameter`** に system value 型を置くと `AppIntentsSSUTraining` が
+    /// `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、ドットが
+    /// 正規表現 `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちて `Metadata.appintents/nlu/` が
+    /// 丸ごと生成されなくなる（ローカルは exit 0、Xcode Cloud は失敗扱い）。この Intent は
+    /// `TodoAppShortcuts` に登録済みなので該当する。SDK バグ、Apple 報告済み（#57）。
+    /// 場所名を String で受け、緯度経度と合わせて `TodoPlace` が `PlaceDescriptor` を組み直す。
+    /// 詳細: docs/insights/03-app-intents-core.md
+    /// 経緯: docs/devlog/2026-08-28-ssu-system-value-type-bug.md
     @Parameter(title: "Location", description: "Place associated with the todo")
     public var location: String?
 

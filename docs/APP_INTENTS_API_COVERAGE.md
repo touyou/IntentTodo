@@ -119,7 +119,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `SyncableEntity` | デバイス間 ID 一貫性 | ✅ | `TodoAppEntity`（String UUID id でそのまま適合） |
 | `SyncableEntityIdentifier` | ローカル ID と安定 ID のペア | ⏸ | id が最初から安定なのでペアにする必要がない |
 | `OwnershipProvidingEntity` / `EntityOwnership` | public / shared の宣言 | ⏸ | 共有機能がない（個人利用主体）。CloudKit 共有を入れるなら候補 |
-| `IntentPerson` / `PlaceDescriptor` への `ValueRepresentation` | システム値型へ bridge | ✅ | 担当者 → `IntentPerson` / 場所 → `PlaceDescriptor`（`PlaceDescriptor` は SSU バグ回避で `String` 退避中 → #57） |
+| `IntentPerson` / `PlaceDescriptor` への `ValueRepresentation` | システム値型へ bridge | ✅ | 担当者 → `IntentPerson` / 場所 → `PlaceDescriptor`。`ValueRepresentation` 自体は SSU バグを踏まない。踏むのは **App Shortcut 登録済み Intent の `@Parameter`** だけで、そちらは `String` 退避中（→ #57） |
 | `Transferable` + `ProxyRepresentation` | 共有・ドラッグ&ドロップ | ✅ | `TodoAppEntity` |
 | `DataRepresentation` / `FileRepresentation` | バイト列 / ファイルでの転送 | 🚫 | Todo はファイルベースのコンテンツを持たない |
 | `URLRepresentableEntity` | URL で Identity を表現 | ✅ | `TodoAppEntity` + `TodoDeepLink` |
@@ -176,7 +176,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 |---|---|:--:|---|
 | `@AppEnum(schema: .reminders.listType)` | リスト種別の適合 | ✅ | `TodoListType`（watchOS は素の `AppEnum` にフォールバック） |
 | `@AppEntity(schema: .reminders.list)` | リストの適合 | ✅ | `CategoryAppEntity`（同上。型名も `WatchCategoryAppEntity` に分ける必要がある） |
-| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ⏳ | **SSU training バグでブロック中**（`locationTrigger` が `PlaceDescriptor` を要求 → #57 §1 と同じ根）。beta 6 でも未解消。再評価は **#56** |
+| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ⏳ | 据え置き。**「SSU バグでブロック」は 2026-08-28 に否定された**（スキーマ entity の `@Property` は SSU variable にならず、`locationTrigger` の `PlaceDescriptor` は踏まない）。残る障害（`list` 非 optional / `dueDate` が `DateComponents` / マクロ生成物）を測り直すのは **#56** |
 | `@AppIntent(schema: .system.searchInApp)` | アプリ内検索 | ✅ | `ShowTodoSearchResultsIntent` |
 | `@AppIntent(schema: .system.open)` | 「開く」の適合 | ⏸ | 素の `OpenIntent` で成立している |
 | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | Visual Intelligence の「もっと見る」 | ✅ | `TodoSemanticContentSearchIntent` |
