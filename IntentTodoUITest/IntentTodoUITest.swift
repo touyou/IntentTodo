@@ -22,7 +22,15 @@ final class IntentTodoUITest: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["--uitesting"]
+        // 一部の要素は accessibility label で引いている（`Delete todo` 等、identifier を
+        // 持たない汎用コンポーネント）。ホストの macOS が ja だとシミュレータのアプリも ja で
+        // 起動して英語ラベルが引けなくなるので、テスト対象のアプリの言語を en に固定する。
+        // 経緯: docs/devlog/2026-08-28-ja-localization.md（ja 追加でラベル引きが壊れた件）
+        app.launchArguments = [
+            "--uitesting",
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US"
+        ]
         app.launch()
     }
 
@@ -169,17 +177,18 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
 
         // Find and tap the checkbox (using accessibility label)
+        //
+        // **条件付き assert にしないこと**。`if checkbox.waitForExistence(...)` で包むと、
+        // 要素が見つからないまま何も検証されず緑になる。実際 ja ローカライズを入れた直後、
+        // アプリが ja で起動して英語ラベルが引けなくなり、このテストが「何も検証せず緑」に
+        // なっていた。経緯: docs/devlog/2026-08-28-ja-localization.md
         let checkbox = app.buttons["Mark as complete"].firstMatch
-        if checkbox.waitForExistence(timeout: 3) {
-            checkbox.tap()
+        XCTAssertTrue(checkbox.waitForExistence(timeout: 3), "Incomplete todo should show a complete checkbox")
+        checkbox.tap()
 
-            // Wait for state change
-            sleep(1)
-
-            // Verify the checkbox changed to "Mark as incomplete"
-            let completedCheckbox = app.buttons["Mark as incomplete"].firstMatch
-            XCTAssertTrue(completedCheckbox.waitForExistence(timeout: 3), "Todo should be marked as complete")
-        }
+        // Verify the checkbox changed to "Mark as incomplete"
+        let completedCheckbox = app.buttons["Mark as incomplete"].firstMatch
+        XCTAssertTrue(completedCheckbox.waitForExistence(timeout: 5), "Todo should be marked as complete")
     }
 
     // MARK: - Test: Toggle Favorite
@@ -196,17 +205,15 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
 
         // Find and tap the favorite button
+        //
+        // ここも条件付き assert にしない（上の `testToggleTodoCompletion` と同じ理由）。
         let favoriteButton = app.buttons["Add to favorites"].firstMatch
-        if favoriteButton.waitForExistence(timeout: 3) {
-            favoriteButton.tap()
+        XCTAssertTrue(favoriteButton.waitForExistence(timeout: 3), "Todo row should show a favorite button")
+        favoriteButton.tap()
 
-            // Wait for state change
-            sleep(1)
-
-            // Verify the button changed to "Remove from favorites"
-            let unfavoriteButton = app.buttons["Remove from favorites"].firstMatch
-            XCTAssertTrue(unfavoriteButton.waitForExistence(timeout: 3), "Todo should be marked as favorite")
-        }
+        // Verify the button changed to "Remove from favorites"
+        let unfavoriteButton = app.buttons["Remove from favorites"].firstMatch
+        XCTAssertTrue(unfavoriteButton.waitForExistence(timeout: 5), "Todo should be marked as favorite")
     }
 
     // MARK: - Test: Delete Todo
