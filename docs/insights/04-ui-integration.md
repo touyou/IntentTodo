@@ -522,11 +522,90 @@ xcodebuild -exportLocalizations -project IntentTodo.xcodeproj -scheme IntentTodo
 比較する。**このコマンドはソースツリー側の catalog も更新する**ので、抽出結果をそのまま
 コミットできる。
 
-en しか無い状態では、ビルドされた `UI_UI.bundle` に `en.lproj/Localizable.strings` は**入らない**
-（翻訳が 1 つも無い言語には `.strings` が生成されない）。バンドル内のファイル有無を見るテストは
-書けないので、確認は上記 export で行う。
+翻訳が 1 つも無い言語には `.strings` が生成されない。ソース言語しか無かった頃は
+`UI_UI.bundle` に `en.lproj/Localizable.strings` が**入らなかった**のはこのため。ja を入れた
+今は `ja.lproj/Localizable.strings` が生成される（下記「ja を入れて分かった catalog の配置」）。
 
 経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)（2026-08-27 の #50 対応）
+
+---
+
+## ja を入れて分かった catalog の配置
+
+ソース言語は **en のまま**、`ja` を訳として足す構成（`knownRegions = en, Base, ja`）。
+catalog は 12 本あり、**どのターゲットに何が入るかは「誰がその文言をリンクしているか」で決まる**。
+
+### 抽出はターゲット単位。共有パッケージの文言は全ターゲットに複製される
+
+`TodoAppIntents` は 7 ターゲットにリンクされているので、Intent の `title` /
+`parameterSummary` は**リンク先ターゲットそれぞれの catalog に同じキーで入る**。
+`Add todo titled ${title}` のような 14 キーは 6 catalog に重複して現れる。
+
+**重複しているコピーは全部同じ訳にする**。1 箇所だけ直すと、呼出元によって言い回しが変わる
+という形で壊れる（ビルドは通る）。訳を変えるときは全 catalog を横断して直す。
+
+### `TodoAppIntents` に catalog は不要（`.copy(_:)` の対象外）
+
+`TodoAppIntents` は自前の catalog を持たない。実行時は**リンク先ターゲットの main bundle** から
+引かれるので、パッケージ側に受け皿を置く必要が無い。ビルド成果物で確認できる:
+
+```
+IntentTodo.app/ja.lproj/Localizable.strings              Intent の title / parameterSummary
+IntentTodo.app/ja.lproj/AppShortcuts.strings             Siri フレーズ（String Set）
+IntentTodo.app/ja.lproj/nlu.appintents                   ja の NLU 学習データ
+IntentTodo.app/ja.lproj/InfoPlist.strings                CFBundleDisplayName 等
+IntentTodo.app/UI_UI.bundle/ja.lproj/…                   .copy(_:) 経由の UI コピー
+IntentTodo.app/PlugIns/*.appex/ja.lproj/…                Extension 自身の Intent コピー
+IntentTodo.app/PlugIns/*.appex/WidgetUI_WidgetUI.bundle/ja.lproj/…
+IntentTodo.app/Watch/IntentTodoWatchApp.app/ja.lproj/…
+```
+
+つまり **`.copy(_:)` が要るのは View を持つ 4 パッケージだけ**（`UI` / `WatchUI` / `WidgetUI` /
+`LiveActivity`）。Intent 側は素の `LocalizedStringResource` のままでよい。
+
+### Extension ターゲットの catalog は 1 本を共有していることがある
+
+Widget Extension は自前の catalog を持たず、`IntentTodoWatchApp/Localizable.xcstrings` を
+`membershipExceptions` 経由で共有している（Xcode の Localization Planner がこの形にした）。
+**ファイルの置き場とターゲットの対応が 1:1 ではない**ので、widget の文言を探すときは
+`IntentTodoWidget/` ではなくそちらを見る。
+
+### `AppShortcuts.xcstrings` は String Set。訳ではなく「言い方」を並べる
+
+1 キー = 1 アクションで、値は複数の発話バリエーション。1:1 の訳ではなく**その言語で実際に
+言う言い方**を入れる。語順も変わる:
+
+```
+Add a todo in ${applicationName}     →  ${applicationName}でやることを追加
+How many todos do I have in ${...}   →  ${applicationName}のやることは何件
+```
+
+**すべての値に `${applicationName}` が必要**（Apple の要件。欠けたフレーズは弾かれる）。
+`${todo}` / `${filter}` のパラメータプレースホルダもそのまま残す。
+
+### pbxproj に触る操作は Localization Planner に任せる
+
+`knownRegions` への言語追加とアプリ / Extension ターゲットへの catalog 追加は
+`project.pbxproj` の変更を伴う。**Xcode を開いたまま pbxproj を書き換えるとクラッシュしうる**
+ので、`xcode-integration:translation-coordinator` スキル経由の `LocalizationPlanner` に
+やらせる（`git checkout` で戻すのも直接編集に当たる）。
+
+### 検査は機械でやる
+
+翻訳の壊れ方（プレースホルダの脱落、`%@` の消失、`&amp;` の混入、全角英数字、半角カナ）は
+ビルドでは出ない。catalog を直接読んで en と ja のプレースホルダ集合を突き合わせる検査を
+かけてから export する。
+
+```sh
+xcodebuild -exportLocalizations -project IntentTodo.xcodeproj -scheme IntentTodo \
+  -localizationPath /tmp/loc -exportLanguage ja -destination 'generic/platform=iOS'
+```
+
+`ja.xliff` の unit 数は catalog のキー数と一致しない。String Set は 1 unit（値は `<mrk>` の
+子要素）、device variation は 2 unit に数えられる。**件数だけを見て「未翻訳が残っている」と
+判断しない**。
+
+経緯: [docs/devlog/2026-08-28-ja-localization.md](../devlog/2026-08-28-ja-localization.md)
 
 ---
 

@@ -1,46 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%lld remaining" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "残り%lld件"
-          }
-        }
-      }
-    },
-    "^[%lld more todo](inflect: true)" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "ほか%lld件"
-          }
-        }
-      }
-    },
-    "^[%lld remaining todo](inflect: true)" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "残り%lld件"
-          }
-        }
-      }
-    },
-    "Add Todo" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "やることを追加"
-          }
-        }
-      }
-    },
     "Add todo titled ${title}" : {
       "localizations" : {
         "ja" : {
@@ -51,12 +11,12 @@
         }
       }
     },
-    "All done!" : {
+    "Complete" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "すべて完了!"
+            "value" : "完了"
           }
         }
       }
@@ -67,16 +27,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todos}を完了"
-          }
-        }
-      }
-    },
-    "Couldn't load todos" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "やることを読み込めませんでした"
           }
         }
       }
@@ -121,32 +71,12 @@
         }
       }
     },
-    "No todos to display" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "表示するやることはありません"
-          }
-        }
-      }
-    },
     "Open ${target}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${target}を開く"
-          }
-        }
-      }
-    },
-    "Open the app to retry." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "アプリを開いてやり直してみてください。"
           }
         }
       }
@@ -171,6 +101,16 @@
         }
       }
     },
+    "Snooze" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "スヌーズ"
+          }
+        }
+      }
+    },
     "Snooze ${todo}" : {
       "localizations" : {
         "ja" : {
@@ -187,16 +127,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todo}を30分スヌーズ"
-          }
-        }
-      }
-    },
-    "Todos" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "やること"
           }
         }
       }

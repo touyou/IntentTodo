@@ -1,79 +1,17 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%lld incomplete" : {
+    "%lld" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "未完了%lld件"
+            "value" : "%lld"
           }
         }
       }
     },
-    "%lld todos" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "やること%lld件"
-          }
-        }
-      }
-    },
-    "%lld todos • Next: %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld todos • Next: %2$@"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "やること%1$lld件 • 次: %2$@"
-          }
-        }
-      }
-    },
-    "%lld/%lld" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "%1$lld/%2$lld"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "%1$lld/%2$lld"
-          }
-        }
-      }
-    },
-    "Add" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "追加"
-          }
-        }
-      }
-    },
-    "Add Favorite" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "お気に入りに追加"
-          }
-        }
-      }
-    },
-    "Add todo" : {
+    "Add Todo" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -93,12 +31,32 @@
         }
       }
     },
-    "All Done!" : {
+    "All" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "すべて完了!"
+            "value" : "すべて"
+          }
+        }
+      }
+    },
+    "Choose a Todo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることを選択"
+          }
+        }
+      }
+    },
+    "Choose which todo this control completes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "このコントロールで完了するやることを選択"
           }
         }
       }
@@ -113,32 +71,42 @@
         }
       }
     },
-    "Couldn't load" : {
+    "Complete or reopen a todo you choose." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "読み込めません"
+            "value" : "選んだやることを完了したり、未完了に戻したりできます。"
           }
         }
       }
     },
-    "Delete" : {
+    "Complete Todo" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "削除"
+            "value" : "やることを完了"
           }
         }
       }
     },
-    "Delete “%@”?" : {
+    "Completed" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "“%@”を削除しますか?"
+            "value" : "完了済み"
+          }
+        }
+      }
+    },
+    "Configure your todo widget" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることウィジェットを設定"
           }
         }
       }
@@ -173,52 +141,32 @@
         }
       }
     },
-    "Description" : {
+    "Due Today" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "説明"
+            "value" : "今日期限"
           }
         }
       }
     },
-    "Details" : {
+    "Favorites" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "詳細"
+            "value" : "お気に入り"
           }
         }
       }
     },
-    "Done" : {
+    "Filter" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "完了"
-          }
-        }
-      }
-    },
-    "Due Date" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "期限"
-          }
-        }
-      }
-    },
-    "Due Soon" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "期限間近"
+            "value" : "フィルタ"
           }
         }
       }
@@ -233,22 +181,12 @@
         }
       }
     },
-    "Mark as complete" : {
+    "Incomplete" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "完了にする"
-          }
-        }
-      }
-    },
-    "Mark as incomplete" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "未完了にする"
+            "value" : "未完了"
           }
         }
       }
@@ -263,16 +201,6 @@
         }
       }
     },
-    "No incomplete todos" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "未完了のやることはありません"
-          }
-        }
-      }
-    },
     "Open ${target}" : {
       "localizations" : {
         "ja" : {
@@ -283,22 +211,22 @@
         }
       }
     },
-    "Open the app to retry." : {
+    "Quickly add a new todo." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "アプリを開いてやり直してみてください。"
+            "value" : "新しいやることをすばやく追加できます。"
           }
         }
       }
     },
-    "Remove Favorite" : {
+    "Reopen Todo" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "お気に入りから削除"
+            "value" : "やることを未完了に戻す"
           }
         }
       }
@@ -313,12 +241,54 @@
         }
       }
     },
+    "Select Todo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることを選択"
+          }
+        }
+      }
+    },
     "Show ${filter} todos" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${filter}のやることを表示"
+          }
+        }
+      }
+    },
+    "Show Incomplete Todos" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "未完了のやることを表示"
+          }
+        }
+      }
+    },
+    "Shows incomplete todo count. Tap to open the list." : {
+      "localizations" : {
+        "ja" : {
+          "variations" : {
+            "device" : {
+              "mac" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "未完了のやることの件数を表示します。クリックするとリストが開きます。"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "未完了のやることの件数を表示します。タップするとリストが開きます。"
+                }
+              }
+            }
           }
         }
       }
@@ -343,7 +313,17 @@
         }
       }
     },
-    "todo" : {
+    "To Do" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "未完了"
+          }
+        }
+      }
+    },
+    "Todo" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -353,22 +333,32 @@
         }
       }
     },
-    "Todo Not Found" : {
+    "Todo Count" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "やることが見つかりません"
+            "value" : "やることの件数"
           }
         }
       }
     },
-    "Todo title" : {
+    "Todo List" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "やることのタイトル"
+            "value" : "やることリスト"
+          }
+        }
+      }
+    },
+    "Todo Widget" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることウィジェット"
           }
         }
       }
@@ -379,16 +369,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やること"
-          }
-        }
-      }
-    },
-    "Todos —" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "やること —"
           }
         }
       }
@@ -413,12 +393,12 @@
         }
       }
     },
-    "Upcoming" : {
+    "Track your incomplete todos." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "この後"
+            "value" : "未完了のやることを把握できます。"
           }
         }
       }
@@ -429,6 +409,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todo}を更新"
+          }
+        }
+      }
+    },
+    "View your todos at a glance." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることをひと目で確認できます。"
           }
         }
       }
