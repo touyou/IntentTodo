@@ -38,9 +38,29 @@ struct IntentTodoApp: App {
 
     // MARK: - Initialization
 
+    /// UI テストが渡す起動引数。指定されたときだけ in-memory ストアで起動する。
+    ///
+    /// UI テストは 1 件ごとにアプリを起こし直すが、共有ストアはプロセスを跨いで残る。
+    /// そのため todo がテスト間で積み上がり、(1) 空状態を前提にしたテストが書けない、
+    /// (2) 一覧の再描画が遅くなって待ち条件がタイムアウトしやすくなる、という 2 つの形で
+    /// テストを不安定にしていた。DEBUG 限定なので出荷ビルドではこの分岐が存在しない。
+    ///
+    /// AppIntents のテスト（`IntentTodoUITest/AppIntents/`）はこの引数を渡さない。
+    /// 実運用と同じ共有ストアの上で entity 解決 / Spotlight index を見たいため。
+    #if DEBUG
+    static let ephemeralStoreArgument = "-uitest-ephemeral-store"
+    #endif
+
     init() {
         do {
+            #if DEBUG
+            let usesEphemeralStore = ProcessInfo.processInfo.arguments.contains(Self.ephemeralStoreArgument)
+            let container = usesEphemeralStore
+                ? try SharedModelContainer.createInMemoryContainer()
+                : try SharedModelContainer.createContainer()
+            #else
             let container = try SharedModelContainer.createContainer()
+            #endif
             modelContainer = container
             AppDependencyManager.shared.add(dependency: container)
 
