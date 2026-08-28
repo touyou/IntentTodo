@@ -6,7 +6,7 @@
 //  か「変更が Spotlight に反映されない」のどちらかに倒れ、どちらもビルドでは分からない。
 //
 
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 import Foundation
 import Testing
 @testable import TodoAppIntents

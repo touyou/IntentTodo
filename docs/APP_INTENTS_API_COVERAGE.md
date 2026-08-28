@@ -65,6 +65,8 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `UISceneAppIntent` + `AppIntentSceneDelegate` | cold start でシーンに Intent を届ける | ✅ | `LaunchAppIntent` / `OpenTodoIntent` + `SceneDelegate.applyNavigation()` |
 | `URLRepresentableIntent` | Intent を URL で表現 | ✅ | `OpenTodoIntent`（`OpenIntent` との組み合わせで無償） |
 | `AudioPlaybackIntent` | 再生系 | 🚫 | 再生機能がない |
+| `RunSystemShortcutIntent` / `SystemShortcut` | システム側ショートカットの実行（iOS 27, iOS 限定） | 🚫 | `SystemShortcut` に公開イニシャライザが無く、アプリから値を作れない（beta 6 の swiftinterface で確認） |
+| `_ModelDelegationIntent` / `IntentResponseStream` | 応答をストリームで返す（iOS 27） | 🚫 | 下線付き + `@_documentation(visibility: internal)`。公開 API として使えない |
 | `CustomIntentMigratedAppIntent` | SiriKit からの移行 | 🚫 | SiriKit 資産がない |
 | `LiveActivityStartingIntent` | 旧・LA 開始専用 | ⛔ | iOS 17 で deprecated。`LiveActivityIntent` が後継 |
 | `PredictableIntent` | 実行タイミングを予測して提案 | ⏸ | donation ゼロなので提案自体が出ない（#53 で donation 不採用を決着） |
@@ -81,6 +83,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `systemContext.currentMode` / `canContinueInForeground` | 実行モードの参照 | ⏸ | 上と同じ理由で参照する必要がない |
 | `allowedExecutionTargets` | 実行プロセスを固定 | ✅ | **書き込み系は全部 `[.main]`**。読み取り系は固定しない。宣言漏れは `IntentExecutionTargetsTests` が検出 |
 | `performBackgroundTask` | 長時間処理の入れ物 | ✅ | `CompleteTodosIntent` |
+| `performBackgroundTask(options:)` / `LongRunningTaskOptions` | `.requiresGPU` の宣言（iOS 27） | 🚫 | GPU を使う処理がない。バルク完了は SwiftData の書き込みだけ |
 
 ## 4. 対話・応答
 
@@ -108,7 +111,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `@Property` | システムに見せる属性 | ✅ | 4 Entity |
 | `@ComputedProperty` | 同期 getter の派生属性 | ✅ | `TodoAppEntity.isOverdue` ほか |
 | `@DeferredProperty` | 非同期の遅延取得属性 | ✅ | `TodoAppEntity.subtaskProgress` |
-| `@Property(indexingKey:)` | Spotlight キーへの宣言的マッピング | ✅ | title → `\.title` / description → `\.contentDescription` |
+| `@Property(indexingKey:)` | Spotlight キーへの宣言的マッピング | ✅ | title → `\.title` / description → `\.contentDescription`。iOS / macOS / **visionOS**（watchOS / tvOS は SDK で unavailable なので素の `@Property`） |
 | `DisplayRepresentation` | 表示表現 | ✅ | 全 Entity。実行時値は `"\(value)"` 補間で渡す |
 | `DisplayRepresentation` の `synonyms:` | 同義語で認識精度を上げる | ✅ | Todo / Category / SubTask |
 | `DisplayRepresentation` の画像 | サムネイル | ✅ | 遅延クロージャで指定 |
@@ -145,7 +148,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 
 | API | 一言 | 状態 | このアプリでの扱い |
 |---|---|:--:|---|
-| `IndexedEntity` | Spotlight セマンティックインデックス | ✅ | `TodoAppEntity` |
+| `IndexedEntity` | Spotlight セマンティックインデックス | ✅ | `TodoAppEntity`（iOS / macOS / visionOS。watchOS は対象外） |
 | `attributeSet` | 追加の Spotlight 属性 | ✅ | `indexingKey` で書けないものだけ。**二重書きは静かに壊れる** |
 | `CSSearchableIndex.indexAppEntities(_:)` | entity の一括登録 | ✅ | `TodoSpotlightIndex`（名前付き index） |
 | client state バッチ | 差分インデックスの整合 | ✅ | `clientState(for:)`（SHA-256）+ `beginBatch` / `endBatch` |
@@ -173,7 +176,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 |---|---|:--:|---|
 | `@AppEnum(schema: .reminders.listType)` | リスト種別の適合 | ✅ | `TodoListType`（watchOS は素の `AppEnum` にフォールバック） |
 | `@AppEntity(schema: .reminders.list)` | リストの適合 | ✅ | `CategoryAppEntity`（同上。型名も `WatchCategoryAppEntity` に分ける必要がある） |
-| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ⏳ | **SSU training バグでブロック中**（`locationTrigger` が `PlaceDescriptor` を要求）。再評価は **#56** |
+| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ⏳ | **SSU training バグでブロック中**（`locationTrigger` が `PlaceDescriptor` を要求 → #57 §1 と同じ根）。beta 6 でも未解消。再評価は **#56** |
 | `@AppIntent(schema: .system.searchInApp)` | アプリ内検索 | ✅ | `ShowTodoSearchResultsIntent` |
 | `@AppIntent(schema: .system.open)` | 「開く」の適合 | ⏸ | 素の `OpenIntent` で成立している |
 | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | Visual Intelligence の「もっと見る」 | ✅ | `TodoSemanticContentSearchIntent` |
@@ -189,7 +192,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `UNMutableNotificationContent.appEntityIdentifiers` | 通知に entity を紐付け | ✅ | Control のエラー通知 |
 | `AppEntityAnnotatable` / `UICollectionViewAppIntentsDataSource` | UIKit 側の onscreen 提供 | 🚫 | SwiftUI アプリなので対象外 |
 | `MusicContent.appEntityIdentifiers` / `AlarmConfiguration.appEntityIdentifier` | Now Playing / AlarmKit との紐付け | 🚫 | 該当機能がない |
-| `RelevantEntities` + `AppEntityContext` | 文脈に応じた entity 寄付 | 🚫 | **todo / reminders 向けの `AppEntityContext` が存在しない**ため適合不能 |
+| `RelevantEntities` + `AppEntityContext` | 文脈に応じた entity 寄付 | 🚫 | **todo / reminders 向けの `AppEntityContext` が存在しない**ため適合不能（beta 6 でもファクトリは `.audio(_:)` の 1 つだけ） |
 | `RelevantIntent` / `RelevantIntentManager` | Smart Stack への Intent 提案 | ⬜ | `WidgetConfigurationIntent` があるので donation なしで成立する経路（#68） |
 | `IntentDonationManager.donate(_:)` | 実行履歴の寄付 | ⏸ | **#53 で不採用決着**。`perform()` 内 donate は規約違反、UI タップ地点での donate は「唯一の実行経路」原則を崩す |
 | `deleteDonations(matching:)` | 消えた entity の提案を消す | ✅ | 削除 3 経路すべて（呼出元に関係なく正しい後片付け） |

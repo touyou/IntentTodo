@@ -33,6 +33,7 @@
 - [2026-08-28-ja-localization.md](2026-08-28-ja-localization.md) — ja 対応（#70）を通しでやった経緯（catalog の配置が「誰がリンクしているか」で決まると分かった件 + テストを重い並列実行で回して起きたこと）
 - [2026-08-28-intent-copy-localization.md](2026-08-28-intent-copy-localization.md) — Intent のコピー（`title` / `IntentDescription` / `@Parameter` / `IntentDialog`）が ja 化されていなかった経緯（「`title` は複製抽出される」という前提が誤りだった件 + パッケージ catalog では引かれないと分かるまで）
 - [2026-08-28-uitest-cost.md](2026-08-28-uitest-cost.md) — UI テストの実行コストを測って削った経緯（Spotlight 114 秒は並列実行のせいだった件 + 直列化して出た flake の原因がテスト間のストア共有だった件）
+- [2026-08-28-xcode27-beta6-recheck.md](2026-08-28-xcode27-beta6-recheck.md) — Xcode 27 beta 6 で SDK 制約を棚卸しした経緯（SSU バグ / watchOS schema がどちらも未解消だった件 + インクリメンタルビルドの SSU ログを「直った」と読み違えかけた件 + visionOS の Spotlight 除外が SDK 制約ではなくこちらの誤りだった件）
 - [insights-changelog.md](insights-changelog.md) — `docs/INSIGHTS.md` / `insights/` 構成の再編履歴
 
 ## 運用方針
