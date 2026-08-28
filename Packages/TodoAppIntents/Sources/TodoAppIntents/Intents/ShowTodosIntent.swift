@@ -60,27 +60,34 @@ public struct ShowTodosIntent: AppIntent {
     /// WWDC 2026 (#343): `IntentDialog(full:supporting:)` で音声単独用と視覚併用を分ける。
     /// - `full`: 画面が無い文脈(音声のみ)で読み上げる、それ単体で完結するメッセージ。
     /// - `supporting`: 返却した一覧が視覚表示される文脈で、リストに添える短い一言。
+    /// 名詞は単数形 / 複数形とも訳文側で決める。Swift 側で `"\(noun)s"` のように
+    /// 英語の屈折を組み立てると、その `String` は catalog に載らないまま `%@` に
+    /// 差し込まれ、訳文の中に英語の名詞がそのまま出る。
+    /// 詳細: docs/insights/03-app-intents-core.md「Intent のコピーがどこから引かれるか」
+    private var categoryNoun: (singular: LocalizedStringResource, plural: LocalizedStringResource) {
+        switch filter {
+        case .all: ("todo", "todos")
+        case .incomplete: ("incomplete todo", "incomplete todos")
+        case .completed: ("completed todo", "completed todos")
+        case .favorites: ("favorite todo", "favorite todos")
+        }
+    }
+
     private func dialog(for entities: [TodoAppEntity]) -> IntentDialog {
         let count = entities.count
-        let categoryLabel: String = {
-            switch filter {
-            case .all: return "todo"
-            case .incomplete: return "incomplete todo"
-            case .completed: return "completed todo"
-            case .favorites: return "favorite todo"
-            }
-        }()
+        let noun = categoryNoun
+        let singular = String(localized: noun.singular)
+        let plural = String(localized: noun.plural)
 
         if count == 0 {
             return IntentDialog(
-                full: "You have no \(categoryLabel)s.",
-                supporting: "No \(categoryLabel)s."
+                full: "You have no \(plural).",
+                supporting: "No \(plural)."
             )
         }
-        let noun = count == 1 ? categoryLabel : "\(categoryLabel)s"
         return IntentDialog(
-            full: "You have \(count) \(noun).",
-            supporting: count == 1 ? "Here is your \(categoryLabel)." : "Here are your \(categoryLabel)s."
+            full: "You have \(count) \(count == 1 ? singular : plural).",
+            supporting: count == 1 ? "Here is your \(singular)." : "Here are your \(plural)."
         )
     }
 }

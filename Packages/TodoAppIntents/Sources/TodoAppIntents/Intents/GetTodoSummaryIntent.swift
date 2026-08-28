@@ -37,7 +37,9 @@ public struct GetTodoSummaryIntent: AppIntent {
         return .result(
             value: summary,
             dialog: IntentDialog(
-                full: "You have \(summary.pendingCount) pending todo\(summary.pendingCount == 1 ? "" : "s"), \(summary.overdueCount) of which \(summary.overdueCount == 1 ? "is" : "are") overdue.",
+                // 屈折は `^[](inflect:)` に任せる。`?:` で "s" / "is" / "are" を
+                // 継ぎ足すと、その断片は catalog に載らず訳文に英語が残る。
+                full: "You have ^[\(summary.pendingCount) pending todo](inflect: true), including ^[\(summary.overdueCount) overdue](inflect: true).",
                 supporting: "\(summary.pendingCount) pending, \(summary.overdueCount) overdue."
             ),
             snippetIntent: TodoSummarySnippetIntent()

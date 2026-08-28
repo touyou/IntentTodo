@@ -38,7 +38,8 @@ public struct ShowTodoCountIntent: AppIntent {
         guard count > 0 else {
             return IntentDialog(full: "You've completed every todo.", supporting: "All done.")
         }
-        let noun = count == 1 ? "todo" : "todos"
+        // 名詞は訳文側で決める（英語の屈折を Swift で組み立てると catalog に載らない）。
+        let noun = String(localized: count == 1 ? "todo" : "todos")
         return IntentDialog(
             full: "You have \(count) incomplete \(noun).",
             supporting: "\(count) incomplete \(noun)."
