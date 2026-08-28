@@ -19,8 +19,8 @@
             "state" : "machine_translated",
             "values" : [
               "${applicationName}でやることを追加",
-              "${applicationName}で新しいやることを追加",
-              "${applicationName}でやることを作成"
+              "${applicationName}に新しいやることを作成",
+              "${applicationName}でやることを登録"
             ]
           }
         }
@@ -45,8 +45,8 @@
             "state" : "machine_translated",
             "values" : [
               "${applicationName}で${todo}を完了",
-              "${applicationName}の${todo}を完了にする",
-              "${applicationName}の${todo}の完了を切り替え",
+              "${applicationName}の${todo}を終わらせる",
+              "${applicationName}の${todo}を済みにする",
               "${applicationName}でやることの完了を切り替え"
             ]
           }
@@ -71,7 +71,7 @@
             "state" : "machine_translated",
             "values" : [
               "${applicationName}の${todo}を削除",
-              "${applicationName}から${todo}を削除",
+              "${applicationName}の${todo}を消す",
               "${applicationName}でやることを削除"
             ]
           }
@@ -100,8 +100,8 @@
             "values" : [
               "${applicationName}で${filter}のやることを表示",
               "${applicationName}の${filter}のやることを見せて",
-              "${applicationName}でやることを表示",
-              "${applicationName}のやることを一覧表示",
+              "${applicationName}のやることを表示",
+              "${applicationName}のやることを教えて",
               "${applicationName}のやることは何",
               "${applicationName}を開く"
             ]
@@ -150,8 +150,8 @@
             "state" : "machine_translated",
             "values" : [
               "${applicationName}の${todo}をスヌーズ",
-              "${applicationName}で${todo}をスヌーズする",
-              "${applicationName}でやることをスヌーズ"
+              "${applicationName}の${todo}を後回しにする",
+              "${applicationName}でやることを先送り"
             ]
           }
         }
@@ -175,7 +175,7 @@
             "state" : "machine_translated",
             "values" : [
               "${applicationName}の${todo}をお気に入りに追加",
-              "${applicationName}で${todo}をお気に入りにする",
+              "${applicationName}の${todo}にスターを付ける",
               "${applicationName}でお気に入りを切り替え"
             ]
           }
