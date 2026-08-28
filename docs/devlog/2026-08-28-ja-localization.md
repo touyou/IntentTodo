@@ -91,13 +91,30 @@ CPU 統計 97%）で落ちたが、読み込まれたイメージにプロジェ
 マシン飽和によるシミュレータ側の事象だった。同時刻に一斉 SIGKILL されたシステムデーモン群は
 シミュレータのシャットダウンによるもの。**重いテストと並列ビルドを重ねない**。
 
+## Extension の catalog 共有はこのままにすると決めた
+
+Widget Extension は自前の catalog を持たず、`IntentTodoWatchApp/Localizable.xcstrings` を
+`membershipExceptions` 経由で共有している（Localization Planner がこの形にした）。
+
+分割する案を検討したが**採らない**と決めた。理由:
+
+- 機能上の問題が無い。両ターゲットのバンドルに `ja.lproj/Localizable.strings` が正しく生成され、
+  それぞれの main bundle から引ける
+- 分割すると共有 Intent コピー 15 キーの訳が両方に重複し、直すときに 2 箇所直す羽目になる
+  （このコミットで一番手間だったのが、まさにこの「重複したコピーを揃える」作業だった）
+- 解くには `project.pbxproj` の編集（Target Membership のチェック外し）が必要で、
+  エージェントからは安全に触れない
+
+代わりに「ファイルの置き場とターゲットは 1:1 ではない、widget の文言はここを見る」を
+[docs/insights/04-ui-integration.md](../insights/04-ui-integration.md#ja-を入れて分かった-catalog-の配置)
+に明記した。
+
 ## 残したもの
 
 - 翻訳の state が全件 `machine_translated`。`StringCatalogEdit` がこの state しか書かないため
-  （ツールの仕様）。Xcode 上では「要レビュー」バッジが付く
-- `IntentTodoWidget` が自前の catalog を持たず `IntentTodoWatchApp/Localizable.xcstrings` を
-  membership exception で借りている。動作はするが場所が誤解を招く。直すには pbxproj 編集が要る
+  （ツールの仕様）。Xcode 上では「要レビュー」バッジが付く。human review パスは未実施 → #73
 - Siri のフレーズルーティング（実際に日本語で話しかけて正しい Intent に入るか）は自動化できない → #30
+- テストプランの通し実行 → #73
 - 翻訳中に見つかった記述の誤り: `ToggleUrgentTodoIntent` は urgent フラグを立て下げする Intent
   ではなく、`TodoService.toggleMostUrgentTodo()` で**期限が最も近い未完了 Todo の完了状態**を
   トグルする。`IntentDescription` は "Toggles completion of the most urgent todo" と正しく書いて
