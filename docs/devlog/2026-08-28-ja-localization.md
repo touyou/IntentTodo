@@ -84,12 +84,46 @@ insights に「en しか無い状態では `UI_UI.bundle` に `en.lproj/Localiza
 - 既存 4 catalog は `ja` が増えただけで `en` / source 値は 1 バイトも変わっていないことを
   HEAD との差分で確認
 
-テストプランは通しで回していない。`testNewTodoIsIndexedInSpotlight()` が単体で 114 秒かかり
-（CoreSpotlight のインデックス完了をポーリングする）、並列ビルドと重ねると待ちを超えて落ちる。
-このとき `WidgetRenderer_Default` が `0x8BADF00D`（scene-create の 10 秒ウォッチドッグ、
-CPU 統計 97%）で落ちたが、読み込まれたイメージにプロジェクトのものが 1 つも無く、
-マシン飽和によるシミュレータ側の事象だった。同時刻に一斉 SIGKILL されたシステムデーモン群は
-シミュレータのシャットダウンによるもの。**重いテストと並列ビルドを重ねない**。
+### 一度目は通しで回せなかった
+
+`testNewTodoIsIndexedInSpotlight()` が単体で 114 秒かかり（CoreSpotlight のインデックス完了を
+ポーリングする）、並列ビルドと重ねると待ちを超えて落ちた。このとき `WidgetRenderer_Default` が
+`0x8BADF00D`（scene-create の 10 秒ウォッチドッグ、CPU 統計 97%）で落ちたが、読み込まれた
+イメージにプロジェクトのものが 1 つも無く、マシン飽和によるシミュレータ側の事象だった。
+同時刻に一斉 SIGKILL されたシステムデーモン群はシミュレータのシャットダウンによるもの。
+**重いテストと並列ビルドを重ねない**。
+
+### 通しで回したら UI テストが 2 件落ち、3 件が「何も検証せず緑」になっていた
+
+マシンが空いた状態で回し直したら、`testAppLaunches()` と `testDeleteTodo()` が
+アサーション失敗した。**これは ja 追加による回帰**で、原因はアプリではなくテスト側。
+
+ホストの macOS が `ja-JP` なので、シミュレータのアプリも ja で起動する。ja を入れる前は
+en にフォールバックしていたため英語ラベルで引けていたが、ja が入った瞬間に外れた。
+
+```swift
+app.navigationBars["Todos"]        // 実際は「やること」
+app.buttons["Delete todo"]         // 実際は「やることを削除」
+```
+
+**落ちた 2 件より、落ちなかった 3 件の方が問題だった**。
+`testToggleTodoCompletion` / `testToggleFavorite` / `testEmptyStateShowsAddButton` は
+条件付き assert（`if element.waitForExistence(...) { XCTAssert... }`）で書かれていて、
+ラベルが引けないと中身が一度も実行されないまま緑になる。AGENTS.md が禁じている形が、
+06-control-widget-ios26.md の「削除がまったく動いていないのを長期間見逃した」と同じ壊れ方を
+再現したことになる。
+
+対処（ed422a0）:
+
+- `setUpWithError()` の `launchArguments` に `-AppleLanguages (en)` / `-AppleLocale en_US` を
+  足し、**テスト対象アプリの言語を en に固定**した。ラベル引きが 7 箇所あり、個別に直すより
+  言語を固定する方が確実
+- `testToggleTodoCompletion` / `testToggleFavorite` の条件付き assert を外した
+- `testEmptyStateShowsAddButton` は「todo が 0 件のときだけ」を意図した条件分岐で、
+  テスト間でストアを共有している以上そのままでは無条件化できない。空のストアを用意する
+  仕掛けが要るので #73 に送った
+
+結果、39 件（AppIntents 23 + UI 16）すべて緑。UI テスト 16 件で約 307 秒。
 
 ## Extension の catalog 共有はこのままにすると決めた
 
@@ -114,7 +148,9 @@ Widget Extension は自前の catalog を持たず、`IntentTodoWatchApp/Localiz
 - 翻訳の state が全件 `machine_translated`。`StringCatalogEdit` がこの state しか書かないため
   （ツールの仕様）。Xcode 上では「要レビュー」バッジが付く。human review パスは未実施 → #73
 - Siri のフレーズルーティング（実際に日本語で話しかけて正しい Intent に入るか）は自動化できない → #30
-- テストプランの通し実行 → #73
+- `testEmptyStateShowsAddButton` の条件付き assert（空のストアを用意する仕掛けが要る）→ #73
+- テストの実行コストの見直し（`parallelizable = "YES"` によるシミュレータのクローン、
+  毎テストのアプリ起動、固定 `sleep(1)`、Spotlight テストの 114 秒）→ #73
 - 翻訳中に見つかった記述の誤り: `ToggleUrgentTodoIntent` は urgent フラグを立て下げする Intent
   ではなく、`TodoService.toggleMostUrgentTodo()` で**期限が最も近い未完了 Todo の完了状態**を
   トグルする。`IntentDescription` は "Toggles completion of the most urgent todo" と正しく書いて

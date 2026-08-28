@@ -590,6 +590,26 @@ How many todos do I have in ${...}   →  ${applicationName}のやることは�
 ので、`xcode-integration:translation-coordinator` スキル経由の `LocalizationPlanner` に
 やらせる（`git checkout` で戻すのも直接編集に当たる）。
 
+### UI テストはテスト対象アプリの言語を en に固定する
+
+UI テストには accessibility label で要素を引いている箇所が 7 つある（`Delete todo` /
+`Mark as complete` / `Add to favorites` など、identifier を持たない汎用コンポーネント）。
+**ホストの macOS が ja だとシミュレータのアプリも ja で起動する**ので、ja を足した瞬間に
+これらが全部外れる。`setUpWithError()` で言語を固定して防ぐ。
+
+```swift
+app.launchArguments = [
+    "--uitesting",
+    "-AppleLanguages", "(en)",
+    "-AppleLocale", "en_US"
+]
+```
+
+この壊れ方は**半分が無言**だった。条件付き assert で書かれていた 2 件は失敗せず、
+中身を一度も実行しないまま緑になった（AGENTS.md の「条件付き assert を書かない」が
+効いてくるのはこういうとき）。ja UI そのものを検証したくなったら、言語を固定した別の
+テストクラスを足す形にする。
+
 ### 検査は機械でやる
 
 翻訳の壊れ方（プレースホルダの脱落、`%@` の消失、`&amp;` の混入、全角英数字、半角カナ）は
