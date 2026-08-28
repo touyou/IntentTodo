@@ -176,7 +176,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 |---|---|:--:|---|
 | `@AppEnum(schema: .reminders.listType)` | リスト種別の適合 | ✅ | `TodoListType`（watchOS は素の `AppEnum` にフォールバック） |
 | `@AppEntity(schema: .reminders.list)` | リストの適合 | ✅ | `CategoryAppEntity`（同上。型名も `WatchCategoryAppEntity` に分ける必要がある） |
-| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ⏳ | 据え置き。**「SSU バグでブロック」は 2026-08-28 に否定された**（スキーマ entity の `@Property` は SSU variable にならず、`locationTrigger` の `PlaceDescriptor` は踏まない）。残る障害（`list` 非 optional / `dueDate` が `DateComponents` / マクロ生成物）を測り直すのは **#56** |
+| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ⏳ | 据え置き（**SDK のブロックではない**）。2026-08-29 に probe で完全適合が成立することを実測（SSU も通る）。`@ComputedProperty` でスキーマ要求名を満たせるのでリネーム不要、強制変更は `dueDate` の型衝突のみで機械的置換 12 箇所。残るのは `list` 非 optional / `tags`・`urls`・`recurrence`・`completionDate` / `locationTrigger` をどこまで実体化するかの product 判断 → **#56** |
 | `@AppIntent(schema: .system.searchInApp)` | アプリ内検索 | ✅ | `ShowTodoSearchResultsIntent` |
 | `@AppIntent(schema: .system.open)` | 「開く」の適合 | ⏸ | 素の `OpenIntent` で成立している |
 | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | Visual Intelligence の「もっと見る」 | ✅ | `TodoSemanticContentSearchIntent` |
