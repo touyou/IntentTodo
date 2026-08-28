@@ -69,8 +69,9 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(confirmButton.exists, "Add button should exist")
         confirmButton.tap()
 
-        // Wait for sheet to dismiss
-        sleep(1)
+        // シートが閉じたことは「タイトル欄が消えたこと」で待つ。固定秒で待つと、
+        // 16 テスト分の待ち時間をまるごと払うことになる。
+        XCTAssertTrue(titleField.waitForNonExistence(timeout: 5), "Add sheet should dismiss")
     }
 
     /// Finds a todo cell by its title.
@@ -300,17 +301,17 @@ final class IntentTodoUITest: XCTestCase {
 
         // Find and tap search field
         let searchField = app.searchFields.firstMatch
-        if searchField.waitForExistence(timeout: 3) {
-            searchField.tap()
-            searchField.typeText("Apple")
+        XCTAssertTrue(searchField.waitForExistence(timeout: 5), "Search field should appear")
+        searchField.tap()
+        searchField.typeText("Apple")
 
-            // Wait for filter to apply
-            sleep(1)
-
-            // Verify only matching todo is visible
-            XCTAssertTrue(findTodoCell(title: todoTitle1).exists, "Matching todo should be visible")
-            XCTAssertFalse(findTodoCell(title: todoTitle2).exists, "Non-matching todo should be hidden")
-        }
+        // 絞り込みの完了は「一致しない行が消えること」で待つ。固定秒を挟むと、
+        // 絞り込みが効いていなくても待ち時間が過ぎれば先に進んでしまう。
+        XCTAssertTrue(
+            findTodoCell(title: todoTitle2).waitForNonExistence(timeout: 5),
+            "Non-matching todo should be hidden"
+        )
+        XCTAssertTrue(findTodoCell(title: todoTitle1).exists, "Matching todo should be visible")
     }
 
     // MARK: - Test: Filter
@@ -322,8 +323,7 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(filterMenu.waitForExistence(timeout: 5), "Filter menu should exist")
         filterMenu.tap()
 
-        // Wait for menu to appear
-        sleep(1)
+        // メニューの出現待ちは下の `waitForExistence(timeout: 1)` が兼ねる。
 
         // In SwiftUI Menu with Picker, menu content can appear in different ways
         // depending on iOS version. We check multiple possible element types.
@@ -401,9 +401,7 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
         todoCell.tap()
 
-        // Verify detail view appears (navigation title changes or detail elements appear)
-        // The exact verification depends on the detail view implementation
-        sleep(1)
+        // 遷移の完了は下の戻るボタンの出現待ちが兼ねる。
 
         // Verify we're on the detail view by checking for back button
         let backButton = app.navigationBars.buttons.element(boundBy: 0)
