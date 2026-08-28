@@ -30,10 +30,12 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
 
     // `indexingKey:` (WWDC 2026 #240) maps the property onto the Spotlight
     // semantic index via a `CSSearchableItemAttributeSet` key, so semantic search
-    // / Q&A can reason over the text. The overload is only vended where Spotlight
-    // indexing exists (iOS / macOS) — matching the `IndexedEntity` extension below —
-    // so other platforms fall back to a plain `@Property`.
-    #if os(iOS) || os(macOS)
+    // / Q&A can reason over the text. The overload carries
+    // `@available(watchOS, unavailable)` / `@available(tvOS, unavailable)` — matching
+    // the `IndexedEntity` extension below — so watchOS falls back to a plain
+    // `@Property`. 経緯: docs/devlog/2026-08-28-xcode27-beta6-recheck.md（visionOS を
+    // 除外していたのは誤りだった件）
+    #if os(iOS) || os(macOS) || os(visionOS)
     /// The title of the todo item (semantically indexed via `.title`).
     @Property(title: "Title", indexingKey: \.title)
     public var title: String
@@ -355,7 +357,7 @@ extension TodoAppEntity: URLRepresentableEntity {
 
 // MARK: - IndexedEntity (Spotlight Integration)
 
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 /// Spotlight integration for todo items.
 /// Allows users to search for todos via Spotlight with enhanced attributes.
 extension TodoAppEntity: IndexedEntity {

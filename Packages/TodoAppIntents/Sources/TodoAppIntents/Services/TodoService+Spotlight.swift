@@ -13,7 +13,7 @@
 //  `TodoService.swift` 側に居るため。
 //
 
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 import CoreSpotlight
 #endif
 import Domain
@@ -38,7 +38,7 @@ extension TodoService {
     /// ときは省略しない。省略すると「index は壊れているが state は最新」から抜け出せず、
     /// Spotlight / Siri から todo を引けない状態が続く。
     public func indexAllForSpotlight() async {
-        #if os(iOS) || os(macOS)
+        #if os(iOS) || os(macOS) || os(visionOS)
         await TodoSpotlightIndex.purgeLegacyDefaultIndexIfNeeded()
         let isRepairing = TodoSpotlightIndex.needsFullReindex()
         do {
@@ -83,7 +83,7 @@ extension TodoService {
     /// 新しい Task を走らせる。これで連続トグル時に古い状態が後から上書きする
     /// race condition を避ける。
     func reindexSpotlight(_ entity: TodoAppEntity) {
-        #if os(iOS) || os(macOS)
+        #if os(iOS) || os(macOS) || os(visionOS)
         let id = entity.id
         inflightSpotlightTasks[id]?.cancel()
         inflightSpotlightTasks[id] = Task { [weak self] in
@@ -106,7 +106,7 @@ extension TodoService {
 
     /// Remove a deleted todo from Spotlight. race 対策は `reindexSpotlight` と同じ。
     func deindexSpotlight(id: String) {
-        #if os(iOS) || os(macOS)
+        #if os(iOS) || os(macOS) || os(visionOS)
         inflightSpotlightTasks[id]?.cancel()
         inflightSpotlightTasks[id] = Task { [weak self] in
             defer {
@@ -129,7 +129,7 @@ extension TodoService {
         #endif
     }
 
-    #if os(iOS) || os(macOS)
+    #if os(iOS) || os(macOS) || os(visionOS)
     /// CSSearchableIndex のエラーは `NSError(domain: CSSearchableIndexErrorDomain)`
     /// で `code` を見れば quotaExceeded(1) / invalidIndexState(2) /
     /// userInteractionRequired(3) / indexUnavailable(4) を区別できる。

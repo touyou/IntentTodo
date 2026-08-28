@@ -4,7 +4,7 @@
 //
 
 import AppIntents
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 import CoreSpotlight
 #endif
 import Foundation
@@ -132,7 +132,7 @@ extension TodoEntityQuery: EnumerableEntityQuery {
 
 // MARK: - IndexedEntityQuery (Spotlight reindexing)
 
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 /// Spotlight からの**再インデックス要求**に応える口。
 ///
 /// Apple 公式 (Making app entities available in Spotlight): "If you donate app entities

@@ -5,7 +5,7 @@
 //  Spotlight index の入口を 1 箇所に集約する。
 //
 
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 import CoreSpotlight
 import CryptoKit
 import Foundation
