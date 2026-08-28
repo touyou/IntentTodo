@@ -206,7 +206,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "作成日"
+            "value" : "作成日時"
           }
         }
       }
@@ -346,7 +346,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "期限%@"
+            "value" : "期限は%@"
           }
         }
       }
@@ -416,7 +416,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "所要時間の目安"
+            "value" : "所要時間（目安）"
           }
         }
       }
@@ -586,7 +586,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "お気に入りに追加"
+            "value" : "お気に入り"
           }
         }
       }
@@ -606,7 +606,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "変更日"
+            "value" : "変更日時"
           }
         }
       }
@@ -816,7 +816,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "所要時間の目安を設定"
+            "value" : "所要時間（目安）"
           }
         }
       }
@@ -856,7 +856,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Siriと“ショートカット”"
+            "value" : "Siriとショートカット"
           }
         }
       }
