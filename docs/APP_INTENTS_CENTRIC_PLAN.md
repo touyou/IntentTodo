@@ -284,7 +284,8 @@
 | beta 6 (27A5252f) | 同 2 件ともに未解消を再確認（revert → クリーンビルドで同一エラー / watchOS SDK の `@available(watchOS, unavailable)` 継続）。beta 6 で入った未記録の API は 4 つで、いずれも採用対象外と判定。コード変更なし | 経緯: [2026-08-28-xcode27-beta6-recheck.md](devlog/2026-08-28-xcode27-beta6-recheck.md) |
 
 > **既知の SDK 制約（beta 6 時点で未解消）**: system value 型（`PlaceDescriptor` ほか）の SSU training バグ
-> （**App Shortcut に登録した Intent の `@Parameter`** に置くと発火。`String` 退避のワークアラウンド継続中）と、
+> （**App Shortcut に登録した Intent の `@Parameter`** に置くと発火。`AddTodoIntent.location` の `String`
+> 退避のみ継続中。`TodoAppEntity.location` は 2026-08-29 に `PlaceDescriptor?` へ戻した。FB24548956）と、
 > watchOS での `reminders`/`system` assistant schema unavailable（フォールバック継続中）。SDK 更新時は
 > `35d772f` を revert + DerivedData クリア後クリーンビルドで再検証する
 > （SSU タスクは incremental ビルドだと stale エラーを再表示するため要注意）。GM SDK 到来時の棚卸しは **#57** で追跡。

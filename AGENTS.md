@@ -396,20 +396,24 @@ try repository.update(item)
 emit して **`Metadata.appintents/nlu/` が丸ごと生成されない**（そのターゲットの全 App Shortcut が
 音声理解の学習アセットを失う）。ツールは exit 0 で返すのでローカルは `BUILD SUCCEEDED` のまま、
 Xcode Cloud だけが赤くなる。公式ドキュメントがサポート型として明記している型なので、
-**アプリ側の回避策は「その型を使わない」しかない**（本アプリは `AddTodoIntent.location` /
-`TodoAppEntity.location` を `String` + 緯度経度に退避し、`TodoPlace` で組み直している）。
+**アプリ側の回避策は「その型を使わない」しかない**（本アプリは `AddTodoIntent.location` だけを
+`String` に退避し、緯度経度と合わせて `TodoPlace` で `PlaceDescriptor` を組み直している）。
 
-踏まない形:
+**退避が必要なのは `@Parameter` だけ**。次の形は踏まないので、ネイティブ型のまま使う:
 
-- entity の `@Property`（SSU の variable にならない）
+- entity の `@Property`（SSU の variable にならない。`TodoAppEntity.location` は `PlaceDescriptor?`
+  のまま置いてクリーンビルド + SSU アーカイブ成功を実測済み）
 - スキーマ由来の宣言（`@AppIntent(schema:)` / `@AppEntity(schema:)`）
 - `Transferable` の `ValueRepresentation(exporting:)` → `PlaceDescriptor`（採用中）
 - App Shortcut に登録していない Intent の `@Parameter`
 
-Apple 報告済み（追跡は **#57**）。リリース版 Xcode 26.6 でも再現するので GM を待っても直るとは限らない。
+Apple 報告済み（**FB24548956**、追跡は **#57**）。リリース版 Xcode 26.6 でも再現するので GM を待っても直るとは限らない。
 判定は**必ずクリーンビルド**（`Metadata.appintents` が変わらないと SSU タスクは再実行されず、
-インクリメンタルのログは前回の出力を並べる）。経緯と実測値:
-[docs/devlog/2026-08-28-ssu-system-value-type-bug.md](docs/devlog/2026-08-28-ssu-system-value-type-bug.md)
+インクリメンタルのログは前回の出力を並べる）。**ローカライズ済みアプリでは SSU アセットの置き場が
+`Metadata.appintents/nlu/` ではなく `<locale>.lproj/nlu.appintents/`** なので、成功判定はそこを見る。
+経緯と実測値:
+[docs/devlog/2026-08-28-ssu-system-value-type-bug.md](docs/devlog/2026-08-28-ssu-system-value-type-bug.md) /
+[docs/devlog/2026-08-29-entity-placedescriptor-restore.md](docs/devlog/2026-08-29-entity-placedescriptor-restore.md)
 
 ### @Dependency + AppDependencyManager パターン
 

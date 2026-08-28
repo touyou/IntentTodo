@@ -1151,11 +1151,14 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
     `name: .displayName(name)`, `handle: nil`。
   - export closure は `async throws`。値が無い todo は `throw` してその表現を出さない（空値を返さない）。
   - これが計画 doc の「ValueRepresentation(→IntentPerson)」を兼ねる。`IntentPerson` 自体も `Transferable`。
-  - **`ValueRepresentation` は SSU バグを踏まない**。踏むのは system value 型を **App Shortcut に登録した
-    Intent の `@Parameter`** に置いたときだけ（`PlaceDescriptor` / `LinkMetadata` / `AudioSearch` / `PHAsset`
-    の 4 型で実測）。`Metadata.appintents/nlu/` が丸ごと出なくなり、ローカルは `BUILD SUCCEEDED` のまま。
+  - **`ValueRepresentation` も entity の `@Property` も SSU バグを踏まない**。踏むのは system value 型を
+    **App Shortcut に登録した Intent の `@Parameter`** に置いたときだけ（`PlaceDescriptor` / `LinkMetadata` /
+    `AudioSearch` / `PHAsset` の 4 型で実測）。SSU アセットが丸ごと出なくなり、ローカルは
+    `BUILD SUCCEEDED` のまま。`TodoAppEntity.location` は `PlaceDescriptor?` で持つ（出荷メタデータには
+    `GeoToolbox.PlaceDescriptorEntity` が入るが SSU は通る）。`AddTodoIntent.location` だけ `String` 退避。
     ルールは AGENTS.md「App Shortcut に登録する Intent の `@Parameter` に system value 型を使わない」、
-    実測値は [devlog 2026-08-28](../devlog/2026-08-28-ssu-system-value-type-bug.md)。Apple 報告済み（#57）。
+    実測値は [devlog 2026-08-28](../devlog/2026-08-28-ssu-system-value-type-bug.md) /
+    [2026-08-29](../devlog/2026-08-29-entity-placedescriptor-restore.md)。Apple 報告済み（FB24548956 / #57）。
 
 ### `IntentParameter.valueState`（部分更新、#344 / #45）
 

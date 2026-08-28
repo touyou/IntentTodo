@@ -119,7 +119,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `SyncableEntity` | デバイス間 ID 一貫性 | ✅ | `TodoAppEntity`（String UUID id でそのまま適合） |
 | `SyncableEntityIdentifier` | ローカル ID と安定 ID のペア | ⏸ | id が最初から安定なのでペアにする必要がない |
 | `OwnershipProvidingEntity` / `EntityOwnership` | public / shared の宣言 | ⏸ | 共有機能がない（個人利用主体）。CloudKit 共有を入れるなら候補 |
-| `IntentPerson` / `PlaceDescriptor` への `ValueRepresentation` | システム値型へ bridge | ✅ | 担当者 → `IntentPerson` / 場所 → `PlaceDescriptor`。`ValueRepresentation` 自体は SSU バグを踏まない。踏むのは **App Shortcut 登録済み Intent の `@Parameter`** だけで、そちらは `String` 退避中（→ #57） |
+| `IntentPerson` / `PlaceDescriptor` への `ValueRepresentation` | システム値型へ bridge | ✅ | 担当者 → `IntentPerson` / 場所 → `PlaceDescriptor`。`TodoAppEntity.location` は `PlaceDescriptor?`（`@Property` は SSU バグを踏まない、2026-08-29 実測）。退避が必要なのは **App Shortcut 登録済み Intent の `@Parameter`** だけで、`AddTodoIntent.location` は `String` のまま（FB24548956 → #57） |
 | `Transferable` + `ProxyRepresentation` | 共有・ドラッグ&ドロップ | ✅ | `TodoAppEntity` |
 | `DataRepresentation` / `FileRepresentation` | バイト列 / ファイルでの転送 | 🚫 | Todo はファイルベースのコンテンツを持たない |
 | `URLRepresentableEntity` | URL で Identity を表現 | ✅ | `TodoAppEntity` + `TodoDeepLink` |
