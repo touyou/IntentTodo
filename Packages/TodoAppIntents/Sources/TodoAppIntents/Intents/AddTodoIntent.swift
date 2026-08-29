@@ -36,8 +36,25 @@ public struct AddTodoIntent: AppIntent {
     /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
     public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
+    /// **The summary is the allowlist for the Shortcuts editor**: a `@Parameter` that
+    /// appears neither in the sentence nor in the trailing block still resolves but is
+    /// never offered as an editable row. Listing every parameter is what makes them
+    /// settable from Shortcuts.
+    /// 詳細: docs/insights/03-app-intents-core.md
     public static var parameterSummary: some ParameterSummary {
-        Summary("Add todo titled \(\.$title)")
+        Summary("Add todo titled \(\.$title)") {
+            \.$todoDescription
+            \.$dueDate
+            \.$isFavorite
+            \.$estimatedDuration
+            \.$assignee
+            \.$location
+            \.$tags
+            \.$urls
+            \.$recurrenceFrequency
+            \.$recurrenceInterval
+            \.$locationTriggerEvent
+        }
     }
 
     // MARK: - Parameters
@@ -78,6 +95,29 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Location", description: "Place associated with the todo")
     public var location: String?
 
+    // MARK: - reminders スキーマ属性
+
+    /// Free-form tags to attach to the new todo.
+    @Parameter(title: "Tags", description: "Tags to attach to the todo")
+    public var tags: [String]?
+
+    /// Links to attach to the new todo.
+    @Parameter(title: "URLs", description: "Links to attach to the todo")
+    public var urls: [URL]?
+
+    /// How often the todo should repeat.
+    @Parameter(title: "Recurrence", description: "How often the todo repeats")
+    public var recurrenceFrequency: TodoRecurrenceFrequency?
+
+    /// How many frequency units sit between occurrences.
+    @Parameter(title: "Repeat Every", description: "Number of frequency units between occurrences")
+    public var recurrenceInterval: Int?
+
+    /// Whether arriving at or leaving `location` should surface the todo. Inert until
+    /// the todo has a location — both halves are needed to form a trigger.
+    @Parameter(title: "Location Trigger Event", description: "Surface the todo on arrival or departure")
+    public var locationTriggerEvent: TodoLocationTriggerEvent?
+
     // MARK: - Dependencies
 
     @Dependency
@@ -98,7 +138,12 @@ public struct AddTodoIntent: AppIntent {
         isFavorite: Bool = false,
         estimatedDuration: Duration? = nil,
         assignee: PersonNameComponents? = nil,
-        location: String? = nil
+        location: String? = nil,
+        tags: [String]? = nil,
+        urls: [URL]? = nil,
+        recurrenceFrequency: TodoRecurrenceFrequency? = nil,
+        recurrenceInterval: Int? = nil,
+        locationTriggerEvent: TodoLocationTriggerEvent? = nil
     ) {
         self.title = title
         self.todoDescription = todoDescription
@@ -107,6 +152,11 @@ public struct AddTodoIntent: AppIntent {
         self.estimatedDuration = estimatedDuration
         self.assignee = assignee
         self.location = location
+        self.tags = tags
+        self.urls = urls
+        self.recurrenceFrequency = recurrenceFrequency
+        self.recurrenceInterval = recurrenceInterval
+        self.locationTriggerEvent = locationTriggerEvent
     }
 
     // MARK: - Perform
@@ -123,7 +173,12 @@ public struct AddTodoIntent: AppIntent {
             locationName: location.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                 .flatMap { $0.isEmpty ? nil : $0 },
             locationLatitude: nil,
-            locationLongitude: nil
+            locationLongitude: nil,
+            tags: tags ?? [],
+            urls: urls ?? [],
+            recurrenceFrequency: recurrenceFrequency,
+            recurrenceInterval: recurrenceInterval ?? TodoRecurrence.minimumInterval,
+            locationTriggerEvent: locationTriggerEvent
         )
         // UI から呼ばれた場合は Add シートを閉じる。Siri / Shortcuts / Widget から
         // 呼ばれた場合は元から閉じているので no-op。@Query の件数差分でシートを

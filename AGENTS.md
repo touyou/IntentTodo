@@ -388,6 +388,25 @@ try repository.update(item)
 （「〜をスヌーズ」と「〜をスヌーズする」）を並べても経路は増えない。判定はパラメータ構成が同じ
 もの同士で行う（パラメータ有無の差は意図的）。詳細: `docs/insights/04-ui-integration.md`
 
+### `parameterSummary` は Shortcuts 編集画面の **allowlist**（飾りではない）
+
+Apple のガイダンスが明言している: "`ParameterSummary` is not cosmetic — it is the allowlist for
+which parameters the Shortcuts editor surfaces. […] every other `@Parameter` is **silently
+omitted** from the editor UI, even though it still exists and still resolves."
+
+`Summary("...")` の**補間に出てくるもの**と**trailing `@ParameterKeyPathsBuilder` ブロックに
+列挙したもの**しか編集行にならない。書けるはずのパラメータを summary に載せ忘れると、
+**Shortcuts からは設定できない**（ビルドは緑、Siri から名指しすれば動くので気づきにくい）。
+
+- **Intent が変えられるものは全部 summary に載せる**。文に入らないものは trailing ブロックへ
+- 表示順は宣言順ではなく **summary の順**（補間 → trailing ブロック）
+- 出し分けが要るなら `When(\.$p, .equalTo, v) { } otherwise: { }` / `Switch(\.$p) { Case(v) { } }`
+- 判定は `Metadata.appintents` を見る。`actionConfiguration.actionSummary.wrapper.otherParameterIdentifiers`
+  に trailing ブロック分が並ぶので、機械的に突き合わせられる
+
+経緯: [docs/devlog/2026-08-29-attribute-write-paths.md](docs/devlog/2026-08-29-attribute-write-paths.md)
+（`AddTodoIntent` / `UpdateTodoIntent` の 11 パラメータが編集画面に出ていなかった件）
+
 ### App Shortcut に登録する Intent の `@Parameter` に system value 型を使わない（SDK バグ）
 
 `GeoToolbox.PlaceDescriptor` / `LinkPresentation.LinkMetadata` / `MediaIntents.AudioSearch` /

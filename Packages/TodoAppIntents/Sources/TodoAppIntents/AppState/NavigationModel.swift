@@ -29,6 +29,14 @@ public final class NavigationModel {
     /// Whether the add todo sheet is presented.
     public var showingAddTodo: Bool = false
 
+    /// Whether the detail view's attribute editor sheet is presented.
+    ///
+    /// Lives here rather than in the view's `@State` for the same reason
+    /// ``showingAddTodo`` does: the sheet is closed by the intent that saves it
+    /// (`UpdateTodoIntent`), and `@Environment(\.dismiss)` isn't reachable from
+    /// `perform()`. "Intent completed = sheet closed" stays a 1-to-1 mapping.
+    public var showingAttributeEditor: Bool = false
+
     /// Currently selected todo in NavigationSplitView layouts (visionOS, macOS).
     /// Stack-based platforms (iOS/iPadOS/watchOS) use `path` instead and leave this nil.
     public var selectedTodo: TodoAppEntity?
@@ -118,5 +126,18 @@ public final class NavigationModel {
             inAppAddCount += 1
         }
         showingAddTodo = false
+    }
+
+    /// Shows the detail view's attribute editor sheet.
+    public func showAttributeEditor() {
+        showingAttributeEditor = true
+    }
+
+    /// Dismisses the attribute editor sheet.
+    ///
+    /// Called from `UpdateTodoIntent.perform()` on success. A no-op when the sheet
+    /// isn't open, which is the normal case for Siri / Shortcuts / widget callers.
+    public func dismissAttributeEditor() {
+        showingAttributeEditor = false
     }
 }

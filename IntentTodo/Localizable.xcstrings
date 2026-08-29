@@ -434,6 +434,17 @@
         }
       }
     },
+    "Daily" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "毎日"
+          }
+        }
+      }
+    },
     "Delete ${entities}" : {
       "localizations" : {
         "ja" : {
@@ -803,6 +814,17 @@
         }
       }
     },
+    "How often the todo repeats" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo を繰り返す頻度"
+          }
+        }
+      }
+    },
     "Incomplete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -854,6 +876,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "出発したとき"
+          }
+        }
+      }
+    },
+    "Links to attach to the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo に添付するリンク"
           }
         }
       }
@@ -1001,6 +1034,17 @@
         }
       }
     },
+    "Monthly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "毎月"
+          }
+        }
+      }
+    },
     "Name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1063,6 +1107,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "期限のあるやることはありません。"
+          }
+        }
+      }
+    },
+    "Number of frequency units between occurrences" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "繰り返しの間隔（頻度の単位いくつ分か）"
           }
         }
       }
@@ -1341,6 +1396,39 @@
         }
       }
     },
+    "Repeat Every" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "繰り返しの間隔"
+          }
+        }
+      }
+    },
+    "Replaces the links attached to the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo に添付されたリンクを置き換えます"
+          }
+        }
+      }
+    },
+    "Replaces the todo's tags" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo のタグを置き換えます"
+          }
+        }
+      }
+    },
     "Search Todos and Categories" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1522,6 +1610,17 @@
         }
       }
     },
+    "Surface the todo on arrival or departure" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "到着時または出発時に Todo を表示します"
+          }
+        }
+      }
+    },
     "Tags" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1529,6 +1628,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "タグ"
+          }
+        }
+      }
+    },
+    "Tags to attach to the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo に付けるタグ"
           }
         }
       }
@@ -1891,6 +2001,17 @@
         }
       }
     },
+    "Updates a todo's details. Fields you leave blank are kept as-is." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo の詳細を更新します。空欄のままにした項目はそのまま残ります。"
+          }
+        }
+      }
+    },
     "Updates a todo's title, description, due date, favorite flag, estimated duration, or assignee. Fields you leave blank are kept as-is." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1924,6 +2045,17 @@
         }
       }
     },
+    "Weekly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "毎週"
+          }
+        }
+      }
+    },
     "Whether to mark as favorite" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1931,6 +2063,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "お気に入りにするかどうか"
+          }
+        }
+      }
+    },
+    "Yearly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "毎年"
           }
         }
       }
@@ -2265,6 +2408,17 @@
         }
       }
     },
+    "repeat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "繰り返し"
+          }
+        }
+      }
+    },
     "search" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2283,6 +2437,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "スター"
+          }
+        }
+      }
+    },
+    "tag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タグ"
           }
         }
       }

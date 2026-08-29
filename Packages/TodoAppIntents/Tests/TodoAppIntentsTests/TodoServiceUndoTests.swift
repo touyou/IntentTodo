@@ -46,7 +46,9 @@ struct TodoServiceUndoTests {
         #expect(restored.title == "task")
         #expect(restored.todoDescription == "details")
         #expect(restored.isFavorite)
-        #expect(restored.dueDate == due)
+        // `dueDate` はスキーマ要求で `DateComponents?`。往復を見たいのは stored 値なので
+        // `dueDateValue` を比較する（`dueDate` は秒以下を落とす射影）。
+        #expect(restored.dueDateValue == due)
         #expect(restored.assigneeName == "Ada")
         #expect(restored.sortIndex == 3)
         #expect(try repo.fetchAll().count == 1)

@@ -104,7 +104,12 @@ public final class TodoService {
         assigneeName: String? = nil,
         locationName: String? = nil,
         locationLatitude: Double? = nil,
-        locationLongitude: Double? = nil
+        locationLongitude: Double? = nil,
+        tags: [String] = [],
+        urls: [URL] = [],
+        recurrenceFrequency: TodoRecurrenceFrequency? = nil,
+        recurrenceInterval: Int = TodoRecurrenceFrequency.minimumInterval,
+        locationTriggerEvent: TodoLocationTriggerEvent? = nil
     ) throws -> TodoAppEntity {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -122,6 +127,14 @@ public final class TodoService {
             locationLatitude: locationLatitude,
             locationLongitude: locationLongitude
         )
+        // `.reminders.reminder` 由来の属性は `TodoItem.init` に載せず、既定値のあるプロパティ
+        // として代入する。init の引数を増やすと復元用 init（`TodoItemSnapshot.makeTodoItem`）と
+        // 2 箇所で同じ並びを保たなければならなくなるため。
+        item.tags = TodoAttributes.normalized(tags: tags)
+        item.urls = TodoAttributes.normalized(urls: urls)
+        item.recurrenceFrequency = recurrenceFrequency?.rawValue
+        item.recurrenceInterval = max(TodoRecurrence.minimumInterval, recurrenceInterval)
+        item.locationTriggerEvent = locationTriggerEvent?.rawValue
         try repository.create(item)
         let entity = TodoAppEntity(from: item)
         reindexSpotlight(entity)
@@ -267,7 +280,12 @@ public final class TodoService {
         dueDate: FieldUpdate<Date?> = .unchanged,
         isFavorite: FieldUpdate<Bool> = .unchanged,
         estimatedDuration: FieldUpdate<TimeInterval?> = .unchanged,
-        assigneeName: FieldUpdate<String?> = .unchanged
+        assigneeName: FieldUpdate<String?> = .unchanged,
+        tags: FieldUpdate<[String]> = .unchanged,
+        urls: FieldUpdate<[URL]> = .unchanged,
+        recurrenceFrequency: FieldUpdate<TodoRecurrenceFrequency?> = .unchanged,
+        recurrenceInterval: FieldUpdate<Int> = .unchanged,
+        locationTriggerEvent: FieldUpdate<TodoLocationTriggerEvent?> = .unchanged
     ) throws -> TodoAppEntity {
         defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
@@ -285,11 +303,45 @@ public final class TodoService {
         if case .set(let value) = estimatedDuration { item.estimatedDuration = value }
         if case .set(let value) = assigneeName { item.assigneeName = value }
 
+        applySchemaAttributes(
+            to: item,
+            tags: tags,
+            urls: urls,
+            recurrenceFrequency: recurrenceFrequency,
+            recurrenceInterval: recurrenceInterval,
+            locationTriggerEvent: locationTriggerEvent
+        )
+
         item.modifiedAt = Date()
         try repository.update(item)
         let entity = TodoAppEntity(from: item)
         reindexSpotlight(entity)
         return entity
+    }
+
+    /// `.reminders.reminder` 由来の属性の部分更新。
+    ///
+    /// `update(todoId:…)` から切り出しているのは分岐数を分けるためだけで、意味の境界も
+    /// ここに一致する（スキーマが要求して #83 で足したフィールド群）。
+    ///
+    /// `tags` / `urls` は差分ではなく置き換え。「1 つ足す」は呼出側が現在値に足した配列を
+    /// 渡す形で表現する（Shortcuts の編集画面が配列を丸ごと編集する形なので、Intent の
+    /// 意味と UI の意味がずれない）。
+    private func applySchemaAttributes(
+        to item: TodoItem,
+        tags: FieldUpdate<[String]>,
+        urls: FieldUpdate<[URL]>,
+        recurrenceFrequency: FieldUpdate<TodoRecurrenceFrequency?>,
+        recurrenceInterval: FieldUpdate<Int>,
+        locationTriggerEvent: FieldUpdate<TodoLocationTriggerEvent?>
+    ) {
+        if case .set(let value) = tags { item.tags = TodoAttributes.normalized(tags: value) }
+        if case .set(let value) = urls { item.urls = TodoAttributes.normalized(urls: value) }
+        if case .set(let value) = recurrenceFrequency { item.recurrenceFrequency = value?.rawValue }
+        if case .set(let value) = recurrenceInterval {
+            item.recurrenceInterval = max(TodoRecurrence.minimumInterval, value)
+        }
+        if case .set(let value) = locationTriggerEvent { item.locationTriggerEvent = value?.rawValue }
     }
 
     /// Picks the earliest-due incomplete todo and toggles its completion.

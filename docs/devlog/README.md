@@ -34,6 +34,11 @@
 - [2026-08-28-intent-copy-localization.md](2026-08-28-intent-copy-localization.md) — Intent のコピー（`title` / `IntentDescription` / `@Parameter` / `IntentDialog`）が ja 化されていなかった経緯（「`title` は複製抽出される」という前提が誤りだった件 + パッケージ catalog では引かれないと分かるまで）
 - [2026-08-28-uitest-cost.md](2026-08-28-uitest-cost.md) — UI テストの実行コストを測って削った経緯（Spotlight 114 秒は並列実行のせいだった件 + 直列化して出た flake の原因がテスト間のストア共有だった件）
 - [2026-08-28-xcode27-beta6-recheck.md](2026-08-28-xcode27-beta6-recheck.md) — Xcode 27 beta 6 で SDK 制約を棚卸しした経緯（SSU バグ / watchOS schema がどちらも未解消だった件 + インクリメンタルビルドの SSU ログを「直った」と読み違えかけた件 + visionOS の Spotlight 除外が SDK 制約ではなくこちらの誤りだった件）
+- [2026-08-28-ssu-system-value-type-bug.md](2026-08-28-ssu-system-value-type-bug.md) — `AppIntentsSSUTraining` が system value 型で落ちる SDK バグ（FB24548956）の切り分けと、発火条件が「App Shortcut 登録済み Intent の `@Parameter` だけ」だと測り直した経緯
+- [2026-08-29-entity-placedescriptor-restore.md](2026-08-29-entity-placedescriptor-restore.md) — entity の `@Property` は SSU バグを踏まないと分かり `TodoAppEntity.location` を `PlaceDescriptor` に戻した経緯
+- [2026-08-29-reminder-schema-cost-remeasure.md](2026-08-29-reminder-schema-cost-remeasure.md) — `.reminders.reminder` 適合コストを probe で測り直し「SDK でブロックされている」を否定した経緯
+- [2026-08-29-reminder-schema-conformance.md](2026-08-29-reminder-schema-conformance.md) — `TodoAppEntity` を `.reminders.reminder` に適合させた経緯（親の適合がサブエンティティの適合も要求する件 + `Calendar.RecurrenceRule` を SwiftData 属性にすると schema 初期化で trap する件 + 削除済みオブジェクトの配列属性が読めない件）
+- [2026-08-29-attribute-write-paths.md](2026-08-29-attribute-write-paths.md) — reminders 属性（tags / urls / recurrence / locationTriggerEvent）の書き込み経路を Intent と UI に通した経緯（`parameterSummary` が Shortcuts 編集画面の allowlist だった件 + 詳細画面で同じ配列属性 trap を踏み直した件 + #83 が置いていった破損 3 件）
 - [insights-changelog.md](insights-changelog.md) — `docs/INSIGHTS.md` / `insights/` 構成の再編履歴
 
 ## 運用方針

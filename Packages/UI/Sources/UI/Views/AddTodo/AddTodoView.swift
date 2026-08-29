@@ -29,6 +29,9 @@ public struct AddTodoView: View {
     @State private var hasEstimatedDuration = false
     @State private var estimatedDurationMinutes = 30
 
+    /// `.reminders.reminder` 由来の属性（tags / urls / recurrence / locationTriggerEvent）。
+    @State private var attributes = TodoAttributesDraft()
+
     /// 所要時間の選択肢 (分)。
     private static let durationOptions = [15, 30, 45, 60, 90, 120, 180, 240]
 
@@ -51,7 +54,12 @@ public struct AddTodoView: View {
                 ? .seconds(estimatedDurationMinutes * 60)
                 : nil,
             assignee: assigneeComponents,
-            location: trimmedLocation.isEmpty ? nil : trimmedLocation
+            location: trimmedLocation.isEmpty ? nil : trimmedLocation,
+            tags: attributes.tags,
+            urls: attributes.urls,
+            recurrenceFrequency: attributes.recurrenceFrequency,
+            recurrenceInterval: attributes.recurrenceInterval,
+            locationTriggerEvent: attributes.locationTriggerEvent
         )
     }
 
@@ -147,6 +155,17 @@ public struct AddTodoView: View {
                     .textInputAutocapitalization(.words)
                 #endif
             }
+
+            TodoTagsSection(tags: $attributes.tags)
+            TodoLinksSection(urls: $attributes.urls)
+            TodoRecurrenceSection(
+                frequency: $attributes.recurrenceFrequency,
+                interval: $attributes.recurrenceInterval
+            )
+            TodoLocationTriggerSection(
+                event: $attributes.locationTriggerEvent,
+                hasLocation: !trimmedLocation.isEmpty
+            )
         }
         #if os(macOS)
         // macOS の Form デフォルト (.automatic) は背景無し・横端密着で窮屈なので

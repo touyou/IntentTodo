@@ -91,12 +91,31 @@ private struct TodoDetailContent: View {
     /// Must match the `NSUserActivityTypes` entry in the app's Info.plist.
     private static let viewingTodoActivityType = "dev.touyou.IntentTodo.ViewingTodo"
 
+    @Environment(NavigationModel.self) private var navigationModel
+
     let todo: TodoItem
+
+    /// 配列属性のスナップショット。
+    ///
+    /// **`todo.tags` / `todo.urls` を `body` の中で読んではいけない。** SwiftData は
+    /// 削除済みオブジェクトの配列属性を読むと trap する（scalar は最後の値を返すので耐える）。
+    /// 削除の直後 1 フレームだけ `@Query` の結果に削除済みオブジェクトが残るため、body から
+    /// 読むと詳細画面の再描画でクラッシュする（`testDeleteTodoFromDetailView` で再現）。
+    /// `!todo.isDeleted` のガードは効かない（この時点では false のまま）。
+    ///
+    /// 安全なのは **id から引き直す**こと。`TodoAppEntity` の `tags` / `urls` は同じ理由で
+    /// `@DeferredProperty` になっているので、それを読んで state に写す。消えた todo は
+    /// 「見つからない」に落ちるだけで済む。
+    /// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md（#83 で同じ罠を踏んだ）
+    @State private var tags: [String] = []
+    @State private var urls: [URL] = []
 
     private var entity: TodoAppEntity { TodoAppEntity(from: todo) }
 
     var body: some View {
-        List {
+        @Bindable var navigationModel = navigationModel
+
+        return List {
             Section { TodoDetailHeaderSection(todo: todo, entity: entity) }
 
             if let dueDate = todo.dueDate {
@@ -119,6 +138,18 @@ private struct TodoDetailContent: View {
                 }
             }
 
+            if !tags.isEmpty {
+                Section(.copy("Tags")) {
+                    TodoDetailTagsSection(tags: tags)
+                }
+            }
+
+            if !urls.isEmpty {
+                Section(.copy("Links")) {
+                    TodoDetailLinksSection(urls: urls)
+                }
+            }
+
             Section(.copy("Info")) {
                 TodoDetailMetadataSection(todo: todo)
             }
@@ -137,6 +168,36 @@ private struct TodoDetailContent: View {
             activity.title = String(localized: .copy("Viewing \(todo.title)"))
             activity.appEntityIdentifier = EntityIdentifier(for: entity)
         }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button(.copy("Edit Details")) {
+                    navigationModel.showAttributeEditor()
+                }
+                .accessibilityIdentifier("editDetailsButton")
+            }
+        }
+        // 提示状態を `NavigationModel` に置くのは、閉じるのが `UpdateTodoIntent.perform()`
+        // だから（`@Environment(\.dismiss)` は Intent から触れない）。
+        .sheet(isPresented: $navigationModel.showingAttributeEditor) {
+            // 配列はここでもモデルから読まず、スナップショットを渡す（シート提示中に
+            // todo が消えると同じ trap を踏む）。scalar な属性はモデルから読んでよい。
+            TodoAttributesEditView(todo: todo, tags: tags, urls: urls)
+        }
+        // 更新の契機は `modifiedAt`。scalar なので削除済みオブジェクトでも読める。
+        // `UpdateTodoIntent` が保存すると進むので、保存後の表示もここで追従する。
+        .task(id: todo.modifiedAt) {
+            await refreshCollections(of: entity)
+        }
+    }
+
+    /// `tags` / `urls` を id から引き直す。消えていれば空になる。
+    ///
+    /// `Set<String>` で返るので表示順は自分で決める。人が入れた順は保てないため、
+    /// 照合順で並べて決定的にする（編集して保存すると保存順もこれに揃う）。
+    private func refreshCollections(of entity: TodoAppEntity) async {
+        let loadedTags = (try? await entity.tags) ?? []
+        tags = loadedTags.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+        urls = (try? await entity.urls) ?? []
     }
 }
 
@@ -279,60 +340,6 @@ private struct TodoDetailSubtasksSection: View {
                     .foregroundStyle(subtask.isCompleted ? .secondary : .primary)
             }
         }
-    }
-}
-
-// MARK: - Metadata
-
-private struct TodoDetailMetadataSection: View {
-    let todo: TodoItem
-
-    /// 秒で保持された所要時間を "1h 30m" 形式へ整形する。
-    private var formattedDuration: String? {
-        guard let seconds = todo.estimatedDuration, seconds > 0 else { return nil }
-        return Duration.seconds(seconds)
-            .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
-    }
-
-    var body: some View {
-        Group {
-            LabeledContent(.copy("Created")) {
-                Text(todo.createdAt.formatted(date: .abbreviated, time: .shortened))
-            }
-            LabeledContent(.copy("Modified")) {
-                Text(todo.modifiedAt.formatted(date: .abbreviated, time: .shortened))
-            }
-            if let category = todo.category {
-                LabeledContent(.copy("Category")) {
-                    HStack {
-                        Circle()
-                            .fill(category.colorHex.flatMap(Color.init(hex:)) ?? Color.gray)
-                            .frame(width: 10, height: 10)
-                        Text(category.name)
-                    }
-                }
-            }
-            // WWDC 2026 で追加した属性 (所要時間 / 担当者 / 場所) を表示。
-            // 値は Created/Modified と同じく plain Text に揃える (Label を value に
-            // 置くと行が縦に間延びするため)。
-            if let formattedDuration {
-                LabeledContent(.copy("Estimated Duration")) {
-                    Text(formattedDuration)
-                }
-            }
-            if let assignee = todo.assigneeName, !assignee.isEmpty {
-                LabeledContent(.copy("Assignee")) {
-                    Text(assignee)
-                }
-            }
-            if let location = todo.locationName, !location.isEmpty {
-                LabeledContent(.copy("Location")) {
-                    Text(location)
-                }
-            }
-        }
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
     }
 }
 

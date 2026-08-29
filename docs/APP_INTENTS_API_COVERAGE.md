@@ -31,7 +31,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `AppIntent` | アクションの宣言 | ✅ | Intent ファイル 25 本。全アクションがここを通る |
 | `@Parameter` | Siri / Shortcuts に見せる入力 | ✅ | 22 ファイルで使用 |
 | `@Parameter(requestValueDialog:)` | 値を聞くときの文言 | ⬜ | 非 optional はシステムが自動で聞き返すため未使用。文言を作り込むなら候補 |
-| `ParameterSummary` / `Summary` / `When` / `Switch` | Shortcuts エディタでのパラメータ表示 | ✅ | 16 ファイル。条件分岐（`When`）まで使用 |
+| `ParameterSummary` / `Summary` / `When` / `Switch` | Shortcuts エディタでのパラメータ表示 | ✅ | 16 ファイル。条件分岐（`When`）まで使用。**summary は表示の allowlist**なので、Intent が変えられるパラメータは trailing ブロックまで含めて全部載せる（`AGENTS.md` 参照） |
 | `IntentDescription` | 説明・カテゴリ・検索キーワード | ✅ | 24 ファイル |
 | `IntentDescription.resultValueName` | 戻り値のマジック変数名 | ✅ | `TodoEntityQuery` / `CategoryEntityQuery` |
 | `IntentDescription.assistantOnly` | Shortcuts に出さず Apple Intelligence 専用にする | ⏸ | 隠したい Intent は `isDiscoverable = false` で足りている |
