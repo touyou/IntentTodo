@@ -34,6 +34,46 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
+               BlueprintIdentifier = "DomainTests"
+               BuildableName = "DomainTests"
+               BlueprintName = "DomainTests"
+               ReferencedContainer = "container:Packages/Domain">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "RepositoryTests"
+               BuildableName = "RepositoryTests"
+               BlueprintName = "RepositoryTests"
+               ReferencedContainer = "container:Packages/Repository">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "TodoAppIntentsTests"
+               BuildableName = "TodoAppIntentsTests"
+               BlueprintName = "TodoAppIntentsTests"
+               ReferencedContainer = "container:Packages/TodoAppIntents">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "UITests"
+               BuildableName = "UITests"
+               BlueprintName = "UITests"
+               ReferencedContainer = "container:Packages/UI">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
                BlueprintIdentifier = "46AFC0F22F34F72800444306"
                BuildableName = "IntentTodoUITest.xctest"
                BlueprintName = "IntentTodoUITest"
