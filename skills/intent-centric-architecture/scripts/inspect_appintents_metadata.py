@@ -300,9 +300,10 @@ def run_checks(bundles: list[Bundle]) -> list[Check]:
             ))
 
         # Entity / enum schemas, unlike actions, can be *silently dropped* while the type
-        # itself survives. When one input declares `Foo` with a schema and another declares
-        # the same mangled type name without one (a `#if os(...)` fallback for a platform
-        # where the schema is unavailable), the schema-less shape wins the merge.
+        # itself survives. The merge keys entries by unqualified type name and the last input
+        # wins, so when one input declares `Foo` with a schema and a later one declares `Foo`
+        # without it (a `#if os(...)` fallback for a platform where the schema is unavailable),
+        # the fallback replaces the schema-bearing record wholesale — schemas and properties both.
         pkg_schemas: dict[tuple[str, str], str] = {}
         for pkg in bundles:
             if pkg.is_package and config_for(pkg.path) == cfg:
@@ -321,7 +322,7 @@ def run_checks(bundles: list[Bundle]) -> list[Check]:
                 "when the same type is declared twice behind a `#if` (schema variant + plain fallback for "
                 "a platform where the schema is unavailable) and both shapes reach one merge, e.g. an iOS "
                 "app that embeds a watchOS app. Give the fallback a distinct type name (plus a typealias) "
-                "so the mangled names no longer collide.",
+                "so the type names no longer collide. Reported to Apple as FB24570185.",
             ))
 
     # The same finding usually repeats across build configurations; report it once.

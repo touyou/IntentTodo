@@ -738,8 +738,9 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
 
   経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 - **フォールバック側の型名は本体と変える（`WatchCategoryAppEntity` / `WatchTodoListType`）**。同じ
-  mangled type name にスキーマ付きの形とスキーマ無しの形が両方存在すると、**アプリの統合
-  `Metadata.appintents` へのマージで「情報が少ない方」が勝つ**。iOS アプリは watchOS アプリを
+  型名のエントリが 2 つあると、**アプリの統合 `Metadata.appintents` へのマージで
+  「ファイルリストの後ろにある方」が前を丸ごと置き換える**（キーはモジュール名を含まない型名。
+  優劣はスキーマの有無ではなく入力順で、Xcode の生成順では watchOS が必ず最後）。iOS アプリは watchOS アプリを
   `IntentTodo.app/Watch/` に埋め込むため、iOS の出荷メタデータから `reminders.ListEntity` /
   `reminders.ListType` が消え、`properties` も 0 件になる。型名を分ければ 2 エントリが共存し、
   スキーマは残る（代償は iOS 側メタデータに `WatchCategoryAppEntity` が 1 件増えること）。
@@ -1231,9 +1232,11 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   出すことにもなる。2026-08-29 に一度採ったが撤去した
 - **公開 API での抜け道は無い**。`AppSchema.Entity("ListEntity")` を自前で組めれば済むが、
   `init(_:)` は `@usableFromInline internal`
-- **適合を `#if` で切って型名を共有してはいけない**。同じ mangled name にスキーマ有り / 無しの
-  2 形が居ると、iOS アプリの統合メタデータへの merge でスキーマ無し側が勝つ（#49 と同じ衝突を
-  2026-08-29 に 2 度実測）。**型名を分ける**のが正
+- **適合を `#if` で切って型名を共有してはいけない**。同じ型名のエントリが 2 つ居ると、iOS アプリの
+  統合メタデータへの merge で**後の入力（= 常に watchOS スライス）が前を丸ごと置き換える**。
+  スキーマだけでなくプロパティも落ちる（`TodoAppEntity` は 20 → 10）。#49 と同じ衝突を
+  2026-08-29 に 2 度実測し、2026-08-30 に処理器を直接叩いて順序依存まで確認した
+  （Apple 報告済み: FB24570185 / #57）。**型名を分ける**のが正
 - **`Transferable` / `URLRepresentableEntity` は具象型名で宣言する**。const 抽出（swiftconstvalues）で
   読まれるため `typealias` 越しの extension だと watchOS スライスで
   `The property 'transferRepresentation' must be static, have a compile-time constant value, and

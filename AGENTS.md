@@ -755,8 +755,12 @@ App Schema は「その Siri に語彙を渡す」仕組みなので、Siri が�
 （Xcode が自動生成する `IntentTodo.DependencyMetadataFileList` / `DependencyStaticMetadataFileList` に
 `Debug-watchsimulator/...` が並ぶ。こちらが書くファイルではない）。この 2 つが組み合わさるため:
 
-- **同じ mangled type name にスキーマ有り / 無しの 2 形があると、スキーマ無し側が勝つ。**
-  iOS の出荷メタデータから `reminders.ReminderEntity` が**静かに消える**（ビルドは緑）
+- **同じ型名のエントリが並ぶと、ファイルリストの後ろにあるものが前を丸ごと置き換える。**
+  突き合わせキーは mangled name ではなく**モジュール名を含まない型名**で、優劣は
+  スキーマの有無ではなく**入力順**（後勝ち）。Xcode の生成するリストはパス順なので
+  `Debug-iphonesimulator` < `Debug-watchsimulator` で **watchOS スライスが必ず最後に来て勝つ**。
+  結果、iOS の出荷メタデータから `reminders.ReminderEntity` が**静かに消え**、`TodoAppEntity` の
+  プロパティも 20 → 10 に減る（ビルドは緑・診断ゼロ）。Apple 報告済み（**FB24570185**、追跡は **#57**）
 - したがって **watchOS には別の型名を与える**（`WatchTodoAppEntity` / `WatchCategoryAppEntity` /
   `WatchTodoListType` / `WatchTodoLocationTriggerEvent` + `typealias`）。マクロ付き宣言は `#if` で
   分割できないので、型を 2 系統で書く
@@ -852,8 +856,7 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/presentation/` - 登壇・発表用のスライド骨子と想定スクリプト（① WWDC 時系列での基本説明 / ② 実践で見えた制約と工夫）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
 - **GitHub issues** - これからやること。#30 実機検証チェックリスト / #57 GM SDK 到来時の棚卸し /
-  #67 登壇準備 / #68 未採用 API の消化 / #84 パッケージのユニットテストがスキームから外れている /
-  #86 App Schema と watch ターゲットの両立（Feedback 起票）
+  #67 登壇準備 / #68 未採用 API の消化 / #84 パッケージのユニットテストがスキームから外れている
 - `~/Developer/Private/wwdc26-app-intents-samples/` - WWDC26 App Intents 公式サンプル 4 本（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）。**リポジトリ外に置く**（`docs/` 配下だと Xcode がサンプルの `.xcodeproj` を `project.pbxproj` へ書き込む）。取得元と突き合わせ結果は `docs/insights/03-app-intents-core.md` の Phase 9
 
 ## 設計思想の背景

@@ -7,7 +7,7 @@
 > 作成: 2026-06-10 / 検証ブランチ: `xcode27`（27 世代ベータ SDK 用、**2026-08-27 に `main` へマージ済み**。以降の作業は `main`）
 >
 > **このファイルは「何をどこまで検証したか」の記録**。これからやることは GitHub issue に置く
-> （実機検証 = #30 / GM SDK 棚卸し = #57 / 未採用 API の消化 = #68 / スキーマと watch の両立 = #86）。
+> （実機検証 = #30 / GM SDK 棚卸し = #57 / 未採用 API の消化 = #68）。
 > API ごとの採用状況は [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) を参照。
 
 ---
@@ -140,11 +140,12 @@
   - **watchOS / tvOS には App Schema が存在しない**（全 23 ドメインが `@available(..., unavailable)`。
     新 Siri の提供範囲＝iPhone / iPad / Mac / visionOS と一致）。`reminders` 固有の制限ではないので
     ドメインを変えても回避できない。一方 iOS アプリのメタデータには watchOS スライスがマージされ、
-    同じ mangled name にスキーマ有無の 2 形があるとスキーマ無し側が勝つため、**watch 用は別型名**にする
+    同じ型名のエントリは後の入力（= 常に watchOS）が前を丸ごと置き換えるため、**watch 用は別型名**にする
     （`WatchTodoAppEntity` / `WatchCategoryAppEntity` / `WatchTodoListType` /
     `WatchTodoLocationTriggerEvent`、`TodoLocationTriggerAppEntity` は watch に置かない）。
     `ShowTodoSearchResultsIntent`（`.system.searchInApp`, #47）は watch に遷移先が無いので除外。
-    この組み合わせが成立しないこと自体は Apple へ報告する（#86）。
+    この組み合わせが成立しないこと自体は Apple へ報告済み（**FB24570185**、2026-08-30 提出。追跡は #57。
+    提出内容: `docs/feedback/2026-08-30-app-schema-watch-metadata-merge.md`）。
     経緯: `docs/devlog/2026-08-29-schema-vs-watch-target.md`
 
 - **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
