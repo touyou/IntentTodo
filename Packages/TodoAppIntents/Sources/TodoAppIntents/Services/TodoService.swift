@@ -132,6 +132,7 @@ public final class TodoService {
         defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
         item.isCompleted.toggle()
+        syncCompletionDate(item)
         item.modifiedAt = Date()
         try repository.update(item)
         let entity = TodoAppEntity(from: item)
@@ -151,6 +152,7 @@ public final class TodoService {
         let item = try resolve(todoId: todoId)
         if item.isCompleted != isCompleted {
             item.isCompleted = isCompleted
+            syncCompletionDate(item)
             item.modifiedAt = Date()
             try repository.update(item)
             reindexSpotlight(TodoAppEntity(from: item))
@@ -164,6 +166,15 @@ public final class TodoService {
     @discardableResult
     public func markCompleted(todoId: String) throws -> TodoAppEntity {
         try setCompletion(todoId: todoId, isCompleted: true)
+    }
+
+    /// 完了状態を変えたら `completionDate` を合わせる。
+    ///
+    /// `.reminders.reminder` スキーマは `isCompleted` と `completionDate` を別々に要求する。
+    /// 2 つを独立に持つとずれるので、完了状態を触る経路（トグル / 絶対値セット / 最急トグル）は
+    /// 必ずここを通す。復元（`restore(_:)`）は snapshot の値をそのまま戻すので通さない。
+    private func syncCompletionDate(_ item: TodoItem) {
+        item.completionDate = item.isCompleted ? Date() : nil
     }
 
     public func toggleFavorite(todoId: String) throws -> TodoAppEntity {
@@ -293,6 +304,7 @@ public final class TodoService {
         let title = item.title
         let id = item.id.uuidString
         item.isCompleted.toggle()
+        syncCompletionDate(item)
         item.modifiedAt = Date()
         try repository.update(item)
         reindexSpotlight(TodoAppEntity(from: item))

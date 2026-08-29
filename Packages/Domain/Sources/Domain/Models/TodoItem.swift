@@ -65,6 +65,39 @@ public final class TodoItem {
     /// Longitude of the associated location, if any.
     public var locationLongitude: Double?
 
+    /// The date the todo was completed, if it has been.
+    ///
+    /// `.reminders.reminder` スキーマが `completionDate` を要求する。完了トグルのたびに
+    /// `TodoService` が更新する（`isCompleted` と独立に持たないと「いつ終わったか」が出せない）。
+    public var completionDate: Date?
+
+    /// Free-form tags.
+    ///
+    /// スキーマは `Set<String>` を要求するが、SwiftData / CloudKit 互換のため `[String]` で
+    /// 持ち、entity 境界で `Set` に変換する。既定値ありなので軽量マイグレーションで済む。
+    public var tags: [String] = []
+
+    /// Links attached to the todo.
+    public var urls: [URL] = []
+
+    /// How often the todo repeats, if it does (`daily` / `weekly` / `monthly` / `yearly`).
+    ///
+    /// `Calendar.RecurrenceRule` を**直接 `@Model` プロパティにはできない**（コンパイルは
+    /// 通るが `ModelContainer` 生成時に SwiftData が schema の初期化で trap する。2026-08-29 実測）。
+    /// 場所や担当者と同じく CloudKit 互換の primitive で持ち、entity 境界（`TodoRecurrence`）で
+    /// `Calendar.RecurrenceRule` に組み直す。
+    /// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+    public var recurrenceFrequency: String?
+
+    /// How many frequency units sit between occurrences (2 + `weekly` = every other week).
+    public var recurrenceInterval: Int = 1
+
+    /// Whether arriving at or leaving `locationName` should trigger the todo.
+    ///
+    /// `.reminders.locationTrigger` の `event`（arrive / depart）に対応する raw value。
+    /// enum ではなく `String?` で持つのは CloudKit 互換のため。
+    public var locationTriggerEvent: String?
+
     /// The date when the todo item was created.
     public var createdAt: Date = Date()
 

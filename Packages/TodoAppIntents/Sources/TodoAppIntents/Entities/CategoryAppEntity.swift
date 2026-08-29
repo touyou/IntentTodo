@@ -93,6 +93,18 @@ public struct WatchCategoryAppEntity: AppEntity, Hashable {
     }
 }
 
+// watchOS では `.reminders` の**スキーマ名前空間シンボル**が unavailable なのでマクロは使えないが、
+// `AssistantSchemaEntity` / `AssistantSchemaEnum` プロトコル自体は watchOS でも available。
+// スキーマ識別子は文字列なので、マクロが生やすものを手書きすれば watchOS でも適合できる。
+// これが必要なのは `TodoAppEntity` の `.reminders.reminder` 適合が **サブエンティティ側にも
+// スキーマ適合を要求する**ため（`Property 'list' type does not match required
+// AppSchemaEntity property type 'ListEntity'`）。
+// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+extension WatchCategoryAppEntity: AssistantSchemaEntity {
+    // swiftlint:disable:next identifier_name
+    public static let __appSchemaEntity = "reminders.list"
+}
+
 /// Call sites use the shared name on every platform, so nothing outside this file
 /// needs a `#if`. Only the metadata sees the two names apart.
 public typealias CategoryAppEntity = WatchCategoryAppEntity
@@ -175,5 +187,35 @@ extension CategoryAppEntity {
         ) {
             DisplayRepresentation.Image(systemName: "folder")
         }
+    }
+}
+
+// MARK: - Uncategorized
+
+/// Declared outside the `#if` so both variants share one implementation.
+extension CategoryAppEntity {
+    /// The id the synthetic "uncategorized" list is published under.
+    ///
+    /// A fixed, non-UUID string so it can never collide with a real category (whose
+    /// ids are `UUID.uuidString`), and so `CategoryEntityQuery` can recognise it.
+    public static let uncategorizedID = "uncategorized"
+
+    /// The list shown for todos that have no category.
+    ///
+    /// `.reminders.reminder` requires a **non-optional** `list`, but
+    /// `TodoItem.category` is optional (CloudKit requires all relationships to be
+    /// optional). Rather than inventing a real stored category — which would show up
+    /// in the category list, be editable, and need migrating — todos without one are
+    /// presented as belonging to this synthetic list.
+    ///
+    /// The name is people-facing copy, so it goes through the main bundle like the
+    /// rest of the Intent copy (`TodoAppIntents` has no catalog of its own).
+    /// 詳細: docs/insights/03-app-intents-core.md
+    public static var uncategorized: CategoryAppEntity {
+        CategoryAppEntity(
+            id: uncategorizedID,
+            name: String(localized: "Uncategorized"),
+            type: .standard
+        )
     }
 }

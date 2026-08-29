@@ -44,6 +44,12 @@ public struct TodoItemSnapshot: Sendable, Equatable {
     public let createdAt: Date
     public let modifiedAt: Date
     public let sortIndex: Int
+    public let completionDate: Date?
+    public let tags: [String]
+    public let recurrenceFrequency: String?
+    public let recurrenceInterval: Int
+    public let urls: [URL]
+    public let locationTriggerEvent: String?
 
     /// 所属カテゴリの id。リレーションは値として持ち越せないので、復元時に引き直す。
     public let categoryID: UUID?
@@ -69,6 +75,12 @@ public struct TodoItemSnapshot: Sendable, Equatable {
         self.createdAt = item.createdAt
         self.modifiedAt = item.modifiedAt
         self.sortIndex = item.sortIndex
+        self.completionDate = item.completionDate
+        self.tags = item.tags
+        self.recurrenceFrequency = item.recurrenceFrequency
+        self.recurrenceInterval = item.recurrenceInterval
+        self.urls = item.urls
+        self.locationTriggerEvent = item.locationTriggerEvent
         self.categoryID = item.category?.id
         self.subTasks = (item.subTasks ?? [])
             .sorted { $0.orderIndex < $1.orderIndex }
@@ -107,6 +119,12 @@ public struct TodoItemSnapshot: Sendable, Equatable {
             modifiedAt: modifiedAt,
             sortIndex: sortIndex
         )
+        item.completionDate = completionDate
+        item.tags = tags
+        item.recurrenceFrequency = recurrenceFrequency
+        item.recurrenceInterval = recurrenceInterval
+        item.urls = urls
+        item.locationTriggerEvent = locationTriggerEvent
         item.category = category
         item.subTasks = subTasks.map { snapshot in
             let subTask = SubTask(

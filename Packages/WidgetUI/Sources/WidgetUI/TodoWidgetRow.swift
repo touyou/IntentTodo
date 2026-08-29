@@ -39,7 +39,7 @@ struct TodoWidgetRow: View {
 
             Spacer()
 
-            if let dueDate = todo.dueDate, !compact {
+            if let dueDate = todo.dueDateValue, !compact {
                 DueDateBadge(date: dueDate, isCompleted: todo.isCompleted)
             }
         }
