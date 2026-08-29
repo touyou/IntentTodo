@@ -731,22 +731,53 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 | **意図的不使用** | `DynamicOptionsProvider` / `IntentParameterDependency` / `EntityPropertyQuery` / `.foreground(.dynamic)`（#55）/ UI タップ由来の donation（#53）/ `SpotlightSearchTool`（#52） |
 | **未採用候補** | `.controlWidgetStatus(_:)` / `Toggle(isOn:intent:)` / `RelevantIntent` / `AudioPlaybackIntent`（#68） |
 
-#### watchOS では assistant schema が使えない（フォールバックが必要）
+#### App Schema は watchOS / tvOS に存在しない（型を 2 系統に分ける）
 
-`reminders` / `system` ドメインの assistant schema は watchOS で unavailable（Xcode 27 beta 6 時点。
-GM での再確認は #57）。`TodoAppIntents` は watchOS でもコンパイルされるので次の形で回避している。
+**`AppSchema` の全 23 ドメインが watchOS / tvOS で `@available(..., unavailable)`。** `reminders` 固有の
+制限ではないので、**ドメインを変えても回避できない**。理由は提供範囲そのもので、WWDC 2026
+Apple Intelligence Group Lab (`35:34`) が明言している。
 
-- `CategoryAppEntity`（`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)` で
-  素の `AppEntity` / `AppEnum` にフォールバック。マクロ付き宣言は `#if` で分割できないので**型を 2 系統で全書き**する
-- **フォールバック側は型名も変える**（`WatchCategoryAppEntity` / `WatchTodoListType` + `typealias`）。
-  同じ mangled type name にスキーマ付き / 無しの 2 形が居ると、iOS アプリの統合メタデータへのマージで
-  スキーマ無し側が勝ち、出荷メタデータから `reminders.ListEntity` が**消える**
-- **フォールバック側には `@Property(title:)` も明示する**（マクロ変種はマクロが生成するが、素の `AppEntity` は 0 件になる）
+> The new Siri AI is available on iPhone, iPad, Mac, and visionOS.
+
+App Schema は「その Siri に語彙を渡す」仕組みなので、Siri が居ないプラットフォームには無い
+（`assistant` は iOS 限定、`visualIntelligence` は visionOS も除外、と提供範囲を正確になぞっている）。
+
+一方 **iOS アプリの `appintentsmetadataprocessor` には watchOS スライスのメタデータが入力として渡る**
+（Xcode が自動生成する `IntentTodo.DependencyMetadataFileList` / `DependencyStaticMetadataFileList` に
+`Debug-watchsimulator/...` が並ぶ。こちらが書くファイルではない）。この 2 つが組み合わさるため:
+
+- **同じ mangled type name にスキーマ有り / 無しの 2 形があると、スキーマ無し側が勝つ。**
+  iOS の出荷メタデータから `reminders.ReminderEntity` が**静かに消える**（ビルドは緑）
+- したがって **watchOS には別の型名を与える**（`WatchTodoAppEntity` / `WatchCategoryAppEntity` /
+  `WatchTodoListType` / `WatchTodoLocationTriggerEvent` + `typealias`）。マクロ付き宣言は `#if` で
+  分割できないので、型を 2 系統で書く
+- **フォールバック側には `@Property(title:)` と `typeDisplayRepresentation` を明示する**
+  （スキーマ変種はマクロとプロトコル default が供給するが、素の `AppEntity` は 0 件になる）
+- **フォールバック側はスキーマ要求プロパティを持たない**。`note` / `creationDate` / `isFlagged` /
+  `list` / `dueDate`(DateComponents) / `completionDate` / `tags` / `urls` / `recurrence` /
+  `locationTrigger` はスキーマのための綴りなので、スキーマが無い側には要らない
+- スキーマ側にしか要らない型（`TodoLocationTriggerAppEntity`）は**ファイルごと `#if !os(watchOS)`**。
+  参照されないフォールバックを置くと watch のメタデータに死んだ entity が並ぶだけ
 - `ShowTodoSearchResultsIntent`（`.system.searchInApp`）は watchOS に検索遷移先が無いため `#if !os(watchOS)` で除外
 - `.visualIntelligence.*` は `#if canImport(VisualIntelligence)` で保護済み
 
-> どちらの事故も**ビルド緑で通る**。検出は `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`
-> でメタデータを直接見る。経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md)
+> **`__appSchemaEntity` / `__appSchemaEnum` を手書きして watchOS でも適合させてはいけない。**
+> これはプロトコル要求ですらなく（`AssistantSchemaEntity` は空のプロトコル）、マクロとメタデータ
+> 抽出器の間の**非公開の申し合わせ**。Apple のガイダンスもアンダースコア始まりのシンボルの使用を
+> 禁じている。加えて、スキーマという機能が存在しないプラットフォームに「この型は
+> `reminders.ReminderEntity` です」と主張するメタデータを出すことになり、内容としても誤り。
+> 一度この形を採ったが撤去した。経緯: [docs/devlog/2026-08-29-schema-vs-watch-target.md](docs/devlog/2026-08-29-schema-vs-watch-target.md)
+>
+> **`Transferable` / `URLRepresentableEntity` は `typealias` 越しに書けない。** 宣言が const 抽出
+> （swiftconstvalues）で読まれるため、`extension TodoAppEntity: Transferable`（`TodoAppEntity` が
+> watchOS では typealias）と書くと watchOS スライスの抽出が
+> `The property 'transferRepresentation' must be static, have a compile-time constant value, and
+> cannot be computed or dynamic` で落ちる。**具象型名で宣言する**。
+>
+> どの事故も**ビルド緑で通る**。検出は `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`
+> でメタデータを直接見る。要約表では重複に気づけないので、スキーマを主張する型が 1 つずつかも確認する。
+> 経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md) /
+> [docs/devlog/2026-08-29-schema-vs-watch-target.md](docs/devlog/2026-08-29-schema-vs-watch-target.md)
 
 ## 開発フロー（TDD）
 
