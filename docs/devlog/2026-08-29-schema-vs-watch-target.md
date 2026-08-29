@@ -156,9 +156,59 @@ have a compile-time constant value, and cannot be computed or dynamic
 
 ## 5. 残したこと
 
-- **Feedback を起票する**（追跡: **#86**）。「App Schema が watchOS に無い」ことと「埋め込んだ watch アプリの
+- **Feedback を起票する**（→ 2026-08-30 に **FB24570185** で提出。提出内容:
+  [docs/feedback/2026-08-30-app-schema-watch-metadata-merge.md](../feedback/2026-08-30-app-schema-watch-metadata-merge.md)、
+  以降の追跡は #57、#86 はクローズ）。「App Schema が watchOS に無い」ことと「埋め込んだ watch アプリの
   メタデータが iOS アプリにマージされる」ことが組み合わさると、**共有 entity を持つアプリは型を
   二重定義しない限りどのスキーマにも適合できない**。しかも無言で壊れる
 - watch の Shortcuts からは、スキーマ要求プロパティ（`tags` / `urls` / `recurrence` /
   `locationTrigger` / `completionDate` など）が見えなくなった。watch にフォームは無く
   読み取り経路も無かったので実害はないが、必要になったら watch 側の型に足す
+
+## 6. 2026-08-30: 提出前の再検証（FB24570185）
+
+「本当に妥当なリクエストになっているか」を確かめるため、SDK / ビルド成果物 / 公式ドキュメントを
+独立に当たり直し、さらに **`appintentsmetadataprocessor` を直接叩いて最小再現**を取った
+（入力の actionsdata だけを変え、他は実ビルドの引数をそのまま使う）。**結論は変わらず**、
+4 節の対処もそのままでよい。ただし **3 節のメカニズムの記述が 2 箇所ぶん狭かった**。
+
+### 直した理解
+
+| 3 節までの書き方 | 実測でわかったこと |
+|---|---|
+| 同じ **mangled name** に 2 形があると衝突する | 突き合わせキーは **モジュール名を含まない型名**。キーだけ衝突させて mangled name を watch のまま残すと、iOS の出荷メタデータに **iOS バイナリに存在しない型の mangled name** が残った（シンボル同一性で照合していない）。別モジュールで同名 entity を作っても衝突する |
+| **スキーマ無し側が勝つ** | 勝敗はスキーマの有無ではなく**入力順の後勝ち**。同じ入力の順序を逆にすると（watch を先に置くと）スキーマは残る。Xcode の生成するファイルリストはパス順で `Debug-iphonesimulator` < `Debug-watchsimulator` なので、**watchOS が構造的に必ず最後**に来て必ず勝つ |
+| 失われるのは **スキーマ** | エントリが**丸ごと**置き換わる。`TodoAppEntity` のプロパティが **20 → 10**（`note` / `dueDate` / `tags` / `urls` / `recurrence` / `locationTrigger` / `completionDate` / `creationDate` / `isFlagged` / `list` が消える）。enum も `TodoListType` / `TodoLocationTriggerEvent` がスキーマを失う |
+
+実測（Xcode 27.0 beta 6 / 27A5252f、入力以外は固定）:
+
+| run | 入力 | `TodoAppEntity` | `CategoryAppEntity` |
+|---|---|---|---|
+| control | 現行（watch 側は別型名） | `reminders.ReminderEntity` / 20 プロパティ | `reminders.ListEntity` |
+| collision | watch スライスが同じ型名を宣言 | **`[]` / 10 プロパティ** | **`[]`** |
+| collision（順序逆） | 同じ入力で watch を先に置く | `reminders.ReminderEntity` | `reminders.ListEntity` |
+
+`--force-metadata-output` の有無に関わらず exit 0、警告ゼロ。`TodoLocationTriggerAppEntity`
+（watch に対応型が無い）はどの run でもスキーマを保っていて、衝突していない型は無傷だと確認できた。
+
+### 追加で裏が取れたこと
+
+- **23 ドメイン全部が watchOS / tvOS で unavailable**（beta 6 の iPhoneOS / MacOSX / WatchOS /
+  AppleTVOS / XROS の swiftinterface を走査。例外ゼロ）。1 節の再確認
+- **公式ドキュメントの availability も一致**。`AppSchema.RemindersEntity` は iOS / iPadOS /
+  Mac Catalyst / macOS / visionOS 27.0 のみで watchOS の記載が無い
+- **公開の回避手段は無い**。`LM_*`（`AppIntentsMetadata.xcspec`）はファイルリストの**パスごと**
+  差し替えるもので、入力を 1 件ずつ除外する形にはなっていない（かつ非公開）
+- **swift-build（オープンソース）側にもプラットフォームのフィルタは無い**。
+  `AppIntentsMetadataTaskProducer` は依存を辿って `extract.actionsdata` のパスを集めるだけ
+- Xcode 27 が同梱している Apple 自身のガイダンス（`IDEIntelligenceChat` の
+  `app-intents-whats-new-27-ref-schema-adoption`）も「ドメインは watchOS / tvOS で unavailable」と
+  書いているが、**複数ターゲットのマージには触れていない**
+
+### 教訓
+
+**「スキーマ無しが勝つ」は観測から一段飛んだ推論だった。** 実際は順序で決まっていて、たまたま
+watch が最後に来るだけ。要望の書き方も「union を取れ」より
+「**後のエントリが前を丸ごと消さないこと** / 消えるなら診断を出すこと」のほうが的を射る。
+[06-control-widget-ios26.md](06-control-widget-ios26.md) の教訓（呼出元だけ変えて比べる）と同じで、
+**変える要素を 1 つに絞った比較**でしかメカニズムは決まらない。

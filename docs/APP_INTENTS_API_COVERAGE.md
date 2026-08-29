@@ -249,7 +249,8 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 5. visionOS ウィジェット強化（`supportedMountingStyles` / `widgetTexture` / `levelOfDetail`）
 6. `AudioPlaybackIntent` — 「この Todo をやる間これを流す」。未採用の Intent 種別
 
-ブロック中のものは #57（GM SDK 棚卸し）/ #86（App Schema と watch ターゲットの両立）。
+ブロック中のものは #57（GM SDK 棚卸し）。App Schema と watch ターゲットの両立は Apple 報告済みで
+#57 にぶら下げた（FB24570185 / `docs/feedback/2026-08-30-app-schema-watch-metadata-merge.md`）。
 
 `ShortcutsLink` はこのリストから外した（採用済み。置き場は設定画面）。
 経緯: [docs/devlog/04-ui-integration.md](devlog/04-ui-integration.md)（2026-08-28 の Siri Tip / ShortcutsLink の置き場）
