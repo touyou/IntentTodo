@@ -733,7 +733,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 
 #### App Schema は watchOS / tvOS に存在しない（型を 2 系統に分ける）
 
-**`AppSchema` の全 20 ドメインが watchOS / tvOS で `@available(..., unavailable)`。** `reminders` 固有の
+**`AppSchema` の全 23 ドメインが watchOS / tvOS で `@available(..., unavailable)`。** `reminders` 固有の
 制限ではないので、**ドメインを変えても回避できない**。理由は提供範囲そのもので、WWDC 2026
 Apple Intelligence Group Lab (`35:34`) が明言している。
 
@@ -767,13 +767,13 @@ App Schema は「その Siri に語彙を渡す」仕組みなので、Siri が�
 > 禁じている。加えて、スキーマという機能が存在しないプラットフォームに「この型は
 > `reminders.ReminderEntity` です」と主張するメタデータを出すことになり、内容としても誤り。
 > 一度この形を採ったが撤去した。経緯: [docs/devlog/2026-08-29-schema-vs-watch-target.md](docs/devlog/2026-08-29-schema-vs-watch-target.md)
-
+>
 > **`Transferable` / `URLRepresentableEntity` は `typealias` 越しに書けない。** 宣言が const 抽出
 > （swiftconstvalues）で読まれるため、`extension TodoAppEntity: Transferable`（`TodoAppEntity` が
 > watchOS では typealias）と書くと watchOS スライスの抽出が
 > `The property 'transferRepresentation' must be static, have a compile-time constant value, and
 > cannot be computed or dynamic` で落ちる。**具象型名で宣言する**。
-
+>
 > どの事故も**ビルド緑で通る**。検出は `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`
 > でメタデータを直接見る。要約表では重複に気づけないので、スキーマを主張する型が 1 つずつかも確認する。
 > 経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md) /

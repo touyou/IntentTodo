@@ -22,7 +22,7 @@ SDK とビルドログまで降りて確かめた記録。
 `#83` 以降ずっと「`reminders` ドメインの assistant schema は watchOS で unavailable」と書いてきた。
 これは嘘ではないが、読んだ人が「では別ドメインなら？」と考えてしまう書き方だった。
 
-SDK の swiftinterface を全数走査した結果:
+SDK の swiftinterface を全数走査した結果、**23 ドメインすべて**が非対応:
 
 | ドメイン | watchOS | tvOS |
 |---|---|---|

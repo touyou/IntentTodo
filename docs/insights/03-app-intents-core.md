@@ -724,7 +724,7 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
 - **小スキーマは素直**: `CategoryAppEntity` を `@AppEntity(schema: .reminders.list)` に適合（`id` / `name` /
   `type: TodoListType`）、`TodoListType` を `@AppEnum(schema: .reminders.listType)` に。マクロが
   `typeDisplayRepresentation` を生成するので手書きは削除、`Hashable` はマクロ backing が非 Hashable のため明示実装。
-- **落とし穴（watchOS / tvOS 非対応）**: **`AppSchema` の全 20 ドメインが watchOS / tvOS で
+- **落とし穴（watchOS / tvOS 非対応）**: **`AppSchema` の全 23 ドメインが watchOS / tvOS で
   `@available(..., unavailable)`**（Xcode 27 beta 6 の SDK swiftinterface を全数確認）。`reminders`
   固有ではないので**ドメインを変えても回避できない**。App Schema は新しい Siri に語彙を渡す仕組みで、
   その Siri が iPhone / iPad / Mac / visionOS にしか無いため（WWDC 2026 Apple Intelligence Group Lab
@@ -1205,7 +1205,7 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   こちらは検索 UI へ **遷移** する。スキーマの意味（"take the person to search results"）が異なるため統合せず別 Intent にした。
 - 低優先項目（#47）: `OwnershipProvidingEntity`（shared/public/private の出し分け）/ `$param.requestValue`（perform 途中の聞き返し）
   は個人利用主体では優先度低として **未採用**（必要時に追加）。
-- **落とし穴（watchOS 非対応）**: `.system` ドメインも他の 19 ドメインと同様 **watchOS で unavailable**
+- **落とし穴（watchOS 非対応）**: `.system` ドメインも他の 22 ドメインと同様 **watchOS で unavailable**
   （`'system' is unavailable in watchOS` / `'search' is unavailable in watchOS`）。watch アプリには検索遷移先の UI が
   無いため、`ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外した（`NavigationModel` / `TodoListView`
   からの参照はコメントのみで実害なし）。`.visualIntelligence.*`（#297）は `#if canImport(VisualIntelligence)` ガード
