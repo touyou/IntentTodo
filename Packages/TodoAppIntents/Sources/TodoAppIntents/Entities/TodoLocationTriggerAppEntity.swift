@@ -3,6 +3,14 @@
 //  TodoAppIntents
 //
 
+// この型は `.reminders.reminder` の `locationTrigger` を満たすためだけに存在する。
+// App Schema は watchOS に無く、watchOS 版の `TodoAppEntity`（`WatchTodoAppEntity`）は
+// `locationTrigger` を持たないので、**ファイルごと非 watchOS に閉じる**。
+// watchOS 用のフォールバック型を置くと、何からも参照されない entity が watch の
+// メタデータに並ぶだけになる。
+// 経緯: docs/devlog/2026-08-29-schema-vs-watch-target.md
+#if !os(watchOS)
+
 import AppIntents
 import Domain
 import Foundation
@@ -18,49 +26,6 @@ import SwiftData
 /// primitives (`locationName` / `locationLatitude` / `locationLongitude`) plus
 /// `locationTriggerEvent`, so **its `id` is the owning todo's id**. That keeps the
 /// query resolvable without a second store.
-///
-/// watchOS falls back to a plain `AppEntity` under a distinct type name, for the
-/// same reason as `WatchCategoryAppEntity` (a single mangled name carrying both a
-/// schema and a schema-less shape lets the merge into the iOS app's unified
-/// metadata drop the schema).
-/// 詳細: docs/insights/03-app-intents-core.md
-#if os(watchOS)
-public struct WatchTodoLocationTriggerAppEntity: AppEntity {
-    public static let typeDisplayRepresentation: TypeDisplayRepresentation = "Location Trigger"
-
-    public var id: String
-
-    @Property(title: "Place")
-    public var place: PlaceDescriptor
-
-    @Property(title: "Event")
-    public var event: TodoLocationTriggerEvent
-
-    public static var defaultQuery: TodoLocationTriggerEntityQuery {
-        TodoLocationTriggerEntityQuery()
-    }
-
-    public var displayRepresentation: DisplayRepresentation {
-        Self.makeDisplayRepresentation(place: place, event: event)
-    }
-
-    public init(id: String, place: PlaceDescriptor, event: TodoLocationTriggerEvent) {
-        self.id = id
-        self.place = place
-        self.event = event
-    }
-}
-
-
-// スキーマ識別子は文字列なので watchOS でも手書きで適合できる。
-// 詳細: CategoryAppEntity の同名 extension のコメント
-extension WatchTodoLocationTriggerAppEntity: AssistantSchemaEntity {
-    // swiftlint:disable:next identifier_name
-    public static let __appSchemaEntity = "reminders.locationTrigger"
-}
-
-public typealias TodoLocationTriggerAppEntity = WatchTodoLocationTriggerAppEntity
-#else
 @AppEntity(schema: .reminders.locationTrigger)
 public struct TodoLocationTriggerAppEntity {
     public var id: String
@@ -81,9 +46,8 @@ public struct TodoLocationTriggerAppEntity {
         self.event = event
     }
 }
-#endif
 
-// MARK: - Shared helpers
+// MARK: - Helpers
 
 extension TodoLocationTriggerAppEntity {
     /// Builds a trigger from a todo's stored primitives, or `nil` when the todo has
@@ -157,3 +121,5 @@ public struct TodoLocationTriggerEntityQuery: EntityQuery {
             .compactMap { TodoLocationTriggerAppEntity.make(from: $0) }
     }
 }
+
+#endif

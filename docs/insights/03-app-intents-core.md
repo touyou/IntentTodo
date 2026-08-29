@@ -724,9 +724,11 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
 - **小スキーマは素直**: `CategoryAppEntity` を `@AppEntity(schema: .reminders.list)` に適合（`id` / `name` /
   `type: TodoListType`）、`TodoListType` を `@AppEnum(schema: .reminders.listType)` に。マクロが
   `typeDisplayRepresentation` を生成するので手書きは削除、`Hashable` はマクロ backing が非 Hashable のため明示実装。
-- **落とし穴（watchOS 非対応）**: `reminders` ドメインの assistant schema は **watchOS で unavailable**
-  （`'reminders' is unavailable in watchOS` / `'list' is unavailable in watchOS`。Xcode 27 beta 6 でも
-  watchOS SDK の swiftinterface に `@available(watchOS, unavailable)` が残っていることを確認済み）。
+- **落とし穴（watchOS / tvOS 非対応）**: **`AppSchema` の全 20 ドメインが watchOS / tvOS で
+  `@available(..., unavailable)`**（Xcode 27 beta 6 の SDK swiftinterface を全数確認）。`reminders`
+  固有ではないので**ドメインを変えても回避できない**。App Schema は新しい Siri に語彙を渡す仕組みで、
+  その Siri が iPhone / iPad / Mac / visionOS にしか無いため（WWDC 2026 Apple Intelligence Group Lab
+  `35:34`）。
   `TodoAppIntents` は watchOS でもコンパイルされるため、`CategoryAppEntity`（`.reminders.list`）と
   `TodoListType`（`.reminders.listType`）を `#if os(watchOS)` で素の `AppEntity` / `AppEnum` にフォールバックした。
   **マクロ付き宣言は `#if` で頭（属性＋宣言行）と本体を分割できない**（`Expected '}' in struct` になる）ため、
@@ -1203,7 +1205,7 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   こちらは検索 UI へ **遷移** する。スキーマの意味（"take the person to search results"）が異なるため統合せず別 Intent にした。
 - 低優先項目（#47）: `OwnershipProvidingEntity`（shared/public/private の出し分け）/ `$param.requestValue`（perform 途中の聞き返し）
   は個人利用主体では優先度低として **未採用**（必要時に追加）。
-- **落とし穴（watchOS 非対応）**: `.system` ドメインのスキーマも **watchOS で unavailable**
+- **落とし穴（watchOS 非対応）**: `.system` ドメインも他の 19 ドメインと同様 **watchOS で unavailable**
   （`'system' is unavailable in watchOS` / `'search' is unavailable in watchOS`）。watch アプリには検索遷移先の UI が
   無いため、`ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外した（`NavigationModel` / `TodoListView`
   からの参照はコメントのみで実害なし）。`.visualIntelligence.*`（#297）は `#if canImport(VisualIntelligence)` ガード
@@ -1212,28 +1214,30 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
 
 ### reminder 本体スキーマ適合（#56、2026-08-29 に適合済み）
 
-`TodoAppEntity` は `@AppEntity(schema:)` マクロではなく**適合を手書き**している。
+`TodoAppEntity` は `@AppEntity(schema: .reminders.reminder)` マクロで適合し、**watchOS には
+スキーマ無しの別型 `WatchTodoAppEntity` を置く**（`typealias` で呼出名は共通）。
 
-```swift
-extension TodoAppEntity: AssistantSchemaEntity {
-    public static let __appSchemaEntity = "reminders.reminder"
-}
-```
-
-理由と守るべきルール:
+守るべきルール:
 
 - **親のスキーマ適合はサブエンティティの適合も要求する**。`list` / `locationTrigger` の型が
   スキーマ無しだと `Property 'list' type does not match required AppSchemaEntity property type
   'ListEntity'` で落ちる。つまり適合は `list` / `listType` / `locationTrigger` /
-  `locationTriggerEvent` を含む**サブグラフ全体**に及ぶ
-- **`AssistantSchemaEntity` / `AssistantSchemaEnum` プロトコルは watchOS でも available**。
-  watchOS で使えないのは `.reminders.reminder` のような**スキーマ名前空間シンボル**だけなので、
-  識別子を文字列で書けばマクロ無しで watchOS でも適合できる。watchOS フォールバック 4 型
-  （`WatchCategoryAppEntity` / `WatchTodoListType` / `WatchTodoLocationTriggerAppEntity` /
-  `WatchTodoLocationTriggerEvent`）にも同じ形で適合を足してある
-- **適合を `#if` で切ってはいけない**。同じ mangled name にスキーマ有り / 無しの 2 形が居ると、
-  iOS アプリの統合メタデータへの merge でスキーマ無し側が勝つ（#49 と同じ衝突を 2026-08-29 に実測）。
-  型名を分けないなら**全プラットフォームで同じ適合を宣言する**
+  `locationTriggerEvent` を含む**サブグラフ全体**に及ぶ。**watchOS 側にはこのサブグラフごと
+  持たせない**（スキーマが無いので要求も無い）
+- **`__appSchemaEntity` / `__appSchemaEnum` を手書きしない**。これは `AssistantSchemaEntity` の
+  プロトコル要求ですらなく（プロトコル本体は空）、マクロとメタデータ抽出器の間の**非公開の
+  申し合わせ**。Apple のガイダンスもアンダースコア始まりのシンボル使用を禁じている。
+  スキーマという機能が無いプラットフォームに `reminders.ReminderEntity` を主張するメタデータを
+  出すことにもなる。2026-08-29 に一度採ったが撤去した
+- **公開 API での抜け道は無い**。`AppSchema.Entity("ListEntity")` を自前で組めれば済むが、
+  `init(_:)` は `@usableFromInline internal`
+- **適合を `#if` で切って型名を共有してはいけない**。同じ mangled name にスキーマ有り / 無しの
+  2 形が居ると、iOS アプリの統合メタデータへの merge でスキーマ無し側が勝つ（#49 と同じ衝突を
+  2026-08-29 に 2 度実測）。**型名を分ける**のが正
+- **`Transferable` / `URLRepresentableEntity` は具象型名で宣言する**。const 抽出（swiftconstvalues）で
+  読まれるため `typealias` 越しの extension だと watchOS スライスで
+  `The property 'transferRepresentation' must be static, have a compile-time constant value, and
+  cannot be computed or dynamic` になる
 - スキーマ要求名（`note` / `creationDate` / `isFlagged` / `list`）は `@ComputedProperty` の
   別名で満たせるので、アプリ側の既存名はリネームしない。`dueDate` だけは型が衝突するので
   stored を `dueDateValue: Date?` にして `dueDate` を `DateComponents?` の computed にした

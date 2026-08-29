@@ -2,27 +2,57 @@
 //  TodoAppEntity.swift
 //  IntentTodo
 //
+//  非 watchOS 版（reminders スキーマ適合あり）の宣言と、const 抽出される適合
+//  （`Transferable` / `URLRepresentableEntity`）。watchOS 版は `WatchTodoAppEntity.swift`、
+//  両系統で共有する表示・クエリ・等価性は `TodoAppEntity+Shared.swift`。
+//
 
 import AppIntents
 import CoreTransferable
-#if canImport(CoreSpotlight)
-import CoreSpotlight
-#endif
 import Domain
+import Foundation
 import GeoToolbox
 import Repository
 import SwiftData
 
+// MARK: - なぜ 2 系統なのか
+//
+// `AppSchema` の**全 20 ドメインが watchOS / tvOS で `@available(..., unavailable)`**。
+// reminders 固有の制限ではなく、App Schema が「Apple Intelligence の新しい Siri に語彙を
+// 渡す」仕組みで、その Siri が iPhone / iPad / Mac / visionOS にしか無いため
+// （WWDC 2026 Apple Intelligence Group Lab 35:34 "The new Siri AI is available on iPhone,
+// iPad, Mac, and visionOS."）。ドメインを変えても回避できない。
+//
+// 一方 iOS アプリの `appintentsmetadataprocessor` には **watchOS スライスのメタデータが
+// 入力として渡る**（Xcode が自動生成する `IntentTodo.DependencyMetadataFileList` に
+// `Debug-watchsimulator/...` が並ぶ）。同じ mangled name にスキーマ有り / 無しの 2 形が
+// あると**スキーマ無し側が勝ち、iOS の出荷メタデータからスキーマが静かに消える**（実測）。
+//
+// したがって watchOS には**別の型名**を与えるしかない。`__appSchemaEntity` を手書きして
+// watchOS でも適合を宣言する手もあるが、これは
+//   ① `AssistantSchemaEntity` のプロトコル要求ですらない非公開シンボル（マクロと
+//      メタデータ抽出器の間の申し合わせ）で、Apple のガイダンスが使用を禁じている
+//   ② スキーマという機能自体が無いプラットフォームに「この型は reminders.ReminderEntity
+//      です」と主張するメタデータを出すことになり、内容としても誤り
+// の 2 点で採らない。
+//
+// 経緯: docs/devlog/2026-08-29-schema-vs-watch-target.md
+
+#if !os(watchOS)
+
 /// An App Intents entity representing a todo item.
 ///
-/// This entity is used in Siri, Shortcuts, and Spotlight to reference todo items.
+/// Conforms to the reminders `reminder` assistant schema so Siri / Apple Intelligence
+/// treat a todo as a reminder. The macro supplies the schema conformance; we supply the
+/// schema-required properties plus the app's own extras.
 ///
 /// Conforms to `SyncableEntity` (WWDC 2026 #345): `id` is the `TodoItem`'s UUID
 /// stringified, which is identical across a person's devices (SwiftData + CloudKit
 /// replicate the same record id). That stability lets the system refer to a todo
 /// consistently across devices — e.g. transferring a Siri conversation. No extra
 /// `SyncableEntityIdentifier` is needed because there is no separate local id.
-public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
+@AppEntity(schema: .reminders.reminder)
+public struct TodoAppEntity: Hashable, SyncableEntity {
     // MARK: - Properties
 
     /// The unique identifier for this entity.
@@ -30,12 +60,9 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
 
     // `indexingKey:` (WWDC 2026 #240) maps the property onto the Spotlight
     // semantic index via a `CSSearchableItemAttributeSet` key, so semantic search
-    // / Q&A can reason over the text. The overload carries
-    // `@available(watchOS, unavailable)` / `@available(tvOS, unavailable)` — matching
-    // the `IndexedEntity` extension below — so watchOS falls back to a plain
-    // `@Property`. 経緯: docs/devlog/2026-08-28-xcode27-beta6-recheck.md（visionOS を
-    // 除外していたのは誤りだった件）
-    #if os(iOS) || os(macOS) || os(visionOS)
+    // / Q&A can reason over the text.
+    // 経緯: docs/devlog/2026-08-28-xcode27-beta6-recheck.md（visionOS を除外していたのは誤りだった件）
+
     /// The title of the todo item (semantically indexed via `.title`).
     @Property(title: "Title", indexingKey: \.title)
     public var title: String
@@ -45,15 +72,6 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     /// content that semantic search / Q&A benefits from).
     @Property(title: "Description", indexingKey: \.contentDescription)
     public var todoDescription: String?
-    #else
-    /// The title of the todo item.
-    @Property(title: "Title")
-    public var title: String
-
-    /// A longer free-text description of the todo, if any.
-    @Property(title: "Description")
-    public var todoDescription: String?
-    #endif
 
     /// Whether the todo item is completed.
     @Property(title: "Completed")
@@ -105,14 +123,14 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     @Property(title: "Assignee")
     public var assigneeName: String?
 
-    /// Associated location name.
+    /// Associated location.
     ///
     /// App Intents ネイティブの `PlaceDescriptor`（GeoToolbox）で持つ。モデル側は CloudKit 互換の
     /// primitive（名前 + 緯度経度）なので `TodoPlace` が相互変換する。
     ///
     /// SSU training バグ（FB24548956）が発火するのは **App Shortcut に登録した Intent の
     /// `@Parameter`** だけで、entity の `@Property` は SSU の variable にならないため、ここは
-    /// ネイティブ型のままで問題ない（`AddTodoIntent.location` は `String` 退避のまま）。
+    /// ネイティブ型のままで問題ない。
     /// 詳細: docs/insights/03-app-intents-core.md
     /// 経緯: docs/devlog/2026-08-28-ssu-system-value-type-bug.md
     @Property(title: "Location")
@@ -162,8 +180,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     // `.reminders.reminder` はプロパティ名まで一致を要求する（`note` / `creationDate` /
     // `isFlagged` / `list`）。アプリ側の既存名（`todoDescription` / `createdAt` /
     // `isFavorite` / `category`）を変えずに済ませるため、`@ComputedProperty` で
-    // スキーマ側の綴りを足している。リネームすると呼出元が広く壊れる一方、
-    // 別名を足すコストは小さい。
+    // スキーマ側の綴りを足している。
     // 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
 
     /// The note body (schema-required spelling of `todoDescription`).
@@ -173,9 +190,6 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     }
 
     /// The creation date (schema-required spelling of `createdAt`).
-    ///
-    /// スキーマは optional を要求する（非 optional だと
-    /// `Required AppSchemaEntity property 'creationDate' must not be optional` の逆で弾かれる）。
     @ComputedProperty(title: "Creation Date")
     public var creationDate: Date? {
         createdAt
@@ -205,140 +219,19 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     /// stored. Cheap and synchronous — no external source access.
     @ComputedProperty(title: "Is Overdue")
     public var isOverdue: Bool {
-        guard !isCompleted, let dueDateValue else { return false }
-        return dueDateValue < Date()
+        Self.isOverdue(isCompleted: isCompleted, dueDate: dueDateValue)
     }
 
     /// A short human-readable summary of subtask completion (e.g. "2/5 completed").
     ///
     /// Uses `@DeferredProperty` (iOS 26+): subtasks are a SwiftData relationship
     /// that isn't carried in the lightweight entity snapshot, so the value is
-    /// fetched on demand only when Shortcuts / Siri actually request it. It is
-    /// deliberately excluded from Spotlight indexing per the deferred-property
-    /// contract.
+    /// fetched on demand only when Shortcuts / Siri actually request it.
     @DeferredProperty(title: "Subtask Progress")
     public var subtaskProgress: String {
         get async throws {
             try await Self.loadSubtaskProgress(forID: id)
         }
-    }
-
-    /// Fetches subtask completion counts on the MainActor and formats a summary.
-    ///
-    /// Entities can't use `@Dependency` (that is intents-only), so the shared
-    /// container is read from `TodoEntityStore`, which the app registers at launch.
-    private static func loadSubtaskProgress(forID id: String) async throws -> String {
-        try await MainActor.run {
-            guard let container = TodoEntityStore.container else {
-                return String(localized: "No subtasks")
-            }
-            let repository = SwiftDataTodoRepository(modelContext: container.mainContext)
-            guard let uuid = UUID(uuidString: id),
-                  let item = try repository.fetch(by: uuid) else {
-                return String(localized: "No subtasks")
-            }
-            let subTasks = item.subTasks ?? []
-            guard !subTasks.isEmpty else {
-                return String(localized: "No subtasks")
-            }
-            let completed = subTasks.filter(\.isCompleted).count
-            return "\(completed)/\(subTasks.count) completed"
-        }
-    }
-
-    /// Re-fetches the tags by id. Same shape as `loadSubtaskProgress`.
-    private static func loadTags(forID id: String) async throws -> Set<String> {
-        try await MainActor.run {
-            guard let item = liveItem(forID: id) else { return [] }
-            return Set(item.tags)
-        }
-    }
-
-    /// Re-fetches the attached links by id.
-    private static func loadURLs(forID id: String) async throws -> [URL] {
-        try await MainActor.run {
-            guard let item = liveItem(forID: id) else { return [] }
-            return item.urls
-        }
-    }
-
-    /// Looks a todo up in the shared container, or `nil` when it is gone.
-    @MainActor
-    private static func liveItem(forID id: String) -> TodoItem? {
-        guard let container = TodoEntityStore.container,
-              let uuid = UUID(uuidString: id) else {
-            return nil
-        }
-        let repository = SwiftDataTodoRepository(modelContext: container.mainContext)
-        return try? repository.fetch(by: uuid)
-    }
-
-    // MARK: - AppEntity Requirements
-
-    public static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        TypeDisplayRepresentation(
-            name: LocalizedStringResource("Todo", comment: "Todo item type name"),
-            numericFormat: LocalizedStringResource("\(placeholder: .int) todos", comment: "Number of todos")
-        )
-    }
-
-    public var displayRepresentation: DisplayRepresentation {
-        Self.makeDisplayRepresentation(
-            title: title,
-            isCompleted: isCompleted,
-            isFavorite: isFavorite,
-            dueDate: dueDateValue
-        )
-    }
-
-    /// Builds a todo's display representation from raw field values.
-    ///
-    /// Static so `TodoEntityQuery.displayRepresentations(for:)` can build the same
-    /// representation straight from a `TodoItem`, without constructing the entity
-    /// (and its `CategoryAppEntity` relation) only to discard it.
-    ///
-    /// The image is passed as a closure so the system can skip materializing it in
-    /// text-only contexts (`DisplayRepresentation.Components.text`).
-    static func makeDisplayRepresentation(
-        title: String,
-        isCompleted: Bool,
-        isFavorite: Bool,
-        dueDate: Date?
-    ) -> DisplayRepresentation {
-        DisplayRepresentation(
-            title: "\(title)",
-            subtitle: subtitle(isCompleted: isCompleted, dueDate: dueDate),
-            synonyms: ["\(title) todo", "\(title) task"]
-        ) {
-            image(isCompleted: isCompleted, isFavorite: isFavorite)
-        }
-    }
-
-    /// Siri はこの subtitle を読み上げるので、時刻は位置指定表記（"14:30"）ではなく
-    /// 自然文表記で渡す。出す情報が無いときは空文字ではなく `nil`。
-    /// 詳細: docs/insights/03-app-intents-core.md
-    private static func subtitle(isCompleted: Bool, dueDate: Date?) -> LocalizedStringResource? {
-        if isCompleted {
-            return LocalizedStringResource("Completed", comment: "Todo completed status")
-        }
-        if let dueDate {
-            return "Due: \(dueDate.formatted(date: .abbreviated, time: .omitted))"
-        }
-        return nil
-    }
-
-    private static func image(isCompleted: Bool, isFavorite: Bool) -> DisplayRepresentation.Image {
-        if isCompleted {
-            return .init(systemName: "checkmark.circle.fill")
-        }
-        if isFavorite {
-            return .init(systemName: "star.fill")
-        }
-        return .init(systemName: "circle")
-    }
-
-    public static var defaultQuery: TodoEntityQuery {
-        TodoEntityQuery()
     }
 
     // MARK: - Initialization
@@ -405,32 +298,15 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         self.recurrence = recurrence
         self.locationTrigger = locationTrigger
     }
-
-    // MARK: - Hashable / Equatable
-
-    // The `@ComputedProperty` / `@DeferredProperty` macros add non-`Hashable`
-    // `EntityProperty` backing storage, so synthesis is unavailable. Equality
-    // compares the value snapshot fields; the hash uses the stable id.
-    // `location` (PlaceDescriptor) is excluded as it isn't guaranteed `Equatable`;
-    // the underlying stored name/coordinate are reflected via the model anyway.
-    public static func == (lhs: TodoAppEntity, rhs: TodoAppEntity) -> Bool {
-        lhs.id == rhs.id
-            && lhs.title == rhs.title
-            && lhs.todoDescription == rhs.todoDescription
-            && lhs.isCompleted == rhs.isCompleted
-            && lhs.isFavorite == rhs.isFavorite
-            && lhs.dueDate == rhs.dueDate
-            && lhs.createdAt == rhs.createdAt
-            && lhs.sortIndex == rhs.sortIndex
-            && lhs.category == rhs.category
-            && lhs.estimatedDuration == rhs.estimatedDuration
-            && lhs.assigneeName == rhs.assigneeName
-    }
-
-    public func hash(into hasher: inout Hasher) {
-        hasher.combine(id)
-    }
 }
+
+// MARK: - 同一ファイルに置く理由
+//
+// `Transferable` / `URLRepresentableEntity` の宣言は **const 抽出**（swiftconstvalues）で
+// 読まれるため、型宣言と別ファイルに置くと
+// `The property 'transferRepresentation' must be static, have a compile-time constant
+// value, and cannot be computed or dynamic` でメタデータ抽出が落ちる（実測）。
+// 他の共通実装は `TodoAppEntity+Shared.swift` にある。
 
 // MARK: - Transferable (structured value export, WWDC 2026 #240/#345)
 
@@ -440,10 +316,9 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
 /// - A plain-text proxy (the title) so any text target can accept it.
 /// - `ValueRepresentation` (`AppEntity.ValueRepresentation` = `IntentValueRepresentation`)
 ///   bridges to the system intent value types `IntentPerson` (assignee) and
-///   `PlaceDescriptor` (location). This is the same machinery the issue tracks as
-///   "ValueRepresentation(→IntentPerson)". The export closures throw when the
-///   underlying value is absent, so a todo with no assignee / location simply
-///   doesn't offer those flavors instead of exporting empty values.
+///   `PlaceDescriptor` (location). The export closures throw when the underlying value
+///   is absent, so a todo with no assignee / location simply doesn't offer those flavors
+///   instead of exporting empty values.
 extension TodoAppEntity: Transferable {
     public static var transferRepresentation: some TransferRepresentation {
         ProxyRepresentation(exporting: \.title)
@@ -490,61 +365,4 @@ extension TodoAppEntity: URLRepresentableEntity {
     }
 }
 
-// MARK: - IndexedEntity (Spotlight Integration)
-
-#if os(iOS) || os(macOS) || os(visionOS)
-/// Spotlight integration for todo items.
-/// Allows users to search for todos via Spotlight with enhanced attributes.
-extension TodoAppEntity: IndexedEntity {
-    /// `@Property(indexingKey:)` が使っているキーはここで埋めない（どちらが勝つかは
-    /// 公式に未定義）。`contentDescription` は `todoDescription` のマップ先なので、
-    /// 完了状態は `keywords` 側で表現する。`displayName` は `.title` とは別キーで衝突しない。
-    /// 詳細: docs/insights/03-app-intents-core.md
-    public var attributeSet: CSSearchableItemAttributeSet {
-        let attributes = CSSearchableItemAttributeSet()
-        attributes.displayName = title
-        if let dueDateValue {
-            attributes.dueDate = dueDateValue
-        }
-        attributes.keywords = buildKeywords()
-        return attributes
-    }
-
-    /// Builds keyword list for Spotlight search.
-    private func buildKeywords() -> [String] {
-        var keywords = ["todo", title]
-        if isFavorite {
-            keywords.append(contentsOf: ["favorite", "starred", "important"])
-        }
-        if isCompleted {
-            keywords.append("completed")
-        } else {
-            keywords.append(contentsOf: ["incomplete", "pending"])
-        }
-        return keywords
-    }
-}
 #endif
-
-// MARK: - reminders スキーマ適合
-
-// `TodoAppEntity` を `.reminders.reminder` に適合させる。
-//
-// **`@AppEntity(schema:)` マクロを使わず適合を手書きしている。** マクロは宣言に付くため
-// `#if` で外せず、`.reminders` スキーマ名前空間は watchOS で unavailable なので、マクロを
-// 使うと `CategoryAppEntity` と同じ「型を 2 系統で全書きする」形になる。`TodoAppEntity` は
-// プロパティ・`IndexedEntity`・`Transferable`・`URLRepresentableEntity` を抱えた大きな型で、
-// 二重管理すると片方だけ直す事故が起きる。
-//
-// マクロが生やすものは ①`AssistantSchemaEntity` 適合 + `__appSchemaEntity`
-// ②各メンバへの `@Property` 付与（`@attached(memberAttribute)`）の 2 つだけなので、
-// ① をここで手書きし、② は `TodoAppEntity` 側で明示的に `@Property` /
-// `@ComputedProperty` を書くことで置き換えている。要求プロパティの検証は後段の
-// メタデータ抽出で走るので、手書きでも取りこぼしはビルドエラーになる。
-//
-// 手書き適合でも出荷メタデータに `reminders.ReminderEntity` が載ることは実測済み。
-// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
-extension TodoAppEntity: AssistantSchemaEntity {
-    // swiftlint:disable:next identifier_name
-    public static let __appSchemaEntity = "reminders.reminder"
-}

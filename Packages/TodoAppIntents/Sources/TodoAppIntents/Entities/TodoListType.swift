@@ -28,13 +28,6 @@ public enum WatchTodoListType: String, AppEnum {
     ]
 }
 
-// スキーマ識別子は文字列なので watchOS でも手書きで適合できる。
-// 詳細: CategoryAppEntity の同名 extension のコメント
-extension WatchTodoListType: AssistantSchemaEnum {
-    // swiftlint:disable:next identifier_name
-    public static let __appSchemaEnum = "reminders.listType"
-}
-
 /// Call sites use the shared name on every platform.
 public typealias TodoListType = WatchTodoListType
 #else

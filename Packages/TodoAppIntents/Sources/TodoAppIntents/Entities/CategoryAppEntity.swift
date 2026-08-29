@@ -93,18 +93,6 @@ public struct WatchCategoryAppEntity: AppEntity, Hashable {
     }
 }
 
-// watchOS では `.reminders` の**スキーマ名前空間シンボル**が unavailable なのでマクロは使えないが、
-// `AssistantSchemaEntity` / `AssistantSchemaEnum` プロトコル自体は watchOS でも available。
-// スキーマ識別子は文字列なので、マクロが生やすものを手書きすれば watchOS でも適合できる。
-// これが必要なのは `TodoAppEntity` の `.reminders.reminder` 適合が **サブエンティティ側にも
-// スキーマ適合を要求する**ため（`Property 'list' type does not match required
-// AppSchemaEntity property type 'ListEntity'`）。
-// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
-extension WatchCategoryAppEntity: AssistantSchemaEntity {
-    // swiftlint:disable:next identifier_name
-    public static let __appSchemaEntity = "reminders.list"
-}
-
 /// Call sites use the shared name on every platform, so nothing outside this file
 /// needs a `#if`. Only the metadata sees the two names apart.
 public typealias CategoryAppEntity = WatchCategoryAppEntity
