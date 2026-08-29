@@ -28,7 +28,7 @@ struct TodoAppEntityTests {
         #expect(entity.title == "Test Todo")
         #expect(entity.isCompleted == true)
         #expect(entity.isFavorite == true)
-        #expect(entity.dueDate == dueDate)
+        #expect(entity.dueDateValue == dueDate)
         #expect(entity.createdAt == createdAt)
     }
 
@@ -64,7 +64,7 @@ struct TodoAppEntityTests {
         #expect(entity.title == todoItem.title)
         #expect(entity.isCompleted == todoItem.isCompleted)
         #expect(entity.isFavorite == todoItem.isFavorite)
-        #expect(entity.dueDate == todoItem.dueDate)
+        #expect(entity.dueDateValue == todoItem.dueDate)
         #expect(entity.createdAt == todoItem.createdAt)
     }
 

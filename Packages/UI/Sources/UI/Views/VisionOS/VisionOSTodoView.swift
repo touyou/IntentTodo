@@ -215,7 +215,9 @@ struct VisionOSTodoRow: View {
     let isSelected: Bool
 
     private var status: DueDateStatus {
-        if let dueDate = todo.dueDate {
+        // スキーマ要求で `dueDate` は `DateComponents?` になったので、比較や整形に使うのは
+        // stored 値の `dueDateValue`。経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+        if let dueDate = todo.dueDateValue {
             return DueDateStatus.evaluate(date: dueDate, isCompleted: todo.isCompleted)
         }
         return .normal
@@ -233,7 +235,7 @@ struct VisionOSTodoRow: View {
                     .strikethrough(todo.isCompleted)
                     .foregroundStyle(todo.isCompleted ? .secondary : .primary)
 
-                if let dueDate = todo.dueDate {
+                if let dueDate = todo.dueDateValue {
                     HStack(spacing: 4) {
                         Image(systemName: icon).font(.caption)
                         Text(dueDate.formatted(date: .abbreviated, time: .shortened)).font(.caption)

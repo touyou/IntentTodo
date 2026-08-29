@@ -58,7 +58,7 @@ struct TodoServiceTests {
             isFavorite: true
         )
         #expect(entity.title == "buy milk")
-        #expect(entity.dueDate == due)
+        #expect(entity.dueDateValue == due)
         #expect(entity.isFavorite == true)
         // Repository 経由で TodoItem.todoDescription も確認 (Entity 側に expose されていないため).
         let stored = try repo.fetchAll().first

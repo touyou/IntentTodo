@@ -74,11 +74,17 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
 
         let snoozed = try await intent("QuickSnoozeTodoIntent").makeIntent(todo: entity).run()
 
-        let newDueDate: Date = try snoozed.value.dueDate
+        // entity が露出する `dueDate` はスキーマ要求で `DateComponents?`（分までの射影）。
+        // 秒が落ちるので、期待値も同じ粒度に落として比べる。
+        // 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+        let snoozedComponents: DateComponents = try snoozed.value.dueDate
+        let expectedComponents = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: dueDate.addingTimeInterval(30 * 60)
+        )
         XCTAssertEqual(
-            newDueDate.timeIntervalSince(dueDate),
-            30 * 60,
-            accuracy: 1,
+            snoozedComponents,
+            expectedComponents,
             "Quick snooze should push the due date back by exactly 30 minutes"
         )
 
