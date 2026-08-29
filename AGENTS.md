@@ -710,7 +710,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 | **Entity強化** | プロパティマクロ / 値表現 | @ComputedProperty, @DeferredProperty, @Property(indexingKey:)(#43), Transferable + ValueRepresentation→IntentPerson/PlaceDescriptor(#44) | ✅ |
 | **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier（単一）/ .appEntityIdentifier(forSelectionType:)（一覧, #46）/ 通知 appEntityIdentifiers(#46) | ✅ |
 | **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ |
-| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list / .reminder / .locationTrigger) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ reminder 本体まで適合（#56）。watchOS も適合を手書きして揃えた |
+| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list / .reminder / .locationTrigger) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ reminder 本体まで適合（#56 完了）。App Schema は watchOS / tvOS に無いので、watch はスキーマ無しの別型（#87） |
 | **高度な Intent** | 対話/寄付/system/部分更新/取り消し | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, UndoableIntent, IntentDialog(full:supporting:), IntentParameter.valueState(#45) | ✅（`RelevantEntities` は適合不能 / donation は不採用 #53） |
 | **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, CancellableIntent, allowedExecutionTargets(.main/.appIntentsExtension/.widgetKitExtension, #42), @UnionValue, SyncableEntity | ✅ |
 | **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor, semanticContentSearch | ✅ |
@@ -842,8 +842,9 @@ Types: feat, fix, refactor, test, docs, chore
 - `docs/devlog/` - 各ドキュメントの現在のルールがどういう経緯で決まったか（調査・失敗・再検証の記録）
 - `docs/presentation/` - 登壇・発表用のスライド骨子と想定スクリプト（① WWDC 時系列での基本説明 / ② 実践で見えた制約と工夫）
 - `docs/references/` - 最新の技術参照（gitignore対象、ローカル参照用）
-- **GitHub issues** - これからやること。#30 実機検証チェックリスト / #56 reminder 本体スキーマの再評価 /
-  #57 GM SDK 到来時の棚卸し / #67 登壇準備 / #68 未採用 API の消化
+- **GitHub issues** - これからやること。#30 実機検証チェックリスト / #57 GM SDK 到来時の棚卸し /
+  #67 登壇準備 / #68 未採用 API の消化 / #84 パッケージのユニットテストがスキームから外れている /
+  #86 App Schema と watch ターゲットの両立（Feedback 起票）
 - `~/Developer/Private/wwdc26-app-intents-samples/` - WWDC26 App Intents 公式サンプル 4 本（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）。**リポジトリ外に置く**（`docs/` 配下だと Xcode がサンプルの `.xcodeproj` を `project.pbxproj` へ書き込む）。取得元と突き合わせ結果は `docs/insights/03-app-intents-core.md` の Phase 9
 
 ## 設計思想の背景

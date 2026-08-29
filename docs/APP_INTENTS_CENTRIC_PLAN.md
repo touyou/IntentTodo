@@ -7,7 +7,7 @@
 > 作成: 2026-06-10 / 検証ブランチ: `xcode27`（27 世代ベータ SDK 用、**2026-08-27 に `main` へマージ済み**。以降の作業は `main`）
 >
 > **このファイルは「何をどこまで検証したか」の記録**。これからやることは GitHub issue に置く
-> （実機検証 = #30 / GM SDK 棚卸し = #57 / reminder 本体スキーマ = #56 / 未採用 API の消化 = #68）。
+> （実機検証 = #30 / GM SDK 棚卸し = #57 / 未採用 API の消化 = #68 / スキーマと watch の両立 = #86）。
 > API ごとの採用状況は [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) を参照。
 
 ---
@@ -62,7 +62,7 @@
 
 | 要素 | 主要シンボル | このアプリでの検証 | 目標深度 | 状態 |
 |------|-------------|-------------------|---------|------|
-| App Schema 適合 | `@AppEntity(schema: .reminders.*)` `@AppIntent(schema:)` | Todo を reminders ドメインへ意味的適合 | B/R | ✅ list / listType / `.system.searchInApp` / ⏳ reminder 本体は SSU バグでブロック（#56 / #57） |
+| App Schema 適合 | `@AppEntity(schema: .reminders.*)` `@AppIntent(schema:)` | Todo を reminders ドメインへ意味的適合 | B/R | ✅ list / listType / `.system.searchInApp` / reminder 本体（#56 完了） |
 | Transferable export | `Transferable` `ProxyRepresentation` `ValueRepresentation` | Entity を他アプリへエクスポート（title / IntentPerson / PlaceDescriptor） | B | ✅ (#44) |
 | Onscreen recognition | `userActivity` `appEntityIdentifier` | 詳細画面の単一 Todo（済）+ 一覧の `forSelectionType:`（#46） | R | ✅ U（2026-08-12 `viewAnnotations()` を実 run） |
 
@@ -123,29 +123,30 @@
     Find action and do filtering automatically"）。`EntityPropertyQuery` が要るのは
     "many thousands of entities" 規模で全件ロードが重くなったときで、個人利用の todo 件数では不要。
     件数が増えたらここを再評価する。
-- **Phase 2 App Schema（reminders）** ✅（list 階層で適合・検証）/ ⏳（reminder 本体は保留）:
+- **Phase 2 App Schema（reminders）** ✅（reminder 本体まで適合。#56 完了）:
   - ✅ xcode27 を iOS 27 世代へ引き上げ（`.reminders` は iOS 27+ 限定のため）`ed22d80`
   - ✅ `TodoListType` → `@AppEnum(schema: .reminders.listType)` `ed22d80`
   - ✅ `CategoryAppEntity` → `@AppEntity(schema: .reminders.list)`（Category = reminders のリスト）`25d1d61`
-  - watchOS: `reminders` / `system` ドメインの assistant schema が unavailable なため、`CategoryAppEntity`
-    （`.reminders.list`）と `TodoListType`（`.reminders.listType`）は `#if os(watchOS)` で素の `AppEntity`/`AppEnum`
-    にフォールバック、`ShowTodoSearchResultsIntent`（`.system.searchInApp`, #47）は `#if !os(watchOS)` で除外。
-    watchOS はスキーマルーティング非使用のため機能損失なし。
-  - ⏳ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)` は **保留**（#48 で優先度再考 → 据え置き。再評価は **#56**）。
-    **2026-08-12 に要求仕様を probe で全部洗い出した**（要求プロパティ・型・optional 可否・入れ子の
-    `locationTrigger` / `locationTriggerEvent`。probe はビルドが通る形まで到達）。据え置き理由だった
-    「マクロ生成 init が `EntityProperty<T>` 引数を要求して自前 init と衝突する」は**誤り**で、マクロは
-    conformance を 2 つ生やすだけで init を生成しない。残る障害は ①`list` が非 optional
-    ②`dueDate` が `DateComponents` の 2 点。かつて ③ として挙げていた「`locationTrigger` が
-    `PlaceDescriptor` を `@Property` に強制し SSU training バグに衝突」は **2026-08-28 に否定された**
-    （SSU の variable になるのは App Shortcut 登録済み Intent の `@Parameter` だけで、entity の
-    `@Property` やスキーマ由来の宣言は踏まない）。**「SDK 修正待ちで着手不可」ではない**ので、
-    着手判断は ①② のコストで行う。
-    詳細: `docs/devlog/2026-08-28-ssu-system-value-type-bug.md` / `docs/devlog/03-app-intents-core.md`。
-    **新 Siri 連携は本体適合なしでも成立**（list 適合 + discoverable な自前 Intent 群 +
-    `OpenIntent`/`DeleteIntent` + `.system.searchInApp`(#47) + `indexingKey`(#43)）ため、本体適合は SDK の
-    スキーママクロ init 規約が扱いやすくなるのを待つ独立タスクとして据え置く。詳細は insights/03「Phase 7」。
-    経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
+  - ✅ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)`（#83）。要求 12 プロパティのうち
+    スキーマ側の綴り（`note` / `creationDate` / `isFlagged` / `list`）は `@ComputedProperty` の別名で満たし、
+    `dueDate` だけ型が衝突するので stored を `dueDateValue: Date?` に改名。`completionDate` / `tags` /
+    `urls` / `recurrence` / `locationTriggerEvent` はモデルに追加した。
+    据え置き理由だった「`locationTrigger` の `PlaceDescriptor` が SSU training バグに衝突」は
+    **2026-08-28 に否定**（SSU の variable になるのは App Shortcut 登録済み Intent の `@Parameter` だけ）。
+    経緯: `docs/devlog/2026-08-29-reminder-schema-conformance.md`
+  - ✅ 4 属性（`tags` / `urls` / `recurrence` / `locationTriggerEvent`）の**書き込み経路**を Intent と UI に通した（#85）。
+    このとき `parameterSummary` が Shortcuts 編集画面の allowlist だと分かった。
+    経緯: `docs/devlog/2026-08-29-attribute-write-paths.md`
+  - **watchOS / tvOS には App Schema が存在しない**（全 23 ドメインが `@available(..., unavailable)`。
+    新 Siri の提供範囲＝iPhone / iPad / Mac / visionOS と一致）。`reminders` 固有の制限ではないので
+    ドメインを変えても回避できない。一方 iOS アプリのメタデータには watchOS スライスがマージされ、
+    同じ mangled name にスキーマ有無の 2 形があるとスキーマ無し側が勝つため、**watch 用は別型名**にする
+    （`WatchTodoAppEntity` / `WatchCategoryAppEntity` / `WatchTodoListType` /
+    `WatchTodoLocationTriggerEvent`、`TodoLocationTriggerAppEntity` は watch に置かない）。
+    `ShowTodoSearchResultsIntent`（`.system.searchInApp`, #47）は watch に遷移先が無いので除外。
+    この組み合わせが成立しないこと自体は Apple へ報告する（#86）。
+    経緯: `docs/devlog/2026-08-29-schema-vs-watch-target.md`
+
 - **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
   - ✅ `requestConfirmation`（DeleteTodoIntent）`27fc2db`
   - ✅ `IntentDonationManager`（Add で donate / Delete で deleteDonations）`b4dbd63`
@@ -184,7 +185,7 @@
   - ✅ #45: `UpdateTodoIntent` + `IntentParameter.valueState` + `TodoService.update`/`FieldUpdate`（新値/明示クリア/据え置きを区別）
   - ✅ #46: 一覧に `.appEntityIdentifier(forSelectionType:)` / Control のエラー通知に `UNMutableNotificationContent.appEntityIdentifiers`
   - ✅ #47: `ShowTodoSearchResultsIntent`（`@AppIntent(schema: .system.searchInApp)`）+ `NavigationModel.pendingSearchText` 配線。ownership/requestValue は未採用
-  - ✅ #48: reminder 本体スキーマ適合は再評価のうえ据え置き（list 適合 + 自前 Intent で新 Siri 連携は成立を確認）
+  - ✅ #48: reminder 本体スキーマ適合は当時の再評価では据え置き（list 適合 + 自前 Intent で新 Siri 連携は成立を確認）→ **その後 #56 で適合済み**（上の Phase 2 参照）
   - 詳細・落とし穴は insights/03「Phase 7」。R 深度（実機 Siri/Spotlight/Visual Intelligence）は手動。
 - **Phase 10 未着手候補の消化** ✅（B/U 深度。iOS/visionOS/macOS/watchOS の 4 destination で `BuildProject` グリーン、
   SPM テスト 89 件グリーン）:
