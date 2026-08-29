@@ -1,420 +1,688 @@
-# 99-script.md の補完メモ（iOSDC 40 分枠）
+# 99-script.md へのフィードバック（iOSDC 40 分枠 / 2026-08-30 版）
 
-> [99-script.md](99-script.md) に書かれた本人スクリプトを**書き換えずに補完する**ためのメモ。
-> - **A. 事実確認** — 直したほうがいい / 言い方を変えたほうがいい箇所（まさかり対策）
-> - **B. 詳細ゾーンの材料** — L38「ここは詳細ゾーン、もうちょいみながら詰める」に入れる候補
-> - **C. 各節の補強材料** — 一次ソースの引用と、聴衆に効く具体
-> - **D. 残りアウトラインの材料** — L82〜88 の 4 項目
-> - **E. 尺の目安 / F. 想定 Q&A**
+> **レビュー対象は [99-script.md](99-script.md) の L1–20（CfP）と L22–209（現行スクリプト）だけ**。
+> L211 以降は旧原案なので触っていない（旧稿に対する前バージョンのメモは全面的に破棄した）。
 >
-> 骨子側の詳細は [01-app-intents-history.md](01-app-intents-history.md) / [02-constraints-and-craft.md](02-constraints-and-craft.md) に置いてある（このメモは「99 に足すぶんだけ」抜粋）。
+> 面（スライド）は `///` の出現順で通し番号を振ってある。`#41 (L113)` = 41 番目の面、本文開始行 L113。
+>
+> 構成:
+> - **A. 尺** — 実測文字数からの見積もりと、削り候補
+> - **B. 事実確認** — 直したほうがいい / 裏取りが必要な箇所（優先度順）
+> - **C. 流れの組み直し候補** — 採否は選べる形で並べた
+> - **D. 締め（L209 の TBD）の候補** — 6 案 + 組み合わせ 3 パターン
+> - **E. スライド任せの面に 1 行足すと効く箇所**
+> - **F. 想定 Q&A / まさかり**
+> - **G. そのまま使える一次ソース逐語**
+>
+> 骨子の詳細は [01-app-intents-history.md](01-app-intents-history.md) /
+> [02-constraints-and-craft.md](02-constraints-and-craft.md) /
+> [03-group-lab-evidence.md](03-group-lab-evidence.md) にある。ここは「99 に対する差分」だけ。
 
 ---
 
-## A. 事実確認（まさかり対策・優先度順）
+## A. 尺
 
-### A-1. ⚠️ 最優先: SiriKit は **2016 年 / iOS 10** 登場（L30–31）
+### A-1. 実測
 
-スクリプト現状: 「2022年、もっといえばその元となった技術は**2020年**に登場しています。それがSiriKitです。」
+L22–209 の本文は **7,777 字 / 84 面**（`///` で区切って機械カウント。行の指示や `TBD` を含む）。
 
-- 正しくは **WWDC 2016 / iOS 10**。Apple 自身が明言している:
-  > "In iOS 10, we introduced the SiriKit Intents framework, which lets you hook up your app's functionality to Siri domains like messaging, workouts, and payments."
-  > — wwdc2022-10032「Dive into App Intents」`0:33`
-- **2020 年は「Intent がウィジェットの設定言語になった年」**。WidgetKit 登場時、設定可能ウィジェットの仕組みが SiriKit の Custom Intent（`IntentConfiguration` / `IntentTimelineProvider`）だった。混同しやすいポイントなので、むしろ**そこを話のネタにできる**
-  > "Prior to iOS 17, iPadOS 17, and macOS 14, configurable widgets used SiriKit Intents."
-  > — Apple 公式 [Making a configurable widget](https://developer.apple.com/documentation/WidgetKit/Making-a-Configurable-Widget)
-- 差し替え案（1 文だけ変える）:
-  > 「App Intents 自体は 2022 年ですが、元をたどると **2016 年の iOS 10** に遡ります。それが SiriKit です。」
-  - 2020 に触れたいなら後段で: 「ちなみに 2020 年、ウィジェットが出たときの設定の仕組みも SiriKit の Intent でした。つまりこの頃には Intent は "Siri のための API" から "システムがアプリに問い合わせる共通言語" に役割が広がっていたんです。」
+| # | 区間 | 面 | 行 | 文字 | 素読み | 会場実尺の目安 |
+|---|---|---|---|---:|---:|---|
+| 1 | 挨拶・自己紹介・会社紹介 | #1–3 | L22–31 | 968 | 3.2 | 3.5–4.5 |
+| 2 | アンケート（3 問挙手） | #4–8 | L33–43 | 358 | 1.2 | 2.0–2.5 |
+| 3 | App Intents とは（定義・コード・Shortcuts 画面） | #9–14 | L45–55 | 561 | 1.9 | 2.5–3.5 |
+| 4 | SiriKit 2016 →App Intents 2022 | #15–24 | L56–78 | 775 | 2.6 | 3.5–4.5 |
+| 5 | 2023（ウィジェット） | #25–28 | L80–86 | 310 | 1.0 | 1.5–2.0 |
+| 6 | 2024（Apple Intelligence / Domains） | #29–31 | L88–92 | 251 | 0.8 | 1.0–1.5 |
+| 7 | 2025（Snippets / Visual Intelligence） | #32–35 | L94–100 | 235 | 0.8 | 1.0–1.5 |
+| 8 | 2026 + 年表の総括 | #36–40 | L102–110 | 415 | 1.4 | 2.0–2.5 |
+| 9 | Liquid Glass の仮説 → App Intents | #41–51 | L111–135 | 1,002 | 3.3 | 4.0–5.0 |
+| 10 | 傍証（Matthew / Group Lab） | #52–55 | L137–143 | 213 | 0.7 | 1.0 |
+| 11 | 中心設計の 3 原則 + 先行例 | #56–61 | L145–159 | 532 | 1.8 | 2.5 |
+| 12 | SPM 構成 / 依存図 | #62–63 | L161–163 | 339 | 1.1 | 2.0–2.5 |
+| 13 | 動詞・名詞 → モデルベース UI デザイン | #64–70 | L166–179 | 579 | 1.9 | 2.5–3.0 |
+| 14 | 実践（`Button(intent:)` / Service / DI） | #71–80 | L181–200 | 879 | 2.9 | 4.0–5.0 |
+| 15 | サイレント失敗 → AppIntentsTesting | #81–83 | L202–207 | 357 | 1.2 | 1.5–2.0 |
+| 16 | **締め** | #84 | L209 | 0 | — | **未定** |
+| | **合計（締め除く）** | | | **7,777** | **26** | **34–43** |
 
-### A-2. ⚠️ 「Dive into App Intents で SiriKit が非推奨になることが語られている」は不正確（L33）
+- 素読みは **300 字/分**換算（原稿を止まらず読んだ場合）。
+- 「会場実尺」は素読み × **1.2–1.4**。掛かる理由は 3 つで、どれも 99 の構成では実際に起きる:
+  1. **挙手アンケート**（#4–8）は反応・笑い・「なるほど」の間が原稿に書けない
+  2. **コード / 表 / 図の面**（#12, #27, #62, #63, #73–79, #83）は指差しながら喋るので原稿より必ず伸びる
+  3. 冒頭のタイトルコール企画（L23）と会社紹介は場が温まるぶん伸びる
 
-- 実際の 2022 の発言は**逆に「使い続けろ」**:
-  > "For those of you who have existing apps with SiriKit Intents that you want to upgrade, **if you adopt intents to integrate with widgets, or domains like messaging or media, you should keep using the SiriKit Intents framework.** But if you add **custom intents for Siri and Shortcuts**, you should go ahead and upgrade to App Intents."
-  > — wwdc2022-10032 `29:29`–`29:48`
-- つまり 2022 に非推奨化したのは **「Siri / Shortcuts 向けのカスタム Intent」だけ**。ウィジェット設定とシステムドメインは SiriKit のままだった
-- **そこが後から回収されていく**のがこの 4 年の物語なので、ここは事実に寄せたほうが話が強くなる:
-  - **2023 / iOS 17**: ウィジェット設定が App Intents 側へ（`WidgetConfigurationIntent`。Xcode の **Convert to App Intent** ボタン 1 クリックで移行）
-  - **2024 / iOS 18**: システムドメインが **App Intent Domains（assistant schemas）** として App Intents 側に再登場。ただしこの時点でも Apple は "SiriKit domains are still the best ways for you to enable these kinds of features"（wwdc2024-10133 `1:03`）と言っている
-  - **2026 / iOS 27**: **App Intents 系 6 セッション（240/295/297/343/344/345）に "SiriKit" という語が 1 回も出てこない**（`docs/references/wwdc/` を全文検索して 0 件。2022 と 2024 は必ず言及していた）
-- 差し替え案:
-  > 「2022 年の Dive into App Intents では、SiriKit の**カスタム Intent** については App Intents への移行が明確に推奨されました。一方でウィジェットの設定やメッセージ・メディアのドメインは "SiriKit を使い続けてください" と言われていて、まだ二本立てだったんです。それが 2023 年にウィジェット、2024 年にドメインと順に App Intents 側へ回収されて、2026 年のセッションではもう SiriKit という単語が 1 回も出てこなくなりました。」
-- ⚠️ ネット上には「WWDC 2026 で SiriKit が正式に deprecated」という記事が複数あるが、**Apple の一次ソースで確認できていない**（公式ドキュメントには SiriKit も `CustomIntentMigratedAppIntent` も現役で載っている）。**断定しないほうが安全**。「もう SiriKit の話は出てこない」という事実提示で十分効く
+### A-2. 結論
 
-### A-3. 「最小の構成単位はタイトルと description、そして perform 関数」（L28）
+**現行原稿は、締めが 0 分でも 40 分枠をほぼ使い切る。** 発表 35 分 + 質疑 5 分と仮定すると、
+締めに残るのは **0〜4 分**（速く喋れた場合のみ）。つまり選択肢は次の 3 つのどれか:
 
-- 厳密には **必須は `title` と `perform()`**。`description` は `static var description: IntentDescription?` で **optional**（スキーマ適合時はスキーマが供給する）
-- ただし Apple 公式のチュートリアルは「各 intent で以下を実装せよ」として **title / description / isDiscoverable / parameterSummary** を挙げているので、**「実務上そろえるべき最小セット」と言い直せば正確かつ Apple 準拠**になる
-  > — Apple 公式 [Creating your first app intent](https://developer.apple.com/documentation/AppIntents/Creating-your-first-app-intent#Customize-your-app-intents-description-and-behavior)
-- 言い換え案: 「プロトコル的に必須なのは title と perform だけです。ただ実際には description と isDiscoverable、parameterSummary までを 1 セットで書くのが Apple の推奨です」
-
-### A-4. 「AppEntity はパラメータをつけるときに出てくる」（L28）
-
-- 半分正しいが狭い。`AppEntity` はパラメータだけでなく **戻り値・Spotlight インデックス・画面上のコンテンツ提供（onscreen）・他アプリへの受け渡し**にも使う
-- L76 の「AppIntents は動詞 / AppEntity は名詞」という整理と**そのまま繋がる**ので、L28 では「パラメータの型として最初に出会うのが AppEntity ですが、実は後半で話す通りこれは "アプリの名詞" そのものです」と**伏線にする**のがおすすめ
-
-### A-5. 用語の細かいところ
-
-- 「AppIntents プロトコルに適合した構造体」→ 正確には **`AppIntent`**（単数）プロトコル。フレームワーク名が `AppIntents`（複数）でプロトコル名が `AppIntent`。スライドの文字は単数に
-- 「SiriKit が UIKit、App Intents が SwiftUI」の比喩は**そのまま使える。むしろ良い**。補強すると:
-  - SiriKit = `Info.plist` + Intents App Extension（`INExtension`、別プロセス）+ **`.intentdefinition`（GUI エディタ + コード生成）**
-  - App Intents = **Swift の struct を書くだけ**。`Info.plist` 登録なし、Extension なし、**ビルド時に Swift コンパイラがメタデータを抽出**して `Metadata.appintents` を生成
-  - つまり「宣言的」の本質は見た目の書き味だけでなく、**宣言そのものがビルド生成物になる**こと。この 1 行があると「単に書き方が変わっただけでは？」というツッコミを先に潰せる
-    > "your intents are compiled into a metadata representation … containing information received from the Swift compiler as it runs on your code" — wwdc2022-10032 `29:12`
-- 「名前から Siri という単語を抜いたことに伴って適用範囲が増えた」→ **良い切り口**。裏付けとして: App Intents は Siri を一度も使わなくても価値が出る（本プロジェクトはウィジェット / コントロールセンター / ライブアクティビティ / Spotlight / アプリ内 UI で日常的に使っている）。ここは後半の「なるべく多くの面で活用する」に繋がる
-
-### A-6. ⚠️ 「App Schema 適合は任意」は 2 層に分けて話す（F. 想定 Q&A の修正）
-
-- Group Lab（#8011 `3:09`）で **「新しい Siri AI との統合にはスキーマ適合が必要」**と明言されている。
-  一方 `21:47` では **「advantage（優遇）という捉え方は違う」**とも言っている。矛盾ではなく **2 層**:
-  - **App Intents（スキーマ不要）** → Shortcuts / Spotlight / ウィジェット / コントロール / ライブアクティビティ / 従来の Siri フレーズ
-  - **App Schema 適合** → **新しい agentic Siri（多ターン会話・自然な言い回し・確認や所有権の自動処理・ローカライズ）**
-- F の「Apple Intelligence / Siri AI 対応は必須？ → 必須ではない」は **「任意」ではなく「どこまで行きたいかで決まる」**に直す
-- ⚠️ 根拠が**字幕由来の粗起こし**なので、スライドに断定で書くなら `3:09` を視聴して逐語確認
-- 詳細: [03-group-lab-evidence.md](03-group-lab-evidence.md)
-
----
-
-## B. L38「詳細ゾーン」の材料（3 案・尺つき）
-
-アンケートで「知らない」に手が挙がった人向けの解説ゾーン。**全部やると長い**ので 1 案か 2 案。
-
-### B-1【推奨・約 3 分】1 つの Intent が何面に出るかを実演する
-
-- 見せ方: `ToggleTodoCompletionIntent` を 1 つスライドに出し、そこから矢印を 6 方向（アプリ内ボタン / ウィジェット / コントロールセンター / ライブアクティビティ / Siri / Shortcuts）
-- 台詞の骨: 「この 20 行で、この 6 か所が全部動きます。**ウィジェットのチェックボックスと、Siri に "完了にして" と言うのは、同じ 1 つの Intent を呼んでいます**」
-- ここで `Button(intent:)` を紹介できる。「App Intents は Siri 用の API だと思われがちですが、**アプリ内の UI からも同じものを呼ぶ**のが今日の設計の核です」→ 中心設計への自然な橋
-- 実物: `Packages/TodoAppIntents/Sources/TodoAppIntents/Intents/ToggleTodoCompletionIntent.swift`
-
-### B-2【約 2 分】Intent / Entity / Query の 3 点セット
-
-- Apple 自身の要約が短くて使いやすい:
-  > "Intents are actions built into your app that can be used throughout the system. Intents use entities to represent your app's concepts. App Shortcuts wrap your intents to make them automatic and discoverable."
-  > — wwdc2022-10032 `1:08`
-- 「動詞 / 名詞 / 探し方」の 3 つで説明すると、L76 の「動詞・名詞」に綺麗に繋がる
-  - **Intent = 動詞**（できること）
-  - **Entity = 名詞**（扱っている概念。`@Property` で公開すると Shortcuts の変数として使える）
-  - **Query = 名詞の探し方**（`entities(matching:)` / `suggestedEntities()` / `allEntities()`）
-- ここで「**Query を書くと Shortcuts に "検索" と "フィルタ" のアクションが自動で生えます**」を言うと「1 個書くと勝手に増える」感が伝わる
-
-### B-3【約 2 分】App Shortcuts の「設定ゼロ」がどれだけ異常か
-
-- SiriKit 時代は **ユーザーが「Add to Siri」ボタンを押してフレーズを録音する**必要があった。App Shortcuts はそれが消えた
-  > "They no longer need to head to the Shortcuts app or use an Add to Siri button to set anything up."
-  > — wwdc2022-10170「Implement App Shortcuts with App Intents」`1:24`
-- つまり **インストール直後から Siri で呼べて、Spotlight にも出る**。開発者が `AppShortcutsProvider` にフレーズを書くだけ
-- 数字のネタ: **App Shortcut は 1 アプリ 10 件まで**（フレーズ総数は 1,000 件まで）。「10 件しかない枠に何を置くかが設計判断になる」という話は後半の実践パートの伏線になる
-
----
-
-## C. 各節の補強材料
-
-### C-1. Liquid Glass の節（L41–51）— ここが一番補強すると強くなる
-
-**仮説を裏付ける一次ソース（HIG Materials）。「コンテンツを目立たせる」の実文言はこれ:**
-
-> "Liquid Glass forms a **distinct functional layer for controls and navigation elements** — like tab bars and sidebars — **that floats above the content layer**, establishing a clear visual hierarchy between functional elements and content."
->
-> "**Don't use Liquid Glass in the content layer.**"
->
-> "**Liquid Glass seeks to bring attention to the underlying content**, and overusing this material in multiple custom controls can provide a subpar user experience by distracting from that content."
->
-> — Apple HIG [Materials / Liquid Glass](https://developer.apple.com/design/Human-Interface-Guidelines/materials#Liquid-Glass)
-
-- ここが効くポイント: Apple は **「機能レイヤー（クローム）」と「コンテンツレイヤー」を明示的に分離**し、**前者だけ**をガラスにした。「UI を文字通り透明にしようとしたのでは」という仮説と**構造的に一致する**
-- 併せて HIG [Layout / Visual hierarchy](https://developer.apple.com/design/Human-Interface-Guidelines/layout#Visual-hierarchy) の "**Differentiate controls from content.**" も使える
-
-**⚠️ まさかり対策（言い方の調整をおすすめ）:**
-
-- 「アクセシビリティの優先度が下がったのではないか」は**反論されやすい**。同じ HIG に、Liquid Glass の見た目が **アクセシビリティ設定（透明度を下げる / コントラストを上げる）や好みの設定に応じて変わる**と明記されている
-  > "The appearance of these variants can differ in response to certain system settings, like if people choose a preferred look for Liquid Glass in their device's settings, or **turn on accessibility settings that reduce transparency or increase contrast** in the interface."
-- なので **「捨てた」ではなく「クロームの視覚的な存在感を下げても成立するように、適応表示 + 代替経路の両方を用意した」**という言い方に寄せると、同じ結論に着地しつつ突っ込まれにくい
-- そして「代替経路」の方が App Intents につながるので、**論旨はむしろ強くなる**
-
-**構造的な傍証（推測に頼らないカード）:**
-
-- Apple は「アクションを UI の外に出す面」を**毎年増やし続けている**。2023 ウィジェットのボタン → 2024 コントロールセンター / Action Button → 2025 Interactive Snippets / Visual Intelligence → 2026 Siri AI・通知オートメーション
-- つまり **「UI を薄くしても操作が失われない」という前提を、Apple は App Intents で先に作っていた**。これは推測ではなく年表の事実として言える（骨子① S16 の積み上げ図がそのまま使える）
-- Matthew Cassinelli（元 Apple / Shortcuts）の啓蒙は既にスクリプトに引用済み。加えるなら **Vidit Bhargava の Action-Centered Design**（L67 で既出）が「アプリ = アクションの集合体」を UX 側から言っているので、**「Apple の中の人 + デザイン側 + 実装側の 3 方向から同じことが言われている」**という構図にできる
-
-### C-2. 中心設計の 3 原則（L61）の裏付け
-
-スクリプトの 3 つ ——「App Intents から設計する / なるべく DRY / なるべく多くの面で活用する」—— に対応する具体を 1 つずつ:
-
-| 原則 | 具体（このプロジェクトでやったこと） |
+| 選択 | やること |
 |---|---|
-| App Intents から設計する | 設計プロセスを**最も制約の厳しい面（Apple Watch）から**始める。そこで残る本質的なアクションを Intent 化してから、他プラットフォームへ広げる（Action-Centered Design の手順） |
-| なるべく DRY | **UI からのアクションは必ず `Button(intent:)`**。ロジックは `TodoService` 1 箇所。「ウィジェットのボタンと Siri が同じ Intent」が結果として得られる |
-| なるべく多くの面で活用 | 1 アプリで **iOS / iPadOS / macOS ネイティブ / watchOS / visionOS + ウィジェット / コントロール / ライブアクティビティ / Siri / Shortcuts / Spotlight / Visual Intelligence**。watchOS を足すときに書いたのは **View だけ** |
+| ① 削って締めを取る | 本文から **5〜8 分**削って、締めに 5〜7 分。**推奨**（D の案が使える） |
+| ② 締めを 2 分に圧縮 | 削らず、締めを「1 枚 + 30 秒」×3 に。CfP のアジェンダ 5 項目のうち後半 2 つが薄いまま残る |
+| ③ 質疑を捨てる | 40 分喋り切って質疑 0。iOSDC はアンカンファレンス的に廊下で拾えるので選択肢としてはあり |
 
-- 数字を出すなら: **Intent 定義 24 ファイル / AppEntity 4 種 / Query 4 種 / App Shortcut 8 件（上限 10）/ SPM パッケージ 7 つ**
+### A-3. 掛け率の測り方（これは自分でやるのが一番早い）
 
-### C-3. レイヤードアーキテクチャの節（L73–79）の補足
+`#1–3`（968 字）だけ本番の速度で音読してストップウォッチを見る。
+`968 ÷ 実測秒 × 60` が自分の字/分。それで 7,777 を割ると素読み時間が出る。
+**会場ではそれの 1.2–1.4 倍**を見ておく（自分の掛け率が分かっているなら実測値で）。
 
-- 実際の構成は 4 層 7 パッケージ。「表示側の葉ノード」が 4 つ並列にぶら下がる形なので、図にするならこれ:
-  ```
-  Domain ── Repository ── TodoAppIntents ─┬─ UI          (iOS/iPadOS/macOS/visionOS)
-                          （★コア）        ├─ WidgetUI    (ホームウィジェット)
-                                          ├─ WatchUI     (watchOS + コンプリケーション)
-                                          └─ LiveActivity (iOS 限定)
-  ```
-- **Extension ターゲットには `@main` と宣言だけ**しか置かない、が実務上効いた点。View を SPM に移すと **プレビューが速くなる / テストできる / 他プラットフォームで再利用できる**
-- UseCase 廃止の補強として言えること: **`@Dependency` + `AppDependencyManager` があるので、Intent がアプリの共有状態（Service / NavigationModel / ModelContainer）に正規の方法で到達できる**。UseCase 層を挟む動機（DI と実行の分離）が Apple 側の仕組みで埋まっている
-- ただし正直に言うべき境界: **ロジックを Intent の `perform()` に書くのは 24 個に増えると破綻する**。本プロジェクトは `TodoService`（`@MainActor final class`）に集約して、Intent は「システムとの接続点」に薄く保っている。**「UseCase を廃止した」＝「ロジックの置き場をなくした」ではない**、と言い切っておくと誤解されない
-- 「制約によりけりで柔軟に」（L79）の実例: **`AppShortcutsProvider` だけは SPM に置けない**（後述 D-1）。理想の分割が SDK 側の都合で崩れる代表例として使える
+### A-4. 削り候補（効果が大きい順 / 上から採ると本文 −6 分前後）
 
-#### C-3x. ⚠️ 「UseCase 層を廃止」という言い方を直す（L74 / 図を描くときに必ず詰まる）
+| 候補 | 現状 | 削る案 | 効果 |
+|---|---:|---|---:|
+| **a. 自己紹介・会社紹介**（#2–3） | 968 字 | 経歴の列挙を QR に寄せ、会社は「デザイン会社として日本初上場」「WWDC 振り返りを全社でやってる」の 2 点に | −1.5 分 |
+| **b. 2023–2025 の各年**（#25–35） | 796 字 | 年表 1 枚 + 各年「象徴 1 つだけ」。2023 の `Button`/`Toggle` は中心設計の技術的出発点なので**残す**、2024・2025 は各 1 面に | −1.5〜2 分 |
+| **c. SPM 構成 + 依存図**（#62–63） | 339 字 | 2 枚を 1 枚に統合（層の名前は図の中に書いて読まない） | −1 分 |
+| **d. Service / DI の 4 枚**（#76–79） | 279 字 | 2 枚に。DI は「登録漏れは無音で失敗する」の 1 行に圧縮（コードは載せるが読まない） | −1 分 |
+| **e. Liquid Glass の論証**（#41–48） | 767 字 | 8 枚 → 5 枚。「アクセシビリティ批判 → 2 レイヤー → HIG の文言 → 透明化仮説 → だから代替経路」の 5 段に | −1 分 |
+| **f. `Button(intent:)` の実例 2 枚**（#73–74） | 144 字 | 1 枚（iOS / watchOS の同一 Intent の対比だけ残す。ツールバーの例は落とす） | −0.5 分 |
+| **g. アンケート**（#4–8） | 358 字 | 3 問 → 2 問（「知らない」と「バリバリ」だけ）。真ん中は笑いの取りどころなので残す判断もあり | −0.5 分 |
 
-2026-08-25 追記。**L74 の「Use Case 層を廃止し App Intents 層に置き換えた」は、図にしようとすると破綻する**。
-理由と言い直しは全文を [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md#layered--clean-architecture-との対比) に置いた。
-スライドに落とすなら以下 5 枚分の材料。骨子②の **T07b** と同じ内容なので、両方使うなら役割を分ける
-（99 側 = なぜ Intent にしたか / T07b = 従来の層とどう対応するか）。
-
-**① なぜ同心円に収まらないのか**
-
-- Clean / Layered の同心円が成立しているのは、レイヤーが **1 本の軸（依存方向 = 抽象 ← 具体）だけ**で切られているから
-- App Intents 中心設計は **別の軸（誰が呼ぶか = 呼出面）**を持ち込む。2 軸を同心円 1 枚に押し込もうとして破綻する
-- 実際 `AppIntent` は Clean Architecture の語彙で **3 役を同時に**担っている:
-  **Controller**（`@Parameter` / `EntityQuery` / 曖昧性解消）+ **Presenter**（`IntentDialog` / Snippet / `DisplayRepresentation`）+ **UseCase の入力ポート**（名前と signature）
-- **UseCase の「本体」だけが `AppIntent` に入っていない**。それが `TodoService`
-
-**② 言い直し（これがスライド 1 枚の見出しになる）**
-
-> **「UseCase 層を廃止した」ではなく「UseCase の宣言が Intent に、実装が Service に分かれた」**
-
-`Packages/` に `UseCase/` が無いのは層が消えたからではなく、宣言が `TodoAppIntents/Intents/`、
-実装が `TodoAppIntents/Services/TodoService.swift`（494 行）に同居しているから。
-
-**③ 対応表**
-
-| Clean Architecture | 本プロジェクト |
-|---|---|
-| Entity | `Domain`（`@Model`） |
-| UseCase の**宣言** | `AppIntent` 型 + `@Parameter` |
-| UseCase の**実装** | `TodoService` のメソッド |
-| Controller | `perform()` 前半 + `EntityQuery` |
-| Presenter / ViewModel | `IntentDialog` / Snippet / SwiftUI View |
-| Gateway | `TodoRepositoryProtocol` |
-| DB / Framework | `SwiftDataTodoRepository` |
-
-**④ 図は同心円ではなく砂時計（bowtie）**
-
-```
- UI  Siri  Spotlight  Widget  Control  LiveActivity  他アプリ   ← 呼出面（対等・能力が違う）
-  \    \      |         |        |          /          /
-   ────────── Intent + Entity ──────────                      ← くびれ = 公開契約（最も凍る）
-                    │  ┊
-              TodoService  ┊ ← 読み取り（EntityQuery）は層を直通
-                    │
-           TodoRepositoryProtocol
-                    │
-              SwiftData / CloudKit
-```
-
-- 砂時計にすると同心円で言えなかった 2 つが言える:
-  - **UI は特権的な最上層ではなく、Siri と対等な呼出面の一つ**（`Button(intent:)` 必須の理由が図から出る）
-  - **呼出面ごとに能力が違う**（Control は dialog も snippet も出ない、等）。同心円だと「外側は全部同じ Presentation」に見えてこの差が消える
-
-**⑤ 「UseCase と Repository の使い分け」を納得させるコツ**
-
-素通しの例（`createTodo()` → `repository.create()`）を出すと「なぜ 2 段？」で終わる。**差が出る実例**で説明する。
-
-| Service にあって Repository に置けないもの | 理由 |
-|---|---|
-| `toggleMostUrgentTodo()` | fetch + mutate の 2 呼び出しが、ユーザーには **1 行為** |
-| `snapshot()` / `restore()` | 「**同じ id で**戻す」という undo の不変条件。Repository は id の意味論を知らない |
-| `dataDidChange()`（Widget reload + AppShortcut パラメータ更新） | **「1 行為が完了した」ことを知っているのは UseCase 層だけ**。Repository の `update()` は自分が行為の途中か終端か判別できない |
-
-**⑥ Clean Architecture と本質的に反転している 2 点（対比の山）**
-
-1. **凍る方向が逆**。Clean は「内側 = 安定した方針、外側 = 揺れる詳細」。App Intents 中心では
-   **外周の Intent 型名 / parameter 名 / `AppEnum` の raw value がユーザーのショートカットに永続化されていて最もリファクタできない**。内側の `TodoService` のほうが自由に触れる
-2. **依存逆転の目的が違う**。「DB を差し替えられる」はほぼ使われない口実だが、ここでは
-   `TodoRepositoryProtocol` が **プロセス境界**で効く（`allowedExecutionTargets` / Widget Extension とメインアプリで同じロジックが別プロセスに載る）
-
-**⑦ 正直に言う非対称**
-
-`EntityQuery` 系の**読み取りは `TodoService` も Repository も飛ばして**ストアに直通している
-（`@Dependency var modelContainer`）。実態は **書き込み側だけ層が厚い CQRS 的な形**。
-理由は「読み取り系 Intent は実行先を固定せず Extension プロセスで応答させたい = アプリ起動コストを避けたい」。
-**同心円 1 枚だとこの線が引けない**のも砂時計にする理由。
+- ⚠️ **b を削るときの注意**: #38 (L106)「主要なアップデートが実は数年前に導入されていたものの改良」と
+  #39 (L108)「年を追うごとに対応先が増える」は**本発表の主張の土台**なので、各年を削っても
+  この 2 枚は残す。**Apple Pencil Pro のスクイーズは既に #31 のスライドに載っている**ので、
+  スライドを足す必要はなく **15 秒喋るだけでこの 2 枚の根拠になる**（E-1 / G-4）。
 
 ---
 
-## D. 残りアウトラインの材料（L82–88）
+## B. 事実確認
 
-### D-1. 「実際どんなつまずきや理想との乖離があったか」（L82）
+### B-1. 【本人確認済み: Tech Talk】#21 (L72)「WWDC2023 での移行を案内したセッション」→ 年と枠を直す
 
-40 分枠だと **3 本 + 締め 1 行**が限界。**「ビルドは通る・エラーも出ない・ただ動かない」**という共通点で括るのがおすすめ。
+スライドに貼っているのは **Tech Talk「Migrate custom intents to App Intents」（`tech-talks/10168`）**
+と確認が取れた。よって **原稿の「WWDC2023 での」は落とすか、「WWDC のセッションとは別枠の Tech Talk」に直す**。
 
-**① `AppShortcutsProvider` は SPM パッケージに置けない（理想の分割が崩れる話）**
+- 直し方（推奨）: 「これは**移行のためだけに用意された Tech Talk** なんですが」
+  → **「WWDC の枠の外に、移行専用の動画をわざわざ 1 本出していた」**という言い方にすると、
+  「それだけ移行させたかった」の補強として働く（年を言わなくて済むぶん安全でもある）
+- #24 (L78)「セッション名に書かれているとおりカスタムインテント」は **Tech Talk 名と一致するのでそのまま使える** ✅
 
-- 症状: **Siri / Shortcuts / Spotlight に App Shortcut が 1 つも出てこない。ビルドも実行もエラーなし**
-- 原因: App Intents の実体は**ビルド時に生成される `Metadata.appintents`**。`actions` / `entities` / `queries` は依存パッケージからアプリへ集約されるが、**`autoShortcuts` だけ集約されない**
+手元の一次ソースで確認できること（周辺事実。話すときに混ぜないよう注意）:
 
-  | キー | パッケージ側 | アプリ側 |
+| 事実 | 出典 |
+|---|---|
+| **「Migrate custom intents to App Intents」は WWDC セッションではなく Tech Talk（`tech-talks/10168`）**。2022 年の 3 セッション（10032 / 10169 / 10170）が related resource として並べている | `docs/references/wwdc/wwdc2022-10032` 他の関連リンク |
+| **Convert to App Intent ボタンは 2022 年時点で既にある** | wwdc2022-10032 `29:48`「You can start the upgrade process by clicking the Convert to App Intent button」 |
+| **WWDC 2023 の 10103 が案内している移行は「ウィジェット設定 Intent」の移行** | wwdc2023-10103 `4:25`「navigate to your SiriKit widget configuration Intent … click the Convert to App Intent button」。`5:25` で「詳しくは *Migrate custom Intents to App Intents* を見て」と Tech Talk に送っている |
+
+⚠️ **10103 の話は混ぜない**。2023 年に案内されたのは**ウィジェット設定 Intent** の移行で、
+Tech Talk が扱う**カスタム Intent** とは対象が違う。両方出すなら年を分けて
+「カスタム Intent は 2022（Tech Talk）、**ウィジェット設定は 1 年遅れて 2023**」と言う。
+これは C-7（2020 の伏線回収）に使える材料でもある。
+
+### B-2. 【背景は本人確認済み】#66 (L171)「モデルベース UI デザインという**弊社でよく行われているデザインプロセスの本**」
+
+背景: **著者の usagimaru さんは元々 Goodpatch に在籍していて、この本を書き始めたのはその頃。
+当時この考え方ベースで社内研修をやっていた** → 「弊社でよく行われているデザインプロセス」は事実として妥当。
+
+- 書誌情報: **丸怜里（usagimaru）『モデルベース UI デザイン 構造化 UI と情報設計の方法論』翔泳社 / 2025-07-07**
+- 残るのは **事実の問題ではなく、聴衆がその背景を持っていないこと**。今の 1 文だけを聞くと
+  「社外の本を自社の手法だと言っている」と受け取られうる（著者を知っている人が客席にいる可能性は
+  それなりに高い）。**背景を 1 行足すだけで解決するし、足したほうが話は強くなる**:
+
+  > 「著者の方は元々弊社にいて、**その頃この考え方で社内研修をやっていた**んです。
+  > 自分もそれで叩き込まれていて、それが後に本になったという流れなんですが」
+
+  - この 1 行があると「**自分の設計思想の出自がどこか**」が明示されるので、
+    先行事例（SwiftLee / Vidit）を挙げた #60 (L156)「発想自体が新しいものではない」の誠実さと揃う
+  - **デザイン会社のエンジニアがこの話をする理由**そのものにもなる（D-3 / D-7(c) を採るなら特に）
+- スライドには **書名 / 著者名 / 出版社 / 2025** を出す（口頭で背景を言うぶん、帰属は文字で残す）
+
+### B-3. #82 (L202–204)「サイレントに失敗する → だから AppIntentsTesting が生きてくる」
+
+因果が強すぎる。**AppIntentsTesting では捕まらない**サイレント失敗が、自分が踏んだものだけで 4 つある:
+
+| 症状 | AppIntentsTesting で捕まるか |
+|---|---|
+| `AppShortcutsProvider` を SPM に置いて `autoShortcuts: 0`（App Shortcut が 1 つも出ない） | ❌ 型名で intent を引くのでフレーズ経路を通らない |
+| Control から dialog / snippet が出ない | ❌ 呼出元を再現できない |
+| `requestConfirmation` を持つ Intent が UI の `Button(intent:)` から無反応 | ❌ **Siri / Shortcuts / AppIntentsTesting 経由なら成功する**ので緑になる |
+| `.appEntityIdentifier(forSelectionType:)` を `List` 以外に付けて no-op | ❌（`viewAnnotations()` で個別に書けば捕まるが、書かないと気づけない） |
+
+言い直しの候補:
+
+1. **「梯子」に寄せる**（#83 の内容を前に出す）: 「サイレント失敗に対して今年やっと**段階的な検証手順**が
+   公式に示されました。その 1 段目が AppIntentsTesting です。ただし **4 段目の Siri は公式に『手でやれ』と
+   書かれている**（wwdc2026-295 `24:46`）ので、全部は自動化できません」
+2. **自分の作法を 2 つ出す**: 「テストで捕まらないぶんは、**呼出元を 1 つだけ変えて比べる** /
+   **システムが読むメタデータを直接見る**、この 2 つでしか確定できませんでした」
+   → D の締め案 1 にそのまま繋がる
+3. **範囲を限定して言う**: 「entity の id 解決や query みたいな『壊れても他では気づけない』ところは
+   AppIntentsTesting に寄せられるようになりました」（誠実で短い）
+
+### B-4. #46 (L125)「アクセシビリティを多少でもトレードオフの対象にしてしまった」
+
+反論されやすい。同じ HIG に、Liquid Glass の見た目が **透明度を下げる / コントラストを上げる**設定に
+応じて変わると明記されている:
+
+> "The appearance of these variants can differ in response to certain system settings, like if people
+> choose a preferred look for Liquid Glass in their device's settings, or **turn on accessibility settings
+> that reduce transparency or increase contrast** in the interface."
+> — Apple HIG [Materials](https://developer.apple.com/design/Human-Interface-Guidelines/materials#Liquid-Glass)
+
+言い方の候補（どれも結論は変えずに、突っ込みどころを減らす）:
+
+1. 「**捨てた**」ではなく「**クロームの視覚的な存在感を下げる方向に振った**。適応表示は用意されている
+   けれど、初期は明らかにコンテンツ優先で振れていた」
+2. 「アクセシビリティを下げた」ではなく「**あの批判が出た事実そのものが、Apple がクロームの
+   存在感を捨てにかかっていた証拠**」（批判を根拠として使う。断定を避けつつ論旨は強くなる）
+3. 仮説であることを明示: 「ここからは自分の推測です」と 1 回言ってから踏み込む（現状 L127 で
+   「これはあくまで予想」に近いことを言っているが、#46 の時点では断定に見える）
+
+### B-5. #49 (L131)「タブを開いてというだけでそのタブを開けます。**タブは必要ありません**」
+
+2 点risky:
+
+1. **アクセシビリティの代替にはならない**。音声が使えない場面（静かな場所・発話が難しい・
+   VoiceOver 併用）を考える人が客席にいる。「UI を削れる」と聞こえると B-4 の批判が跳ね返ってくる
+2. **App Intents に対応すれば自動でそうなる、わけではない**。「タブを開く」を Siri から言うには
+   Intent + フレーズ（または schema）+ **ナビゲーションへの配線**が要る。実際この
+   プロジェクトは `NavigationModel` を `@Dependency` で受けて自分で書いている（#79 / L198）
+
+言い方の候補:
+
+1. 「**タブは必要ありません**」→「**タブに到達する経路が、画面の中のタブだけじゃなくなる**」
+2. 伏線にする: 「ただしこれ、勝手にそうなるわけではなくて、**ナビゲーションを Intent 側から
+   動かす配線を自分で書く**必要がありました。後半でそのコードが出てきます」← #79 と繋がって
+   実践パートの意味が上がる
+3. 例をタブから変える（タブは「削れ」と聞こえやすい）。「詳細画面を開く」「検索結果を出す」なら
+   代替経路の話として素直
+
+### B-6. #37 (L104)「今年は Siri AI。実はここ数年のブラッシュアップみたいな側面が強い」
+
+- **「Siri AI」は公式名称**（wwdc2026-121 の概要文が "Introducing Siri AI in iOS 27"）。ここは問題なし
+- ただし「ブラッシュアップ」だけだと **#82 (L202) で AppIntentsTesting を「以前と以後で大違い」と
+  言っていること**と噛み合わない。2026 で**新しく増えた**ものは少なくとも:
+  **AppIntentsTesting（新フレームワーク）/ `@AssistantIntent` → `@AppIntent(schema:)` のリネームと
+  ドメイン拡張 / `SyncableEntity` / `EntityCollection` / `LongRunningIntent` / `CancellableIntent`**
+- 言い方の候補:
+  1. 「**Siri 側は作り直し、API 側はここ数年の穴埋め。ただし検証の道具だけは新規で来た**」
+     （後半への伏線になる）
+  2. 「今年は API が増えたというより **つながり**（クロスアプリ・クロスデバイス・検証可能性）の年」
+     ← 骨子① S18 の言い方
+  3. 現状のまま行くなら、#82 の側を「今年やっと道具が来た」ではなく
+     「**穴埋めの中で一番効いたのがこれ**」に寄せて矛盾を消す
+
+### B-7. ⚠️ 裏取りが必要（スライドに逐語・スクショを出すなら必須）
+
+| 箇所 | 現状の記述 | 確認すること |
+|---|---|---|
+| #42 (L116) | 「**WWDC23 の Platforms State of the Union** の一幕」「Accessibility のことを Apple の中心にある理念とまで評している」 | `docs/references/` にこのセッションの控えが無い。**年（23 で合っているか）とスライド文言**を実物で確認。スクショを出すなら逐語で |
+| #43 (L119) | 「Liquid Glass の紹介のセッションでも語られた**二つのレイヤー**のうちの**ナビゲーションレイヤー**」 | HIG の語彙は **"functional layer"（controls and navigation）** と **"content layer"**。「ナビゲーションレイヤー」という呼称がセッションにあるかは未確認。**HIG の逐語なら手元にある**（G-2）ので、そちらに寄せると安全 |
+| #18 (L65) | 「2020 年にはこんなセッションもあるとおり」 | どのセッションのスクショか。候補は WWDC 2020 10194「Add configuration and intelligence to your widgets」/ 10073「Empower your intents」。**セッション番号をスライドに書く**なら確認 |
+| #58 (L151) | 「SwiftLee に **2023 年時点で**登場していました」 | 記事の公開年。URL は `https://www.avanderlee.com/swift/app-intent-driven-development/` |
+| #52 (L137) | 「元 Apple の Matthew さん」 | フルネーム（**Matthew Cassinelli**）をスライドに。ツイートの URL / 日付も（引用するなら） |
+
+### B-8. 誤字・表記
+
+| 箇所 | 現状 | 直し |
+|---|---|---|
+| L63 | **SiirKit** | SiriKit |
+| L90 | 「**App Intelligence** が発表されたこの年」 | Apple Intelligence |
+| L31 | 「デザインスポンサーなんかもやっていた**みたいなんですあ**、最近は」 | 「みたいなんですが」 |
+| L23 / L214 | 「ちょっとなかなかの暴挙」 | （原稿の口語なので実害なし。読み上げ用に整えるなら） |
+| L51 | 「AppIntent というプロトコル」 | ✅ 単数で正しい（フレームワーク名が `AppIntents`、プロトコルが `AppIntent`）。**スライドの文字も単数か確認** |
+
+### B-9. 正しいので**そのまま押していい**もの（自信を持って言える）
+
+- #16 (L60)「**2016 年 / iOS 10** まで遡る」 ✅（wwdc2022-10032 `0:33`）
+- #12 (L51)「最低限必要なのは **title と perform の 2 つ**」 ✅（`description` は optional）
+- #19 (L67)「2022 は**併用**が前提で、**まっさきに離れたのが Siri / Shortcuts 向け**」 ✅（10032 `29:29`–`29:48`）
+- #27 (L84)「**perform が完了するとタイムラインが更新されることも保証**」 ✅（wwdc2023-10028 `13:47`）
+- #53 (L139)「Group Lab で Apple のエンジニアが**エコシステムへの期待**を語っている」 ✅（#8011 `43:36` / `44:16`。G-5 に逐語）
+- #64 (L166)「**AppIntent が動詞 / AppEntity が名詞**は Apple 公式の表現」 ✅ しかも**逐語が 3 本ある**（G-1）
+- #75 (L189)「**アプリを開くだけなら Button ではなく Link**」 ✅（WidgetKit 公式）
+- #83 (L206)「AppIntentsTesting → Shortcuts → Spotlight → Siri の推奨手順」 ✅（wwdc2026-240 `24:13`–`25:57`）
+
+### B-10. #75 (L190)「Button の perform の中で **donation という機能が使えない**」
+
+正確には **呼べる。呼べるが、公式ルールを原理的に満たせない**。
+
+- 公式ルール: 「donation は**アプリの UI 起点の操作だけ**に限れ。Siri / Shortcuts 起点には donate するな」
+  （[Donations and discovery](https://developer.apple.com/documentation/AppIntents/donations-and-discovery)）
+- ところが **`perform()` は呼出元を判別できない**（`IntentSystemContext` にあるのは
+  `currentMode` と `isVoiceOnly` だけ）。**UI も `Button(intent:)` にした時点で条件を書き分けられない**
+- 言い直しの候補:
+  1. 「**使えない**」→「**公式ルールを原理的に満たせなくなる**」（1 語の差だが、質疑での耐久度が全然違う）
+  2. ここを括弧書きから **1 枚に昇格させる**（D の締め案 2 の核。「中心設計を徹底した代償」として
+     一番きれいな話で、しかも Apple のサンプル 2 本が両方「UI はサービスを直接呼ぶ」前提だという
+     裏付けがある = **中心設計は Apple の想定する標準形ではない**と言い切れる）
+  3. 現状の軽い触れ方のまま行くなら「詳しくは後で」と言わずに **触れない**（中途半端に出すと
+     質疑で必ず「あれ結局どうしたんですか」が来て、答えると 3 分持っていかれる）
+
+### B-11. #62 (L161)「UseCase の部分が丸っと AppIntents に置き換わっている」
+
+自分のドキュメントで「**この説明は図にすると破綻する**」と結論を出している
+（[../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md#layered--clean-architecture-との対比) /
+骨子② T07b）。実態は **「UseCase の宣言が Intent に、実装が Service に分かれた」**。
+
+- #76 (L192)「ロジックをそのまま Intent に書くという話でもありません。一旦 TodoService を挟んで」が
+  実質の訂正だが、**14 面 / 体感 6 分ほど離れている**。この間に質疑メモを取られる
+- 候補:
+  1. #62 の言い方を先に正す: 「UseCase の**宣言**が Intent に来て、**実装**は Service に残ります」
+     （1 文で済む。#76 は「さっき言った実装側がこれです」で受けられる）
+  2. #62 では「置き換わっている**ように見える**」と言って、#76 で回収する（伏線として使う）
+  3. 砂時計の図を 1 枚入れる（T07b / 質疑対策としては最強だが +1 分）
+
+### B-12. App Schema は **#38 のスライドには載っているが、口では 1 度も言っていない**
+
+- #38 (L106) の羅列は **Siri → Siri AI / App Schema / Visual Intelligence が iOS から macOS へ /
+  AppIntentsTesting / SyncableEntity** の 5 つ。原稿側の発話は
+  「主要なアップデートが実は数年前に導入されていたものの改良だったり、空いていた穴がうまる」だけ
+- ⚠️ Group Lab で **「新しい Siri AI との統合にはスキーマ適合が必要」**と明言されている（#8011 `3:09`）。
+  **スライドに文字で出しておいて口で触れない**のが一番もったいない（読める人は読んでしまうので、
+  「知っていて飛ばした」ように見える）。しかも自分は reminders 適合まで踏み込んで、
+  watchOS のメタデータ衝突で Feedback（FB24570185）まで出している = **材料が一番濃い領域**
+- ⭐ **#38 の羅列は、原稿の主張をそのまま裏付ける形に分解できる**（これを口で言うのがおすすめ）:
+
+  | #38 の項目 | 位置づけ | 一言 |
   |---|---|---|
-  | `actions`（Intent） | 20 | 20 ✅ |
-  | `entities` | 3 | 3 ✅ |
-  | `queries` | 3 | 3 ✅ |
-  | **`autoShortcuts`** | **8** | **0 ❌** |
+  | Siri → Siri AI | 作り直し | 主役。ただし API から見ると「使う相手が強くなった」 |
+  | **App Schema** | **2024 の App Intent Domains の改良**（リネーム + ドメイン拡張） | 「数年前に置かれたものの改良」の**最良の実例** |
+  | Visual Intelligence が macOS へ | **2025 の拡張** | 同上。しかも**自分が実際に踏んだ**（下記） |
+  | AppIntentsTesting | **新規** | 「空いていた穴が埋まった」側 |
+  | SyncableEntity | **新規** | 同上 |
 
-  （※当時の実測値。現在は Intent 23 / Entity 4 / Query 4）
-- 解決: `AppShortcutsProvider` **だけ**アプリターゲット直下へ移す（`import TodoAppIntents` で Intent を参照）。それで `0 → 8` になる
-- **話のオチ**: 「理想は全部 SPM に寄せることでした。でも**システムが読むのはアプリバンドルの中の 1 つのメタデータだけ**なので、そこに集約されないものはアプリ側に置かないといけない。**綺麗な分割は、ビルド生成物の都合に負けます**」
-- ⚠️ 「アプリあたり 1 つまで」と明文化された Apple のリファレンス記述は見つけられていない。**実機観測ベースと明言する**
+  → **「5 つのうち 3 つは既存の改良・拡張、新規は 2 つ」**と言うと、#38 の主張が抽象論ではなく
+  スライドの中身そのものから出てくる。B-6（「ブラッシュアップ」と #82 の矛盾）もこれで同時に解ける
 
-**② 呼出元によって、返したものが出るか出ないかが変わる（一番驚かれるやつ）**
-
-| 呼出元 | `.result(dialog:)` | Snippet | ローカル通知 |
-|---|---|---|---|
-| Siri | 読み上げ ✅ | ✅ | ✅ |
-| Spotlight / Shortcuts | 結果欄に ✅ | ✅ | ✅ |
-| アプリ UI の `Button(intent:)` | 出ない | 出ない | ✅ |
-| ウィジェットの `Button(intent:)` | 出ない | 出ない | ✅ |
-| **コントロールセンター** | **出ない** | **出ない** | ✅ |
-
-- **どうやって確定させたかがこの話の本体**。公式の記述が割れていた:
-  - AppIntents [Visual presentation](https://developer.apple.com/documentation/AppIntents/visual-presentation): "Siri, Spotlight, and the Shortcuts app display snippets"（Control は列挙されない）
-  - 一方 wwdc2025-275 `1:40`–`1:59`: "**I'll tap on the control that runs an App Intent** […] the intent will show a snippet"
-- 肯定リストは Control を**明示的に除外していない**ので「列挙に無い＝出ない」とは読めない。**実際この推論で一度設計を誤った**
-- そこで **呼出元だけを変えて同じ Intent・同じ snippet を走らせた**: Spotlight から → 出る / Control から → 出ない / プロセスを `[.main]` に固定しても → 出ない / Toggle でも → 出ない。**残る差分は「呼出元が Control であること」だけ**
-- **話のオチ**: 「App Intents は**同じコードが呼出元によって違う振る舞いをする**フレームワークです。だからドキュメントの読解より、**変数を 1 つだけ動かした比較**が早い」
-- 設計上の帰結: Control の成功フィードバックは **コントロール自身の再描画**、**失敗時だけローカル通知**（失敗すると前の状態のまま再描画されて「何も起きなかった」と区別できない）
-
-**③ `requestConfirmation` を含む Intent はアプリ内 `Button(intent:)` から呼べない（一番痛かったやつ）**
-
-- 応答する面が無いため `LNPerformActionErrorCodeUnsupportedValueType` で失敗し、**エラー表示も出ずに何も起きない**
-- 実際 **詳細画面の削除ボタンが長期間まったく動いていなかった**
-- しかも **Siri / Shortcuts / AppIntentsTesting 経由なら成功する** → **テストでは検出できない**
-- さらに追い打ち: UI テスト側が `if element.waitForExistence(...) { XCTAssert... }` という**条件付き assert** になっていて、要素が見つからないと中身が実行されず**緑になっていた**
-- 解決: **確認は SwiftUI の `.confirmationDialog` で取り、実行は確認なし版の Intent に渡す**。`requestConfirmation` / `requestChoice` を持つ Intent は **Siri / Shortcuts 専用**と割り切る
-- **話のオチ**: 「**DRY にしたい気持ちと、対話できる面かどうかは別問題**でした。同じアクションでも "問い合わせられる相手がいるか" で 2 本必要になる。これが理想と現実の乖離の一番大きいところです」
-
-**④ 候補（2026-08-21 追加）: 公式サンプルを読んだら 4 箇所間違っていた**
-
-> 3 本の枠に対する **4 本目の候補**。①〜③ と違って「制約の話」ではなく **「調査の作法の話」** なので、
-> ①〜③ のどれかと差し替えるより、**締めの直前に 1 分足す**ほうが効くかもしれない。骨子側は T29b。
-
-- 前提として**読んでいたもの**: WWDC の App Intents 関連セッション全部（2022〜2026、トランスクリプト全文）+ 公式ドキュメント + 1 年の実測
-- それでも **WWDC 2026 の公式サンプル 4 本（CometCal / UnicornChat / CosmoTunes / PhotosDomainExample）を読んだら 4 箇所間違っていた**:
-  1. `perform()` の中で `donate()` を呼んでいた（公式は「Siri / Shortcuts 起点には donate するな」。`perform()` は呼出元を見られない）
-  2. `attributeSet` と `@Property(indexingKey:)` で同じ Spotlight キーを書いていた（セマンティック検索に載る本文が固定文に入れ替わりうる）
-  3. `LocalizedStringResource(stringLiteral: todo.title)`（**ランタイム値をローカライズキーにしていた**）
-  4. `entities(matching:)` の比較が `lowercased().contains()`（ロケール非依存。かな / カナ、濁点、トルコ語の I が別文字扱い）
-- **なぜ散文では気づけなかったか**が本体: 公式ドキュメントは 1 シンボルずつ説明する。「`indexingKey` は attribute set を置き換えず追加する」とは書いてあるが、**同じキーを両方から書いたらどうなるかは書いていない**。**合成のしかたはサンプルにしか書いていない**
-- サンプルのコメントにしか無い知見の例: **「Siri は entity の subtitle を読み上げるので `"5:00"` のような位置指定表記を避ける」**（"five colon zero zero" と読まれる）
-- ただし **サンプルは証拠であって権威ではない**。Apple 自身が非推奨 API を使っている（`static let openAppWhenRun = true`。現行は `supportedModes`）
-- **話のオチ**: 「①〜③ が『動かないものをどう見つけるか』の話でした。これは **『間違っていることにどう気づくか』** の話です。全部読んだつもりでいて、Apple が書いたコードを開いたら 4 箇所出ました」
-
-**締めの 1 行（3 本の共通点）**
-
-> 「3 つとも、**ビルドは通り、例外も出ず、ただ動かない**という形で来ました。App Intents は宣言的なので、**宣言が届いていないことに気づけない**。だから **① システムが読むメタデータを直接見る、② 呼出元を 1 つだけ変えて比べる**、この 2 つが必須の作法になります」
-
-> ④ を入れるなら 3 つ目を足す: **「③ Apple が書いたサンプルコードを読む」**
-
-**時間が余ったら足すカード（各 30 秒）**
-
-- **`supportedModes` は実行プロセスを決めない**。共有パッケージの Intent は**ヒューリスティクス**でプロセスが選ばれる（アプリ起動中なら本体優先、未起動なら Extension）。`@Dependency` はプロセスごとの `AppDependencyManager` から解決されるので、固定しないなら**両方に登録**が要る。→ 本プロジェクトの現在の運用は **「SwiftData を書き換える Intent は必ず `allowedExecutionTargets = [.main]`」（13 Intent）+ 宣言漏れを `IntentExecutionTargetsTests` で検出**。読み取り系は固定せず二重登録のまま（骨子② T14。2026-08-22 更新）
-- **`perform()` を手で呼んではいけない**。`@Dependency` はシステムが dispatch したときだけ解決される。手で呼ぶとゼロ初期化のまま落ちる → **「Intent は関数ではない」**
-- **`#if canImport(X)` だけに頼れない**。`VisualIntelligence` は visionOS **シミュレータでは false / 実機 SDK では true** になって**実機ビルドだけ落ちる**
-- **回避策は原因が消えたら消す**。「Live Activity 経由の entity 解決でクラッシュする」を理由に Intent を 2 系統に分けていたが、iOS 27 で再現しないことを実測して**分離ごと撤去**した
-- **公式ルールを原理的に書けない場所がある**（2026-08-21 追加 / 骨子 T21b）。donation は「アプリ UI 起点の操作だけ」が公式ルールだが、`perform()` は呼出元を判別できない（`IntentSystemContext` にあるのは `currentMode` / `isVoiceOnly` だけ）。**UI も `Button(intent:)` にした時点で条件を書き分けられない**。公式サンプル 2 本の回避策はどちらも「UI がサービスを直接呼ぶ」前提 = **中心設計は Apple の想定する標準形ではない**、という踏み込んだ話ができる
-- **付け先が違うと静かに無効になる modifier がある**（2026-08-21 追加 / 骨子 T27）。`.appEntityIdentifier(forSelectionType:)` は **`List` に付けたときだけ効く**。`ScrollView { VStack { ForEach } }` に付けても no-op で、アプリの見た目は 1 ピクセルも変わらない
-
-### D-2. 「ここを中心にすることはデザインにも通ずる」+「モデルベース UI デザインとの対応」（L84, L86）
-
-L76–77 で既に核心を言えているので、**補強は写像表 1 枚**で足りる。
-
-| ユースケース中心設計 | App Intents | このアプリでの例 |
-|---|---|---|
-| 誰が（Actor） | Entity | ユーザー |
-| 何を（Object） | **AppEntity** | `TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` |
-| 行動できる（Action） | **AppIntent** | `AddTodoIntent` / `ToggleTodoCompletionIntent` / `SnoozeTodoIntent` |
-
-- 効く言い方: **「ユースケース図が、そのまま Intent 定義のチェックリストになる」**
-- デザイナーとの共通言語になる、という主張の具体例:
-  - 「この画面にこのボタンを足したい」ではなく **「このアクションはどの面に出すべきか」**で会話できる
-  - Action-Centered Design の**展開マトリクス**がそのまま使える:
-
-    | コンテンツ / アクションの特性 | 出す面 |
-    |---|---|
-    | 毎日確認する情報 | ウィジェット |
-    | 頻繁に変わる情報 | watchOS コンプリケーション |
-    | 繰り返しのアクション | Shortcuts / Siri |
-    | 常時追跡が必要 | ライブアクティビティ |
-    | 素早いアクセス | コントロールセンター |
-    | 物理トリガーが自然 | Action Button |
-  - **設計は「最も制約の厳しい面」から始める**（Apple Watch → 本質的なアクションが残る → Intent 化 → 各面へ展開 → **メインアプリの画面設計は最後**）。これは「画面から設計する」習慣の逆で、聴衆にとって一番の持ち帰りになりうる
-- 逆説的な補強として使えるカード: **Liquid Glass で標準 UI で十分になったので、カスタムスタイリングに投資する理由が減った。空いた分を Intent 定義に回すと、Apple Intelligence 連携が勝手についてくる**
-- ⚠️ 用語の注意: **MVI（Model-View-Intent）の "Intent" とは別概念**。質疑で混ざりやすいので 1 行で切っておくと安全（詳細は [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md)）
-
-### D-3. 「みんなでトライしてみませんか？」（L88）
-
-**最初の一歩を具体で示す（重い順ではなく軽い順）:**
-
-1. **既にあるアクション 1 つを Intent に切り出して、UI からも `Button(intent:)` で呼ぶ**。この時点で Shortcuts / Spotlight に出る。Siri 対応の意思決定は不要
-2. **`AppEntity` を 1 つ作って `@Property` を数個公開する**。Query を書くと Shortcuts に「検索」「フィルタ」アクションが自動で生える
-3. **`AppShortcutsProvider` にフレーズを 1 つ書く**（枠は 10 件）。ここまでで Siri から呼べる
-4. **`AppIntentsTesting` でテストを書く**（iOS 27〜）。UI テストバンドルに置く必要がある点だけ注意
-
-**「今すぐ試せる」ネタとして強いもの（WWDC 2026 #310 What's new in Shortcuts）:**
-
-- **Use Model の transcript inspector**: Shortcuts の「Use Model」アクションに自分のアプリの AppEntity を渡したとき、**モデルに実際に渡されているデータをそのまま覗ける**
-  > "Use the model transcript inspector to evaluate the exact data that's passed to the model from your app's App Intent entities."
-  - **これは掴みとして最高**。「自分の AppEntity が LLM にどう見えているかを、Shortcuts アプリで今日確認できます」→ **「Entity 設計 = AI に対するアプリの説明文」**という主張が体感で伝わる
-- **新しいオートメーション 3 種（スクリーンショット / キーボード接続 / 通知）**。特に**通知オートメーション**はキーワードでフィルタして起動できるので、「自分のアプリの通知が他アプリのトリガーになる」時代の話ができる
-- **Storage**（Get / Set / グローバル値が iCloud 同期）と、**「AppEntity には device-consistent な安定 id を使え」**（= `SyncableEntity`）
-- 出典: `docs/references/wwdc/wwdc2026-310-whats-new-in-shortcuts.md`
-
-**締めに使えるメッセージ候補:**
-
-> 「App Intents 中心設計は **Siri 対応のための設計ではありません**。**アプリの機能を、どこからでも呼べる形に保っておくための設計**です。出口は毎年勝手に増えます。増えたときに何も書かなくていい状態にしておく、という投資です。」
+- ⭐ **Visual Intelligence の macOS 展開は 20 秒の自分ネタが付けられる**:
+  公式は「同じ API がそのまま動く / 変更は最小」と言っている（G-8）。実際ほぼそうだったが、
+  **macOS ビルドだけコンパイルエラーになった** — visual search が返す entity は全部
+  `OpenIntent` を持っていないといけないという要件が iOS では出ず、Mac で初めて出た。
+  そのために `OpenCategoryIntent` を 1 個足した。→ **「minimal changes、ただしそれは
+  ビルドしてみないと分からない」**という、この発表の共通メッセージと同じ形の実例
+- スキーマ自体を扱う置き場の候補:
+  1. **#38 で 30 秒**（上の表の 2 行目として）。「スキーマは**檻ではなく辞書**。適合しなくても
+     Shortcuts / ウィジェット / Spotlight は動く。適合すると**新しい agentic Siri に入れる**」（G-6 の 2 層）
+  2. **締めの D-4** で扱う（「Entity 設計 = AI に対するアプリの説明文」の文脈）
+  3. **#38 で名前だけ言って、深掘りは Q&A に置く**（尺優先。ただし質問は来る前提で G-6 を用意）
 
 ---
 
-## E. 尺の目安（40 分枠 / 発表 35 分 + 質疑 5 分 想定）
+## C. 流れの組み直し候補
 
-| 区間 | 内容 | 目安 |
-|---|---|---|
-| L4–13 | 挨拶・自己紹介・会社紹介 | 5:00 |
-| L14–23 | アンケート（3 問挙手） | 2:00 |
-| L25–36 + **B** | App Intents とは / SiriKit との関係 / 詳細ゾーン | 8:00 |
-| L41–53 + **C-1** | Liquid Glass の仮説 | 5:00 |
-| L55–71 + **C-2** | 中心設計の定義と先行例 | 4:00 |
-| L73–79 + **C-3** | アーキテクチャ | 4:00 |
-| **D-1** | つまずき・乖離（3 本 + 締め） | 5:00 |
-| **D-2** | デザインとの接続 / モデルベース UI デザイン | 3:00 |
-| **D-3** | みんなでトライ / 締め | 2:00 |
-| — | 質疑 | 5:00 |
+### C-1. 主張が出てくるのが遅い（開始 15 分）
 
-- 削るなら **D-1 を 3 本 → 2 本**（② と ③ を残す。① はメタデータの話が前提知識を要求するので落としやすい）
-- アンケート結果で「知らない」が多かったら **B-1 を必ずやる**、「バリバリ」が多かったら B は 1 分で流して **D-1 に寄せる**
+タイトルの「App Intents 中心設計」という語が出るのは **#56 (L145)**。A-1 の見積もりだと
+**開始から 14〜18 分**。それまでは歴史と Liquid Glass の論証が続く。
+
+- 現状の構成は**論理的には正しい**（前提 → 観察 → 仮説 → 結論）。落語的な組み立てで、オチが効く
+- ただし iOSDC は裏番組があり、聴衆は最初の 5 分で「この 40 分を賭けるか」を決める
+
+候補:
+
+1. **結論を 1 枚だけ先に出す**（#8 の直後 / +30 秒）。「今日の主張はこれ 1 行です」→
+   「全部のアクションを App Intents として書き、UI からもそれを呼ぶ」→「なぜそう言えるのかを
+   これから 30 分で説明します」。**回収は #56 でそのまま**
+2. **「今日の 3 行」を出す**（3 原則を先出し）。歴史パートが「3 行の根拠集め」に見えるので迷子が減る。
+   ただしオチの意外性は減る
+3. **現状維持**。代わりに #9 (L45) の「まさかりを投げられないようにまずはこちらのコーナーから」で
+   「**この歴史は 10 分で終わります。本題は後半です**」と尺を宣言する（迷子対策としてはこれで十分）
+
+### C-2. Liquid Glass 節の位置
+
+現状: 歴史（#15–40）の**後**、中心設計の**前**。「App Intents は伸びている」→「ところで Liquid Glass」
+→「透明化した UI の代替が App Intents」→「なら設計から中心にすべき」。
+
+- **この順序は仮説の説得力が最大**（先に App Intents の射程を見せてから、それが埋める穴を提示する）
+- 一方 **掴みとしては Liquid Glass のほうが強い**（客席の 100% が知っていて、賛否の記憶がある）
+
+候補:
+
+1. **現状維持**（論理優先）。C-1 の 1 枚で迷子対策だけする
+2. **Liquid Glass を冒頭に持ってくる**（アンケート直後）。「1 年前、この話をしていました」→
+   「その答えが App Intents だと思っている」→「ではその App Intents とは何か」で歴史に入る。
+   **CfP の書き出しと同じ順序**になる利点もある
+3. **分割**: 冒頭で「賛否両論だったこと」だけ 1 枚出して問いを立て（30 秒）、
+   **答え合わせを現状の位置でやる**。掴みと論理の両取り。−0 分（既存の #41 が短くなるぶんで相殺）
+
+### C-3. 歴史パートの圧縮（A-4-b の具体形）
+
+- **年表 1 枚**（2016 / 2018 / 2020 / 2022 / 2023 / 2024 / 2025 / 2026）を先に出して、
+  以降は「その年の象徴 1 つ」だけ 1 面ずつ。#38 / #39 のまとめ 2 枚は残す
+- 落とす優先順: **2025 の「その他にもこれらの発表がありました」（#35）** →
+  **2024 の被り説明（#31）** → **2023 の「その他にもいくつかの発表」（#28）**。
+  羅列面は「読まないなら出さない、出すなら 1 行だけ言う」（E-2）
+
+### C-4. 実践パート（#71–80）が「実装紹介」になっていて「学び」が薄い
+
+CfP のアジェンダ 3 は **「新設計の実践プロジェクト『IntentTodo』開発での学び」**。
+現状の #71–80 は `Button(intent:)` → 例外 → Service → defer → DI → `@Dependency` という
+**構成の紹介**で、学び（つまずき）は #81–83 のテスト話 1 本だけ。
+
+候補:
+
+1. **DI の 4 枚（#76–79）を 2 枚に圧縮して、空いた 1.5 分をつまずき 1 本に充てる**。
+   おすすめは **「requestConfirmation を含む Intent は UI の `Button(intent:)` から呼べない」**
+   （削除ボタンが長期間動いていなかった / テストは緑だった / 条件付き assert が隠していた）。
+   **今の原稿の「サイレント失敗」（#81）の実例そのもの**なので接続が自然
+2. **#75 の「例外と限界」を主役にする**。Link / donation の 2 つを軽く流しているが、
+   ここは「徹底したことの代償」という**この発表しか持っていない話**。1 枚 → 3 枚に
+3. **現状維持**（実装紹介として完結させる）＋締めをつまずきパートにする（D-1）
+
+### C-5. テスト節（#81–83）の組み替え
+
+B-3 の言い直しとセットで:
+
+```
+現状: サイレント失敗する → AppIntentsTesting が来た → 公式の推奨手順はこう → AI が検証できるようになった
+候補: サイレント失敗する → 公式の梯子（4 段）→ 1 段目が AppIntentsTesting（新しい）
+      → 4 段目は自動化できない（公式が「手でやれ」と書いている）
+      → 梯子に乗らないものは「呼出元を 1 つだけ変えて比べる」で確定させた
+```
+
+- 後者は **締め（D-1 / D-2）にそのまま繋がる**。前者は「解決しました」で閉じてしまうので、
+  つまずきパートを締めに置くなら組み替えたほうがいい
+
+### C-6. デザイン接続（#64–70）の位置
+
+現状は **実践パートの前**。CfP のアジェンダ順（実践 → メリット/デザイン → AI 時代）とは逆。
+
+- **現状のままが良い理由**: 「動詞と名詞の棚卸し」が先にあると、実践パートの `Button(intent:)` が
+  「棚卸しの結果を 1 本の経路に流している」ように見える
+- **後ろに回す理由**: デザインの話は**締めに向かう上げの話**なので、つまずき（下げ）の後に置くと
+  終わりが上向く。CfP の順序とも一致する
+
+候補: ① 現状維持 ② 締めの直前に移す ③ **分割**（#64–69 の写像は現状位置、
+#70「デザイナーと一緒に情報設計をするのが近道」は締めへ）← ③ が尺の増加ゼロで両取り
+
+### C-7. #18 (L65) で張った 2020 の伏線が回収されていない
+
+- #18 で「**2020 年、ウィジェットの設定も SiriKit の Intent だった**」と言っている。これは
+  「Intent が Siri 専用ではなくなった」という**この発表の一番きれいな伏線**
+- ところが 2023 節（#25–28）は `Button` / `Toggle` の話だけで、
+  **ウィジェット設定が SiriKit → App Intents に移ったこと**（`WidgetConfigurationIntent` /
+  wwdc2023-10103 `4:25`）に触れていない。つまり**張った伏線が落ちていない**
+- 候補（どれも 15〜20 秒）:
+  1. #26 (L82) に 1 文足す: 「**さっき 2020 年で見たウィジェットの設定、これもこの年に App Intents 側へ
+     移りました**。SiriKit だった領域が 1 つ回収されたわけです」
+  2. #28 (L86)「この年で正式に App Intents がアプリの機能をあらゆる面で担うベースができた」の直前に置く
+     （「ベースができた」の根拠になる）
+  3. 年表側（#38 / C-3 の年表 1 枚）に「回収された年」の矢印として描いて、口では言わない
+- ⭐ これを入れると **#39 (L108) の「対応先が毎年増える」が「増える」だけでなく
+  「SiriKit の領土が毎年 App Intents に移っていった」という 2 本目の線になる**（B-1 の年の整理と揃う）
+
+### C-8. #62–63 の図について（当初の指摘は取り下げ）
+
+- 実際の図は **下端が SwiftData / CloudKit で、そこから上に向かって広がる逆ピラミッド**。
+  **`Intent + Entity` より上の面はすべて並列**に置いてある、と確認が取れた
+- つまり **図はすでに「呼出面は対等」を表現できている**（骨子② T07b の砂時計の上半分そのもの）。
+  「頂点に UI が座って見える」という当初の懸念は当たっていなかったので取り下げる
+- 残るのは 1 点だけ: **「並列に置いてある」ことは口で言わないと伝わりにくい**（図の意図なので）。
+  「**この上の段は全部並列です。UI も Siri もウィジェットも、同じ Intent を呼ぶ対等な利用者**」の
+  1 行があると、後半の「UI からも必ず `Button(intent:)`」の理由が図から出てくる
+- B-11（「UseCase が置き換わった」の言い直し）は**同じ面で言うのが一番早い**、はそのまま有効
 
 ---
 
-## F. 想定 Q&A
+## D. 締め（L209 の TBD）の候補
+
+**前提**: A-2 のとおり、削らないと 0〜4 分。以下は各案の**単独の尺**。
+
+### D-1【技術寄り・5〜6 分】つまずき 3 本 →「検証の作法」
+
+- 3 本を **「ビルドは通る・例外も出ない・ただ動かない」**で括る:
+  1. `AppShortcutsProvider` を SPM に置いたら **App Shortcut が 1 つも出ない**（`autoShortcuts` 8 → 0）
+  2. **呼出元によって、返した dialog / snippet が出るか出ないかが変わる**（Control は両方出ない）
+  3. **`requestConfirmation` を含む Intent は UI の `Button(intent:)` から呼べない**（削除ボタンが
+     長期間死んでいた。しかもテストは緑）
+- 締めの 1 行: 「3 つとも**宣言が届いていないことに気づけない**という形で来ました。だから
+  **① システムが読むメタデータを直接見る ② 呼出元を 1 つだけ変えて比べる**、この 2 つが作法になりました」
+- **削るなら 2 本**（② と ③ を残す。① はメタデータの前提説明が要る）→ 3.5〜4 分
+- 材料: 骨子② T10 / T18–T20 / T28
+
+### D-2【思想寄り・3〜4 分】中心設計を徹底した「代償」を正直に言う
+
+- 3 つ並べる:
+  1. **donation が原理的に書けない**（B-10）。`perform()` は呼出元を見られない。
+     Apple のサンプル 2 本はどちらも「UI はサービスを直接呼ぶ」前提 → **中心設計は Apple の
+     想定する標準形ではない**
+  2. **対話（`requestConfirmation` / `requestChoice`）を伴うアクションは 2 本必要**になる。
+     DRY にしたい気持ちと「問い合わせられる相手がいるか」は別問題
+  3. **どこで実行されるかを常に意識する**必要が出る（書き込み系は `allowedExecutionTargets = [.main]`）
+- オチ: 「**バグではなく、徹底したことの帰結**です。それでも自分はこの方向に賭けています」
+- **この発表しか持っていない話**で、かつ短い。40 分枠の締めとして一番「持って帰るものがある」形
+- 材料: 骨子② T21b / T06 / T14
+
+### D-3【デザイン寄り・3 分】「最も制約の厳しい面から設計する」
+
+- 手順を 1 枚: **Apple Watch から設計 → 残った本質的なアクションを Intent 化 → 展開マトリクスで
+  各面に配る → メインアプリの画面設計は最後**
+- 展開マトリクス（毎日確認 → ウィジェット / 頻繁に変わる → コンプリケーション / 繰り返し → Shortcuts /
+  常時追跡 → ライブアクティビティ / 素早く → コントロール / 物理トリガー → Action Button・Apple Pencil Pro）
+- オチ: 「**画面から設計する習慣の、ちょうど逆**です。そしてこれをやると、デザイナーとの会話が
+  『この画面にボタンを足したい』から『**このアクションはどの面に出すべきか**』に変わります」
+- **CfP のアジェンダ 4（デザインとの接続）に直接応える**。デザイン会社の人間が話す意味が一番出る
+- 材料: CLAUDE.md 展開マトリクス / Action-Centered Design
+
+### D-4【AI 時代・2〜3 分】Entity 設計は「AI に対するアプリの説明文」
+
+- 3 枚:
+  1. **今日から確認できる**: Shortcuts の「Use Model」に自分の AppEntity を渡すと、
+     **モデルに実際に渡っているデータをそのまま覗ける**（transcript inspector / wwdc2026-310）。
+     → 「自分の Entity が LLM にどう見えているかを、**今日** Shortcuts アプリで見られます」
+  2. **システムオーケストレーター**（#8011 `8:18`）: 複数アプリの App Intents を横断実行する主体が
+     システム側に立った。**アプリ同士が直接呼び合う API は無い** = App Intents に出すことが唯一の参加手段
+  3. **固定スキーマの取引**（#8011 `45:38`–`49:20`）: 「型に嵌めると自由度が下がる」を Apple が
+     実利で反転させている（ローカライズを肩代わり / 安全性が型に入る / **書くコードが減る**）。
+     → **中心設計の論法とまったく同型**（「Intent という型に落とすと、出口が全部ついてくる」）
+- **CfP のアジェンダ 5（AI 時代のアプリ開発）に応える**のはこれ。現状の原稿だと
+  「AI とともに組み上げた」が数回出るだけで、AI 時代の主張が回収されていない
+- 材料: 骨子① S18b / 03-group-lab-evidence.md / wwdc2026-310
+
+### D-5【行動喚起・1〜2 分】「みんなでトライしてみませんか？」
+
+- **軽い順に 4 段**（重い順ではなく）:
+  1. 既にあるアクション 1 つを Intent に切り出して、**UI からも `Button(intent:)` で呼ぶ**。
+     この時点で Shortcuts / Spotlight に出る。**Siri 対応の意思決定は不要**
+  2. `AppEntity` を 1 つ作って `@Property` を数個公開する（Query を書くと Shortcuts に
+     「検索」「フィルタ」が自動で生える）
+  3. `AppShortcutsProvider` にフレーズを 1 つ（枠は 10 件）
+  4. `AppIntentsTesting` を 1 本（UI テストバンドルに置く点だけ注意）
+- **どの締めを選んでも最後の 1 分はこれ**、が無難。リポジトリ / スライド / ブログの URL を出す面
+
+### D-6【回収・30 秒】冒頭の仮説に戻る 1 枚
+
+- 「UI が透明になった先に残るのは**コンテンツとアクション**でした。だから設計の原子単位を
+  そこに置く、というのが今日の話です」
+- **単独では締めにならないが、D-1〜D-4 のどれの後ろにも置ける**。落語的な構成の着地として。
+  #40 (L110) の「別の視点から見てみたい」で開いた輪をここで閉じる
+
+### D-7 組み合わせパターン（尺つき）
+
+| パターン | 構成 | 尺 | 本文から削る量 | 何が強いか |
+|---|---|---:|---:|---|
+| **(a) 現実案** | D-2（3.5）+ D-4（2）+ D-5（1）+ D-6（0.5） | **7 分** | 6〜7 分 | CfP の 5 項目を全部回収できる。下げ（代償）→ 上げ（AI 時代）→ 行動 の順で終わりが上向く |
+| **(b) 技術振り切り** | D-1（4、2 本）+ D-5（1）+ D-6（0.5） | **5.5 分** | 5 分 | 「持ち帰れる技術情報」が最大。まさかり組に一番効く。デザイン接続は #64–70 で既に言った分で足りると割り切る |
+| **(c) デザイン振り切り** | D-3（3）+ D-4（2.5）+ D-5（1）+ D-6（0.5） | **7 分** | 6〜7 分 | **他の誰も話せない発表**になる。iOSDC の客層だと「技術の中身が薄い」と言われるリスクは残る |
+| **(d) 最小** | D-5（1）+ D-6（0.5） | **1.5 分** | 0 分 | 削らずに済む。ただし CfP のアジェンダ 3〜5 が薄いまま終わる |
+
+- **個人的な推しは (a)**。理由: D-2 は**この 1 年やった人しか言えない話**で、しかも短い。
+  D-4 が CfP の最後の 1 行（「新しい時代のアプリ制作の形を築いていきましょう」）を回収する
+- **(b) を採るなら** C-5 の組み替え（テスト節 → 梯子 + 作法）を先にやると接続が滑らかになる
+
+---
+
+## E. スライド任せの面に 1 行足すと効く箇所
+
+> 原稿にほぼ書かれていない = スライドに任せている面のうち、**口頭 1 行がないと意図が伝わらない / 逆に
+> 1 行あるだけで価値が跳ねる**もの。羅列面 3 枚（#31 / #35 / #38）と #62–63 / HIG 引用面の
+> 中身は本人から共有済みで、それを踏まえて書いてある。
+
+### E-1. 羅列 3 枚（中身が判明したので個別に）
+
+いずれも **「全部説明しない。1 つだけ選んで 15 秒使う」**のがおすすめ。羅列面を無言で流すと
+「速くて読めなかった」だけが残り、逆に全部説明すると各 30 秒 × 4 で 2 分溶ける。
+
+| 面 | スライドの中身 | 選ぶならこれ（理由） |
+|---|---|---|
+| **#31 (L92)** 2024 | ① App Intent Domains（assistant schemas）② `IndexedEntity` で Spotlight のセマンティック検索 ③ ControlWidget 対応 ④ **Apple Pencil Pro のスクイーズで動くように** | ⭐ **④**。「**既存の App Shortcuts が、何も書かずにそのまま動いた**」と Apple 自身が言っている（G-4）。**#39 (L108) の『App Intents さえ対応していれば自動的に恩恵』の唯一の実例**なので、ここで 15 秒使うと後段の主張が事実になる。①〜③ は「対応先が増えた」の例示として名前だけ |
+| **#35 (L100)** 2025 | ① `supportedModes` で実行の仕方を細かく設定 ② `requestChoice` でユーザーへの選択肢 ③ `@DeferredProperty` でプロパティの非同期取得 | **①**。`openAppWhenRun` という **Bool 1 個が意味のある 4 択になった**話 = 「非推奨の方向は一貫している（Bool フラグ → 意味のある宣言）」を 1 行で言える。**Q&A の「毎年 API 変わってつらくない？」を先に潰せる**。②は D-2 の伏線（対話できる面かどうか）として名前だけ出すと後で効く |
+| **#38 (L106)** 2026 + 総括 | ① Siri → Siri AI ② **App Schema** ③ Visual Intelligence が iOS → macOS ④ AppIntentsTesting ⑤ `SyncableEntity` | **B-12 の表をそのまま口で**。「**5 つのうち 3 つは既存の改良・拡張、新規は 2 つ**」→ 主張がスライドの中身から出てくる。深掘りするなら **③**（自分が macOS ビルドだけで踏んだ話 / 20 秒 / B-12 参照）か **②**（G-6 の 2 層 / 30 秒） |
+
+- ⚠️ #38 だけは **主張の面**なので「今年の主役は、実は数年前に置かれた API の改良です」は必ず口で言う
+  （B-6 の言い直しとセットで、AppIntentsTesting を「新規の側」に置いておくと #82 と矛盾しない）
+
+### E-2. その他の面
+
+| 面 | 状況 | 足すと効く 1 行 |
+|---|---|---|
+| #12 (L51) | Intent のコード | 「**必須はこの 2 つだけ**です。`.intentdefinition` が消えたというのがこの話の全部です」 |
+| #14 (L55) | Shortcuts アプリの画面 | 「この一覧に並んでいるのは、**全部それぞれのアプリが自分で書いた宣言**です」 |
+| #27 (L84) | `Button` / `Toggle` の 2 つの書き方 | すでに原稿にある「perform 完了でタイムライン更新が保証」は**口で言う価値がある**（表からは読めない） |
+| #44–45 (L121–123) | **HIG 公式日本語版のページのスクショに赤線**（「コンテンツレイヤーでは使用しない」/「その下にあるコンテンツに注目してもらうことが目的」） | ⭐ **赤線の箇所を日本語のまま読み上げる**。仮説の唯一の一次ソースで、赤線を引いた面は「読まれる前提」で作られている（読まずに流すと「引用した気配」だけが残る）。英語原文は G-2 に控えてあるので、**質疑で原文を確認されたときのバックポケット**に。⚠️ 日本語版は英語版より反映が遅れることがあるので、**赤線を引いた文が英語版の現行文と食い違っていないか**だけ発表前に見ておく |
+| #62–63 (L161–163) | **実機スクショ + 逆ピラミッド図**（下端が SwiftData / CloudKit、`Intent + Entity` より上は並列） | 「**この上の段は全部並列です**。UI も Siri もウィジェットも、同じ Intent を呼ぶ対等な利用者です」（C-8）。層の名前は読まない。B-11 の言い直し（宣言 = Intent / 実装 = Service）も**この面で言う**のが一番早い |
+| #73–74 (L185–187) | `Button(intent:)` のコード 2 枚 | 「**上が iOS、下が watchOS。渡している Intent は同じ型です**」（対比が主役なので、コードは読まない） |
+| #77 (L194) | `defer` のコード | 「**この 1 箇所しかない**のが中心設計の効能です。Intent が 25 個あっても呼び忘れが起きない」 |
+| #79 (L198) | `@Dependency` のコード | 「**登録を忘れると、クラッシュせずに『何も起きない』**んですが、それは後半で」（伏線） |
+| #83 (L206) | 梯子 | 「**4 段目は公式に『手でやれ』と書かれています**」（G-3） |
+| #39 (L108) | 「対応先が増えていく」 | **G-4 の実例を 1 つ**（Apple Pencil Pro のスクイーズで既存の App Shortcuts が無改造で動いた）。抽象論が事実になる |
+| #44–45 (L121–123) | HIG の引用 | 逐語を**読む**（G-2）。仮説の唯一の一次ソースなのでここだけは読み上げ推奨 |
+| #62–63 (L161–163) | SPM 構成図 / 依存図 | **矢印の向きだけ**言う（「上から下、逆向きは無い」）。層の名前は読まない |
+| #73–74 (L185–187) | `Button(intent:)` のコード 2 枚 | 「**上が iOS、下が watchOS。渡している Intent は同じ型です**」（対比が主役なので、コードは読まない） |
+| #77 (L194) | `defer` のコード | 「**この 1 箇所しかない**のが中心設計の効能です。Intent が 25 個あっても呼び忘れが起きない」 |
+| #79 (L198) | `@Dependency` のコード | 「**登録を忘れると、クラッシュせずに『何も起きない』**んですが、それは後半で」（伏線） |
+| #83 (L206) | 梯子 | 「**4 段目は公式に『手でやれ』と書かれています**」（G-3） |
+
+---
+
+## F. 想定 Q&A / まさかり
+
+優先度は「来る確率 × 答えられないと痛い度」。
 
 | 質問 | 答えの骨 |
 |---|---|
-| 小規模アプリでもやる意味ある？ | **アクション 1 つからでいい**。ウィジェットやコントロールを作る予定があるなら確実に元が取れる。逆に「アプリの外に出す面が今後もゼロ」なら過剰 |
-| テストどうしてる？ | Apple 自身が **検証の梯子**を示している（AppIntentsTesting → Shortcuts アプリ → Spotlight → Siri）。**4 段目は自動化できない**（`AppIntentsTesting` の公開 API に phrase / siri に相当するシンボルは 1 つも無い）。加えて **UI 経路は UI テストで押さえる必要がある**（対話 Intent の件） |
-| ロジックを Intent に置くと肥大しない？ | する。だから `TodoService` に集約して Intent は接続点に薄く保つ。**「UseCase を廃止」≠「ロジックの置き場をなくす」**（C-3x） |
-| Clean Architecture でいうと何層になるの？ / UseCase と Repository の使い分けが図にならないのでは？ | **同心円に収まらないのは正しい**。Clean は 1 軸（依存方向）で切るが、こちらは **呼出面**という別の軸が入る。`AppIntent` は Controller + Presenter + UseCase の入力ポートを兼ね、**実装だけが `TodoService`**。だから図は同心円ではなく**砂時計**にする。詳細は C-3x |
-| 凍るのは内側じゃないの？ | **逆**。Intent 型名 / parameter 名 / `AppEnum` の raw value はユーザーのショートカットに永続化されていて、**外周が一番リファクタできない**。Clean の「外側 = 揺れる詳細」の前提が反転する |
-| MVI の Intent と同じ？ | 別概念。MVI の Intent は状態変更イベント、AppIntent はシステム連携のプロトコル |
-| 毎年 API が変わって追従つらくない？ | つらい。4 年で非推奨 7 個。ベータごとの追従も実在する（`.reminders` 有効化 → watchOS で unavailable 化 → SDK バグ回避…）。ただし**非推奨の方向は一貫している**（Bool フラグ → 意味のある宣言 / アシスタント専用 → App Intents 本体へ統合） |
-| Apple Intelligence / Siri AI 対応は必須？ | 必須ではない。**App Schema 適合は任意**で、適合しない自前 Intent も普通に動く。本プロジェクトはコア entity のスキーマ適合を **SDK 側のバグでブロックされて保留**しているが、それでも Siri 連携自体は成立している |
-| CloudKit と併用するときの注意 | `@Attribute(.unique)` は enforce されない / リレーションは全部 optional / プロパティはデフォルト値か optional。あと**マイグレーションを走らせるプロセスはアプリ本体だけに固定する**（更新直後はウィジェットが先に起動しうる） |
+| ⭐ **OOUI（オブジェクト指向 UI）とは逆じゃないですか？ 動詞から設計するのはタスク指向 UI では？** | **逆ではない**。App Intents は動詞（Intent）と名詞（Entity）の**両方**を宣言する。OOUI の「オブジェクトを選んでからアクション」は `Entity` + `Query` + `Intent` にそのまま乗る（`TodoAppEntity` を選んで `ToggleTodoCompletionIntent`）。中心設計は**画面の並べ方の主張ではなく、アクションと情報を先に確定させるという主張**。← デザイン系の聴衆が混ざる iOSDC で、この発表が一番受けやすいまさかり。**先に 1 行潰しておく手もある**（#69 あたり） |
+| ⭐ **Siri AI 対応にスキーマ適合は必須？** | **2 層で答える**（G-6）。App Intents だけで Shortcuts / Spotlight / ウィジェット / コントロール / 従来の Siri フレーズは動く。**新しい agentic Siri に入るにはスキーマ適合が必要**（#8011 `3:09`）。ただし Apple は「優遇という捉え方は違う」とも言っている（`21:47`）。逃げ道も複数ある（部分一致 / `system` ドメイン / App Shortcuts） |
+| ⭐ **アクセシビリティの代替に Siri、は乱暴では？** | **代替ではなく経路の追加**と言い直す（B-5）。音声が使えない場面がある。HIG も Liquid Glass の見た目を Reduce Transparency / Increase Contrast に応じて変える設計になっている（B-4） |
+| **Clean Architecture でいうと何層？ UseCase と Repository の使い分けが図にならないのでは？** | **同心円に収まらないのが正しい**。Clean は 1 軸（依存方向）で切るが、こちらは**呼出面**という別の軸が入る。`AppIntent` は Controller + Presenter + UseCase の入力ポートを兼ね、**実装だけが `TodoService`**。図は**砂時計**（骨子② T07b） |
+| **凍るのは内側じゃないの？** | **逆**。Intent 型名 / parameter 名 / `AppEnum` の raw value は**ユーザーのショートカットに永続化される**ので外周が一番リファクタできない |
+| **ロジックを Intent に置くと肥大しない？** | する。だから Service に集約して Intent は接続点に薄く保つ。「UseCase を廃止」≠「ロジックの置き場をなくす」（B-11） |
+| **小規模アプリでもやる意味ある？** | **アクション 1 つからでいい**（D-5 の 1 段目）。ウィジェット / コントロールを作る予定があるなら確実に元が取れる。「アプリの外に出す面が今後もゼロ」なら過剰 |
+| **テストはどうしてる？** | 公式の梯子 4 段（G-3）。**4 段目は自動化できない**。加えて **UI 経路は UI テストが必要**（対話 Intent の件） |
+| **毎年 API が変わって追従つらくない？** | つらい。4 年で非推奨 7 個 + ベータごとの追従。ただし**非推奨の方向は一貫している**（Bool フラグ → 意味のある宣言 / アシスタント専用 → App Intents 本体へ統合） |
+| **donation はどうしたんですか？** | 原理的に書けないので**消した**（B-10）。戻すなら「全部 `Button(intent:)`」を部分的にやめる判断が要る |
+| **MVI の Intent と同じ？** | 別概念。MVI の Intent は状態変更イベント、`AppIntent` はシステム連携のプロトコル |
+| **モデルベース UI デザインは会社の手法なんですか？** | **著者は元々弊社にいて、その頃この考え方で社内研修をやっていた**。本になったのは 2025（翔泳社）。B-2 のとおり、この背景は本編で 1 行言っておけば質問自体が来なくなる |
+
+---
+
+## G. そのまま使える一次ソース逐語
+
+### G-1. 「動詞 / 名詞」は Apple の言葉（#64 L166 の裏付け・3 本ある）
+
+> "Intents perform an action, like Opening a view or Starting a hike. **They're the commands, or verbs, in your app.**"
+> "Entities are objects, like a Trail or a Collection. **They're the nouns.** **If intents are verbs, and entities are nouns, then App Shortcuts are sentences.** They package together a verb and a noun or a blank to fill in a noun …"
+> — wwdc2024-10210 `7:23` / `7:31`
+
+> "**If App Intents are the actions or verbs from your app, App Entities are the nouns.**"
+> — wwdc2025-260 `6:12`
+
+> "These are **the verbs of your app**, and, as you may have guessed, you describe them by creating App Intents."
+> — wwdc2025-244 `1:30`
+
+- ⭐ **"App Shortcuts are sentences" は #68 (L175)「誰が何を行動できる構文」と直結する**。
+  「Apple は**文**だと言っていて、モデルベース UI デザインは**構文**で整理しろと言っている。
+  同じことを言っています」という 1 枚が作れる。**この発表の一番きれいな接続点**かもしれない
+
+### G-2. Liquid Glass の 2 レイヤー（#43–45 の裏付け / スライドは公式日本語版を使用）
+
+> 以下は**英語版の原文**。スライドは日本語版のスクショなので、**読み上げは日本語版のまま**でよい。
+> ここに置いてあるのは質疑で原文を確認されたとき用（と、日本語版の反映漏れを疑うとき用）。
+
+> "Liquid Glass forms a **distinct functional layer for controls and navigation elements** — like tab bars
+> and sidebars — **that floats above the content layer**, establishing a clear visual hierarchy between
+> functional elements and content."
+>
+> "**Don't use Liquid Glass in the content layer.**"
+>
+> "**Liquid Glass seeks to bring attention to the underlying content**, and overusing this material in
+> multiple custom controls can provide a subpar user experience by distracting from that content."
+> — Apple HIG [Materials](https://developer.apple.com/design/Human-Interface-Guidelines/materials#Liquid-Glass)
+
+- 併せて HIG [Layout](https://developer.apple.com/design/Human-Interface-Guidelines/layout#Visual-hierarchy)
+  の "**Differentiate controls from content.**"
+
+### G-3. 検証の梯子（#83 の裏付け + 4 段目の限界）
+
+> 1. **AppIntentsTesting** — "entirely in isolation. **No Siri involved.**"
+> 2. **Shortcuts アプリ** — intent の形（パラメータ / parameter summary）
+> 3. **Spotlight** — コンテンツの index
+> 4. **Siri** — 自然言語・entity 解決・onscreen・cross-app の end-to-end
+> — wwdc2026-240 `24:13`–`25:57`
+
+> "be sure to test your intents **manually** with Siri and the Shortcuts app"
+> — wwdc2026-295 `24:46`
+
+### G-4. 「出口は勝手に増える」の実例（#39 L108 の裏付け）
+
+| 出口 | 何が起きたか | 出典 |
+|---|---|---|
+| **Apple Pencil Pro のスクイーズ**（2024 / iOS 18） | **既存の App Shortcuts が何も書かずにそのまま動いた**。「去年 Action Button で自動的に動いたのと同じ」と Apple 自身が言っている | wwdc2024-10210 `22:30` / `4:34`、wwdc2025-244 `9:04` |
+| **HomePod** | 新しい Siri AI は非対応だが、**App Shortcuts は以前から動いている** | #8011 `35:40` |
+
+> 「Spotlight と Siri は自動、Action Button と Apple Pencil Pro はユーザーが設定すれば使える」
+> → **「1 つのコードで 4 つの機能」**（wwdc2024-10210 `22:11`）
+
+- ⚠️ **「タップ」ではなくスクイーズ**（#8011 の字幕は粗起こしで "tap on an Apple Pencil" になっている）
+
+### G-5. Group Lab のエコシステム発言（#53 L139 の裏付け・逐語）
+
+> "I can't wait to see how we'll eventually get to this ecosystem where you have **all of these apps that
+> are deeply integrated with Siri and Apple Intelligence** providing content to the semantic index so that
+> people can ask natural questions about content from all these different kinds of apps and get answers instantly."
+> — #8011 `43:36`（続く `44:16` で「intent schemas に適合すれば Siri が多数のドメインでアクションを取れる」）
+
+- ⚠️ #8011 はページに編集済みトランスクリプトが無く**自動生成キャプション由来**。
+  スライドに逐語を出すなら該当秒を視聴して確認（[03-group-lab-evidence.md](03-group-lab-evidence.md) §0）
+
+### G-6. App Schema の 2 層（B-12 / F の裏付け）
+
+| 層 | 要るもの | 届く先 |
+|---|---|---|
+| **App Intents（スキーマ不要）** | `AppIntent` / `AppEntity` / `Query` / `AppShortcutsProvider` | Shortcuts / Spotlight / ウィジェット / コントロール / ライブアクティビティ / 従来の Siri フレーズ |
+| **App Schema 適合** | + `@AppIntent(schema:)` / `@AppEntity(schema:)` | **新しい agentic Siri**（多ターン会話・自然な言い回し・確認や所有権の自動処理・ローカライズ） |
+
+- 「必要」（#8011 `3:09`）と「優遇ではない」（`21:47`）は矛盾ではなく 2 層。
+  **スキーマは Siri AI への入場券であって、既存 Intent を格下げするものではない**
+
+### G-7. 数字（2026-08-28 時点の実測）
+
+| 項目 | 値 | 注意 |
+|---|---|---|
+| Intent ファイル / 型 | **25** | うち `isDiscoverable = false` が 6 / watchOS 除外 1 / iOS 限定 1 |
+| `AppEntity` | **4 種** | `TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` / `TodoListSummaryEntity`（Transient） |
+| `AppEnum` / `@UnionValue` | **3 / 1** | **この注釈なしで「Entity 4 種」と言うと突っ込まれる** |
+| Query | **4** | うち 1 つは `IntentValueQuery`（Visual Intelligence 用） |
+| AppShortcut | **8 / 上限 10** | うち 5 件がパラメータ入りフレーズ |
+| SPM パッケージ | **7** | `TodoAppIntents` がコア |
+
+- ⚠️ 骨子② T10 の「20 / 3 / 3 / 8→0」は**当時の実測値**。上の表と混ぜず「当時の実測」と断って出す
+
+### G-8. Visual Intelligence の macOS / iPadOS 展開（#38 の 3 項目目の裏付け）
+
+> "This year, we're adding new capabilities … as well as **bringing Visual Intelligence to iPad and macOS**."
+> — wwdc2026-297 `0:39`
+
+> "This year, Visual Intelligence is also available on iPadOS and macOS. **The same APIs are available on
+> these new platforms as well, with minimal changes needed to your app.** Your `IntentValueQuery`, your
+> entities, and your `OpenIntent` all work across iOS, iPadOS, and macOS. **That's the same code we just wrote.**"
+> — wwdc2026-297 `10:08`–`10:23`
+
+- ⭐ **自分の実測を重ねられる**: ほぼそのとおり動いたが、**macOS ビルドだけコンパイルエラー**になった。
+  visual search が返す entity は**全部 `OpenIntent` を持っていないといけない**という要件が
+  iOS シミュレータでは出ず、Mac で初めて出る。そのために `OpenCategoryIntent` を 1 個足した
+  → 「**minimal changes、ただしそれはビルドしてみないと分からない**」という、
+  この発表の共通メッセージと同じ形の実例。20 秒で言える
 
 ---
 
 ## 発表前にやること
 
-**[#67](https://github.com/touyou/IntentTodo/issues/67)** に移した（A-1 / A-2 の事実誤り修正、A-6 の差し替え、
-L74 の言い直し、スクショ、数字の再カウント、引用 URL の `?time=` 付与）。
-ドキュメントには `- [ ]` を残さない運用のため
+**[#67](https://github.com/touyou/IntentTodo/issues/67)** に集約（B の各項目の裏取り、スクショ、
+引用 URL の `?time=` 付与、数字の再カウント）。ドキュメントには `- [ ]` を残さない運用のため
 （[AGENTS.md の「ドキュメント運用」](../../AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)）。
-
-数字の 2026-08-28 時点の実測値は [02-constraints-and-craft.md の「発表前チェック」](02-constraints-and-craft.md#発表前チェック)の表にある
-（Intent 25 / Entity 4 / AppEnum 3 / Query 4 / AppShortcut 8）。
