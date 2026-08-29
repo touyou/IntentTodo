@@ -37,7 +37,7 @@ Intent に trailing `@ParameterKeyPathsBuilder` ブロックを足して全パ�
 検証は生成物側で行う。`Metadata.appintents` の `actionConfiguration.actionSummary.wrapper` に
 `otherParameterIdentifiers` が並ぶ。
 
-```
+```json
 "otherParameterIdentifiers": [
   "todoDescription", "dueDate", "isFavorite", "estimatedDuration", "assignee",
   "location", "tags", "urls", "recurrenceFrequency", "recurrenceInterval",
@@ -101,7 +101,7 @@ extension CaseDisplayRepresentable {
 `TodoDetailContent.body` の中で `if !todo.tags.isEmpty` と書いたら、
 `testDeleteTodoFromDetailView` がアプリのクラッシュで落ちた。
 
-```
+```text
 libswiftCore _assertionFailure
   SwiftData x3
   TodoItem.tags.getter
@@ -159,7 +159,7 @@ XCTAssertEqual(snoozedComponents, expectedComponents)
 新しいキーを足すときに、Python の `sorted()` で並べ替えると**ファイル全体が差分になる**。
 Xcode が書く順序は codepoint 順ではない。
 
-```
+```text
 Xcode:  ["Delete", "Delete “%@”?", "Delete ${entities}", ...]
 sorted: ["Delete", "Delete ${entities}", "Delete “%@”?", ...]   # $ (0x24) < “ (0x201C)
 ```

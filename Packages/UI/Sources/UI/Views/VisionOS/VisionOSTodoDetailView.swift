@@ -307,7 +307,14 @@ private struct VisionOSAttributesSection: View {
             }
             if let recurrenceFrequency {
                 Label {
-                    Text(recurrenceFrequency.localizedStringResource)
+                    // 間隔は倍率として添える（`TodoDetailMetadataSection` と同じ条件）。
+                    // 落とすと weekly × 2 が `Weekly` に見えて「毎週」と区別できない。
+                    HStack(spacing: 4) {
+                        Text(recurrenceFrequency.localizedStringResource)
+                        if item.recurrenceInterval > TodoRecurrenceFrequency.minimumInterval {
+                            Text(.copy("× \(item.recurrenceInterval)"))
+                        }
+                    }
                 } icon: {
                     Image(systemName: "repeat")
                 }

@@ -13,12 +13,10 @@ import Foundation
 /// `TodoAppEntity.tags` is a `Set<String>`, so anything that survives to the model as
 /// a duplicate or an empty string is silently dropped on the read path instead — which
 /// reads as "the tag I typed didn't save".
-enum TodoAttributes {
-    /// Trims each tag, drops empties, and removes duplicates while keeping the order
-    /// the caller supplied.
+public enum TodoAttributes {
+    /// Whether two tags are the same tag.
     ///
-    /// The first spelling wins (a person who types `Work` means `Work`), but two tags
-    /// that differ only in case or diacritics count as one — the same relation
+    /// Two tags that differ only in case or diacritics count as one — the same relation
     /// `localizedStandardContains(_:)` uses when searching, so a tag that search can't
     /// tell apart isn't stored twice.
     ///
@@ -26,20 +24,27 @@ enum TodoAttributes {
     /// case is a tiebreaker rather than ignored (`"Work"` vs `"WORK"` is
     /// `.orderedAscending`, not `.orderedSame`). `lowercased()` is wrong for the same
     /// reason it is wrong in search — it is locale-independent.
+    ///
+    /// `public` because the app's tag field has to reject a duplicate with **this**
+    /// relation. Using a narrower one there (e.g. case-only) lets a tag be accepted in
+    /// the form and then silently dropped when this file normalises it on save.
+    public static func isSameTag(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.compare(
+            rhs,
+            options: [.caseInsensitive, .diacriticInsensitive],
+            range: nil,
+            locale: .current
+        ) == .orderedSame
+    }
+
+    /// Trims each tag, drops empties, and removes duplicates while keeping the order
+    /// the caller supplied. The first spelling wins (a person who types `Work` means `Work`).
     static func normalized(tags: [String]) -> [String] {
         var seen: [String] = []
         for tag in tags {
             let trimmed = tag.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { continue }
-            let isDuplicate = seen.contains {
-                $0.compare(
-                    trimmed,
-                    options: [.caseInsensitive, .diacriticInsensitive],
-                    range: nil,
-                    locale: .current
-                ) == .orderedSame
-            }
-            if !isDuplicate {
+            if !seen.contains(where: { isSameTag($0, trimmed) }) {
                 seen.append(trimmed)
             }
         }

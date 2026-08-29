@@ -669,7 +669,7 @@ xcodebuild -exportLocalizations -project IntentTodo.xcodeproj -scheme IntentTodo
 Xcode が書くキー順は **codepoint 順ではない**。`String.localizedStandardCompare(_:)` の順序
 （大文字小文字を無視し、同一視されたら小文字が先）で、`$` と `“` の並びも codepoint とは逆になる。
 
-```
+```text
 Xcode:  ["Delete", "Delete “%@”?", "Delete ${entities}", …]
 sorted: ["Delete", "Delete ${entities}", "Delete “%@”?", …]
 ```

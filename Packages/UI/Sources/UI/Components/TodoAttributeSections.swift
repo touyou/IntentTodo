@@ -41,12 +41,13 @@ struct TodoTagsSection: View {
         newTag.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    /// 追加できるのは空でなく、既にある綴りと（大文字小文字を無視して）重ならないときだけ。
-    /// 判定を UI 側にも置くのは、押せるのに何も起きないボタンを見せないため。実際の
-    /// 正規化は `TodoService` 側が最終的に行う。
+    /// 追加できるのは空でなく、既にあるタグと重ならないときだけ。押せるのに何も起きない
+    /// ボタンを見せないため UI 側でも判定するが、**判定そのものは保存側と同じものを使う**
+    /// （`TodoAttributes.isSameTag`）。ここだけ緩い比較にすると、フォームでは受け付けたのに
+    /// 保存時の正規化で無言に消えるタグができる。
     private var canAddNewTag: Bool {
         guard !trimmedNewTag.isEmpty else { return false }
-        return !tags.contains { $0.caseInsensitiveCompare(trimmedNewTag) == .orderedSame }
+        return !tags.contains { TodoAttributes.isSameTag($0, trimmedNewTag) }
     }
 
     var body: some View {
