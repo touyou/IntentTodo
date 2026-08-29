@@ -100,9 +100,9 @@ public final class TodoListViewModel {
         case .titleDescending:
             return todos.sorted { $0.title.localizedCompare($1.title) == .orderedDescending }
         case .dueDateAscending:
-            return todos.sorted { compareDueDates($0.dueDate, $1.dueDate, ascending: true) }
+            return todos.sorted { compareDueDates($0.dueDateValue, $1.dueDateValue, ascending: true) }
         case .dueDateDescending:
-            return todos.sorted { compareDueDates($0.dueDate, $1.dueDate, ascending: false) }
+            return todos.sorted { compareDueDates($0.dueDateValue, $1.dueDateValue, ascending: false) }
         case .manual:
             // Drag-to-reorder order, persisted on the model as `sortIndex`.
             // Ties (e.g. brand-new todos still at 0) fall back to newest-first.

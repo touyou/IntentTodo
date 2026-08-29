@@ -691,7 +691,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 | **Entity強化** | プロパティマクロ / 値表現 | @ComputedProperty, @DeferredProperty, @Property(indexingKey:)(#43), Transferable + ValueRepresentation→IntentPerson/PlaceDescriptor(#44) | ✅ |
 | **Onscreen Entities** | 画面コンテンツ提供 | userActivity + appEntityIdentifier（単一）/ .appEntityIdentifier(forSelectionType:)（一覧, #46）/ 通知 appEntityIdentifiers(#46) | ✅ |
 | **Interactive Snippets** | Siri応答強化 | インタラクティブボタン付きスニペット | ✅ |
-| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ list + search 適合（watchOS はフォールバック / 除外）。reminder 本体は据え置き（SDK のブロックではなく product 判断待ち、#56） |
+| **App Schema** | reminders ドメイン適合 | @AppEntity(schema: .reminders.list / .reminder / .locationTrigger) / @AppIntent(schema: .system.searchInApp)(#47) | ✅ reminder 本体まで適合（#56）。watchOS も適合を手書きして揃えた |
 | **高度な Intent** | 対話/寄付/system/部分更新/取り消し | requestConfirmation, requestChoice, IntentDonationManager, OpenIntent, DeleteIntent, UndoableIntent, IntentDialog(full:supporting:), IntentParameter.valueState(#45) | ✅（`RelevantEntities` は適合不能 / donation は不採用 #53） |
 | **大量・実行制御** | スケール/プロセス制御 | EntityCollection, LongRunningIntent, CancellableIntent, allowedExecutionTargets(.main/.appIntentsExtension/.widgetKitExtension, #42), @UnionValue, SyncableEntity | ✅ |
 | **Visual Intelligence** | カメラ/スクショ連携 | IntentValueQuery, SemanticContentDescriptor, semanticContentSearch | ✅ |
@@ -708,7 +708,7 @@ Action-Centered DesignとApp Intents中心設計を深化させる WWDC 2026 要
 
 | 分類 | 主なもの |
 |------|---------|
-| **適合不能 / ブロック中** | `RelevantEntities`（todo 向けの `AppEntityContext` が無い）/ `.reminders.reminder` 本体適合（**SDK のブロックではない**。適合コストは 2026-08-29 に実測済みで、どこまで実体化するかの判断待ち、#56） |
+| **適合不能 / ブロック中** | `RelevantEntities`（todo 向けの `AppEntityContext` が無い） |
 | **意図的不使用** | `DynamicOptionsProvider` / `IntentParameterDependency` / `EntityPropertyQuery` / `.foreground(.dynamic)`（#55）/ UI タップ由来の donation（#53）/ `SpotlightSearchTool`（#52） |
 | **未採用候補** | `.controlWidgetStatus(_:)` / `Toggle(isOn:intent:)` / `RelevantIntent` / `AudioPlaybackIntent`（#68） |
 

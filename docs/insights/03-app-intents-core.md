@@ -1210,7 +1210,46 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   なので watchOS（フレームワーク非存在）には来ない。macOS には import 可能（`OpenCategoryIntent` 追加、上記
   「macOS 対応」節参照）。
 
-### reminder 本体スキーマ適合の優先度再考（#240 Group Lab / #48）
+### reminder 本体スキーマ適合（#56、2026-08-29 に適合済み）
+
+`TodoAppEntity` は `@AppEntity(schema:)` マクロではなく**適合を手書き**している。
+
+```swift
+extension TodoAppEntity: AssistantSchemaEntity {
+    public static let __appSchemaEntity = "reminders.reminder"
+}
+```
+
+理由と守るべきルール:
+
+- **親のスキーマ適合はサブエンティティの適合も要求する**。`list` / `locationTrigger` の型が
+  スキーマ無しだと `Property 'list' type does not match required AppSchemaEntity property type
+  'ListEntity'` で落ちる。つまり適合は `list` / `listType` / `locationTrigger` /
+  `locationTriggerEvent` を含む**サブグラフ全体**に及ぶ
+- **`AssistantSchemaEntity` / `AssistantSchemaEnum` プロトコルは watchOS でも available**。
+  watchOS で使えないのは `.reminders.reminder` のような**スキーマ名前空間シンボル**だけなので、
+  識別子を文字列で書けばマクロ無しで watchOS でも適合できる。watchOS フォールバック 4 型
+  （`WatchCategoryAppEntity` / `WatchTodoListType` / `WatchTodoLocationTriggerAppEntity` /
+  `WatchTodoLocationTriggerEvent`）にも同じ形で適合を足してある
+- **適合を `#if` で切ってはいけない**。同じ mangled name にスキーマ有り / 無しの 2 形が居ると、
+  iOS アプリの統合メタデータへの merge でスキーマ無し側が勝つ（#49 と同じ衝突を 2026-08-29 に実測）。
+  型名を分けないなら**全プラットフォームで同じ適合を宣言する**
+- スキーマ要求名（`note` / `creationDate` / `isFlagged` / `list`）は `@ComputedProperty` の
+  別名で満たせるので、アプリ側の既存名はリネームしない。`dueDate` だけは型が衝突するので
+  stored を `dueDateValue: Date?` にして `dueDate` を `DateComponents?` の computed にした
+- `list` は非 optional 要求。未分類 todo には合成の `CategoryAppEntity.uncategorized` を見せる
+- **配列属性（`tags` / `urls`）は `@DeferredProperty` で id から引き直す**。`@Property` にして
+  `init(from:)` で読むと、削除直後の再描画で SwiftData が trap する（削除済みオブジェクトの
+  配列属性は読めない。scalar は耐える）。`!isDeleted` のガードでは防げない。スキーマ要求は
+  deferred でも満たせる
+- **`Calendar.RecurrenceRule` は SwiftData 属性にできない**（コンパイルは通るが schema 初期化で
+  trap する）。`TodoRecurrence` で primitive（frequency + interval）から組み立てる
+- 判定は `inspect_appintents_metadata.py`。メタデータは `{"domain": "reminders", "name":
+  "ReminderEntity"}` の形なので `grep reminders.ReminderEntity` では見つからない
+
+経緯: [docs/devlog/2026-08-29-reminder-schema-conformance.md](../devlog/2026-08-29-reminder-schema-conformance.md)
+
+### reminder 本体スキーマ適合の優先度再考（#240 Group Lab / #48、当時の判断）
 
 「新 Siri 連携は App Schema 採用が前提」だが、コア `TodoAppEntity` の `@AppEntity(schema: .reminders.reminder)` 適合は
 **引き続き保留**と判断（再評価結果）。

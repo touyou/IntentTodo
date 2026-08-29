@@ -259,6 +259,17 @@
         }
       }
     },
+    "Arriving" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "到着したとき"
+          }
+        }
+      }
+    },
     "Assignee" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -390,6 +401,17 @@
         }
       }
     },
+    "Completion Date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了日"
+          }
+        }
+      }
+    },
     "Couldn't read your todos" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -408,6 +430,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "新しいやることを作成します"
+          }
+        }
+      }
+    },
+    "Creation Date" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "作成日"
           }
         }
       }
@@ -592,6 +625,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "完了までにかかる見込み時間"
+          }
+        }
+      }
+    },
+    "Event" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "イベント"
           }
         }
       }
@@ -793,6 +837,17 @@
         }
       }
     },
+    "Is Flagged" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "フラグ付き"
+          }
+        }
+      }
+    },
     "Is Overdue" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -800,6 +855,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "期限切れ"
+          }
+        }
+      }
+    },
+    "Leaving" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "出発したとき"
           }
         }
       }
@@ -833,6 +899,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "場所"
+          }
+        }
+      }
+    },
+    "Location Trigger" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "場所トリガー"
+          }
+        }
+      }
+    },
+    "Location Trigger Event" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "場所トリガーのイベント"
           }
         }
       }
@@ -965,6 +1053,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "サブタスクなし"
+          }
+        }
+      }
+    },
+    "Note" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "メモ"
           }
         }
       }
@@ -1144,6 +1243,17 @@
         }
       }
     },
+    "Place" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "場所"
+          }
+        }
+      }
+    },
     "Place associated with the todo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1195,6 +1305,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "やることをすぐスヌーズ"
+          }
+        }
+      }
+    },
+    "Recurrence" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "繰り返し"
           }
         }
       }
@@ -1422,6 +1543,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "サブタスクの進捗"
+          }
+        }
+      }
+    },
+    "Tags" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タグ"
           }
         }
       }
@@ -1729,6 +1861,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "やること合計"
+          }
+        }
+      }
+    },
+    "URLs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL"
+          }
+        }
+      }
+    },
+    "Uncategorized" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未分類"
           }
         }
       }

@@ -38,7 +38,7 @@ public struct TodoRowView: View {
                     .strikethrough(todo.isCompleted)
                     .foregroundStyle(todo.isCompleted ? .secondary : .primary)
 
-                if let dueDate = todo.dueDate {
+                if let dueDate = todo.dueDateValue {
                     DueDateLabel(date: dueDate, isCompleted: todo.isCompleted)
                 }
             }
@@ -68,7 +68,7 @@ public struct TodoRowView: View {
         if todo.isFavorite {
             parts.append(String(localized: .copy("favorite")))
         }
-        if let dueDate = todo.dueDate {
+        if let dueDate = todo.dueDateValue {
             let formatted = dueDate.formatted(date: .abbreviated, time: .omitted)
             parts.append(String(localized: .copy("due \(formatted)")))
         }

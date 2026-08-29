@@ -176,7 +176,9 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 |---|---|:--:|---|
 | `@AppEnum(schema: .reminders.listType)` | リスト種別の適合 | ✅ | `TodoListType`（watchOS は素の `AppEnum` にフォールバック） |
 | `@AppEntity(schema: .reminders.list)` | リストの適合 | ✅ | `CategoryAppEntity`（同上。型名も `WatchCategoryAppEntity` に分ける必要がある） |
-| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ⏳ | 据え置き（**SDK のブロックではない**）。2026-08-29 に probe で完全適合が成立することを実測（SSU も通る）。`@ComputedProperty` でスキーマ要求名を満たせるのでリネーム不要、強制変更は `dueDate` の型衝突のみで機械的置換 12 箇所。残るのは `list` 非 optional / `tags`・`urls`・`recurrence`・`completionDate` / `locationTrigger` をどこまで実体化するかの product 判断 → **#56** |
+| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ✅ | `TodoAppEntity`（#56）。モデルに `completionDate` / `tags` / `urls` / `recurrenceRule` / `locationTriggerEvent` を追加し、スキーマ要求名は `@ComputedProperty` の別名で満たす。`dueDate` のみ型が衝突するので stored を `dueDateValue` に改名。**親の適合はサブエンティティの適合も要求する**ため watchOS フォールバックにも適合を手書きした |
+| `@AppEntity(schema: .reminders.locationTrigger)` | 場所トリガー | ✅ | `TodoLocationTriggerAppEntity`（`place: PlaceDescriptor` + `event`） |
+| `@AppEnum(schema: .reminders.locationTriggerEvent)` | arrive / depart | ✅ | `TodoLocationTriggerEvent` |
 | `@AppIntent(schema: .system.searchInApp)` | アプリ内検索 | ✅ | `ShowTodoSearchResultsIntent` |
 | `@AppIntent(schema: .system.open)` | 「開く」の適合 | ⏸ | 素の `OpenIntent` で成立している |
 | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | Visual Intelligence の「もっと見る」 | ✅ | `TodoSemanticContentSearchIntent` |

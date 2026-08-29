@@ -63,9 +63,25 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     @Property(title: "Favorite")
     public var isFavorite: Bool
 
-    /// The due date of the todo item, if any.
-    @Property(title: "Due Date")
-    public var dueDate: Date?
+    /// The due date as a `Date`, for the app's own use (comparisons, formatting,
+    /// Live Activity scheduling).
+    ///
+    /// Deliberately **not** a `@Property`: the schema-visible spelling of the due
+    /// date is `dueDate` below, and exposing the same value twice would give Siri
+    /// two competing properties for one concept.
+    public var dueDateValue: Date?
+
+    /// The due date of the todo item, if any (schema-required).
+    ///
+    /// `.reminders.reminder` requires `DateComponents?` here, not `Date?` — the
+    /// schema can express "a day with no time of day", which a `Date` can't. The
+    /// stored value stays a `Date` (`dueDateValue`) and this projects it.
+    @ComputedProperty(title: "Due Date")
+    public var dueDate: DateComponents? {
+        dueDateValue.map {
+            Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: $0)
+        }
+    }
 
     /// The creation date of the todo item.
     public var createdAt: Date
@@ -102,6 +118,84 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     @Property(title: "Location")
     public var location: PlaceDescriptor?
 
+    // MARK: - reminders スキーマ要求プロパティ
+
+    /// When the todo was completed, if it has been (schema-required).
+    @Property(title: "Completion Date")
+    public var completionDate: Date?
+
+    /// Free-form tags (schema-required).
+    ///
+    /// `@DeferredProperty` にしているのは `subtaskProgress` と同じ理由 + もう 1 つ:
+    /// **SwiftData は削除済みオブジェクトの配列属性を読むと trap する**（scalar は最後の値を
+    /// 返すので耐える）。`@Query` の結果は削除直後の 1 フレームだけ削除済みオブジェクトを
+    /// 含みうるので、`init(from:)` の中で配列を読むと詳細画面の再描画でクラッシュする（実測）。
+    /// id から引き直す形にすると、消えた todo は「見つからない」に落ちるだけで済む。
+    ///
+    /// スキーマは `Set<String>` を要求する。モデル側は CloudKit 互換のため `[String]`。
+    /// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+    @DeferredProperty(title: "Tags")
+    public var tags: Set<String> {
+        get async throws {
+            try await Self.loadTags(forID: id)
+        }
+    }
+
+    /// Links attached to the todo (schema-required). `tags` と同じ理由で deferred。
+    @DeferredProperty(title: "URLs")
+    public var urls: [URL] {
+        get async throws {
+            try await Self.loadURLs(forID: id)
+        }
+    }
+
+    /// Recurrence rule, if the todo repeats (schema-required).
+    @Property(title: "Recurrence")
+    public var recurrence: Calendar.RecurrenceRule?
+
+    /// Place-plus-event pair that surfaces the todo (schema-required).
+    @Property(title: "Location Trigger")
+    public var locationTrigger: TodoLocationTriggerAppEntity?
+
+    // MARK: - スキーマ名エイリアス
+    //
+    // `.reminders.reminder` はプロパティ名まで一致を要求する（`note` / `creationDate` /
+    // `isFlagged` / `list`）。アプリ側の既存名（`todoDescription` / `createdAt` /
+    // `isFavorite` / `category`）を変えずに済ませるため、`@ComputedProperty` で
+    // スキーマ側の綴りを足している。リネームすると呼出元が広く壊れる一方、
+    // 別名を足すコストは小さい。
+    // 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+
+    /// The note body (schema-required spelling of `todoDescription`).
+    @ComputedProperty(title: "Note")
+    public var note: String? {
+        todoDescription
+    }
+
+    /// The creation date (schema-required spelling of `createdAt`).
+    ///
+    /// スキーマは optional を要求する（非 optional だと
+    /// `Required AppSchemaEntity property 'creationDate' must not be optional` の逆で弾かれる）。
+    @ComputedProperty(title: "Creation Date")
+    public var creationDate: Date? {
+        createdAt
+    }
+
+    /// Whether the todo is flagged (schema-required spelling of `isFavorite`).
+    @ComputedProperty(title: "Is Flagged")
+    public var isFlagged: Bool? {
+        isFavorite
+    }
+
+    /// The list this todo belongs to (schema-required spelling of `category`).
+    ///
+    /// スキーマは**非 optional**を要求するが、`TodoItem.category` は CloudKit 要件で
+    /// optional。未分類の todo には合成の `CategoryAppEntity.uncategorized` を見せる。
+    @ComputedProperty(title: "List")
+    public var list: CategoryAppEntity {
+        category ?? .uncategorized
+    }
+
     // MARK: - Derived Properties (WWDC 2026 property macros)
 
     /// Whether the todo is past its due date and still incomplete.
@@ -111,8 +205,8 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
     /// stored. Cheap and synchronous — no external source access.
     @ComputedProperty(title: "Is Overdue")
     public var isOverdue: Bool {
-        guard !isCompleted, let dueDate else { return false }
-        return dueDate < Date()
+        guard !isCompleted, let dueDateValue else { return false }
+        return dueDateValue < Date()
     }
 
     /// A short human-readable summary of subtask completion (e.g. "2/5 completed").
@@ -152,6 +246,33 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         }
     }
 
+    /// Re-fetches the tags by id. Same shape as `loadSubtaskProgress`.
+    private static func loadTags(forID id: String) async throws -> Set<String> {
+        try await MainActor.run {
+            guard let item = liveItem(forID: id) else { return [] }
+            return Set(item.tags)
+        }
+    }
+
+    /// Re-fetches the attached links by id.
+    private static func loadURLs(forID id: String) async throws -> [URL] {
+        try await MainActor.run {
+            guard let item = liveItem(forID: id) else { return [] }
+            return item.urls
+        }
+    }
+
+    /// Looks a todo up in the shared container, or `nil` when it is gone.
+    @MainActor
+    private static func liveItem(forID id: String) -> TodoItem? {
+        guard let container = TodoEntityStore.container,
+              let uuid = UUID(uuidString: id) else {
+            return nil
+        }
+        let repository = SwiftDataTodoRepository(modelContext: container.mainContext)
+        return try? repository.fetch(by: uuid)
+    }
+
     // MARK: - AppEntity Requirements
 
     public static var typeDisplayRepresentation: TypeDisplayRepresentation {
@@ -166,7 +287,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
             title: title,
             isCompleted: isCompleted,
             isFavorite: isFavorite,
-            dueDate: dueDate
+            dueDate: dueDateValue
         )
     }
 
@@ -233,7 +354,7 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         self.todoDescription = todoItem.todoDescription
         self.isCompleted = todoItem.isCompleted
         self.isFavorite = todoItem.isFavorite
-        self.dueDate = todoItem.dueDate
+        self.dueDateValue = todoItem.dueDate
         self.category = todoItem.category.map(CategoryAppEntity.init(from:))
         self.estimatedDuration = todoItem.estimatedDuration.map { Duration.seconds($0) }
         self.assigneeName = todoItem.assigneeName
@@ -242,6 +363,12 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
             latitude: todoItem.locationLatitude,
             longitude: todoItem.locationLongitude
         )
+        self.completionDate = todoItem.completionDate
+        self.recurrence = TodoRecurrence.rule(
+            frequency: todoItem.recurrenceFrequency,
+            interval: todoItem.recurrenceInterval
+        )
+        self.locationTrigger = TodoLocationTriggerAppEntity.make(from: todoItem)
     }
 
     /// Creates a new TodoAppEntity with the given properties.
@@ -257,7 +384,10 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         category: CategoryAppEntity? = nil,
         estimatedDuration: Duration? = nil,
         assigneeName: String? = nil,
-        location: PlaceDescriptor? = nil
+        location: PlaceDescriptor? = nil,
+        completionDate: Date? = nil,
+        recurrence: Calendar.RecurrenceRule? = nil,
+        locationTrigger: TodoLocationTriggerAppEntity? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -266,11 +396,14 @@ public struct TodoAppEntity: AppEntity, Hashable, SyncableEntity {
         self.todoDescription = todoDescription
         self.isCompleted = isCompleted
         self.isFavorite = isFavorite
-        self.dueDate = dueDate
+        self.dueDateValue = dueDate
         self.category = category
         self.estimatedDuration = estimatedDuration
         self.assigneeName = assigneeName
         self.location = location
+        self.completionDate = completionDate
+        self.recurrence = recurrence
+        self.locationTrigger = locationTrigger
     }
 
     // MARK: - Hashable / Equatable
@@ -370,8 +503,8 @@ extension TodoAppEntity: IndexedEntity {
     public var attributeSet: CSSearchableItemAttributeSet {
         let attributes = CSSearchableItemAttributeSet()
         attributes.displayName = title
-        if let dueDate {
-            attributes.dueDate = dueDate
+        if let dueDateValue {
+            attributes.dueDate = dueDateValue
         }
         attributes.keywords = buildKeywords()
         return attributes
@@ -392,3 +525,26 @@ extension TodoAppEntity: IndexedEntity {
     }
 }
 #endif
+
+// MARK: - reminders スキーマ適合
+
+// `TodoAppEntity` を `.reminders.reminder` に適合させる。
+//
+// **`@AppEntity(schema:)` マクロを使わず適合を手書きしている。** マクロは宣言に付くため
+// `#if` で外せず、`.reminders` スキーマ名前空間は watchOS で unavailable なので、マクロを
+// 使うと `CategoryAppEntity` と同じ「型を 2 系統で全書きする」形になる。`TodoAppEntity` は
+// プロパティ・`IndexedEntity`・`Transferable`・`URLRepresentableEntity` を抱えた大きな型で、
+// 二重管理すると片方だけ直す事故が起きる。
+//
+// マクロが生やすものは ①`AssistantSchemaEntity` 適合 + `__appSchemaEntity`
+// ②各メンバへの `@Property` 付与（`@attached(memberAttribute)`）の 2 つだけなので、
+// ① をここで手書きし、② は `TodoAppEntity` 側で明示的に `@Property` /
+// `@ComputedProperty` を書くことで置き換えている。要求プロパティの検証は後段の
+// メタデータ抽出で走るので、手書きでも取りこぼしはビルドエラーになる。
+//
+// 手書き適合でも出荷メタデータに `reminders.ReminderEntity` が載ることは実測済み。
+// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+extension TodoAppEntity: AssistantSchemaEntity {
+    // swiftlint:disable:next identifier_name
+    public static let __appSchemaEntity = "reminders.reminder"
+}

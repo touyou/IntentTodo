@@ -76,7 +76,7 @@ public struct TodoFocusFilter: Equatable, Sendable, Codable {
     /// 「急ぎ」の定義は `DueDateStatus` に合わせる（期限切れ or 1 時間以内）。
     /// UI のバッジ表示と同じ閾値にしておかないと、絞り込み結果と見た目が食い違う。
     static func isUrgent(_ todo: TodoAppEntity, now: Date) -> Bool {
-        guard let dueDate = todo.dueDate else { return false }
+        guard let dueDate = todo.dueDateValue else { return false }
         switch DueDateStatus.evaluate(date: dueDate, isCompleted: todo.isCompleted, now: now) {
         case .overdue, .dueSoon:
             return true
