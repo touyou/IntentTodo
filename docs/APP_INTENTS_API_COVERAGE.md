@@ -176,7 +176,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 |---|---|:--:|---|
 | `@AppEnum(schema: .reminders.listType)` | リスト種別の適合 | ✅ | `TodoListType`（watchOS は素の `AppEnum` にフォールバック） |
 | `@AppEntity(schema: .reminders.list)` | リストの適合 | ✅ | `CategoryAppEntity`（同上。型名も `WatchCategoryAppEntity` に分ける必要がある） |
-| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ✅ | `TodoAppEntity`（#56）。モデルに `completionDate` / `tags` / `urls` / `recurrenceRule` / `locationTriggerEvent` を追加し、スキーマ要求名は `@ComputedProperty` の別名で満たす。`dueDate` のみ型が衝突するので stored を `dueDateValue` に改名。**親の適合はサブエンティティの適合も要求する**ため watchOS フォールバックにも適合を手書きした |
+| `@AppEntity(schema: .reminders.reminder)` | Todo 本体の適合 | ✅ | `TodoAppEntity`（#56）。モデルに `completionDate` / `tags` / `urls` / `recurrenceFrequency` + `recurrenceInterval` / `locationTriggerEvent` を追加し（`Calendar.RecurrenceRule` は SwiftData 属性にできないので primitive で持つ）、スキーマ要求名は `@ComputedProperty` の別名で満たす。`dueDate` のみ型が衝突するので stored を `dueDateValue` に改名。**親の適合はサブエンティティの適合も要求する**。App Schema は watchOS / tvOS に存在しないので、watch には適合を持たない別型（`WatchTodoAppEntity`）を置く（#87） |
 | `@AppEntity(schema: .reminders.locationTrigger)` | 場所トリガー | ✅ | `TodoLocationTriggerAppEntity`（`place: PlaceDescriptor` + `event`） |
 | `@AppEnum(schema: .reminders.locationTriggerEvent)` | arrive / depart | ✅ | `TodoLocationTriggerEvent` |
 | `@AppIntent(schema: .system.searchInApp)` | アプリ内検索 | ✅ | `ShowTodoSearchResultsIntent` |
@@ -249,7 +249,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 5. visionOS ウィジェット強化（`supportedMountingStyles` / `widgetTexture` / `levelOfDetail`）
 6. `AudioPlaybackIntent` — 「この Todo をやる間これを流す」。未採用の Intent 種別
 
-ブロック中のものは #56（reminder 本体スキーマ）/ #57（GM SDK 棚卸し）。
+ブロック中のものは #57（GM SDK 棚卸し）/ #86（App Schema と watch ターゲットの両立）。
 
 `ShortcutsLink` はこのリストから外した（採用済み。置き場は設定画面）。
 経緯: [docs/devlog/04-ui-integration.md](devlog/04-ui-integration.md)（2026-08-28 の Siri Tip / ShortcutsLink の置き場）
