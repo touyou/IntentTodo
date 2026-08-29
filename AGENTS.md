@@ -186,6 +186,15 @@ IntentTodoWatchApp/                 # watchOS アプリ
 - **UI テストの並列実行はしない**（`IntentTodo.xcscheme` の `parallelizable` を外している）。
   シミュレータのクローンが OS ごと起動するぶんが乗るだけで、UI テストクラスが 1 つしかない本
   プロジェクトでは分割されない。実測と数字: `docs/devlog/2026-08-28-uitest-cost.md`
+- **テストターゲットを増やしたら `IntentTodo.xcscheme` の `TestAction` に足す**。パッケージの
+  テストターゲットは足さない限り `xcodebuild test` でも ⌘U でも走らず、**コンパイルできなくなっても
+  赤くならない**（「落ちる」ではなく「存在しないことになる」）。現在は `DomainTests` /
+  `RepositoryTests` / `TodoAppIntentsTests` / `UITests` / `IntentTodoUITest` の 5 つ。
+  ローカルパッケージの `TestableReference` は `ReferencedContainer = "container:Packages/<名前>"`、
+  `BuildableName` は `.xctest` を付けないターゲット名。経緯: `docs/devlog/2026-08-28-uitest-cost.md`
+- **ローカライズ済みの文言を素の `String(localized:)` で assert しない**。ホストの優先言語が ja
+  なのでシミュレータ上では ja で解決され、`swift test` では通るのに Xcode のテストアクション経由
+  でだけ落ちる。比較するなら `resource.locale = Locale(identifier: "en")` でソース言語に固定する
 
 ### Swift/SwiftUI ガイドライン
 

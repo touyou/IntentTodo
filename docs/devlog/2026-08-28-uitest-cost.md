@@ -73,6 +73,60 @@ Spotlight index を見たいため。
 UI テストが 1 件ごとにアプリを起こす構造そのもの。削るなら「1 件あたりの launch をやめる」しか
 無く、テストの独立性とのトレードオフになるので今回は触っていない。
 
+## 追記: パッケージのユニットテストを scheme に入れた（2026-08-29 / #84）
+
+上の 267.6 秒は **`IntentTodoUITest` バンドルだけ**の数字だった。`IntentTodo.xcscheme` の
+`TestAction` に入っている `TestableReference` が `IntentTodoUITest` 1 つしか無く、SPM パッケージの
+テストターゲットが 1 つも入っていなかったため。
+
+実害は #83 で出ていた。`TodoAppEntity.dueDate` を `Date?` → `DateComponents?` に変えたとき
+`TodoAppIntentsTests` の 4 箇所がコンパイルできない状態のまま main にマージされている。
+**テストが「落ちる」のではなく「存在しないことになる」**ので赤くならない。
+
+### 追加した 4 ターゲット
+
+ローカルパッケージの `TestableReference` は `ReferencedContainer = "container:Packages/<名前>"`、
+`BuildableName` は `.xctest` を付けないターゲット名で書く（プロジェクト内ターゲットと綴りが違う）。
+`parallelizable` は引き続き付けない。
+
+### 見立てが外れていた点: 「0.2 秒程度」ではなく約 20 秒
+
+issue #84 には「パッケージのユニットテストは実測 0.2 秒程度」と書いていた。これは
+`swift test` の数字で、Xcode のテストアクション経由では**バンドルごとのインストールと起動**が乗る。
+
+| ターゲット | 件数 | テスト実行 |
+|---|---|---|
+| `DomainTests` | 19 | 0.076 秒 |
+| `RepositoryTests` | 30 | 0.424 秒 |
+| `TodoAppIntentsTests` | 137 | 0.512 秒 |
+| `UITests`（`UI` パッケージ） | 55 | 0.072 秒 |
+| 4 つ合計（実行のみ） | 241 | **1.08 秒** |
+| 4 つ合計（xcodebuild 実測 elapsed） | | **19.9 秒** |
+
+差の約 19 秒はテスト実行ではなく、4 バンドル分のインストール / 起動オーバーヘッド（1 本あたり 5 秒前後）。
+
+| | 変更前 | 変更後 |
+|---|---|---|
+| `IntentTodoUITest` のみ | 288.7 秒（40 件） | 288.7 秒（40 件） |
+| 通し（elapsed） | 288.7 秒 | **321.2 秒**（281 件） |
+
++32.5 秒 / +11%。241 件のユニットテストが常時走るようになる対価としては安いので、
+テストプランを分けたり `-only-testing` で切ったりはしないことにした。
+
+### 入れた瞬間に 11 件落ちた（ホスト言語が ja のため）
+
+`TodoFilterTests.displayNames()` / `TodoSortOrderTests.displayNames()` が
+`String(localized: TodoFilter.all.displayName) == "All"` の形で書かれていた。テスト側のコメントには
+「en では key がそのまま返る」とあったが、**ホストの優先言語が ja なのでシミュレータ上では
+ja で解決される**（`"すべて"`）。`swift test` では通るので、scheme に入れるまで表に出なかった。
+
+`resource.locale = Locale(identifier: "en")` でソース言語に固定してから解決する形に直した。
+`TodoAppIntentsTests` 側の `String(localized:)` は落ちていない（`TodoAppIntents` は catalog を
+持たないのでキーがそのまま返る）。
+
+同種の事故は `docs/devlog/2026-08-28-ja-localization.md`（UI テストの英語ラベル引き）でも起きている。
+
 ## 参照
 
 - #73 §3 / `docs/devlog/2026-08-28-ja-localization.md`（並列実行でシミュレータが落ちた件）
+- #84 / `docs/devlog/2026-08-29-attribute-write-paths.md` §5（scheme から外れていたことに気づいた経緯）

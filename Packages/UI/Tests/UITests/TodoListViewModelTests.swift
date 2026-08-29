@@ -379,6 +379,16 @@ struct TodoListViewModelTests {
     }
 }
 
+// MARK: - Localization Helpers
+
+/// ソース言語（en）に固定して `LocalizedStringResource` を解決する。
+/// 固定しないとホストの優先言語（ja）で解決され、Xcode のテストアクション経由でだけ落ちる。
+private func englishCopy(_ resource: LocalizedStringResource) -> String {
+    var resource = resource
+    resource.locale = Locale(identifier: "en")
+    return String(localized: resource)
+}
+
 // MARK: - TodoFilter Tests
 
 @Suite("TodoFilter Tests")
@@ -389,13 +399,13 @@ struct TodoFilterTests {
     }
 
     // `displayName` は `LocalizedStringResource`（パッケージ同梱の String Catalog 参照）。
-    // 解決後の文字列で比較する。en では key がそのまま返る。
+    // ソース言語（en）に固定して解決した文字列で比較する。
     @Test("Each filter has a display name")
     func displayNames() {
-        #expect(String(localized: TodoFilter.all.displayName) == "All")
-        #expect(String(localized: TodoFilter.incomplete.displayName) == "Incomplete")
-        #expect(String(localized: TodoFilter.completed.displayName) == "Completed")
-        #expect(String(localized: TodoFilter.favorites.displayName) == "Favorites")
+        #expect(englishCopy(TodoFilter.all.displayName) == "All")
+        #expect(englishCopy(TodoFilter.incomplete.displayName) == "Incomplete")
+        #expect(englishCopy(TodoFilter.completed.displayName) == "Completed")
+        #expect(englishCopy(TodoFilter.favorites.displayName) == "Favorites")
     }
 
     @Test("Each filter has a system image")
@@ -425,13 +435,13 @@ struct TodoSortOrderTests {
 
     @Test("Each sort order has a display name")
     func displayNames() {
-        #expect(String(localized: TodoSortOrder.createdAtDescending.displayName) == "Newest First")
-        #expect(String(localized: TodoSortOrder.createdAtAscending.displayName) == "Oldest First")
-        #expect(String(localized: TodoSortOrder.titleAscending.displayName) == "Title A-Z")
-        #expect(String(localized: TodoSortOrder.titleDescending.displayName) == "Title Z-A")
-        #expect(String(localized: TodoSortOrder.dueDateAscending.displayName) == "Due Date (Earliest)")
-        #expect(String(localized: TodoSortOrder.dueDateDescending.displayName) == "Due Date (Latest)")
-        #expect(String(localized: TodoSortOrder.manual.displayName) == "Manual")
+        #expect(englishCopy(TodoSortOrder.createdAtDescending.displayName) == "Newest First")
+        #expect(englishCopy(TodoSortOrder.createdAtAscending.displayName) == "Oldest First")
+        #expect(englishCopy(TodoSortOrder.titleAscending.displayName) == "Title A-Z")
+        #expect(englishCopy(TodoSortOrder.titleDescending.displayName) == "Title Z-A")
+        #expect(englishCopy(TodoSortOrder.dueDateAscending.displayName) == "Due Date (Earliest)")
+        #expect(englishCopy(TodoSortOrder.dueDateDescending.displayName) == "Due Date (Latest)")
+        #expect(englishCopy(TodoSortOrder.manual.displayName) == "Manual")
     }
 
     @Test("Each sort order has unique id based on rawValue")
