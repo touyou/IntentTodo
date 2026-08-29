@@ -1242,6 +1242,12 @@ extension TodoAppEntity: AssistantSchemaEntity {
   `init(from:)` で読むと、削除直後の再描画で SwiftData が trap する（削除済みオブジェクトの
   配列属性は読めない。scalar は耐える）。`!isDeleted` のガードでは防げない。スキーマ要求は
   deferred でも満たせる
+- **同じ理由で `@Model` の配列属性は SwiftUI の `body` からも読まない**。`@Query` の結果は削除直後の
+  1 フレームだけ削除済みオブジェクトを含みうるので、`if !todo.tags.isEmpty` と書くだけで詳細画面が
+  クラッシュする（entity 側で 1 回直しても、新しく読む場所を作るたびに再発する）。表示は
+  `@State` のスナップショットに写し、`.task(id: todo.modifiedAt)`（`modifiedAt` は scalar なので
+  削除済みでも読める）で entity の `@DeferredProperty` 経由 = id から引き直して更新する。
+  シートに渡すときも値渡し（content クロージャは提示中に再評価されうる）
 - **`Calendar.RecurrenceRule` は SwiftData 属性にできない**（コンパイルは通るが schema 初期化で
   trap する）。`TodoRecurrence` で primitive（frequency + interval）から組み立てる
 - 判定は `inspect_appintents_metadata.py`。メタデータは `{"domain": "reminders", "name":

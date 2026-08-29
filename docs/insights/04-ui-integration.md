@@ -651,6 +651,41 @@ xcodebuild -exportLocalizations -project IntentTodo.xcodeproj -scheme IntentTodo
 
 経緯: [docs/devlog/2026-08-28-ja-localization.md](../devlog/2026-08-28-ja-localization.md)
 
+### `AppEnum` の表示名は UI からも引ける（文言を 2 箇所に持たない）
+
+`AppEnum` の祖先 `CaseDisplayRepresentable` が `localizedStringResource` を default 実装で
+生やしているので、`Text(option.localizedStringResource)` で `caseDisplayRepresentations` の
+文言がそのまま出る。**同じ文言を UI パッケージの catalog にもう 1 組持つ必要はない**
+（持つと Siri とアプリ UI で言い回しが分かれる形で腐る）。
+
+解決先は `TodoAppIntents` ではなく**アプリターゲットの main bundle**（パッケージは catalog を
+持たない）。つまり Intent コピーとして手動キーで入れているものが使われる。
+
+`CaseIterable` も `AppEnum` が transitively 要求しているので、`allCases` を使うだけなら
+明示適合を足す必要はない。
+
+### catalog にキーを足すときは既存の並び順に合わせる（ファイル全体が差分になる）
+
+Xcode が書くキー順は **codepoint 順ではない**。`String.localizedStandardCompare(_:)` の順序
+（大文字小文字を無視し、同一視されたら小文字が先）で、`$` と `“` の並びも codepoint とは逆になる。
+
+```
+Xcode:  ["Delete", "Delete “%@”?", "Delete ${entities}", …]
+sorted: ["Delete", "Delete ${entities}", "Delete “%@”?", …]
+```
+
+Python から ICU 照合は再現できないので、並べ替えが必要ならキー列だけを Swift に渡す。
+
+ただし**このリポジトリの catalog は 2 系統ある**。Xcode が書いたパッケージ側（`UI` など）は
+上記の照合順、スクリプトで手動キーを入れたアプリターゲット側（`IntentTodo` /
+`IntentTodoWatchApp` / `IntentTodoLiveActivity`）は codepoint 順。**ファイルごとに既存の並びへ
+合わせる**のが正で、判定は「diff に削除行が出ないこと」（`git diff --numstat` の 2 列目が 0）。
+
+書式は `json.dumps(..., indent=2, separators=(",", " : "))` + 末尾改行なし（Xcode の出力と
+バイト一致することを往復で確認済み）。
+
+経緯: [docs/devlog/2026-08-29-attribute-write-paths.md](../devlog/2026-08-29-attribute-write-paths.md)
+
 ---
 
 ## コード簡素化のパターン
