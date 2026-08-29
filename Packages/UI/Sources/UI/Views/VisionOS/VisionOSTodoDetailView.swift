@@ -58,6 +58,7 @@ private struct VisionOSTodoDetailQueryView: View {
                         VisionOSSubtasksSection(subtasks: subTasks)
                     }
                     VisionOSDetailsSection(item: item)
+                    VisionOSAttributesSection(item: item)
                     VisionOSActionsSection(entity: TodoAppEntity(from: item))
                 }
                 .padding(40)
@@ -260,6 +261,85 @@ private struct VisionOSDetailsSection: View {
             }
             .padding(24)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+}
+
+/// reminders スキーマ属性（tags / urls / recurrence / locationTriggerEvent）の表示と編集。
+///
+/// 空間 UI は `Form` ではなく `VStack` を積む形なので、iOS 側の
+/// `TodoDetailTagsSection` などは再利用せずここに置く。編集シートの中身
+/// （`TodoAttributesEditView`）は共通。
+private struct VisionOSAttributesSection: View {
+    @Environment(NavigationModel.self) private var navigationModel
+
+    let item: TodoItem
+
+    /// 配列属性は `body` から読まず id 経由で引き直す（削除済みオブジェクトの配列読みは
+    /// trap する）。詳細: `TodoDetailContent.tags` のコメント
+    @State private var tags: [String] = []
+    @State private var urls: [URL] = []
+
+    private var recurrenceFrequency: TodoRecurrenceFrequency? {
+        item.recurrenceFrequency.flatMap(TodoRecurrenceFrequency.init(rawValue:))
+    }
+
+    private var locationTriggerEvent: TodoLocationTriggerEvent? {
+        item.locationTriggerEvent.flatMap(TodoLocationTriggerEvent.init(rawValue:))
+    }
+
+    var body: some View {
+        @Bindable var navigationModel = navigationModel
+
+        return VStack(alignment: .leading, spacing: 12) {
+            Text(.copy("Tags")).font(.headline).foregroundStyle(.secondary)
+
+            ForEach(tags, id: \.self) { tag in
+                Label(tag, systemImage: "number").font(.body)
+            }
+            ForEach(urls, id: \.self) { url in
+                Link(destination: url) {
+                    Label(url.absoluteString, systemImage: "link")
+                        .font(.body)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                }
+            }
+            if let recurrenceFrequency {
+                Label {
+                    Text(recurrenceFrequency.localizedStringResource)
+                } icon: {
+                    Image(systemName: "repeat")
+                }
+                .font(.body)
+            }
+            if let locationTriggerEvent {
+                Label {
+                    Text(locationTriggerEvent.localizedStringResource)
+                } icon: {
+                    Image(systemName: "location")
+                }
+                .font(.body)
+            }
+
+            Button(.copy("Edit Details")) {
+                navigationModel.showAttributeEditor()
+            }
+            .buttonStyle(.bordered)
+            .contentShape(.hoverEffect, .capsule)
+            .hoverEffect(.highlight)
+            .accessibilityIdentifier("editDetailsButton")
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .sheet(isPresented: $navigationModel.showingAttributeEditor) {
+            TodoAttributesEditView(todo: item, tags: tags, urls: urls)
+        }
+        .task(id: item.modifiedAt) {
+            let entity = TodoAppEntity(from: item)
+            let loadedTags = (try? await entity.tags) ?? []
+            tags = loadedTags.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+            urls = (try? await entity.urls) ?? []
         }
     }
 }

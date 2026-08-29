@@ -414,6 +414,53 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(backButton.waitForExistence(timeout: 3), "Back button should exist on detail view")
     }
 
+    // MARK: - Test: reminders 属性の編集
+
+    /// 詳細画面の編集シートからタグを足せること。
+    ///
+    /// ここを UI テストで押さえる理由は 2 つ:
+    /// - `Button(intent: UpdateTodoIntent(...))` はアプリ内から Intent を走らせる経路で、
+    ///   失敗しても**エラー表示が出ない**（依存の解決漏れや対話 API の混入は無音で落ちる）。
+    ///   AppIntentsTesting は Shortcuts 相当の経路を通るのでこの形を再現できない
+    /// - シートが閉じることが「`perform()` が最後まで走った」ことの唯一の可視な証拠
+    ///   （閉じるのは `UpdateTodoIntent` の `navigationModel.dismissAttributeEditor()`）
+    @MainActor
+    func testAddTagFromDetailView() throws {
+        let todoTitle = "Tag Test \(Date().timeIntervalSince1970)"
+        addTodo(title: todoTitle)
+
+        let todoCell = findTodoCell(title: todoTitle)
+        XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
+        todoCell.tap()
+
+        let editButton = app.buttons["editDetailsButton"]
+        XCTAssertTrue(editButton.waitForExistence(timeout: 5), "Edit Details button should exist on detail view")
+        editButton.tap()
+
+        let tagField = app.textFields["tagField"]
+        XCTAssertTrue(tagField.waitForExistence(timeout: 5), "Tag field should exist in the editor")
+        tagField.tap()
+        tagField.typeText("errand")
+
+        let addTagButton = app.buttons["addTagButton"]
+        XCTAssertTrue(addTagButton.waitForExistence(timeout: 3), "Add tag button should exist")
+        addTagButton.tap()
+
+        let saveButton = app.buttons["saveAttributesButton"]
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 3), "Save button should exist")
+        saveButton.tap()
+
+        // シートが閉じた = Intent が成功した。閉じないまま assert を通してしまうと
+        // 「保存されていないのに緑」になる。
+        XCTAssertTrue(tagField.waitForNonExistence(timeout: 5), "Editor sheet should dismiss after saving")
+
+        // 詳細画面のタグセクションに出ること（保存が実際にモデルへ届いた証拠）。
+        XCTAssertTrue(
+            app.staticTexts["errand"].waitForExistence(timeout: 5),
+            "Saved tag should appear in the detail view"
+        )
+    }
+
     // MARK: - Test: Settings (Shortcuts の導線)
 
     /// 設定画面から `ShortcutsLink` に到達できること。

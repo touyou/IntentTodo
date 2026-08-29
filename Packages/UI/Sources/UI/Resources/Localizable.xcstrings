@@ -1,6 +1,16 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "× %lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "× %lld"
+          }
+        }
+      }
+    },
     "Actions from Control Center and widgets can't report failures." : {
       "localizations" : {
         "ja" : {
@@ -17,6 +27,36 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "追加"
+          }
+        }
+      }
+    },
+    "Add a location for this to take effect." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "有効にするには場所を設定してください。"
+          }
+        }
+      }
+    },
+    "Add Link" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンクを追加"
+          }
+        }
+      }
+    },
+    "Add Tag" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグを追加"
           }
         }
       }
@@ -411,6 +451,16 @@
         }
       }
     },
+    "Edit Details" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詳細を編集"
+          }
+        }
+      }
+    },
     "Estimated Duration" : {
       "localizations" : {
         "ja" : {
@@ -531,6 +581,16 @@
         }
       }
     },
+    "Links" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リンク"
+          }
+        }
+      }
+    },
     "Live Activities are turned off" : {
       "localizations" : {
         "ja" : {
@@ -557,6 +617,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "場所（任意）"
+          }
+        }
+      }
+    },
+    "Location Trigger" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "場所のトリガー"
           }
         }
       }
@@ -607,6 +677,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "変更日時"
+          }
+        }
+      }
+    },
+    "Never" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "しない"
           }
         }
       }
@@ -771,6 +851,36 @@
         }
       }
     },
+    "Repeat" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繰り返し"
+          }
+        }
+      }
+    },
+    "Repeat Every" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繰り返しの間隔"
+          }
+        }
+      }
+    },
+    "Save" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存"
+          }
+        }
+      }
+    },
     "Search for ${query}" : {
       "localizations" : {
         "ja" : {
@@ -907,6 +1017,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "サブタスク"
+          }
+        }
+      }
+    },
+    "Tags" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "タグ"
           }
         }
       }
