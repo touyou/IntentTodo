@@ -40,7 +40,7 @@
 - [2026-08-29-reminder-schema-conformance.md](2026-08-29-reminder-schema-conformance.md) — `TodoAppEntity` を `.reminders.reminder` に適合させた経緯（親の適合がサブエンティティの適合も要求する件 + `Calendar.RecurrenceRule` を SwiftData 属性にすると schema 初期化で trap する件 + 削除済みオブジェクトの配列属性が読めない件）
 - [2026-08-29-attribute-write-paths.md](2026-08-29-attribute-write-paths.md) — reminders 属性（tags / urls / recurrence / locationTriggerEvent）の書き込み経路を Intent と UI に通した経緯（`parameterSummary` が Shortcuts 編集画面の allowlist だった件 + 詳細画面で同じ配列属性 trap を踏み直した件 + #83 が置いていった破損 3 件）
 - [2026-08-29-schema-vs-watch-target.md](2026-08-29-schema-vs-watch-target.md) — 手書き `__appSchemaEntity` を撤去し `TodoAppEntity` を 2 系統に分けた経緯（App Schema 全 23 ドメインが watchOS / tvOS に無いと分かった件 + iOS アプリのメタデータに watchOS スライスが混ざるのをビルドログで確定した件 + const 抽出が typealias を通らない件）
-- [2026-08-30-donation-observability.md](2026-08-30-donation-observability.md) — donation を読める経路（シミュレータの Biome ストリーム）を見つけた経緯（アプリが donate していないのに `Button(intent:)` 由来の記録があった件 + widget / control 由来が 0 件だった件 + セグメントの mtime を信じて読み違えた件）
+- [2026-08-30-donation-observability.md](2026-08-30-donation-observability.md) — `Button(intent:)` の実行がシステムに donate されていると確かめた経緯（donation を読める経路をシミュレータの Biome ストリームに見つけた件 + 逆の結論を 2 回出した原因が mtime と書き込み遅延だった件）
 - [insights-changelog.md](insights-changelog.md) — `docs/INSIGHTS.md` / `insights/` 構成の再編履歴
 
 ## 運用方針

@@ -658,12 +658,10 @@ interface, and **not to interactions started by Siri or the Shortcuts app**."
 だけで invocation source の API は無い）。よって `perform()` 内の donate は必ず Siri / Shortcuts
 経由でも走り、規約違反になる。**本アプリは donation を行っていない**（`deleteDonations` だけ残す）。
 
-**そもそも `Button(intent:)` の実行はシステムが donation として記録している**（2026-08-30 に
-iOS 27 シミュレータで実測。アプリは `donate()` を一切呼んでいないのに、タップした
-`AddTodoIntent` / `ToggleTodoCompletionIntent` が記録される）。公式サンプルが明示 donate を
-必要とするのは UI が Manager を直接呼んでいるから（4 本合わせて `Button(intent:)` は 0 件）で、
-**アプリ内 UI が全部 `Button(intent:)` なら donate すべきものが残らない**。
-別プロセス（Widget / Control）起点が記録されるかは未確定（#98）。
+**そもそも `Button(intent:)` の実行はシステムが donation として記録している**（iOS 27 で実測）。
+公式サンプルが明示 donate を必要とするのは UI が Manager を直接呼んでいるから（4 本合わせて
+`Button(intent:)` は 0 件）で、**アプリ内 UI が全部 `Button(intent:)` なら donate すべきものが
+残らない**。別プロセス（Widget / Control）起点は未確定（#98）。
 詳細と観測方法: `docs/insights/03-app-intents-core.md`
 
 一方 **`deleteDonations(matching:)` は呼出元に関係なく正しい**（消えた entity への提案を残さない
