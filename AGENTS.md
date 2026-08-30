@@ -232,7 +232,7 @@ IntentTodoWatchApp/                 # watchOS アプリ
   catalog に吐く）。`title` / `IntentDescription` / `@Parameter(title:/description:)` /
   `DisplayRepresentation` / `searchKeywords` / `IntentDialog` は**どの catalog にも載らない**。
   これらは各ターゲットの `Localizable.xcstrings` に**手動キー**（`extractionState: manual`）として
-  持つ。漏れは `skills/intent-centric-architecture/scripts/check_intent_copy_localization.py`
+  持つ。漏れは `skills/app-intents-localization/scripts/check_intent_copy_localization.py`
   が検出する（ビルドは緑のまま、ソース言語でも正常に見えるので他では捕まらない）
 - 大文字小文字だけ違うキー（`todo` / `Todo`）が同じ catalog に同居するため、Intent コピーを
   持つ 4 ターゲットは `STRING_CATALOG_GENERATE_SYMBOLS = NO`（生成シンボルは未使用）
@@ -791,7 +791,7 @@ App Schema は「その Siri に語彙を渡す」仕組みなので、Siri が�
 > `The property 'transferRepresentation' must be static, have a compile-time constant value, and
 > cannot be computed or dynamic` で落ちる。**具象型名で宣言する**。
 >
-> どの事故も**ビルド緑で通る**。検出は `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`
+> どの事故も**ビルド緑で通る**。検出は `skills/app-intents-testing/scripts/inspect_appintents_metadata.py`
 > でメタデータを直接見る。要約表では重複に気づけないので、スキーマを主張する型が 1 つずつかも確認する。
 > 経緯: [docs/devlog/03-app-intents-core.md](docs/devlog/03-app-intents-core.md) /
 > [docs/devlog/2026-08-29-schema-vs-watch-target.md](docs/devlog/2026-08-29-schema-vs-watch-target.md)

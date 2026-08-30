@@ -554,7 +554,7 @@ public static var title: LocalizedStringResource {
 **メタデータと catalog の突き合わせをスクリプトでやる**:
 
 ```
-python3 skills/intent-centric-architecture/scripts/check_intent_copy_localization.py
+python3 skills/app-intents-localization/scripts/check_intent_copy_localization.py
 ```
 
 Intent コピーを持つ 4 ターゲット（アプリ / watch アプリ / LiveActivity / Widget）を一度に見る。
@@ -752,7 +752,7 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
   正常なので、**アプリバンドルの統合メタデータを直接見るまで分からない**:
 
   ```bash
-  python3 skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py --find IntentTodo
+  python3 skills/app-intents-testing/scripts/inspect_appintents_metadata.py --find IntentTodo
   ```
 
   「linked package にはあるのにアプリバンドルに無いスキーマ」を error として検出する。**nested な
@@ -1481,7 +1481,7 @@ UI without your help"* は **UI の操作が intent の実行になっていな�
 - 別プロセス（Widget / Control）起点が記録されるかは**未確定**（#98）
 - 「ストリームに載る」＝「学習に使われる」とまでは公式に書かれていない（ストリーム名と
   wwdc2026-343 `6:22–9:46` の一致からの推定）
-- 観測は `skills/intent-centric-architecture/scripts/inspect_donation_stream.py`。**非公開パスなので
+- 観測は `skills/app-intents-testing/scripts/inspect_donation_stream.py`。**非公開パスなので
   検証専用**で、出荷コードから依存しない。判定の落とし穴（mtime を信じない / `+0` を見たら待つ）は
   スクリプトの docstring にある
 

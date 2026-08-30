@@ -340,7 +340,7 @@ struct TodoAppShortcuts: AppShortcutsProvider {
 }
 ```
 
-検出方法（ビルド緑でも壊れるため）: `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`
+検出方法（ビルド緑でも壊れるため）: `skills/app-intents-testing/scripts/inspect_appintents_metadata.py`
 で `autoShortcuts` の件数を見る。詳細: `docs/insights/03-app-intents-core.md`
 
 ### フレーズの制限

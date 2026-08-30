@@ -219,9 +219,20 @@ cd Packages/UI && swift test
 
 このリポジトリは、本プロジェクトで蓄積した App Intent 中心設計の知見を **Claude Code plugin** として再利用できる形で同梱しています。
 
-- 配布物: [`skills/intent-centric-architecture/`](skills/intent-centric-architecture/) + [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
-- 内容: SKILL.md + 7 章の references + code-templates
-- インストール手順は [`skills/intent-centric-architecture/README.md`](skills/intent-centric-architecture/README.md) を参照
+- 配布物: [`skills/`](skills/) 配下の 8 skill + [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
+- **場面ごとに分割**されていて、「ウィジェットにボタンを付けたい」「押しても何も起きない」「訳が反映されない」のように**やりたいこと / 症状で発火**する
+- 各 skill の分担・スクリプト・インストール手順は [`skills/README.md`](skills/README.md) を参照
+
+| skill | 場面 |
+|---|---|
+| `app-intents-centric-design` | 入口。11 の非交渉ルール・導入レベル・症状の振り分け |
+| `app-intents-system-surfaces` | どのシステムサーフェスに出すか（ウィジェット / コントロール / Watch / カメラ / 集中モード） |
+| `app-intents-execution-and-processes` | 実行プロセス・`@Dependency` 登録・パッケージ配置・プラットフォーム可用性 |
+| `app-intents-ui-and-feedback` | `Button(intent:)`・ナビゲーション・dialog / snippet / 通知 |
+| `app-intents-parameters-and-prompts` | パラメータと `parameterSummary`・確認 / 選択・部分更新 |
+| `app-intents-entities-and-search` | Entity 設計・Spotlight・App Schema・大量データ |
+| `app-intents-testing` | AppIntentsTesting・メタデータ検査・緑になる嘘テスト |
+| `app-intents-localization` | Intent コピーと Siri フレーズのローカライズ |
 
 ## ドキュメント
 
