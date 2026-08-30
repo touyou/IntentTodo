@@ -17,15 +17,22 @@ struct MyApp: App {
     @State private var navigation: NavigationModel
 
     init() {
-        let container = try! SharedModelContainer.createContainer()
-        modelContainer = container
-        AppDependencyManager.shared.add(dependency: container)
+        do {
+            let container = try SharedModelContainer.createContainer()
+            modelContainer = container
+            AppDependencyManager.shared.add(dependency: container)
 
-        let todoService = TodoService.swiftDataBacked(container: container)
-        AppDependencyManager.shared.add(dependency: todoService)
+            let todoService = TodoService.swiftDataBacked(container: container)
+            AppDependencyManager.shared.add(dependency: todoService)
 
-        // Entities cannot use @Dependency — give them an ambient store instead.
-        MainActor.assumeIsolated { TodoEntityStore.register(container: container) }
+            // Entities cannot use @Dependency — give them an ambient store instead.
+            MainActor.assumeIsolated { TodoEntityStore.register(container: container) }
+        } catch {
+            // Log before dying: a bare `try!` turns a store or migration failure into a
+            // crash report that names neither.
+            logger.critical("ModelContainer init failed: \(String(reflecting: error))")
+            fatalError("Could not create ModelContainer: \(String(reflecting: error))")
+        }
 
         let navigation = NavigationModel()
         self.navigation = navigation

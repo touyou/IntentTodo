@@ -137,9 +137,16 @@ public struct TodoSummarySnippetIntent: SnippetIntent {
 
 ## Error notification with entity context
 
+Keep the entry point **synchronous**. It is called from the `catch` in a `perform()` that is about to rethrow, so there is nothing useful to await — and an `async` signature forces every call site to be `await`ed inside error handling, which is where a forgotten `await` is least likely to be noticed.
+
 ```swift
 public enum ControlNotificationHelper {
-    public static func sendErrorNotification(message: LocalizedStringResource, todoId: String) async {
+    /// Synchronous on purpose: called from a `catch` that is about to rethrow.
+    public static func sendErrorNotification(message: LocalizedStringResource, todoId: String) {
+        Task { await send(message: message, todoId: todoId) }
+    }
+
+    private static func send(message: LocalizedStringResource, todoId: String) async {
         let center = UNUserNotificationCenter.current()
 
         // `add` does not fail when notifications are denied — check first, and record

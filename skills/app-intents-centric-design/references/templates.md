@@ -18,17 +18,34 @@ public final class TodoService {
         TodoService(repository: SwiftDataTodoRepository(modelContext: container.mainContext))
     }
 
-    public func create(title: String, dueDate: Date?) throws -> TodoAppEntity {
+    // Every parameter the intent declares has to arrive here, or the action accepts a
+    // value and silently discards it.
+    public func create(title: String, dueDate: Date?, isFavorite: Bool) throws -> TodoAppEntity {
         defer { Self.dataDidChange() }
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw IntentError.validation("Title cannot be empty") }
-        let item = try repository.create(TodoItem(title: trimmed, dueDate: dueDate))
+        let item = try repository.create(
+            TodoItem(title: trimmed, dueDate: dueDate, isFavorite: isFavorite))
         return TodoAppEntity(from: item)
     }
 
-    public func setCompletion(todoId: String, isCompleted: Bool) throws {
+    /// Toggle: what the app UI and Live Activity buttons want.
+    public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
         defer { Self.dataDidChange() }
-        // absolute setter — required by ControlWidgetToggle, and idempotent
+        let item = try resolve(todoId: todoId)
+        item.isCompleted.toggle()
+        try repository.update(item)
+        return TodoToggleResult(entity: TodoAppEntity(from: item),
+                                isNowCompleted: item.isCompleted)
+    }
+
+    /// Absolute setter: what ControlWidgetToggle requires, and idempotent.
+    public func setCompletion(todoId: String, isCompleted: Bool) throws -> TodoAppEntity {
+        defer { Self.dataDidChange() }
+        let item = try resolve(todoId: todoId)
+        item.isCompleted = isCompleted
+        try repository.update(item)
+        return TodoAppEntity(from: item)
     }
 
     public func delete(todoId: String) throws {
@@ -37,13 +54,41 @@ public final class TodoService {
         catch RepositoryError.notFound { return }        // idempotent
     }
 
+    /// Undo needs a Sendable copy taken BEFORE the delete: a SwiftData @Model is
+    /// unreadable afterwards and is not Sendable, so it cannot be captured.
+    public func snapshot(todoId: String) throws -> TodoItemSnapshot {
+        TodoItemSnapshot(try resolve(todoId: todoId))
+    }
+
+    /// Restores under the SAME id, and is idempotent — the system may replay undo.
+    @discardableResult
+    public func restore(_ snapshot: TodoItemSnapshot) throws -> TodoAppEntity {
+        defer { Self.dataDidChange() }
+        let item = try repository.upsert(snapshot.makeTodoItem())
+        return TodoAppEntity(from: item)
+    }
+
+    private func resolve(todoId: String) throws -> TodoItem {
+        guard let item = try repository.find(id: todoId) else {
+            throw IntentError.notFound(todoId)
+        }
+        return item
+    }
+
     /// Everything that must happen after any mutation, in one place so no intent can forget.
     static func dataDidChange() {
         WidgetReloader.reloadAllWidgets()
         AppShortcutParameterUpdater.notifyEntitiesChanged()   // parameterised phrases
     }
 }
+
+public struct TodoToggleResult {
+    public let entity: TodoAppEntity
+    public let isNowCompleted: Bool
+}
 ```
+
+`TodoItemSnapshot` is a plain `Sendable` struct holding the row's fields plus its original `id`, with a `makeTodoItem()` that rebuilds the model. Keeping it separate from the `@Model` is the whole point.
 
 ## Surface reload helper
 
@@ -93,14 +138,17 @@ public struct AddTodoIntent: AppIntent {
     @Dependency var todoService: TodoService
 
     public init() {}
-    public init(title: String, dueDate: Date? = nil) {
+    public init(title: String, dueDate: Date? = nil, isFavorite: Bool = false) {
         self.title = title
         self.dueDate = dueDate
+        self.isFavorite = isFavorite
     }
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> & ProvidesDialog {
-        let entity = try todoService.create(title: title, dueDate: dueDate)
+        // Pass every declared parameter through. A parameter the summary exposes but
+        // perform() drops is the same bug as one the summary hides, seen from the other end.
+        let entity = try todoService.create(title: title, dueDate: dueDate, isFavorite: isFavorite)
         return .result(value: entity, dialog: "Added \(title).")
     }
 }

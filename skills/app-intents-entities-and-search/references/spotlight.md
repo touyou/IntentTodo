@@ -24,10 +24,19 @@ extension TodoAppEntity: IndexedEntity {
 
 Maps a value onto a `PartialKeyPath<CSSearchableItemAttributeSet>` declaratively, feeding meaning-based search and Q&A [Apple: wwdc2026-240].
 
+`indexingKey:` is iOS/macOS only, so in a shared package the declaration itself has to branch — an unguarded one fails to compile for watchOS and visionOS:
+
 ```swift
+#if os(iOS) || os(macOS)
 @Property(title: "Title", indexingKey: \.title) public var title: String
 @Property(title: "Notes", indexingKey: \.contentDescription) public var notes: String?
+#else
+@Property(title: "Title") public var title: String
+@Property(title: "Notes") public var notes: String?
+#endif
 ```
+
+The fallback keeps the property visible to Shortcuts and Siri; only the semantic Spotlight mapping is missing, which is correct — those platforms have no `CoreSpotlight` semantic index to map into.
 
 ## ⚠️ Never write the same key from both
 

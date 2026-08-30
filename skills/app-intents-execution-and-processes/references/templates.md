@@ -15,17 +15,27 @@ struct MyApp: App {
     @State private var navigationModel: NavigationModel
 
     init() {
-        let container = try! SharedModelContainer.createContainer()
-        modelContainer = container
-        AppDependencyManager.shared.add(dependency: container)
+        do {
+            let container = try SharedModelContainer.createContainer(
+                migrationPlan: TodoMigrationPlan.self)   // the APP owns migration; see packaging.md
+            modelContainer = container
+            AppDependencyManager.shared.add(dependency: container)
 
-        // Entities can't use @Dependency — ambient store, registered per process.
-        MainActor.assumeIsolated { TodoEntityStore.register(container: container) }
+            // Entities can't use @Dependency — ambient store, registered per process.
+            MainActor.assumeIsolated { TodoEntityStore.register(container: container) }
 
-        let todoService = TodoService.swiftDataBacked(container: container)
-        AppDependencyManager.shared.add(dependency: todoService)
+            let todoService = TodoService.swiftDataBacked(container: container)
+            AppDependencyManager.shared.add(dependency: todoService)
 
-        Task(priority: .utility) { await todoService.indexAllForSpotlight() }
+            Task(priority: .utility) { await todoService.indexAllForSpotlight() }
+        } catch {
+            // There is no usable app without a store, so this does end the process — but
+            // log the real error first. A bare `try!` gives you a crash report that says
+            // only "unexpectedly found nil", which is the least useful possible signal
+            // for a store or migration failure.
+            logger.critical("ModelContainer init failed: \(String(reflecting: error))")
+            fatalError("Could not create ModelContainer: \(String(reflecting: error))")
+        }
 
         let navigation = NavigationModel()
         self.navigationModel = navigation
@@ -132,12 +142,28 @@ public enum SharedModelContainer {
     public static func createContainer(
         migrationPlan: (any SchemaMigrationPlan.Type)? = nil
     ) throws -> ModelContainer {
+        // Do NOT fall back to a process-local store here. A container that "works" on a
+        // different file is the worst outcome available: the widget renders and mutates
+        // data the app never sees, and nothing reports a problem.
         guard let url = FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) else {
-            return try ModelContainer(for: schema)
+            throw ConfigurationError.appGroupUnavailable(appGroupIdentifier)
         }
         let config = ModelConfiguration(schema: schema, url: url.appending(path: "MyApp.store"))
         return try ModelContainer(for: schema, migrationPlan: migrationPlan, configurations: [config])
     }
+
+    /// Tests and previews ask for an ephemeral store explicitly, rather than getting one
+    /// by accident from a missing entitlement.
+    public static func createInMemoryContainer() throws -> ModelContainer {
+        try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)])
+    }
 }
 ```
+
+Two caveats on the `nil` check:
+
+- **`nil` is not a reliable "App Group is unavailable" signal.** On iOS a missing entitlement returns `nil`, but **on macOS a process without the entitlement still gets a path back** (`~/Library/Group Containers/<id>`) — it just cannot write there. So a non-`nil` URL does not prove the capability is configured; the failure surfaces later, at open time. Let that error propagate rather than catching it into a local store.
+- Add the App Group capability to **every** target by hand in Xcode. watchOS is a different device and App Groups do not reach it at all — use CloudKit or Watch Connectivity.
