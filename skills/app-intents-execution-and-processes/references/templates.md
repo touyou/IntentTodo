@@ -16,8 +16,11 @@ struct MyApp: App {
 
     init() {
         do {
+            // `createContainer(migrationPlan:)` is the App Group container template at the
+            // bottom of this file. Only the APP passes a plan — an extension that also
+            // carries one can start migrating the shared store concurrently (see packaging.md).
             let container = try SharedModelContainer.createContainer(
-                migrationPlan: TodoMigrationPlan.self)   // the APP owns migration; see packaging.md
+                migrationPlan: TodoMigrationPlan.self)
             modelContainer = container
             AppDependencyManager.shared.add(dependency: container)
 
