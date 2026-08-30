@@ -1,23 +1,18 @@
 # UI層とIntent統合
 
-## Button(intent:) の使用
-
-macOS 14 / iOS 17 以降、`Button(intent:)` は両プラットフォームで使用可能。
+## Button(intent:) が唯一の実行経路
 
 ```swift
 import AppIntents  // ← Button(intent:) を使用するために必須
 
-// 推奨: Button(intent:) を直接使用
 Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
-    Text("Complete")
+    Label("Complete", systemImage: "checkmark.circle")
 }
 
-// カスタムラベル付き
-Button(intent: DeleteTodoIntent(todo: entity)) {
+// 破壊的操作。role: を先に書く（下記注記）。呼ぶのは確認なし版の Intent
+Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
     Label("Delete", systemImage: "trash")
 }
-.tint(.red)
-.buttonStyle(.plain)
 ```
 
 **メリット**:
@@ -30,12 +25,12 @@ Button(intent: DeleteTodoIntent(todo: entity)) {
 | ケース | 方式 | 備考 |
 |--------|------|------|
 | チェックボックス、お気に入り | `Button(intent:)` | パラメータが既知 |
-| 削除ボタン | `Button(role:intent:)` | **`role:` を先に書く**（下記注記参照） |
+| 削除ボタン | `Button(role:intent:)` + 確認なし版 Intent | **`role:` を先に書く**（下記注記）。`requestConfirmation` 付きの Intent は UI から呼べない（下節） |
 | 作成フォーム | `Button(intent:)` + Computed Property | 動的にIntent生成、dismissは`onChange`で |
 
 > **引数順の罠**: `Button(role:intent:)` は `role:` を**先に**書く。`Button(intent: X, role: .destructive)` の順だと別 init に解決されて `"extraneous argument label 'intent:'"` エラーになる（visionOS ビルドで実際に発生、詳細は `07-platform-specific.md` の「Button(intent:role:) の引数順」）。
 
-### 削除確認の現状（2026-08-12〜）
+### 確認を伴う削除は SwiftUI 側で確認して、確認なし版の Intent を呼ぶ
 
 `requestConfirmation` を含む Intent はアプリ内 `Button(intent:)` から呼べない（提示する面が無く `LNPerformActionErrorCodeUnsupportedValueType` で失敗し、**エラー表示も出ずに何も起きない**）。そのため確認は **SwiftUI 側で取り、実行は確認なし版の Intent** に渡す形へ移行済み。
 
@@ -71,45 +66,23 @@ watchOS でも同じ規則が適用される（`role:` を外した `Button(inte
 
 ---
 
-## onAppIntentExecution（iOS 26+ / Intent → UI 連携）
+## onAppIntentExecution は使わない（`@Dependency` + `perform()` に寄せる）
 
-iOS 26 で追加された `onAppIntentExecution(_:perform:)` View modifier により、特定の AppIntent が実行された際にシーン側で直接 UI を更新できる。
+`onAppIntentExecution(_:perform:)` は `TargetContentProvidingIntent` な Intent の実行をシーン側で
+受ける View modifier（iOS 26+）。**本プロジェクトは採用していない。**
 
-### 仕組み
-
-`TargetContentProvidingIntent` を実装した Intent が実行されると、`onAppIntentExecution` を設定した View のクロージャが呼ばれる。
-
-```swift
-// TargetContentProvidingIntent は AppIntent を継承しているため、AppIntent の明示は不要
-struct ShowTodoDetailIntent: TargetContentProvidingIntent {
-    @Parameter(title: "Todo")
-    var todo: TodoAppEntity
-
-    // perform() は省略可能。ナビゲーションは onAppIntentExecution 側で完結させることが多い
-    func perform() async throws -> some IntentResult {
-        return .result()
-    }
-}
-
-// View側
-NavigationStack {
-    TodoListView()
-}
-.onAppIntentExecution(ShowTodoDetailIntent.self) { intent in
-    navigationPath.append(intent.todo)
-}
-```
-
-### 「知識の方向」—— どちらのパターンを選ぶか
-
-| パターン | 知識の向き | 特徴 |
+| パターン | 知識の向き | 判断 |
 |---------|-----------|------|
-| `@Dependency` + `perform()` | Intent がアプリ状態を知っている | Intent 側にナビゲーションロジックが集約 |
-| `onAppIntentExecution` | App（View）が Intent を知っている | ナビゲーションロジックが View 側に集約、宣言的 |
+| `@Dependency` + `perform()` | Intent がアプリ状態を知っている | ✅ 採用。cold start でも確実に目的の画面へ行ける / macOS・watchOS でも同じ形が書ける |
+| `onAppIntentExecution` | App（View）が Intent を知っている | ⏸ 宣言的で View 側に集約できるが、**cold start で完走しないことがある**（実機で経験）。macOS / watchOS では型自体が使えない |
 
-どちらも正しい。プロジェクトの規模や好みで選択する。macOS では `onAppIntentExecution` が使えないため `@Dependency` パターンが必須。
+`perform()` が実装されていると**アクションクロージャの後に** `perform()` が呼ばれるため
+（[公式](https://developer.apple.com/documentation/SwiftUI/View/onAppIntentExecution(_:perform:))）、
+仮に併用するならナビゲーションはどちらか一方に寄せる必要がある。これも「1 か所に集約」を崩す。
 
-macOS で使えない理由は**フレームワークの有無ではなく API の availability**（Xcode 27 beta 5 / macOS 27 SDK で実測）:
+### macOS / watchOS で使えない理由は availability（`canImport` では判定できない）
+
+フレームワークの有無ではなく API の availability（Xcode 27 beta 5 / macOS 27 SDK で実測）:
 
 - `_AppIntents_SwiftUI.framework` は **ネイティブ macOS SDK にも存在する**。`My Mac` destination で `#if canImport(_AppIntents_SwiftUI)` は `true` になる。
 - ただし macOS スライスの `.swiftinterface` に `onAppIntentExecution` の宣言は**無い**（iOS スライスにはある）。
@@ -117,56 +90,22 @@ macOS で使えない理由は**フレームワークの有無ではなく API �
 
 つまり `canImport` を根拠にしてはいけないケースで、正しい判定軸は `os(...)`。準拠のガードも `#if os(iOS) || os(visionOS)`（macOS と watchOS を外す）が正となる。
 
-経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)
-
-### 実行順序
-
-[onAppIntentExecution 公式ドキュメント](https://developer.apple.com/documentation/SwiftUI/View/onAppIntentExecution(_:perform:)) の挙動記述によると:
-> "If the app intent implements a perform() method, it will be called after the action closure."
-
-つまり `onAppIntentExecution` のクロージャが**先**に実行され、その後に Intent の `perform()` が呼ばれる。両方でナビゲーションを行うと二重実行になるため、どちらか一方に統一することを推奨。
-
-### ⚠️ cold start では `onAppIntentExecution` に頼らない
-
-アプリが kill されている状態（cold start）での `onAppIntentExecution` 経由ナビゲーションは、
-実機で安定して完走しないケースがある（Workshop PDF の "In iOS 26.4 and above this works as before"
-という記述に反する挙動を実体験している）。
-
-**本プロジェクトは `.onAppIntentExecution` を使っていない**。ナビゲーションは
-`@Dependency var navigationModel` + `perform()`（+ 後述の `UISceneAppIntent` /
-`AppIntentSceneDelegate`）に寄せている。
-
-経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)
-
-### 関連API
-
-- **`AppIntentSceneDelegate`**: シーンレベルで Intent をハンドリングするプロトコル
-  （`scene(_:willPerformAppIntent:)`）。本アプリは `SceneDelegate` で採用済み
-- **`UISceneAppIntent`**: `TargetContentProvidingIntent` を継承し、特定のシーンをターゲットにする Intent。
-  `LaunchAppIntent` / `OpenTodoIntent` が準拠（下記「UISceneAppIntent は Swift Package 内でも定義できる」）
-
-### TargetContentProvidingIntent
-
-`onAppIntentExecution` を使用するためには、対象Intentが `TargetContentProvidingIntent` に準拠している必要がある。
-
-**重要**: `TargetContentProvidingIntent` は **macOS / watchOS では利用不可**（SDK 側で `@available(macOS, unavailable)` / `@available(watchOS, unavailable)`）。Swift Packageで定義する場合は条件付きextensionで準拠する:
+`TargetContentProvidingIntent` への準拠自体も同じ条件で切る（`LaunchAppIntent` が該当）:
 
 ```swift
-// Intent本体は全プラットフォーム共通（AppIntent として定義）
-public struct OpenAddTodoIntent: AppIntent { ... }
-
-// TargetContentProvidingIntent は macOS / watchOS では unavailable なので除外
-// ※ TargetContentProvidingIntent は AppIntent を継承しているため、
-//    単独で宣言する場合は AppIntent を並べる必要はないが、
-//    後から extension で追加する場合はこのパターンが必要
 #if os(iOS) || os(visionOS)
-extension OpenAddTodoIntent: TargetContentProvidingIntent {}
-extension OpenTodoListIntent: TargetContentProvidingIntent {}
 extension LaunchAppIntent: TargetContentProvidingIntent {}
 #endif
 ```
 
-同様に、View側の `onAppIntentExecution` も同じ条件で囲む必要がある。
+経緯: [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)
+
+### 代わりに使っている関連 API
+
+- **`AppIntentSceneDelegate`**: シーンレベルで Intent を受けるプロトコル（`scene(_:willPerformAppIntent:)`）。
+  `SceneDelegate` で採用済み
+- **`UISceneAppIntent`**: `LaunchAppIntent` / `OpenTodoIntent` が準拠（下記「UISceneAppIntent は
+  Swift Package 内でも定義できる」）。狙いはマルチウィンドウではなく **cold start**
 
 ---
 
@@ -247,12 +186,9 @@ private func applyPendingFilter(_ filterType: TodoFilterType?) {
 static let supportedModes: IntentModes = [.foreground(.immediate)]
 ```
 
-### `onAppIntentExecution` との使い分け
-
-| 方式 | 特徴 |
-|------|------|
-| `onAppIntentExecution` | 宣言的・View modifier に集約。`TargetContentProvidingIntent` 準拠 Intent が対象。初期 iOS 26 では cold start 時に失敗する可能性 |
-| `AppDependencyManager` + `@Dependency` + `perform()` | Intent 側に集約。cold start でも安定。実行プロセスごとに依存登録が必要（`App.init()` だけでなく、Widget 経由の `.background` Intent を使うなら `WidgetBundle.init()` にも登録が必要）|
+> この方式のコストは**実行プロセスごとに依存登録が必要**なこと（`App.init()` だけでなく、
+> Widget 経由で読み取り系 Intent を走らせるなら `WidgetBundle.init()` にも）。
+> 登録漏れは無音の失敗になる: [03-app-intents-core.md](03-app-intents-core.md#実行プロセスごとに登録が必要)
 
 ---
 
@@ -306,7 +242,7 @@ SwiftUI 側の代替は `contentIdentifier` + `handlesExternalEvents` で「ど�
 
 ## View は struct 抽出、computed-property View は避ける
 
-CLAUDE.md で規約化しているが、実装では崩れやすい。本プロジェクトでは `TodoListView` / `TodoDetailView` / `VisionOSTodoListView` / `VisionOSTodoDetailView` の各セクションを以下のような粒度で `private struct: View` に分割している。computed-property や method-returning `some View` は差分追跡単位にならず、親 `body` 全体が再評価されるため、メンテナンス時の体感パフォーマンスが落ちやすい。
+[CODING_GUIDELINES.md](../CODING_GUIDELINES.md#swiftui-のベストプラクティス) で規約化しているが、実装では崩れやすい。本プロジェクトでは `TodoListView` / `TodoDetailView` / `VisionOSTodoListView` / `VisionOSTodoDetailView` の各セクションを以下のような粒度で `private struct: View` に分割している。computed-property や method-returning `some View` は差分追跡単位にならず、親 `body` 全体が再評価されるため、メンテナンス時の体感パフォーマンスが落ちやすい。
 
 ```swift
 // ✅ 実例: TodoDetailView の分割
@@ -630,8 +566,8 @@ app.launchArguments = [
 ```
 
 この壊れ方は**半分が無言**だった。条件付き assert で書かれていた 2 件は失敗せず、
-中身を一度も実行しないまま緑になった（AGENTS.md の「条件付き assert を書かない」が
-効いてくるのはこういうとき）。ja UI そのものを検証したくなったら、言語を固定した別の
+中身を一度も実行しないまま緑になった（[TESTING.md](../TESTING.md#緑になる嘘テストを書かない) の
+「条件付き assert を書かない」が効いてくるのはこういうとき）。ja UI そのものを検証したくなったら、言語を固定した別の
 テストクラスを足す形にする。
 
 ### 検査は機械でやる
@@ -688,59 +624,11 @@ Python から ICU 照合は再現できないので、並べ替えが必要な�
 
 ---
 
-## コード簡素化のパターン
+## WWDC 2026 / SDK 27 の SwiftUI 新 API
 
-### Dictionary初期化
-
-```swift
-// Before
-for item in items { dict[item.id] = item }
-
-// After
-dict = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
-```
-
-### 重複するswitch文の統合
-
-```swift
-// Before: 3つのプロパティで同じswitch文を繰り返し
-var emptyViewTitle: String { switch filter { ... } }
-var emptyViewIcon: String { switch filter { ... } }
-var emptyViewDescription: String { switch filter { ... } }
-
-// After: タプルを返す単一のプロパティ
-var emptyViewContent: (title: String, icon: String, description: String) {
-    switch filter {
-    case .all: return ("No Todos", "tray", "Add your first todo")
-    // ...
-    }
-}
-```
-
-### ネストした三項演算子の排除
-
-```swift
-// Before
-image: isCompleted ? .init(...) : (isFavorite ? .init(...) : .init(...))
-
-// After
-private var displayImage: DisplayRepresentation.Image {
-    if isCompleted {
-        return .init(systemName: "checkmark.circle.fill")
-    } else if isFavorite {
-        return .init(systemName: "star.fill")
-    } else {
-        return .init(systemName: "circle")
-    }
-}
-```
-
-## WWDC 2026 / SDK 27 SwiftUI 新 API 採用（`xcode27` ブランチ）
-
-> deployment target は 26.0 のまま。27+ 限定 API は **`#available` ガード**で導入し、
-> 26 では従来動作にフォールバックする（この「新 OS だけ強化・旧 OS は据え置き」の
-> ガード方式自体の検証も兼ねる）。ビルドは複数 destination で green（B 深度）、実機
-> ジェスチャ確認は R 深度で手動。
+> **現在の deployment target は全ターゲット 27.0**（`.reminders` 系 assistant schema が 27+ 限定のため）。
+> 下記のコードに残っている `#available(iOS 27, …)` ガードは 26 世代ベースラインだった時期のもので、
+> 今は常に真になる。**新しく書くときは付けない**（26 へ戻す判断をしたときに必要になる形として残してある）。
 
 ### ドラッグ並べ替え（`reorderable()` / `reorderContainer(for:itemID:)`）
 

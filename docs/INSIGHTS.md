@@ -8,7 +8,7 @@
 - **App Intents API ごとの採用状況** → [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md)
 
 > insights には**現在のルールだけ**を書く。経緯は devlog、残タスクは issue
-> （[AGENTS.md の「ドキュメント運用」](../AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)）。
+> （[AGENTS.md の「ドキュメント運用」](../AGENTS.md#ドキュメント運用)）。
 
 ---
 
@@ -82,13 +82,11 @@
 
 ---
 
-## 整理で削除した内容
+## ここに書かないこと
 
-以下の内容は CLAUDE.md に十分記載されているため、個別ファイルには含めていない:
-
-- **SwiftLint設定**: CLAUDE.md「コーディング規約」セクション参照
-- **TDD（テスト駆動開発）**: CLAUDE.md「テスト方針」セクション参照
-
-## 更新履歴
-
-このドキュメント・insights/ 配下の再編の経緯は [docs/devlog/insights-changelog.md](devlog/insights-changelog.md) を参照。
+- **Swift / SwiftUI の規約、ローカライズの書き方、コメント方針** → [CODING_GUIDELINES.md](CODING_GUIDELINES.md)
+- **テスト方針（TDD / 3 層 / 嘘テスト）** → [TESTING.md](TESTING.md)
+- **設計思想と実装時のチェックリスト** → [AGENTS.md](AGENTS.md)
+- **API ごとの採用状況** → [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md)
+- **経緯・失敗した仮説** → [devlog/](devlog/README.md)（このドキュメント自体の再編履歴も
+  [devlog/insights-changelog.md](devlog/insights-changelog.md) にある）

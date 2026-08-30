@@ -216,14 +216,12 @@ func userNotificationCenter(
 
 旧 `IntentAppState` (UserDefaults + NotificationCenter) は cross-process に届かない `NotificationCenter.post` を含んでおり、`NavigationModel` と機能重複もしていたため撤去。同じ意図は `NavigationModel` への直接注入で十分達成できる。
 
-### Widget / Extension 側から Intent 経由でアプリを操作する場合
+### Widget / Extension から Intent を呼ぶとき
 
-Widget Extension の `Button(intent:)` や `ControlWidgetButton(action:)` から SPM 配置の Intent を呼んだ場合、どこで実行されるかはモード次第で挙動が異なる可能性がある。現状の本プロジェクトでは：
-
-- Shortcuts から SPM の Intent 呼び出し → 正常動作（`AppDependencyManager` 経由で main プロセスの依存にアクセス可能）
-- Widget の `Button(intent:)` 経由 → Apple 公式は「アプリを開くだけなら `Link(destination:)` を使え」と明記。データ操作は動作検証が必要
-
-アプリ起動が目的の場合は `Link(destination:)` を優先する。
+- **書き込み系は `allowedExecutionTargets = [.main]`** でアプリ本体に固定する（Extension が同じストアの
+  書き手にならないように）。読み取り系は固定せず、Extension 側にも依存を登録しておく。
+  実行プロセスの決まり方: [03-app-intents-core.md](03-app-intents-core.md#実行プロセスごとに登録が必要)
+- **アプリを開くだけが目的なら `Link(destination:)` / `widgetURL(_:)`**（Intent ではない）。
 
 > "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`"
 > — [Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities)
@@ -279,15 +277,16 @@ public enum WidgetReloader {
 > トグルと同時に `1` へ更新されるようになった。アプリ本体 / Siri からデータを変えたときも同様に
 > コントロールだけ取り残されるので、`WidgetReloader` 側で両方呼ぶのが正しい。
 
-### 全データ変更Intentで呼び出し
+### 呼び出しは `TodoService.dataDidChange()` の 1 か所だけ
 
 ```swift
-try repository.create(todoItem)
-WidgetReloader.reloadAllWidgets()
-
-todoItem.isCompleted.toggle()
-try repository.update(todoItem)
-WidgetReloader.reloadAllWidgets()
+// TodoService の変更メソッド。Intent 側には書かない
+public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
+    defer { Self.dataDidChange() }   // → WidgetReloader + AppShortcut パラメータ更新
+    // ...
+}
 ```
+
+集約の理由と `dataDidChange()` の中身: [03-app-intents-core.md](03-app-intents-core.md#データ更新の後処理は-todoservicedatadidchange-に集約する)
 
 `WidgetReloader` は `TodoAppIntents` パッケージ内にあり、`IntentTodoLiveActivity` / `IntentTodoWidget` の両 Extension ターゲットは（Intent 型を使うために）既に `import TodoAppIntents` している。Extension から import できるかどうかはプラットフォーム制約ではなく、Extension ターゲットの SPM 依存グラフに `WidgetReloader` の所在パッケージが含まれているかどうかの問題であり、本プロジェクトでは既に含まれている。全 `WidgetReloader.reloadAllWidgets()` 呼び出しは `TodoService`（`TodoAppIntents` パッケージ内）に集約されており、Extension ターゲットのコードから直接 `WidgetCenter.shared.reloadAllTimelines()` を呼んでいる箇所は無い。依存が無いケースに遭遇したら、`WidgetReloader` の所在パッケージを Extension ターゲットの依存に追加すれば import できる。経緯は [docs/devlog/05-extensions-and-data-sharing.md](../devlog/05-extensions-and-data-sharing.md) 参照。

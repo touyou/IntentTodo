@@ -44,7 +44,7 @@
   - Todo アプリ 1 本。App Intents 中心設計の実験台として、iOS / iPadOS / macOS（Catalyst ではなくネイティブ）/ watchOS / visionOS + ウィジェット / コントロールセンター / ライブアクティビティ / Siri / Shortcuts / Spotlight / Visual Intelligence
   - 数字: **Intent 定義 24 ファイル**（メタデータ上の intent 型数 23 — Visual Intelligence 系はプラットフォーム条件付き）、**AppEntity 4 種**（+ `@UnionValue` 1 種）、**Query 4 種**、**App Shortcut 8 件 / 上限 10**
   - パッケージは 7 つ。**`TodoAppIntents` がコア**で、そこにビジネスロジックが全部いる
-- **出典**: [../../CLAUDE.md](../../CLAUDE.md) パッケージ構成 / リポジトリ実体
+- **出典**: [../../AGENTS.md](../../AGENTS.md) パッケージ構成 / リポジトリ実体
 
 ---
 
@@ -56,7 +56,7 @@
   - **UI からのアクションは必ず `Button(intent:)`**。ViewModel はフィルタ・ソート・検索テキストといった**表示状態だけ**持つ
   - Extension ターゲット（Widget / LiveActivity / Watch App）は **`@main` と宣言だけ**。View も状態管理も SPM に置く（プレビューとテストのため）
   - この徹底が効いた部分と、代償になった部分の両方を今日話す
-- **出典**: [../../CLAUDE.md](../../CLAUDE.md) / [../insights/01-swift-package-design.md](../insights/01-swift-package-design.md)
+- **出典**: [../../AGENTS.md](../../AGENTS.md) / [../insights/01-swift-package-design.md](../insights/01-swift-package-design.md)
 
 ---
 
@@ -390,7 +390,7 @@
     （Group Lab #8011 `36:14`）。理由も具体的: **AirPods 使用時は画面が無いのでもう少し饒舌に、
     iPad で snippet が綺麗に出るならテキストは短く**。→ **本プロジェクトの使い分けルールがこの助言と一致している**
     ので、「Apple があまり使われていないと言っている API を、必要に迫られて使っていた」という形で出せる
-- **出典**: [../../CLAUDE.md](../../CLAUDE.md)「Dialog vs 通知の使い分け」/ [../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md)
+- **出典**: [../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md#呼出元によって出るものが違うdialog--snippet--通知)「呼出元によって出るものが違う」
 
 ---
 
@@ -596,7 +596,7 @@
       → **「柱と呼ばれている機能なのに、付け先を間違えると黙って no-op で、見た目は 1 ピクセルも変わらない」**
         という 1 行が作れる。⚠️ 3 本柱の残り 2 つはこの場で明示されていないので、**「3 本柱のひとつ」までにする**
   - **⚠️ 条件付き assert を書かない**。`if element.waitForExistence(...) { XCTAssert… }` は要素が見つからないと中身が一度も実行されず**緑になる**。実際にこの形で「削除がまったく動いていない」のを長期間見逃した
-- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「検証の梯子」/ [../devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md) / [../../CLAUDE.md](../../CLAUDE.md) テスト方針
+- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「検証の梯子」/ [../devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md) / [../TESTING.md](../TESTING.md)
 
 ---
 
@@ -710,7 +710,7 @@
       - **カードとして使えるオチ**: 「T29 の逆パターンです。**"設計変更が要ると思っていたら、要らなかった"**。見積もりのほうが古かった」
       - 数字（4 本）とトグルの undo セマンティクス（**逆トグルではなく元の値を `setCompletion` で絶対値指定**）は
         2026-08-28 時点のコードで確定済み
-- **出典**: [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md) / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md) / [../../CLAUDE.md](../../CLAUDE.md)
+- **出典**: [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md) / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md) / [../../AGENTS.md](../../AGENTS.md)
 
 ---
 
@@ -718,7 +718,7 @@
 
 チェックリストは **[#67](https://github.com/touyou/IntentTodo/issues/67)** に移した（数字の再カウント / 一次ソースの裏取り /
 スクショ / 言い方の判断）。ドキュメントには `- [ ]` を残さない運用のため
-（[AGENTS.md の「ドキュメント運用」](../../AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)）。
+（[AGENTS.md の「ドキュメント運用」](../../AGENTS.md#ドキュメント運用)）。
 
 この骨子で使う数字の **2026-08-28 時点の実測**:
 

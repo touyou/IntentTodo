@@ -261,7 +261,7 @@ Packages/
 | 観点 | IntentTodo | App Intent Driven Dev | Action-Centered Design | MVI |
 |------|------------|----------------------|------------------------|-----|
 | **主目的** | ロジック一元化 | コード再利用・システム統合 | UXデザイン・マルチプラットフォーム | 状態管理 |
-| **App Intentsの役割** | ビジネスロジック層 | 再利用可能なアクション定義 | アクションの原子単位 | 関係なし |
+| **App Intentsの役割** | ユースケースの公開契約（宣言）。実装は `TodoService` | 再利用可能なアクション定義 | アクションの原子単位 | 関係なし |
 | **UseCase層** | 層としては解体（宣言=Intent / 実装=Service） | 言及なし | 言及なし | 別途必要 |
 | **Button(intent:)** | 必須 | 推奨 | 言及なし | 関係なし |
 | **対象** | アーキテクチャ全体 | Intent定義のベストプラクティス | 設計プロセス全体 | 状態管理のみ |
@@ -320,8 +320,9 @@ Packages/
    - ビジネスロジックはApp Intentsに集約
 
 4. **明確なパッケージ構成**
-   - Domain / Repository / AppIntents / UIの4層構造
-   - 各層の責務が明確
+   - レイヤー（Domain / Repository / TodoAppIntents）+ **表示先別の葉ノード**（UI / WidgetUI / WatchUI /
+     LiveActivity）という 2 軸で 7 パッケージ。葉ノードは互いに依存しない
+   - 各層の責務が明確（詳細: [insights/01-swift-package-design.md](insights/01-swift-package-design.md)）
 
 #### 統合された独自性
 

@@ -9,26 +9,26 @@ App Intentsは、アプリでできる「アクション」を定義する。
 - **DeleteTodoIntent**: Todoを削除する
 - **ToggleFavoriteIntent**: お気に入り状態を切り替える
 
-### ビジネスロジックはIntent内に
+### ビジネスロジックは `TodoService`、Intent は接続点
+
+Intent は「ユースケースの宣言」（名前・パラメータ・戻り値）と、`TodoService` を呼ぶ接続点だけを持つ。
+SwiftData を直接触らないので、同じ操作を UI / Siri / ウィジェットのどこから呼んでも手続きが 1 本になる。
 
 ```swift
 public struct AddTodoIntent: AppIntent {
+    @Dependency var todoService: TodoService
+
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<TodoAppEntity> {
-        // バリデーション（ビジネスロジック）
-        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedTitle.isEmpty else {
-            throw IntentError.validation("Todo title cannot be empty")
-        }
-
-        // 作成と保存
-        let todoItem = TodoItem(title: trimmedTitle, ...)
-        try repository.create(todoItem)
-
-        return .result(value: TodoAppEntity(from: todoItem))
+        let entity = try todoService.create(title: title, dueDate: dueDate, ...)
+        return .result(value: entity)
     }
 }
 ```
+
+`TodoService`（`@MainActor final class`）が持つのは Repository 呼び出し・不変条件・副作用で、
+変更メソッドの `defer` が後処理をまとめて行う（後述「データ更新の後処理」）。
+バリデーションのように「そのユースケース固有で、他から呼ばれない」判断は Intent 側に置いてよい。
 
 ---
 
@@ -36,11 +36,13 @@ public struct AddTodoIntent: AppIntent {
 
 ### 基本
 
-`ModelContainer` は `Sendable` を満たすため、`@Dependency` でそのまま共有できる。`App.init()` で `AppDependencyManager.shared.add(dependency:)` に**同期登録**し、Intent 側で `@Dependency` で取得、`perform()` 内で `modelContainer.mainContext` を使って Repository を生成する（毎回新しい `ModelContext(modelContainer)` を作ると保存されていない状態が共有されないので注意）。
+`TodoService` / `ModelContainer` / `@Observable @MainActor` クラス（`NavigationModel` 等）はいずれも
+`Sendable` 要件を満たすので `@Dependency` で共有できる。`App.init()` で
+`AppDependencyManager.shared.add(dependency:)` に**同期登録**する。
 
-`@Observable @MainActor` クラス（`NavigationModel` 等）も同様に共有可能。
-
-### アプリ側の同期登録
+**Intent が受け取るのは `TodoService`**（Repository を内包している）。`ModelContainer` を直接受けるのは
+**Query 側**（`TodoEntityQuery` など、`mainContext` から Repository を組む）だけにする。
+毎回新しい `ModelContext(modelContainer)` を作ると保存されていない状態が共有されないので注意。
 
 ```swift
 @main
@@ -51,24 +53,22 @@ struct IntentTodoApp: App {
         let container = try! SharedModelContainer.createContainer()
         self.modelContainer = container
         AppDependencyManager.shared.add(dependency: container)
+        AppDependencyManager.shared.add(dependency: TodoService.swiftDataBacked(container: container))
     }
 }
-```
 
-### Intent 側
-
-```swift
+// Intent 側は Service を受け取る
 public struct AddTodoIntent: AppIntent {
-    @Dependency
-    var modelContainer: ModelContainer
+    @Dependency var todoService: TodoService
+}
 
-    @MainActor
-    public func perform() async throws -> some IntentResult {
-        let repository = SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
-        // ...
-    }
+// Query 側だけコンテナを受け取る
+public struct TodoEntityQuery: EntityQuery {
+    @Dependency var modelContainer: ModelContainer
 }
 ```
+
+現在の内訳は `todoService` 18 / `navigationModel` 7 / `modelContainer` 4（Query と snippet Intent）。
 
 ### 実行プロセスごとに登録が必要
 
@@ -116,16 +116,17 @@ Siri/Shortcutsでエンティティを参照するためのプロトコル。
 ```swift
 public struct TodoAppEntity: AppEntity {
     public var id: String
-    public var title: String
-    public var isCompleted: Bool
 
-    public static var typeDisplayRepresentation: TypeDisplayRepresentation {
-        TypeDisplayRepresentation(name: "Todo")
-    }
+    // システムに見せる属性は @Property。素の var は Shortcuts / Siri / Spotlight から見えない
+    @Property(title: "Title") public var title: String
+    @Property(title: "Completed") public var isCompleted: Bool
+
+    public static let typeDisplayRepresentation: TypeDisplayRepresentation = "Todo"
 
     public var displayRepresentation: DisplayRepresentation {
+        // 実行時の値は "\(value)" の補間形式（後述「実行時の文字列は…」）
         DisplayRepresentation(
-            title: LocalizedStringResource(stringLiteral: title),
+            title: "\(title)",
             image: .init(systemName: isCompleted ? "checkmark.circle.fill" : "circle")
         )
     }
@@ -196,8 +197,10 @@ public struct TodoEntityQuery: EntityQuery {
 extension TodoEntityQuery: EntityStringQuery {
     @MainActor
     public func entities(matching string: String) async throws -> [TodoAppEntity] {
+        // システムは絞り込んでくれない。比較は必ず localizedStandardContains
+        // （後述「文字列の突き合わせは**すべて** localizedStandardContains」）
         try makeRepository().fetchAll()
-            .filter { $0.title.lowercased().contains(string.lowercased()) }
+            .filter { $0.title.localizedStandardContains(string) }
             .map { TodoAppEntity(from: $0) }
     }
 }
@@ -227,7 +230,7 @@ public struct TodoAppShortcuts: AppShortcutsProvider {
 
 ### 10 件上限と設計指針
 
-Apple は `AppShortcutsProvider.appShortcuts` の登録数を **10 件** に制限している（iOS 26 時点）。本プロジェクトは現在 8 件で運用しており、枠 2 件分の余裕を意識的に確保する設計判断をしている。
+Apple は `AppShortcutsProvider.appShortcuts` の登録数を **10 件** に制限している（SDK 27 時点）。本プロジェクトは現在 8 件で運用しており、枠 2 件分の余裕を意識的に確保する設計判断をしている。
 
 - 同じ Intent のパラメータ違いは、可能な限り 1 件にまとめて「フレーズを複数登録」する。例えば `ShowTodosIntent` は `filter` パラメータを 1 つの AppShortcut で受け、`Show my todos / Show incomplete todos / Show favorite todos` のフレーズ群にまとめ、10 件枠を食い潰さないようにしている。
 - アプリを「開くだけ」の用途（例: `LaunchAppIntent`）は Widget/ControlWidget 経由で呼べば足りるので、AppShortcut 登録を省いて枠を節約する。
@@ -254,11 +257,10 @@ struct IntentTodoAppIntentsPackage: AppIntentsPackage {
 }
 ```
 
-> **2026-08-12 に「重複宣言しない」運用から切り替えた**。以前は「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」としていたが、現行 SDK で再検証したところ:
-> - 全バンドル（アプリ / Widget / LiveActivity / Watch App）の `Metadata.appintents` の件数が、宣言の有無で**完全一致**（重複しない）
-> - 宣言した状態で **AppIntentsTesting の全テストがグリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る経路で intent 実行・entity の id 解決・Spotlight クエリ・view annotation が成立）
->
-> **未確認なのは App Shortcut の「フレーズ」ルーティングのみ**。AppIntentsTesting は `definitions.intents["..."]` と型名で引くため、`AppShortcutsProvider` のフレーズ経路は通らない。実機 Siri でフレーズを 1 つ試すのが最短の確認。
+宣言先は `IntentTodo` / `IntentTodoWidget` / `IntentTodoLiveActivity` / `IntentTodoWatchApp` の 4 ターゲット。
+メタデータの重複が起きないこと・AppIntentsTesting が全緑になることは確認済みで、**未確認なのは
+App Shortcut の「フレーズ」ルーティング（Siri）だけ**（AppIntentsTesting は型名で引くので構造上通らない。
+追跡は #30）。
 
 経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
@@ -370,82 +372,28 @@ App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、�
 ### 複合モード
 
 ```swift
-// バックグラウンド + 条件付きフォアグラウンド
+// バックグラウンドで始めて、返却時にシステムが前面化を保証する（AddTodoIntent が採用）
 public static var supportedModes: IntentModes { [.background, .foreground(.deferred)] }
 ```
 
-`[.background, .foreground(.deferred)]` の動作:
-- デフォルトはバックグラウンド実行
-- `perform()` 内で `continueInForeground()` を呼ぶとアプリがフォアグラウンドに遷移
-- `continueInForeground()` を呼ばなくても、`perform()` 終了前にシステムがフォアグラウンド化を保証
-
-### continueInForeground()
-
-```swift
-// AppIntentのインスタンスメソッドとして利用可能
-func perform() async throws -> some IntentResult {
-    // バックグラウンドでTodo作成
-    try repository.create(todoItem)
-
-    // 必要な場合のみアプリを開く
-    if openInApp {
-        try await continueInForeground()
-    }
-
-    return .result(value: entity)
-}
-```
-
-### systemContext.currentMode
-
-実行時のモードを確認する:
-
-```swift
-func perform() async throws -> some IntentResult {
-    if systemContext.currentMode.canContinueInForeground {
-        try await continueInForeground()
-    }
-    return .result()
-}
-```
-
-> **Note**: Control Widget からの `continueInForeground()` 呼び出しは現時点で未検証。
+`.foreground(.dynamic)` + `continueInForeground()` / `systemContext.currentMode` は
+**本アプリでは使っていない**（理由は後述「Intent Modes: `.foreground(.dynamic)` は使っていない」）。
 
 ---
 
-## 1 アクション 1 Intent（かつての Primary / FromExtension 分離を撤去）
+## 1 アクション 1 Intent（呼出元ごとに複製しない）
 
 同じアクションは呼出元が違っても同じ Intent を使う。Live Activity のボタンも Siri も `ToggleTodoCompletionIntent(todo:)` を呼ぶ。Live Activity が持っているのが id と title だけでも `TodoAppEntity(id:title:)` で組んで渡せばよい（システムが `perform()` 前に id から再解決する）。
 
-### 背景（かつて分離していた理由）
+**呼出元プロセスの都合で Intent を複製する必要はない。** Live Activity ボタン経由では
+`entities(for:)`（entity の事前解決）も `perform()` もメインアプリプロセスで走る（iOS 27 実測。
+cold start でも `LiveActivityIntent` 非準拠でも同じ）。ただし **Widget のタイムライン描画では
+`entities(for:)` が Widget Extension プロセスで走る**ので、「entity 解決は必ずアプリ」ではない点に注意。
 
-App Intents が `TodoAppEntity` のような `AppEntity` をパラメータに取る Intent を実行すると、`perform()` 前に `TodoEntityQuery.entities(for:)` を呼んで ID から entity を再解決する。この事前解決フェーズがどのプロセスで走るかは Apple 文書に明記が無く、この解決処理中に SwiftData の内部 assertion を踏んで `EXC_BREAKPOINT` で crash した実績がある（コミット `c37ee97`/`a234842`）。
+> かつて呼出元ごとに Primary / FromExtension を分けていたが、その根拠だった crash が iOS 27 で
+> 再現しないと実測して撤去した。経緯と実測表: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
-### ⚠️ この分離の根拠となった crash は iOS 27 では再現しない（2026-08-12 実測）
-
-iOS 27 / Xcode 27 beta 5 のシミュレータで、`@Parameter var todo: TodoAppEntity` を持つ Intent を Live Activity のロック画面ボタンに直結して実測した結果:
-
-| ケース | `entities(for:)` の実行プロセス | `perform()` の実行プロセス | crash |
-|---|---|---|---|
-| アプリ起動中 + `LiveActivityIntent` 準拠 | **メインアプリ** | メインアプリ | 無し |
-| アプリ kill 済み（cold start） + `LiveActivityIntent` 準拠 | **メインアプリ**（LA タップで起動） | メインアプリ | 無し |
-| アプリ kill 済み + `LiveActivityIntent` **非**準拠（素の `AppIntent`） | **メインアプリ** | メインアプリ | 無し |
-
-つまり Live Activity ボタン経由では、entity の事前解決も `perform()` と同じくメインアプリプロセスで走る。`LiveActivityIntent` 準拠の有無でも変わらない。この結果を受けて **FromExtension 分離は撤去した**（`ToggleTodoCompletionFromExtensionIntent` / `SnoozeTodoFromExtensionIntent` を削除）。
-
-対比として、同じログ収集中に Widget のタイムライン描画では `entities(for:)` が `IntentTodoWidgetExtension` プロセスで走っていることも観測できた。「entity 解決は必ずアプリで走る」わけではなく、**Live Activity ボタン経由に限った話**である点に注意。
-
-経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
-
-スタック:
-```
-SwiftData`___lldb_unnamed_symbol_9d14c + 356
-SwiftData`dispatch thunk of ModelContext.fetch(_:) + 20
-SwiftDataTodoRepository.fetch(id:)   ← TodoEntityQuery から呼ばれる
-TodoEntityQuery.entities(for:)       ← parameter resolution 段階
-```
-
-### 現在: 別 Intent に分けるのは「振る舞いが違う」ときだけ
+### 別 Intent に分けるのは「振る舞いが違う」ときだけ
 
 呼出元プロセスの都合で複製しない。現存する分岐は次の 3 つで、どれも理由は**対話できるかどうか**（または値の渡し方）であってプロセスではない。
 
@@ -488,26 +436,63 @@ Button(intent: ToggleTodoCompletionIntent(todo: todoEntity)) { ... }
 
 ### 共通ロジックは TodoService に集約
 
-`Services/TodoService.swift` (`@MainActor final class`) にビジネスロジックを集約し、各 Intent が `@Dependency var todoService: TodoService` で参照する。`WidgetReloader.reloadAllWidgets()` は各メソッドの `defer` で自動呼び出しされるため、Intent 側で呼び忘れる心配がない。
+`Services/TodoService.swift` (`@MainActor final class`) にビジネスロジックを集約し、各 Intent が
+`@Dependency var todoService: TodoService` で参照する。`TodoService.swiftDataBacked(container:)`
+ファクトリ経由で、メインアプリ / Widget Extension / watch App の各プロセスで `AppDependencyManager.shared`
+に登録する。
+
+### データ更新の後処理は `TodoService.dataDidChange()` に集約する
+
+データを変える経路は必ず `TodoService` の変更メソッドを通り、そこの `defer` が後処理をまとめて行う。
+**Intent 側には書かない**（経路が 25 本あるので、1 か所忘れると「その呼出元からだけ更新されない」形で壊れる）。
 
 ```swift
-@MainActor
-public final class TodoService {
-    private let repository: any TodoRepositoryProtocol
-    public init(repository: any TodoRepositoryProtocol) { ... }
+public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
+    defer { Self.dataDidChange() }
+    // ...
+}
+```
 
-    public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
-        defer { WidgetReloader.reloadAllWidgets() }
-        // ...
+`dataDidChange()` が呼ぶのは 2 つ:
+
+1. `WidgetReloader.reloadAllWidgets()` — `WidgetCenter.shared.reloadAllTimelines()` と
+   `ControlCenter.shared.reloadAllControls()` の**両方**（前者だけではコントロールは更新されない。
+   実測: [05-extensions-and-data-sharing.md](05-extensions-and-data-sharing.md)）
+2. `AppShortcutParameterUpdater.notifyEntitiesChanged()` — パラメータ入り App Shortcut フレーズの
+   候補をシステムに取り直させる（wwdc2023-10102 `9:24`）
+
+Widget 起点の `Button(intent:)` はシステムが自動でタイムラインをリロードするので厳密には重複するが、
+**判定を省いて全変更で無条件に呼ぶ**のが現在のルール（重複のコストは無視できる）。
+守り方は `AppShortcutParameterUpdaterTests`（create / toggle / delete で通知が飛ぶことを数える）。
+
+### `parameterSummary` は Shortcuts 編集画面の allowlist（飾りではない）
+
+Apple のガイダンスが明言している: "`ParameterSummary` is not cosmetic — it is the allowlist for which
+parameters the Shortcuts editor surfaces. […] every other `@Parameter` is **silently omitted** from the
+editor UI, even though it still exists and still resolves."
+
+編集行になるのは **`Summary("...")` の補間に出てくるもの**と **trailing `@ParameterKeyPathsBuilder`
+ブロックに列挙したもの**だけ。載せ忘れたパラメータは **Shortcuts から設定できない**（ビルドは緑、
+Siri から名指しすれば動くので気づけない）。
+
+```swift
+public static var parameterSummary: some ParameterSummary {
+    Summary("Add todo titled \(\.$title)") {
+        \.$dueDate          // ← この列挙が無いと、どれも Shortcuts で設定できない
+        \.$isFavorite
+        \.$estimatedDuration
     }
 }
 ```
 
-### DI は両者共通で @Dependency
+- **Intent が変えられるものは全部載せる**。文に入らないものは trailing ブロックへ
+- 表示順は宣言順ではなく **summary の順**（補間 → trailing ブロック）
+- 出し分けは `When(\.$p, .equalTo, v) { } otherwise: { }` / `Switch(\.$p) { Case(v) { } }`
+- 判定は `Metadata.appintents` の
+  `actionConfiguration.actionSummary.wrapper.otherParameterIdentifiers` と突き合わせる
 
-`@Dependency var todoService: TodoService` はどの Intent でも使える。`TodoService.swiftDataBacked(container:)` ファクトリ経由で、メインアプリ / Widget Extension / watch App の各プロセスで `AppDependencyManager.shared` に登録する。登録先の詳細は `04-ui-integration.md` の実行プロセス表を参照。
-
-> **補足**: 旧 `TodoActions` (enum + static func) は TodoService に昇格済み。Repository を都度生成する負荷と呼び忘れ脆弱性を同時に解消。
+経緯: [docs/devlog/2026-08-29-attribute-write-paths.md](../devlog/2026-08-29-attribute-write-paths.md)
+（`AddTodoIntent` / `UpdateTodoIntent` の 11 パラメータが編集画面に出ていなかった件）
 
 ---
 
@@ -608,10 +593,12 @@ public struct LaunchAppIntent: AppIntent {
 
 ### 統合すべきでないケース
 
+統合しない基準は**振る舞いの違い**だけ（上の 3 分岐と同じ）。「呼出元が違う」は理由にならない。
+
 | Intent組み合わせ | 統合しない理由 |
 |-----------------|---------------|
-| `CompleteTodoFromActivityIntent` / `ToggleTodoCompletionIntent` | LiveActivity固有の終了処理が必要（`LiveActivityIntent` プロトコル準拠が別） |
-| Control 用の `SetTodoCompletionIntent` / `ToggleTodoCompletionIntent` | Control の Toggle は `SetValueIntent`（システムが遷移先の状態を `value` に埋める絶対値）で、flip する Toggle 系 Intent とは意味論が違う。パラメータも `todoId: String`（Extension での事前 entity 解決を回避）|
+| `SetTodoCompletionIntent` / `ToggleTodoCompletionIntent` | Control の Toggle は `SetValueIntent`（システムが遷移先の状態を `value` に埋める絶対値）で、flip する Toggle 系 Intent とは意味論が違う。パラメータも `todoId: String`（呼出元が id を知っているので事前 entity 解決が不要）|
+| `SearchEverythingIntent` / `ShowTodoSearchResultsIntent` | 前者は値（`[TodoOrCategory]`）を**返す**、後者はアプリの検索 UI へ**遷移する**（`.system.searchInApp` の意味） |
 
 ### AppEnum
 
@@ -766,8 +753,8 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
   **入れ子サブエンティティを再帰的に要求**する。モデルから組み立てる自前 `init(from:)`（プロパティ順次代入）は
   `self.images used before being initialized` で弾かれ、代入順 / デフォルト / 他マクロ除去では解消しない
   （SDK 27 の「`@State` がマクロ化」初期化規約と同根。`swiftui-whats-new-27` skill 参照）。
-  → リッチな共有 entity を reminder 本体スキーマに適合させるのは深掘りが必要。list 適合で App Schema の
-  仕組み自体は検証できるため、本体適合は独立タスクとして切り出すのが現実的。
+  → **自前 `init(from:)` を書かず、マクロ生成 init に値を渡す形にする**。適合の実際の手順と
+  守るべきルールは下記「reminder 本体スキーマ適合」。
 
 ### 対話的な質問（`requestChoice`）
 
@@ -923,7 +910,7 @@ public enum TodoOrCategory: Sendable {   // ← public enum は Sendable 自動�
 カメラ / スクショの visual search に対して、アプリのコンテンツを entity として返す入口。
 
 ```swift
-#if canImport(VisualIntelligence)
+#if canImport(VisualIntelligence) && !os(visionOS)
 import VisualIntelligence
 
 public struct TodoVisualIntelligenceQuery: IntentValueQuery {
@@ -958,9 +945,10 @@ visual search の「More results」に対応する intent。`@Parameter var sema
 
 ### canImport ガードと既存要素の再利用
 
-- `VisualIntelligence` 関連ファイルは **`#if canImport(VisualIntelligence)`** で丸ごとガードする。`canImport`
-  のみのガードなので、フレームワークが存在するプラットフォーム（iOS + macOS、Xcode 27 beta 2 以降）で
-  自動的にビルドされる。
+- `VisualIntelligence` 関連ファイルは **`#if canImport(VisualIntelligence) && !os(visionOS)`** で丸ごと
+  ガードする。`canImport` だけだと、visionOS **実機** SDK でフレームワークが import 可能になった時点で
+  visionOS 非対応の API までコンパイルされて落ちる（シミュレータでは false なので通ってしまう）。
+  詳細: [07-platform-specific.md](07-platform-specific.md)「`#if canImport(X)` だけに頼らない」
 - **結果タップ → 詳細表示**は Phase 3 の `OpenTodoIntent`（`OpenIntent`）が、**複数結果型**は Phase 4 の
   `@UnionValue`（`TodoOrCategory`）がそのまま流用できる。Visual Intelligence のために新規 entity/型を増やさない。
 
@@ -1159,7 +1147,7 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
     `AudioSearch` / `PHAsset` の 4 型で実測）。SSU アセットが丸ごと出なくなり、ローカルは
     `BUILD SUCCEEDED` のまま。`TodoAppEntity.location` は `PlaceDescriptor?` で持つ（出荷メタデータには
     `GeoToolbox.PlaceDescriptorEntity` が入るが SSU は通る）。`AddTodoIntent.location` だけ `String` 退避。
-    ルールは AGENTS.md「App Shortcut に登録する Intent の `@Parameter` に system value 型を使わない」、
+    ルールは [AGENTS.md](../../AGENTS.md#触る前に知っておくルール) の 8 番、
     実測値は [devlog 2026-08-28](../devlog/2026-08-28-ssu-system-value-type-bug.md) /
     [2026-08-29](../devlog/2026-08-29-entity-placedescriptor-restore.md)。Apple 報告済み（FB24548956 / #57）。
 
@@ -1209,8 +1197,8 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
 - **落とし穴（watchOS 非対応）**: `.system` ドメインも他の 22 ドメインと同様 **watchOS で unavailable**
   （`'system' is unavailable in watchOS` / `'search' is unavailable in watchOS`）。watch アプリには検索遷移先の UI が
   無いため、`ShowTodoSearchResultsIntent` は `#if !os(watchOS)` で丸ごと除外した（`NavigationModel` / `TodoListView`
-  からの参照はコメントのみで実害なし）。`.visualIntelligence.*`（#297）は `#if canImport(VisualIntelligence)` ガード
-  なので watchOS（フレームワーク非存在）には来ない。macOS には import 可能（`OpenCategoryIntent` 追加、上記
+  からの参照はコメントのみで実害なし）。`.visualIntelligence.*`（#297）は
+  `#if canImport(VisualIntelligence) && !os(visionOS)` ガードなので watchOS（フレームワーク非存在）には来ない。macOS には import 可能（`OpenCategoryIntent` 追加、上記
   「macOS 対応」節参照）。
 
 ### reminder 本体スキーマ適合（#56、2026-08-29 に適合済み）
@@ -1262,24 +1250,18 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
 
 経緯: [docs/devlog/2026-08-29-reminder-schema-conformance.md](../devlog/2026-08-29-reminder-schema-conformance.md)
 
-### reminder 本体スキーマ適合の優先度再考（#240 Group Lab / #48、当時の判断）
+### 新 Siri 連携は本体スキーマ適合なしでも成立する（適合は上乗せ）
 
-「新 Siri 連携は App Schema 採用が前提」だが、コア `TodoAppEntity` の `@AppEntity(schema: .reminders.reminder)` 適合は
-**引き続き保留**と判断（再評価結果）。
+適合済み（上節）だが、**適合が無くても意味理解・検索・遷移は機能する**という切り分けは今も有効。
+`CategoryAppEntity` の `.reminders.list` 適合 + discoverable な自前 Intent 群（Add / Update / Toggle /
+Show / `.system.searchInApp`）+ `OpenIntent` / `DeleteIntent` + `IndexedEntity` のセマンティック index が
+その足場になる。App Schema は**新しい agentic Siri への入場券**で、既存の経路を格下げするものではない
+（wwdc2026-8011 `3:09` / `21:47`）。スキーマを持てないプラットフォーム（watchOS）で機能が落ちないのも
+この構造のため。
 
-- **確認した具体的前提**（DocumentationSearch）: reminder 本体は入れ子サブエンティティとして
-  `@AppEntity(schema: .reminders.section)`（`name` + `list`）と `@AppEntity(schema: .reminders.locationTrigger)`
-  （`place: GeoToolbox.PlaceDescriptor` + `event`）、後者の `event` に `@AppEnum(schema: .reminders.locationTriggerEvent)`
-  （`arrive` / `depart`）を要求。`locationTrigger.place` が `PlaceDescriptor` な点は本アプリの `TodoPlace` 橋渡しと相性が良い。
-  **`locationTrigger.place` は SSU バグを踏まない**（スキーマ entity の `@Property` は SSU の variable にならない。
-  2026-08-28 に最小再現プロジェクトで実測）。一時期ここをブロッカーとして記録していたが誤り。
-- **コアブロッカーは不変**: サブエンティティを揃えても、reminder スキーママクロの **生成 init が `EntityProperty<T>` 引数 +
-  入れ子再帰**を要求し、モデルから組み立てる自前 init と衝突（`self.images used before being initialized`、SDK 27 の
-  `@State` マクロ化と同根の初期化規約問題）。サブエンティティ追加では解消しない。
-- **新 Siri 連携は本体適合なしでも成立**（#48 のフォールバック検証）: `CategoryAppEntity` の `.reminders.list` 適合 +
-  discoverable な自前 Intent 群（Add / Update(#45) / Toggle / Show / `.system.searchInApp`(#47)）+ `OpenIntent` / `DeleteIntent` +
-  `IndexedEntity` セマンティック index(#43) で、意味理解・検索・遷移は機能する。**本体適合は SDK のスキーママクロ init 規約が
-  扱いやすくなるのを待つ独立タスク**として据え置く。
+> 適合を「据え置く」と判断していた時期があり、その根拠（生成 init が `EntityProperty<T>` 引数 +
+> 入れ子再帰を要求する / `locationTrigger.place` が SSU バグを踏むという誤読）と、それがどう覆ったかは
+> [docs/devlog/2026-08-29-reminder-schema-cost-remeasure.md](../devlog/2026-08-29-reminder-schema-cost-remeasure.md) にある。
 
 ## Phase 8: TransientAppEntity（Xcode 27 beta 4 / #344）
 
@@ -1356,10 +1338,6 @@ public struct GetTodoSummaryIntent: AppIntent {
 
 Shortcuts ユーザーは「If Get Todo Summary → Overdue Todos > 0 → 通知」のような条件分岐が書ける。
 個別の `TodoAppEntity` リストを `ShowTodosIntent` で取得する必要がなく、集計値だけほしい場面に最適。
-
-### beta 4 での動作確認
-
-Xcode 27 beta 4 で `RunCodeSnippet` + `BuildProject` の両方で成立を確認（B 深度）。
 
 ---
 

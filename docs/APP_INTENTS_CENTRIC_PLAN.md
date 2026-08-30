@@ -6,9 +6,12 @@
 >
 > 作成: 2026-06-10 / 検証ブランチ: `xcode27`（27 世代ベータ SDK 用、**2026-08-27 に `main` へマージ済み**。以降の作業は `main`）
 >
-> **このファイルは「何をどこまで検証したか」の記録**。これからやることは GitHub issue に置く
-> （実機検証 = #30 / GM SDK 棚卸し = #57 / 未採用 API の消化 = #68）。
-> API ごとの採用状況は [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) を参照。
+> **このファイルは「どのセッションの要素を、どの深度まで検証したか」の一覧**（＝到達状況の地図）。
+> 実装形と落とし穴は [insights/](INSIGHTS.md)、API 単位の採用状況は
+> [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md)、**なぜその判断になったかの経緯**は
+> [devlog/](devlog/README.md)、これからやることは GitHub issue（#30 / #57 / #68）にある。
+> 下の「実行フェーズ」にはコミットハッシュと当時の判断が混ざっているが、**現在のルールの出典としては
+> insights 側を見る**こと。
 
 ---
 
@@ -91,7 +94,7 @@
 | 会話的ダイアログ | `ProvidesDialog` `IntentDialog(full:supporting:)` | Siri 応答を full/supporting で強化 | B/R | ✅(B) `1f4bbc7` |
 | 対話的な質問 | `requestConfirmation` `requestChoice` | 削除確認 / スヌーズ時間選択 | B/R | ✅(B) `27fc2db`/`db6efa3` |
 | ビジュアル応答 | `ShowsSnippetView` `DisplayRepresentation` | （済）Interactive Snippet | R | ✅ |
-| 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | Add/Complete を寄付、削除時 predicate | B/R | ✅(B) `b4dbd63` |
+| 寄付による学習 | `IntentDonationManager` `IntentDonationMatchingPredicate` | 一度採用したが**撤去**。`perform()` 内の donate は規約違反で、`Button(intent:)` の実行はシステムが既に donate している（2026-08-30 実測）。`deleteDonations(matching:)` は削除経路に残す | B/R | ⏸ 不採用（#53） |
 | セマンティック検索 | `IndexedEntity` `@Property(indexingKey:)` `.system.searchInApp` | indexingKey(#43) + in-app 検索スキーマ(#47) | B | ✅ (#43/#47) |
 | Onscreen（コレクション） | `.appEntityIdentifier(forSelectionType:)` | 一覧の各行を onscreen 提供 | B | ✅ (#46)（詳細画面側は `viewAnnotations()` でテスト済み） |
 | 既存統合へのエンティティ付与 | `UNMutableNotificationContent.appEntityIdentifiers` | Control のエラー通知に entity を紐付け | B | ✅ (#46) |
@@ -150,7 +153,9 @@
 
 - **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
   - ✅ `requestConfirmation`（DeleteTodoIntent）`27fc2db`
-  - ✅ `IntentDonationManager`（Add で donate / Delete で deleteDonations）`b4dbd63`
+  - ⏸ `IntentDonationManager`: `b4dbd63` で入れたが **#53 で不採用に決着し撤去**（理由は上表 / 実測は
+    [devlog/2026-08-30-donation-observability.md](devlog/2026-08-30-donation-observability.md)）。
+    `deleteDonations(matching:)` だけ削除 3 経路に残っている
   - ✅ `requestChoice`（SnoozeTodoIntent でスヌーズ時間選択）`db6efa3`
   - ✅ system intents: `OpenIntent`→`OpenTodoIntent` `375efd1` / `DeleteIntent`→`DeleteTodosIntent`（バルク）`92221d0`
   - ✅ 会話ダイアログ `IntentDialog(full:supporting:)`（ShowTodosIntent）`1f4bbc7`
@@ -239,23 +244,20 @@
 
 ## 未採用 API の扱い
 
-かつてここに「未着手の候補」表を置いていたが、**API ごとの採用状況は
-[docs/APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) に一元化**した（採用済み / 意図的不使用 /
-対象外 / 未採用候補を全 API 分 1 行ずつ）。次の拡張を考えるとき・新しい API を見つけたときはそちらを見る / 足す。
+**API ごとの採用状況は [docs/APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) に一元化**した
+（採用済み / 意図的不使用 / 対象外 / 未採用候補を全 API 分 1 行ずつ）。次の拡張を考えるとき・
+新しい API を見つけたときはそちらを見る / 足す。着手すると決めたものの消化は **#68**。
 
-- **着手すると決めたものの消化**: #68
-- **決着済みの判断**（コード側に痕跡が残らないので、ここに結論だけ残す）:
-  - `SpotlightSearchTool` + `LanguageModelSession`（#52）— **2026-08-27 にスコープ外で決着**。前提の
-    Spotlight への entity 寄付は済んでいる（`TodoSpotlightIndex` + `@Property(indexingKey:)`）が、
-    残りは FoundationModels 側の導線と結果表示 UI で、作業の主体が App Intents から離れる
-  - UI タップ由来の donation の再導入（#53）— **2026-08-27 に「入れない」で決着**。公式の 2 方式は
-    どちらも「UI からは Intent を直接呼ぶ」前提で、本アプリの「UI も `Button(intent:)` で Siri と同じ
-    経路を通す」原則と両立しない。**再訪の条件**: `PredictableIntent` による提案を機能として欲しくなったとき
-  - watchOS の onscreen annotation（#54）— **2026-08-27 に実装**。行ごとの単一 annotation
-    （`List` に selection が無く `forSelectionType:` が効かない）。自動テスト不可のため手動確認は #30
-- 2026-08-22 に消化した候補（`UndoableIntent` / Spotlight client state バッチ / `synonyms:` /
-  `displayRepresentations(for:)` / `findIntentDescription` / `shortcutTileColor` / エラー文言 / inflection /
-  visionOS の onscreen annotation / `systemExtraLargePortrait`）は上の Phase 10 を参照。
+**決着済みの判断**（コード側に痕跡が残らないので、結論だけここに残す）:
+
+- `SpotlightSearchTool` + `LanguageModelSession`（#52）— **スコープ外**。前提の Spotlight への entity 寄付は
+  済んでいるが、残りは FoundationModels 側の導線と結果表示 UI で、作業の主体が App Intents から離れる
+- UI タップ由来の donation（#53）— **入れない**。公式の 2 方式はどちらも「UI からは Intent を直接呼ぶ」
+  前提で、「UI も `Button(intent:)` で Siri と同じ経路を通す」原則と両立しない。加えて
+  `Button(intent:)` の実行はシステムが既に donation として記録している（2026-08-30 実測）。
+  **再訪の条件**: `PredictableIntent` による提案を機能として欲しくなったとき
+- watchOS の onscreen annotation（#54）— **実装済み**。行ごとの単一 annotation（`List` に selection が
+  無く `forSelectionType:` が効かない）。自動テスト不可のため手動確認は #30
 
 > 洗い出しの経緯（`.swift` 全走査 / 公式サンプル 4 本との突き合わせ）は
 > [docs/devlog/03-app-intents-core.md](devlog/03-app-intents-core.md)（2026-08-21）、

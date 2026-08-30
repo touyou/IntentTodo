@@ -10,6 +10,20 @@ CloudKit 同期を有効にする場合、[Apple 公式: Syncing model data acro
 
 経緯: [docs/devlog/02-swiftdata-concurrency.md](../devlog/02-swiftdata-concurrency.md)
 
+### ⚠️ ビルドが通っても実行時に trap する 2 件
+
+どちらも `.reminders` スキーマ適合（#56）で踏んだもので、**コンパイルでは一切出ない**。
+
+- **`Calendar.RecurrenceRule` を `@Model` の属性にできない**。コンパイルは通るが schema 初期化で trap する。
+  primitive（frequency + interval）で持ち、組み立ては値型（`TodoRecurrence`）側でやる
+- **削除済みオブジェクトの配列属性は読めない**（scalar は耐える）。`@Query` の結果は削除直後の 1 フレームだけ
+  削除済みオブジェクトを含みうるので、`if !todo.tags.isEmpty` と `body` に書くだけで詳細画面が落ちる。
+  `!isDeleted` のガードでは防げない。表示は `@State` のスナップショットに写し、`.task(id: todo.modifiedAt)`
+  （scalar なので削除済みでも読める）で引き直す
+
+詳細と entity 側の対処（配列属性は `@DeferredProperty` で id から引き直す）:
+[03-app-intents-core.md](03-app-intents-core.md#reminder-本体スキーマ適合562026-08-29-に適合済み)
+
 ### 推奨パターン
 
 ```swift
