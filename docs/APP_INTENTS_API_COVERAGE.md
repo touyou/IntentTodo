@@ -196,7 +196,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `MusicContent.appEntityIdentifiers` / `AlarmConfiguration.appEntityIdentifier` | Now Playing / AlarmKit との紐付け | 🚫 | 該当機能がない |
 | `RelevantEntities` + `AppEntityContext` | 文脈に応じた entity 寄付 | 🚫 | **todo / reminders 向けの `AppEntityContext` が存在しない**ため適合不能（beta 6 でもファクトリは `.audio(_:)` の 1 つだけ） |
 | `RelevantIntent` / `RelevantIntentManager` | Smart Stack への Intent 提案 | ⬜ | `WidgetConfigurationIntent` があるので donation なしで成立する経路（#68） |
-| `IntentDonationManager.donate(_:)` | 実行履歴の寄付 | ⏸ | **#53 で不採用決着**。`perform()` 内 donate は規約違反、UI タップ地点での donate は「唯一の実行経路」原則を崩す |
+| `IntentDonationManager.donate(_:)` / `AppIntent.donate()` | 実行履歴の寄付 | ⏸ | **#53 で不採用決着**。`perform()` 内 donate は規約違反。加えて **`Button(intent:)` の実行はシステムが既に donation として記録している**（2026-08-30 実測）ので、UI が全部 `Button(intent:)` の本アプリには donate すべきものが残らない。別プロセス起点は未確定（#98） |
 | `deleteDonations(matching:)` | 消えた entity の提案を消す | ✅ | 削除 3 経路すべて（呼出元に関係なく正しい後片付け） |
 | EventKit / Contacts 連携 | 期限 → カレンダー等 | 🚫 | 別フレームワーク軸。記録のみ |
 

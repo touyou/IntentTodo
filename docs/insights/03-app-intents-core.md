@@ -1467,6 +1467,31 @@ UI 側で立てて `perform()` 内の donate を切り替える）は成立し�
 **AppIntentsTesting で押さえられない**ので、「効いているか確認できないコードを Intent の公開スキーマに
 足す」形になる。これも未着手のまま置いている理由の一部。
 
+### そもそも `Button(intent:)` の実行はシステムが donation として記録している
+
+**アプリ内 UI の操作が全部 `Button(intent:)` である限り、donate すべきものが残らない。**
+本アプリは `donate()` をどこからも呼んでいないが、`Button(intent:)` のタップは
+`IntelligenceEngine.Interaction.Donation` に記録される（2026-08-30 に iOS 27 シミュレータで実測。
+無操作では増えず、Spotlight の App Shortcut 経由でも増えることを positive control で確認）。
+
+公式サンプル 4 本が明示 donate を必要とするのは、UI が Manager を直接呼んでいて
+（`Button(` 94 件のうち `Button(intent:)` は **0 件**）その実行がシステムに見えないから。
+wwdc2026-343 `6:33` の *"Apple Intelligence can't learn from actions people take through your app's
+UI without your help"* は **UI の操作が intent の実行になっていない**アプリの話で、
+App Intents 中心設計では前提が違う。
+
+- 観測には `skills/intent-centric-architecture/scripts/inspect_donation_stream.py` を使う。
+  **非公開パスなので検証専用**。出荷コードから依存しない
+- **書き込みは遅い**（派生ストリーム。4 分後は未反映 / 80 分後は反映済み）。直後の diff は必ず +0 に
+  なるので、intent が走ったかどうかは即時反映される `App.Intents.Transcript` 側で見る
+- **別プロセス（Widget / Control）起点が記録されるかは未確定**（#98）。合成タップでコントロールが
+  発火しないため、シミュレータでは測れていない
+- 「ストリームに載る」＝「学習に使われる」とまでは公式に書かれていない。ストリーム名と
+  wwdc2026-343 `6:22–9:46` の一致からの推定
+
+経緯: [docs/devlog/2026-08-30-donation-observability.md](../devlog/2026-08-30-donation-observability.md)
+（2 回結論を誤ってから確定させている）
+
 一方 **`deleteDonations(matching:)` は呼出元に関係なく正しい**（消えた entity への提案を残さない
 後片付け）。CosmoTunes も `EntityIdentifier(for:identifier:)` を集めて
 `deleteDonations(matching: .entityIdentifiers(...))` を呼ぶ形で、削除経路に必ず入れている。
