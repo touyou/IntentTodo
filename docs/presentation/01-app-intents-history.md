@@ -37,6 +37,8 @@
   - 歴史を知ると、今の API の妙な制約が「そういう経緯か」で腑に落ちる
 - **出典**: —
 
+---
+
 ### S02. アプリ開発者がずっと持っていた問題
 
 - **見せるもの**: 「アプリを開かずに、アプリの機能を使いたい」の 1 枚図。声 / ウィジェット / 検索 / 時計 / コントロール → アプリの中心にある機能
@@ -59,6 +61,8 @@
   - つまり「アプリの機能を声で呼ぶ」は長らく Apple 純正アプリだけの特権だった
 - **出典**: 一般に既知の事実（⚠️ 具体的な年号だけ確認）
 
+---
+
 ### S04. 2016 / iOS 10 — SiriKit 登場
 
 - **見せるもの**: `Intents.framework` + `IntentsUI.framework` / `INExtension` / `resolve → confirm → handle` の 3 段
@@ -68,6 +72,8 @@
   - Siri が渡してくる `INIntent` オブジェクトを、`resolve`（パラメータを解決）→ `confirm`（確認）→ `handle`（実行）の 3 段で処理する
   - この 3 段構えは、実は今の App Intents（`requestValue` / `requestConfirmation` / `perform`）にそのまま受け継がれている
 - **出典**: Apple 公式 [SiriKit / Creating an Intents App Extension](https://developer.apple.com/documentation/SiriKit/creating-an-intents-app-extension) / wwdc2022-10032 `0:33`「In iOS 10, we introduced the SiriKit Intents framework」
+
+---
 
 ### S05. 2016 の決定的な制約: ドメイン
 
@@ -79,6 +85,8 @@
   - 「Apple がドメインを追加してくれるのを待つ」モデル。これが最大の構造的制約
 - **出典**: Apple 公式 [SiriKit](https://developer.apple.com/documentation/SiriKit) / iOS 10 期の各種解説（⚠️ ドメインの数え方は資料によって 6〜10 と揺れる。「コア 6 + 条件付き」と言うのが安全）
 
+---
+
 ### S06. 2017 / iOS 11 — ドメインを増やす、という延命
 
 - **見せるもの**: ドメインが少し増える図（リスト・メモ、ビジュアルコード、支払い拡張 …）
@@ -87,6 +95,8 @@
   - つまり Todo/メモ系は「ようやく入口ができた」が、**Apple が定義した形にアプリを合わせる**必要がある
   - スケールしないモデルであることが誰の目にも明らかになった年
 - **出典**: ⚠️ iOS 11 の追加ドメイン一覧は一次ソース未確認。発表前に Apple の SiriKit ドメイン一覧で確認する
+
+---
 
 ### S07. 2018 / iOS 12 — Siri Shortcuts（構造転換その 1）
 
@@ -99,6 +109,8 @@
   - **「アプリの語彙を決めるのが Apple から開発者に移った」のがこの年**
 - **出典**: WWDC 2018 session 211「Introduction to Siri Shortcuts」/ Apple 公式 [Donating Shortcuts](https://developer.apple.com/documentation/SiriKit/donating-shortcuts) / [Soup Chef](https://developer.apple.com/documentation/SiriKit/soup-chef-accelerating-app-interactions-with-shortcuts)（wwdc2025-260 の関連リソースに今も載っている）
 
+---
+
 ### S08. 2019 / iOS 13 — パラメータと会話
 
 - **見せるもの**: 「会話するショートカット」の図。Siri が聞き返す → ユーザーが答える → 実行
@@ -110,6 +122,8 @@
   - → 今の `@Parameter` / `requestDisambiguation` / `ReturnsValue` の直接の先祖
 - **出典**: WWDC 2019 session 213「Introducing Parameters for Shortcuts」
 
+---
+
 ### S09. 2020–2021 — Intent が「Siri 用」から「システムの設定言語」へ
 
 - **見せるもの**: 2020: ウィジェット設定画面 ← `IntentConfiguration` / 2021: Mac の Shortcuts アプリ
@@ -119,6 +133,8 @@
   - **2021 / macOS Monterey**: Shortcuts が Mac へ。iOS でカスタム Intent を実装していればそのまま Mac の Siri / Shortcuts で使える。AppKit アプリでも Intents で参加できた
   - SiriKit 世代の到達点。ただし土台は 2018 年の `.intentdefinition` のまま
 - **出典**: WWDC 2020 session 10194「Add configuration and intelligence to your widgets」/ 10073「Empower your intents」/ WWDC 2021 session 10232「Meet Shortcuts for macOS」/ Apple 公式 [Making a configurable widget](https://developer.apple.com/documentation/WidgetKit/Making-a-Configurable-Widget)（"Prior to iOS 17 … configurable widgets used SiriKit Intents"）
+
+---
 
 ### S10. まとめ: SiriKit 世代が抱えていた 5 つの負債
 
@@ -150,6 +166,8 @@
   - `AppShortcutsProvider` にフレーズを書くだけで、**インストール直後から Siri で呼べる**（ユーザー側の設定ゼロ）。Spotlight にも自動で出る
 - **出典**: wwdc2022-10032「Dive into App Intents」`0:33`–`1:26`, `29:12`
 
+---
+
 ### S12. 2022 時点の移行方針（Apple 自身の指示）
 
 - **見せるもの**: 2 分岐の図。「システムドメイン（メッセージ / メディア）/ ウィジェット設定 → SiriKit のまま」「カスタム Intent → App Intents へ」
@@ -178,6 +196,8 @@
   - 「Intent は Siri のための API」から「**UI からも呼ぶ実行経路**」へ。これが App Intents 中心設計の技術的な出発点
 - **出典**: wwdc2023-10028「Bring widgets to life」`10:02`/`13:47` / wwdc2023-10103「Explore enhancements to App Intents」`3:18`–`5:45`
 
+---
+
 ### S14. 2024 / iOS 18 — Apple Intelligence と App Intent Domains
 
 - **見せるもの**: 12 ドメインのグリッド（Photos / Mail / Books / Camera / Spreadsheets …）
@@ -192,6 +212,8 @@
   - **ControlWidget**（コントロールセンター）も追加。Intent の出口がまた増えた
 - **出典**: wwdc2024-10133「Bring your app to Siri」`1:03`–`3:21` / wwdc2024-10134 / wwdc2024-10157
 
+---
+
 ### S15. 2024 時点での SiriKit の立ち位置
 
 - **見せるもの**: 2 分岐の図（S12 と同じ形、判断基準だけ変わっている）
@@ -202,6 +224,8 @@
   - つまり判断基準は「**あなたの機能が SiriKit のドメインと重なるか**」だけになっていた
   - そして重ならないアプリ（＝大多数）は App Intents 一本
 - **出典**: wwdc2024-10133 `1:03`–`1:40`, `21:04`
+
+---
 
 ### S16. 【任意】ここまでの「出口」の増え方
 
@@ -240,6 +264,8 @@
   - 見え方の話: OS のバージョン番号が iOS 26 に統一された年
 - **出典**: wwdc2025-275「Explore new advances in App Intents」/ wwdc2025-281「Design interactive snippets」/ wwdc2025-244「Get to know App Intents」
 
+---
+
 ### S18. 2026 / iOS 27 — Siri AI と App Schemas
 
 - **見せるもの**: 「Siri AI」のキービジュアル + `@AppEntity(schema: .reminders.list)` のコード
@@ -252,6 +278,8 @@
   - **`EntityCollection` / `LongRunningIntent` / `CancellableIntent`**: 大量処理と長時間処理
   - この年のテーマは **API の厚みより「つながり」**（クロスアプリ・クロスデバイス・検証可能性）
 - **出典**: wwdc2026-121 / wwdc2026-240「Build intelligent Siri experiences with App Schemas」/ wwdc2026-295 / wwdc2026-343 / wwdc2026-345 / [../WWDC_APP_INTENTS_SESSIONS.md](../WWDC_APP_INTENTS_SESSIONS.md) 年別サマリー
+
+---
 
 ### S18b. なぜ「固定スキーマ」なのか — Apple 自身の設計判断（2026-08-22 追加）
 
@@ -285,6 +313,8 @@
   スライドに逐語を出すなら発表前に `45:38`–`49:20` を視聴して確認する（[03-group-lab-evidence.md](03-group-lab-evidence.md) §0）
 - **出典**: [03-group-lab-evidence.md](03-group-lab-evidence.md) §2-11 / §2-6
 
+---
+
 ### S19. 【任意】2026 で SiriKit はどうなったのか
 
 - **見せるもの**: 「2026 の App Intents セッション 6 本で "SiriKit" という語は 0 回」というスライド
@@ -295,6 +325,8 @@
   - 解釈: 「非推奨だから触れない」ではなく、**もう前提として App Intents しか語られなくなった**、と読むのが素直
   - ⚠️ ネット上には「WWDC 2026 で SiriKit が正式に deprecated」という記述が複数あるが、**Apple の一次ソースで確認できていない**。断定して話さない。話すなら「App Intents に寄せるのが唯一の前向きな選択肢である」までにする
 - **出典**: `docs/references/wwdc/` 全文検索（`grep -ric sirikit wwdc2026-*.md` → 0）/ Apple 公式 [SiriKit](https://developer.apple.com/documentation/SiriKit) / [CustomIntentMigratedAppIntent](https://developer.apple.com/documentation/AppIntents/CustomIntentMigratedAppIntent)
+
+---
 
 ### S20. 非推奨タイムライン（1 枚表）
 
@@ -336,6 +368,8 @@
   - **檻との違いは残る**: 2016 は「当てはまらなければ不可能」、2026 は「部分一致でいい / `system` ドメインでいい / App Shortcuts でもいい」と**逃げ道が複数用意されている**（`3:09` / `7:08` / `58:01`）
 - **出典**: S05 / S07 / S14 / S18 の各出典 / [03-group-lab-evidence.md](03-group-lab-evidence.md)（#8011 `3:09` / `21:47`）
 
+---
+
 ### S22. 軸② どこで実行されるか
 
 - **見せるもの**: プロセスの変化図（別 Extension → アプリ本体 → 状況次第）
@@ -351,6 +385,8 @@
     の 4 段になった。⚠️ ただし横断するのは**アクションであってデータではない**（`53:53`）
 - **出典（追加）**: [03-group-lab-evidence.md](03-group-lab-evidence.md) §2-3 / §2-12
 - **出典**: [WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) `15:59`–`16:55` / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)
+
+---
 
 ### S23. 軸③ 何を宣言するか
 
@@ -368,6 +404,8 @@
     - #240 `9:41`–`11:59` の言い方も使える: **スキーマは App Intents の "specialization"**（別物ではない）、
       **ドメインは「アプリと Siri の間の契約のカテゴリ」**
 - **出典**: [../WWDC_APP_INTENTS_SESSIONS.md](../WWDC_APP_INTENTS_SESSIONS.md) 各年 / wwdc2026-343 / wwdc2026-240 `1:51`–`2:37`, `9:41`–`11:59` / [03-group-lab-evidence.md](03-group-lab-evidence.md) §4-4
+
+---
 
 ### S24. だから「App Intents 中心設計」になる（→ 骨子② へ）
 
