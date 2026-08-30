@@ -11,6 +11,29 @@
 
 ---
 
+## 呼出元によって出るものが違う（Dialog / Snippet / 通知）
+
+Intent の実行結果をユーザーに伝える手段は、**同じ Intent でも呼出元で見え方が変わる**。
+
+| 呼出元 | `.result(dialog:)` | Snippet (`snippetIntent:`) | ローカル通知 |
+|-------|------------------|--------------------------|------------|
+| Siri | 読み上げ ✅ | 表示 ✅ | 表示 ✅ |
+| Spotlight / Shortcuts | 結果欄に表示 ✅ | 表示 ✅ | 表示 ✅ |
+| アプリ UI の `Button(intent:)` | 表示なし | 表示なし | 表示 ✅ |
+| Widget の `Button(intent:)` | 表示なし | 表示なし | 表示 ✅ |
+| **Control**（`ControlWidgetButton` / `ControlWidgetToggle`） | **表示なし** | **表示なし** | 表示 ✅ |
+
+使い分け:
+
+- **Siri / Shortcuts 前提の Intent**（`ShowTodosIntent` / `ShowTodoCountIntent` / `GetTodoSummaryIntent`）は
+  **Dialog + Snippet**。`IntentDialog(full:supporting:)` で音声単独用と視覚併用を分ける
+- **Control から呼ばれる Intent** は dialog も snippet も返さない。成功は**コントロール自身の再描画**、
+  **失敗だけローカル通知**（下記「Control のフィードバック」）
+- **UI 起点が中心の Intent**（Add / Toggle / Delete）は dialog も通知も不要（画面が即座に反映する）
+
+> Control の 2 つの「表示なし」は**実機で切り分けた結果**。ドキュメントの肯定リストから
+> 「列挙に無い＝出ない」と推論してはいけない（一度その推論で設計を誤っている）。詳細は下節。
+
 ## Control Widget の実装
 
 ### Button と Toggle の使い分け

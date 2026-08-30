@@ -35,7 +35,7 @@ IntentTodoWatchApp/                # watchOS Extension
 └── TodoComplication.swift         # Widget 宣言
 ```
 
-`WatchUI` は `Package.swift` で `.watchOS(.v26)` のみを宣言することで、iOS/macOS/visionOS 側ターゲットから誤って import された場合にコンパイル時に弾ける。
+`WatchUI` は `Package.swift` で `.watchOS(.v27)` のみを宣言することで、iOS/macOS/visionOS 側ターゲットから誤って import された場合にコンパイル時に弾ける。
 
 ### ナビゲーションは iOS と同じ `NavigationModel` に載せる
 
@@ -201,7 +201,6 @@ View 変化への追従には `.task(id:)` を使うと `id` 変化のたびに�
 
 ```swift
 #if os(iOS)
-@available(iOS 16.1, *)
 struct LiveActivityMonitorModifier: ViewModifier {
     let todos: [TodoItem]
 
@@ -256,16 +255,11 @@ struct LiveActivityMonitorModifier: ViewModifier {
 
 ## Widget への Button(intent:) 統合
 
-### iOS 17+ での直接Intent実行
-
-Widget内でボタンをタップして直接Intentを実行できる。
+Widget 内のボタンからも同じ Intent をそのまま実行する（`TodoWidgetRow` の完了トグルなど）。
 
 ```swift
-Button(intent: OpenAddTodoIntent()) {
-    HStack {
-        Image(systemName: "plus.circle.fill")
-        Text("Add Todo")
-    }
+Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
+    Image(systemName: "circle")
 }
 .buttonStyle(.plain)
 ```
@@ -274,7 +268,7 @@ Button(intent: OpenAddTodoIntent()) {
 
 - `AppIntents`モジュールのimportが必要
 - Intent の実行モード（`supportedModes`）で挙動が決まる（`.background` / `.foreground(.immediate)` 等）
-- **アプリを開くだけが目的の場合は `Link(destination:)` が公式推奨**（[Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) より "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`"）
+- **アプリを開くだけが目的の場合は `Link(destination:)` が公式推奨**（[Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) より "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`"）。行タップは `TodoDeepLink` 経由で該当 Todo の詳細へ飛ばしている
 
 ---
 
@@ -353,48 +347,22 @@ Swift 6 以降、`Button(role:intent:)` の順が正（`role` が先）。`Butto
 
 ---
 
-## Spotlight 検索属性（IndexedEntity）
-
-### attributeSet の実装
-
-`IndexedEntity` に準拠し `attributeSet` プロパティを実装することで、Spotlight検索でTodoが見つかるようになる。
+## Spotlight 検索属性（IndexedEntity）のプラットフォームガード
 
 ```swift
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 extension TodoAppEntity: IndexedEntity {
-    public var attributeSet: CSSearchableItemAttributeSet {
-        let attributes = CSSearchableItemAttributeSet()
-        attributes.displayName = title
-        attributes.contentDescription = isCompleted ? "Completed" : "Incomplete"
-        if let dueDate {
-            attributes.dueDate = dueDate
-        }
-        attributes.keywords = buildKeywords()
-        return attributes
-    }
-
-    private func buildKeywords() -> [String] {
-        var keywords = ["todo", title]
-        if isFavorite {
-            keywords.append(contentsOf: ["favorite", "starred", "important"])
-        }
-        if isCompleted {
-            keywords.append("completed")
-        } else {
-            keywords.append(contentsOf: ["incomplete", "pending"])
-        }
-        return keywords
-    }
+    public var attributeSet: CSSearchableItemAttributeSet { ... }
 }
 #endif
 ```
 
-### 注意点
-
-- `CoreSpotlight` は `#if canImport(CoreSpotlight)` でガード（watchOSでは利用不可）
-- `IndexedEntity` 本体はプラットフォーム制限なし（`attributeSet`のみ条件付き）
-- キーワードはコンテキスト別に動的生成（favorite/completed/incomplete等）
-- `dueDate` を設定することで期限ベースのSpotlight検索が可能
+- ガードは **`#if os(iOS) || os(macOS) || os(visionOS)`**（watchOS / tvOS は `@Property(indexingKey:)` の
+  オーバーロードが SDK で unavailable）。visionOS は長く除外していたが、2026-08-28 にビルドで確かめて有効化した
+- **`attributeSet` に書くのは `@Property(indexingKey:)` で表現できない属性だけ**（`dueDate` / `keywords`）。
+  同じキーを両方から埋めるとどちらが勝つか公式に未定義で、**セマンティック検索に載せたい本文が固定文に
+  置き換わる**形で静かに壊れる。完了状態は `keywords` 側で表現する。
+  詳細: [03-app-intents-core.md](03-app-intents-core.md#attributeset-と-propertyindexingkey-で同じ-spotlight-キーを二重に埋めない)
 
 ---
 

@@ -252,11 +252,5 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 ブロック中のものは #57（GM SDK 棚卸し）。App Schema と watch ターゲットの両立は Apple 報告済みで
 #57 にぶら下げた（FB24570185 / `docs/feedback/2026-08-30-app-schema-watch-metadata-merge.md`）。
 
-`ShortcutsLink` はこのリストから外した（採用済み。置き場は設定画面）。
-経緯: [docs/devlog/04-ui-integration.md](devlog/04-ui-integration.md)（2026-08-28 の Siri Tip / ShortcutsLink の置き場）
-
-`AppShortcuts.xcstrings` はこのリストから外した（長く 1 位に置いていたが前提が事実と違った）。
-アプリ全体が英語のみでフレーズだけ訳しても成立しないため、ja 対応を通しでやる **#70** の
-最終工程として 2026-08-28 に実施済み。
-経緯: [2026-08-28-appshortcuts-localization-reeval.md](devlog/2026-08-28-appshortcuts-localization-reeval.md)
-（降格の判断）/ [2026-08-28-ja-localization.md](devlog/2026-08-28-ja-localization.md)（実施）
+> このリストから外れたもの（`ShortcutsLink` / `AppShortcuts.xcstrings` など）が、いつ・どの判断で
+> 外れたかは [docs/devlog/](devlog/README.md) にある。ここには**現在の状態だけ**を置く。

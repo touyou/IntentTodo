@@ -434,8 +434,7 @@ App Shortcut 8 件）の**公式お墨付き**。しかも Apple が**それを�
 
 **中心設計への効き方**:
 
-- ⭐ **本プロジェクトの `IntentDialog(full:supporting:)` 使い分けルール（CLAUDE.md「Dialog vs 通知の
-  使い分け」）が、この助言と完全に一致している**。「Apple があまり使われていないと言っている API を
+- ⭐ **本プロジェクトの `IntentDialog(full:supporting:)` 使い分けルール（[../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md#呼出元によって出るものが違うdialog--snippet--通知)）が、この助言と完全に一致している**。「Apple があまり使われていないと言っている API を
   ちゃんと使っていた」という形で自慢できる、かつ**聴衆への持ち帰り**にもなる
 - 「多面展開は書けば動く」ではなく **面ごとの実測が要る** = 実践パートの主題そのもの。
   **Apple 自身が「確かめろ」と言っている**のが強い
@@ -722,7 +721,7 @@ App Intents 中心設計には直接効かないが、質疑で振られる可�
 
 - [99-script.notes.md](99-script.notes.md) F. 想定 Q&A —「Apple Intelligence / Siri AI 対応は必須？
   → **必須ではない。App Schema 適合は任意**」
-- CLAUDE.md 拡張ロードマップ節の同趣旨の記述
+- [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md) の App Schema 節の同趣旨の記述
 
 **正しい整理は 2 層**:
 
@@ -858,8 +857,8 @@ protocol OwnershipProvidingEntity: AppEntity {
 - **発表での使い所**: **骨子① S16「出口は毎年勝手に増える」の最良の実例**。
   **「新しい出口が増えたとき、既に書いてあるものが何も書かずに乗った」**という証言が Apple 自身から出ている。
   HomePod（`35:40`、App Shortcuts が先に届いていた）と**同じ構図が 2 回起きている**
-- ⚠️ **本プロジェクトの資料（CLAUDE.md 展開マトリクス / 骨子① S16）に Apple Pencil が入っていない**。
-  「物理的なトリガーが自然 → Action Button」の行に **Apple Pencil Pro squeeze** を足すべき
+- 展開マトリクス（[../PLAN.md](../PLAN.md#展開マトリクス)）側は「Action Button / Apple Pencil Pro
+  （スクイーズ）」に**修正済み**。骨子① S16 で口頭に載せるかだけが残っている
 - ⚠️ **スライドで「タップ」と書かない**。Group Lab の字幕は口語の粗起こしで、正しくは **squeeze**
 
 ---

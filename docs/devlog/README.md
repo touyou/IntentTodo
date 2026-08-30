@@ -7,15 +7,16 @@
 各ドキュメントの該当箇所には `経緯: [docs/devlog/...](...)` という一行ポインタが付いている。
 経緯を知りたくないときは元のドキュメントだけ読めば current な話に集中でき、経緯を知りたいときはここを見る。
 
-## 置き場は 3 つ（現在のルール / 経緯 / 残タスク）
+## 置き場は 4 つ
 
 | 書くもの | 置き場 |
 |---------|-------|
-| 現在のルール・結論 | `AGENTS.md` / `docs/insights/` など |
-| **経緯**（過去形・追記のみ） | **ここ（`docs/devlog/`）** |
+| 常に必要な地図（目次と非交渉ルールだけ） | `AGENTS.md` / 各 `README.md` |
+| 現在のルール・結論（**最新の事実と why** だけ） | `docs/*.md` / `docs/insights/` / `skills/` |
+| **経緯・実験の記録**（過去形・追記のみ） | **ここ（`docs/devlog/`）** |
 | **残タスク**（これからやること・未検証・判断待ち） | **GitHub issue** |
 
-詳しいルールは [AGENTS.md の「ドキュメント運用」](../../AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)。
+詳しいルールは [AGENTS.md の「ドキュメント運用」](../../AGENTS.md#ドキュメント運用)。
 
 ## 目次
 
@@ -41,6 +42,7 @@
 - [2026-08-29-attribute-write-paths.md](2026-08-29-attribute-write-paths.md) — reminders 属性（tags / urls / recurrence / locationTriggerEvent）の書き込み経路を Intent と UI に通した経緯（`parameterSummary` が Shortcuts 編集画面の allowlist だった件 + 詳細画面で同じ配列属性 trap を踏み直した件 + #83 が置いていった破損 3 件）
 - [2026-08-29-schema-vs-watch-target.md](2026-08-29-schema-vs-watch-target.md) — 手書き `__appSchemaEntity` を撤去し `TodoAppEntity` を 2 系統に分けた経緯（App Schema 全 23 ドメインが watchOS / tvOS に無いと分かった件 + iOS アプリのメタデータに watchOS スライスが混ざるのをビルドログで確定した件 + const 抽出が typealias を通らない件）
 - [2026-08-30-donation-observability.md](2026-08-30-donation-observability.md) — `Button(intent:)` の実行がシステムに donate されていると確かめた経緯（donation を読める経路をシミュレータの Biome ストリームに見つけた件 + 逆の結論を 2 回出した原因が mtime と書き込み遅延だった件）
+- [2026-08-31-docs-refine.md](2026-08-31-docs-refine.md) — ドキュメントを 4 層（地図 / 現在のルール / 経緯 / 残タスク）に整理し、`AGENTS.md` を目次へ畳んだ経緯（+ そのとき実装と突き合わせて見つかった古い記述・矛盾の一覧）
 - [insights-changelog.md](insights-changelog.md) — `docs/INSIGHTS.md` / `insights/` 構成の再編履歴
 
 ## 運用方針

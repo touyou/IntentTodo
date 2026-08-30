@@ -184,7 +184,7 @@ open IntentTodo.xcodeproj
 
 ## テスト
 
-3 層で分担している（詳細は [docs/AGENTS.md](docs/AGENTS.md#テスト戦略)）。
+3 層で分担している（詳細は [docs/TESTING.md](docs/TESTING.md)）。
 
 | 層 | 場所 | 実行方法 |
 |:--|:--|:--|
@@ -238,9 +238,12 @@ cd Packages/UI && swift test
 
 **現在のルール**
 
-- [docs/AGENTS.md](docs/AGENTS.md) - App Intents 中心設計ガイド（実装パターン）
-- [docs/INSIGHTS.md](docs/INSIGHTS.md) - 開発中に得られた技術的インサイト（目次→7トピック別ファイル）
+- [AGENTS.md](AGENTS.md) - エージェント / 開発者向けの入口（環境・非交渉ルール・全ドキュメントの目次）
+- [docs/AGENTS.md](docs/AGENTS.md) - App Intents 中心設計ガイド（思想・核心原則・実装時に確認すること）
 - [docs/APP_INTENT_DRIVEN_DESIGN.md](docs/APP_INTENT_DRIVEN_DESIGN.md) - 関連概念の整理と比較（Layered / Clean Architecture との対比）
+- [docs/CODING_GUIDELINES.md](docs/CODING_GUIDELINES.md) - Swift / SwiftUI / ローカライズ / コメントの規約
+- [docs/TESTING.md](docs/TESTING.md) - テストの 3 層と「緑になる嘘テスト」を避けるルール
+- [docs/INSIGHTS.md](docs/INSIGHTS.md) - 開発中に得られた技術的インサイト（目次→7トピック別ファイル）
 
 **API の地図**
 
@@ -256,7 +259,7 @@ cd Packages/UI && swift test
 - [docs/presentation/](docs/presentation/README.md) - 登壇用のスライド骨子と想定スクリプト
 
 > ドキュメントは「現在のルール（docs）/ 経緯（devlog）/ 残タスク（issue）」の三分割で運用している。
-> 詳細は [AGENTS.md の「ドキュメント運用」](AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)。
+> 詳細は [AGENTS.md の「ドキュメント運用」](AGENTS.md#ドキュメント運用)。
 
 ## ライセンス
 

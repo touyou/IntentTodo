@@ -116,7 +116,9 @@ Interactive Snippets、Visual Intelligence（`IntentValueQuery` + `SemanticConte
 Onscreen Entities（単一 / コレクション）、Intent Modes（`.background` / `.foreground(.immediate)` /
 `.foreground(.deferred)`）、`UISceneAppIntent` + `AppIntentSceneDelegate`（cold start）、
 `URLRepresentableEntity`（ディープリンク）、集中モード連携（`SetFocusFilterIntent`）、
-`UndoableIntent`、`LongRunningIntent` + `CancellableIntent`、`SyncableEntity`、AppIntentsTesting。
+`UndoableIntent`、`LongRunningIntent` + `CancellableIntent`、`SyncableEntity`、AppIntentsTesting、
+App Schema（`.reminders.reminder` 本体まで適合）、**日本語ローカライズ**（12 catalog / Intent コピー /
+Siri フレーズまで通し）。
 
 ### 次に効きそうな方向
 
@@ -127,9 +129,8 @@ Onscreen Entities（単一 / コレクション）、Intent Modes（`.background
 3. **連携先の拡張** — `AudioPlaybackIntent`（「この Todo をやる間これを流す」）。未採用の Intent 種別で、
    設定の連携セクションが受け皿になる。なお SDK 27 の assistant schema に music / health ドメインは無い
 4. **visionOS ウィジェット強化** — `supportedMountingStyles` / `widgetTexture` / `levelOfDetail`
-5. **多言語化（ja）** — `knownRegions` / 4 パッケージ catalog / Intent コピーの bundle 決定 /
-   `AppShortcuts.xcstrings` を通しでやる（#70）。**現状はアプリ全体が英語のみ**で、catalog は
-   「抽出できる状態」であって翻訳の実体は無い。フレーズだけ訳す形では成立しない
+5. **3 言語目** — ja は #70 で通し済み（ソース言語 en + 訳 ja、12 catalog）。次の言語を足すときの
+   手順とハマりどころは [insights/04-ui-integration.md](insights/04-ui-integration.md#ja-を入れて分かった-catalog-の配置)
 
 ### 対象外と決めたもの
 

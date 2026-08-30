@@ -245,7 +245,7 @@
       → **「1 つのコードで 4 つの機能」**（wwdc2024-10210 `22:11`）
     - ⚠️ **「タップ」ではなく「スクイーズ（squeeze）」**。#8011 の字幕は口語の粗起こしで "tap on an Apple Pencil" と
       なっているが、正しくは **Apple Pencil Pro の squeeze**
-    - ⚠️ CLAUDE.md の展開マトリクス「物理的なトリガーが自然 → Action Button」の行に **Apple Pencil Pro squeeze が抜けている**
+    - 展開マトリクス側（[../PLAN.md](../PLAN.md#展開マトリクス)）は「Action Button / Apple Pencil Pro（スクイーズ）」で**修正済み**
 - **出典**: [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md)（SwiftLee: "By defining actions as app intents by default, you allow them to be connected to any system-service in the future."）
 
 ---
@@ -420,7 +420,7 @@
     3. **アクション（動詞）と情報（名詞）が設計の原子単位**。UI とプラットフォームは二次的
   - Liquid Glass で UI クロームが薄くなった時代とも符合する。**残るのはコンテンツとアクション**
   - 「じゃあ実際やるとどうなるのか」→ 骨子②（制約・工夫・コツ）
-- **出典**: [../CLAUDE.md](../../CLAUDE.md) 設計思想 / [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md) / [Liquid Glass と App Intents 中心設計](https://goodpatch-tech.hatenablog.com/entry/liquid_glass_and_app_intents)
+- **出典**: [../AGENTS.md](../AGENTS.md)（設計思想）/ [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md) / [Liquid Glass と App Intents 中心設計](https://goodpatch-tech.hatenablog.com/entry/liquid_glass_and_app_intents)
 
 ---
 
@@ -429,4 +429,4 @@
 チェックリストは **[#67](https://github.com/touyou/IntentTodo/issues/67)** に移した
 （S03 / S05 / S06 / S17 / S19 の裏取り、S14 / S21 の「スキーマ適合は任意」の逐語確認、S18 の構成判断、引用 URL の `?time=` 付与）。
 ドキュメントには `- [ ]` を残さない運用のため
-（[AGENTS.md の「ドキュメント運用」](../../AGENTS.md#ドキュメント運用現在のルール--経緯--残タスク-の三分割)）。
+（[AGENTS.md の「ドキュメント運用」](../../AGENTS.md#ドキュメント運用)）。
