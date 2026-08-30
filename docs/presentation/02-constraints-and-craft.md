@@ -46,6 +46,8 @@
   - パッケージは 7 つ。**`TodoAppIntents` がコア**で、そこにビジネスロジックが全部いる
 - **出典**: [../../CLAUDE.md](../../CLAUDE.md) パッケージ構成 / リポジトリ実体
 
+---
+
 ### T02. 「Intent 中心」をどこまで徹底したか
 
 - **見せるもの**: 依存図。`Domain → Repository → TodoAppIntents → (UI / WidgetUI / WatchUI / LiveActivity)`
@@ -56,6 +58,8 @@
   - この徹底が効いた部分と、代償になった部分の両方を今日話す
 - **出典**: [../../CLAUDE.md](../../CLAUDE.md) / [../insights/01-swift-package-design.md](../insights/01-swift-package-design.md)
 
+---
+
 ### T03. 効いたこと（先に結論）
 
 - **見せるもの**: 3 つの「増やさずに済んだ」
@@ -64,6 +68,8 @@
   2. **Siri / Shortcuts / Spotlight / コントロール対応が「ついでに終わる」**。個別対応をしていない
   3. **ロジックの二重実装がゼロ**。ウィジェットのチェックボックスと Siri の「完了にして」が**同じ 1 つの Intent**
 - **出典**: 実装実績
+
+---
 
 ### T04. しんどかったこと（先に結論）
 
@@ -90,6 +96,8 @@
   - 教訓: **回避策は原因が消えたら消す**。残しておくと「なぜこうなっているか分からない複製」になる
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「1 アクション 1 Intent」/ [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
+---
+
 ### T06. じゃあ、どういう時に Intent を分けるのか
 
 - **見せるもの**: 表をそのまま出す
@@ -106,6 +114,8 @@
   - 内部専用は `isDiscoverable = false` にして Siri / Shortcuts に出さない（`ReorderTodosIntent` / `SetTodoCompletionIntent` / `SnippetIntent` など）
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)
 
+---
+
 ### T07. ロジックは Intent ではなく Service に集約した
 
 - **見せるもの**: `Intent（薄い） → TodoService（@MainActor final class） → Repository（protocol）`
@@ -115,6 +125,8 @@
   - 副作用: **`WidgetReloader.reloadAllWidgets()` を Service 側の `defer` で呼ぶ**ようにできた。Intent 側で呼び忘れる余地が消えた
   - `WidgetReloader` は `WidgetCenter.reloadAllTimelines()` と **`ControlCenter.reloadAllControls()` の両方**を呼ぶ。⚠️ ここは実際にバグった（次スライド）
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「共通ロジックは TodoService に集約」
+
+---
 
 ### T07b. ⭐ 「UseCase 層を廃止した」は説明として間違っている（Clean Architecture との対比）
 
@@ -160,6 +172,8 @@
   - **正直に言う非対称**: `EntityQuery` 系の**読み取りは `TodoService` も Repository も飛ばして**ストアに直通している。実態は **書き込み側だけ層が厚い CQRS 的な形**。理由は「読み取り系は実行先を固定せず Extension で応答させたい（アプリ起動コストを避ける）」。**同心円 1 枚だとこの線が引けない**のも砂時計にする理由
 - **出典**: [../APP_INTENT_DRIVEN_DESIGN.md](../APP_INTENT_DRIVEN_DESIGN.md#layered--clean-architecture-との対比) / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md) / リポジトリ実体（`TodoService` 494 行 / `TodoRepositoryProtocol`）
 
+---
+
 ### T08. 小ネタ: ホームウィジェットとコントロールは別 API
 
 - **見せるもの**: Control Center のスクショ 2 枚（トグルで完了にしたのに、隣のカウントが `2` のまま / 修正後 `1`）
@@ -186,6 +200,8 @@
     ```
 - **出典**: wwdc2022-10032 `29:12` / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)
 
+---
+
 ### T10. ⭐ 一番効いた落とし穴: `AppShortcutsProvider` は SPM パッケージに置けない
 
 - **見せるもの**: 比較表をそのまま出す
@@ -206,6 +222,8 @@
   - ⚠️ 「アプリあたり 1 つまで」と明文化された Apple のリファレンス記述は見つけられていない。実機観測ベースの知見として話す
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「`AppShortcutsProvider` は SPM パッケージに置いてはいけない」/ [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
+---
+
 ### T11. `AppIntentsPackage` / `includedPackages` は「全ターゲットに書く」
 
 - **見せるもの**: パッケージ側 1 個 + 利用側 4 ターゲット（App / Widget / LiveActivity / WatchApp）に 1 個ずつ、の図
@@ -221,6 +239,8 @@
   - 残る未確認は **App Shortcut の「フレーズ」ルーティング（Siri）だけ**。AppIntentsTesting は型名で intent を引くのでフレーズ経路を構造上通らない
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「パッケージ内での定義」/ [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
+---
+
 ### T12. App Shortcut の枠は 10 件。設計上の意思決定になる
 
 - **見せるもの**: 8/10 のゲージ + 節約テクニック 2 つ
@@ -233,6 +253,8 @@
   - **フレーズに埋め込めるのは `AppEntity` と `AppEnum` だけ**。`String` パラメータは埋め込めない（コンパイルエラー）。文字列を取りたいなら Siri に後から聞かせる
   - ⚠️ この String 制限は公式リファレンスに明記を見つけられていない（コンパイラ挙動からの観測）。SDK メジャー更新時は再確認する
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「10 件上限と設計指針」「フレーズのパラメータ型制限」
+
+---
 
 ### T12b. もう 1 つのメタデータ: Spotlight の属性を二重に書くと、本文だけが静かに入れ替わる
 
@@ -274,6 +296,8 @@
   - 固定したければ **`allowedExecutionTargets`**（`.main` / `.appIntentsExtension` / `.widgetKitExtension`）で明示する
 - **出典**: [WWDC 2026 #345](https://developer.apple.com/jp/videos/play/wwdc2026/345/) `15:59`–`16:55` / [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)
 
+---
+
 ### T14. だから `@Dependency` はプロセスごとに登録が要る
 
 - **見せるもの**: 表をそのまま出す
@@ -297,6 +321,8 @@
   - ただしこれは **LA ボタン経由に限った話**。**Widget のタイムライン描画では `entities(for:)` が Widget Extension で走る**のを同じログ収集で観測している
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「実行プロセスごとに登録が必要」/ [../insights/07-platform-specific.md](../insights/07-platform-specific.md)
 
+---
+
 ### T15. `Button(intent:)` を使う。`perform()` を直接呼ばない
 
 - **見せるもの**: ❌ / ✅ のコード 2 枚
@@ -314,6 +340,8 @@
   - 例外的にどうしても Intent 経路に乗せられないケース（ドラッグ並べ替えの確定など）は、**Intent と UI が同じ `TodoService` を呼ぶ**形にして二重実装を避ける
 - **出典**: [../insights/04-ui-integration.md](../insights/04-ui-integration.md)「直接 `perform()` を呼ばない」
 
+---
+
 ### T16. `AppEntity` は `@Dependency` を使えない（`EntityQuery` は使える）
 
 - **見せるもの**: 使える / 使えないの対照表
@@ -323,6 +351,8 @@
   - **`EntityQuery` と `IntentValueQuery` は `@Dependency` OK**（`_SupportsAppDependencies` に適合しているため）
   - ハマった形: **`@Dependency`（`AppDependencyManager`）と `TodoEntityStore` は別々の登録**。アプリ側だけ登録して満足すると、**Intent は動くのに snippet だけ空**（「Todo not found」を描く）という切り分けにくい症状になる
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「@ComputedProperty / @DeferredProperty」/ [../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md)「Extension プロセスでも TodoEntityStore を登録する」
+
+---
 
 ### T17. 小ネタ: プロパティマクロは `Hashable` の自動合成を壊す
 
@@ -362,6 +392,8 @@
     ので、「Apple があまり使われていないと言っている API を、必要に迫られて使っていた」という形で出せる
 - **出典**: [../../CLAUDE.md](../../CLAUDE.md)「Dialog vs 通知の使い分け」/ [../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md)
 
+---
+
 ### T19. ⭐ どうやって「Control では snippet が出ない」を確定させたか
 
 - **見せるもの**: 出典が割れている表 → 比較実験の表、の 2 段
@@ -386,6 +418,8 @@
   - 裏付け: Controls 専門の wwdc2024-10157 は snippet も dialog も一度も触れない。Snippets 専門の wwdc2025-281 は control / Control Center に一度も触れない。wwdc2025-275 は全編で "Control Center" / "controls" / "ControlWidget" を一度も使っていない（＝あの "the control" はアプリ内 UI のボタン）
 - **出典**: [../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md)「Control のフィードバック」/ [../devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)
 
+---
+
 ### T20. ⭐ `requestConfirmation` を含む Intent はアプリ内 `Button(intent:)` から呼べない
 
 - **見せるもの**: 「削除ボタンを押しても、何も起きない。エラーも出ない」のスクショ or 図
@@ -403,6 +437,8 @@
   - 一般化: **対話（`requestConfirmation` / `requestChoice`）を伴う Intent は Siri / Shortcuts 専用**と考える
 - **出典**: [../insights/04-ui-integration.md](../insights/04-ui-integration.md)「削除確認の現状」/ [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)
 
+---
+
 ### T21. Control 設計の型（Button か Toggle か）
 
 - **見せるもの**: Apple の線引き表 + `ToggleTodoControl` のコード
@@ -416,6 +452,8 @@
   - `SetValueIntent` の `value` はシステムが「**移った先の状態**」で埋める（"Don't set or manage the value parameter"）。だから **flip する `toggleCompletion` ではなく絶対値の `setCompletion`** を呼ぶ
   - 値の供給は `ControlValueProvider` に置く（body で直接 fetch しない）。**失敗時は `try?` で潰さず throw する** — `0` に潰すと「全部完了しました」という嘘を表示する
 - **出典**: [../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md) / wwdc2024-10157 `9:51`/`10:26`/`11:22`
+
+---
 
 ### T21b. ⭐ 中心設計にしたせいで、公式ルールを原理的に満たせなくなった話（donation）
 
@@ -460,6 +498,8 @@
   - 教訓: **シミュレータのビルド成功を「その OS で通る」根拠にしない**。アーカイブは実機 SDK でビルドする
 - **出典**: [../insights/07-platform-specific.md](../insights/07-platform-specific.md)「`#if canImport(X)` だけに頼らない」/ [../insights/04-ui-integration.md](../insights/04-ui-integration.md)
 
+---
+
 ### T23. 「複数 destination をフルビルドしないと分からない」差分がある
 
 - **見せるもの**: 「iOS だけ緑 → watchOS で赤」の例 3 つ
@@ -470,6 +510,8 @@
     - → `OpenCategoryIntent` を「**openable にすること自体が目的**」で新設した（perform は `navigateToRoot()` だけ）
   - **`XcodeRefreshCodeIssuesInFile`（iOS コンテキスト）は通る**。entity 系を触ったら iOS / macOS / visionOS / watchOS をフルビルドする
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「Phase 7」「macOS 対応」/ [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md)
+
+---
 
 ### T24. プラットフォームガードの指針（1 枚表）
 
@@ -508,6 +550,8 @@
   - ⚠️ 前提: **テストランナーとアプリの development team（署名）が一致していないと動かない**（wwdc2026-295 `2:54`）。CI や複数 Apple ID 環境で原因不明の失敗になりやすい
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「Phase 6: テスト基盤」/ Apple 公式 [Testing your App Intents code](https://developer.apple.com/documentation/AppIntentsTesting/testing-your-app-intents-code)
 
+---
+
 ### T26. AppIntentsTesting の落とし穴（実 run して分かったもの）
 
 - **見せるもの**: 箇条書き（各 1 行、症状 → 対処）
@@ -520,6 +564,8 @@
   - **`IntentValueQuery`（Visual Intelligence）は iOS シミュレータでテストできない**。`VisualIntelligence.framework` が Simulator SDK に無く、`canImport` が false でビルドから除外されるため
   - **`requestChoice` / `requestConfirmation` を使う Intent は run できない**（応答する相手が居ない）→ 対話しない固定版を別 Intent で持っておくとそちらはテストできる
 - **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「実行して分かった落とし穴」
+
+---
 
 ### T27. Apple が示す「検証の梯子」と、自動化の限界
 
@@ -568,6 +614,8 @@
   - もう 1 つの型: **メタデータを直接見る**（`autoShortcuts` の件数）。「動いていない」の原因を推測せず、システムが読む JSON を見る
 - **出典**: [../insights/06-control-widget-ios26.md](../insights/06-control-widget-ios26.md)「教訓」/ [../devlog/](../devlog/README.md)
 
+---
+
 ### T29. ⭐ 「プラットフォーム限定」「これは無理」は当時の SDK 制約かもしれない
 
 - **見せるもの**: 撤去したワークアラウンド 3 つ
@@ -581,6 +629,8 @@
     - **SDK メジャー更新時に `#if` ガードを外して、本当に不可能かを実ビルドで確かめる**
     - 逆向きの注意: **ベータ SDK 追従のコストは実在する**。beta 1〜5 で `.reminders` 有効化 → watchOS で unavailable 化 → `PlaceDescriptor` の SSU バグ回避 → …と、4 年で非推奨 7 個 + ベータごとの追従
 - **出典**: [../devlog/2026-08-11-constraint-recheck.md](../devlog/2026-08-11-constraint-recheck.md) / [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md)「Xcode 27 beta ごとの変更追跡」
+
+---
 
 ### T29b. ⭐ 公式のサンプルコードを読む（散文は「合成のしかた」を書かない）
 
