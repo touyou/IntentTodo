@@ -169,3 +169,63 @@ A1 が決定的だった。公式が「システムが走らせた intent は自
 schema-conforming App Intents in a **temporary transcript**"* と一致する。ただし
 **「transcript に載る」＝「学習に使われる」とは書かれていない**ので、そこは推測しない。
 donation の有無を言うには Donation ストリーム側を生かす必要がある（#98）。
+
+## 9. 訂正の訂正: §7 の「書かれていない」も誤り。flush 遅延だった
+
+§7 で「Donation ストリームがこのデバイスで書かれていない」と書いたが、**これも誤り**だった。
+`--bundle ""`（フィルタ無し）で見直したところ、§7 の実験で叩いた操作がすべて記録されていた。
+
+| 記録の時刻（UTC） | 型 | 何をしたか |
+|---|---|---|
+| 12:33:05 | `AddTodoIntent` | アプリ内 `Button(intent:)`（21:32:33 JST にタップ） |
+| 12:33:05 / :07 / :09 | `ToggleTodoCompletionIntent` ×3 | アプリ内 `Button(intent:)`（21:33:11 JST にタップ） |
+| 12:39:54 / :55 | `ShowTodosIntent` / `LaunchAppIntent` | Spotlight の App Shortcut（positive control） |
+
+**原因は書き込みの遅延**。12:36 JST に取ったスナップショットには 12:33 の記録が入っておらず、
+あとから同じファイルに現れた。`Library/Biome/compute/sessions/*/subscriptions/` に
+`IntelligenceEngine.Interaction.Donation` の購読があるとおり、これは**派生ストリーム**で、
+生成が遅れる。観測できた範囲では **4 分後には未反映、80 分後には反映済み**。
+
+§7 は「positive control を置け」までは正しかったが、**「待て」が抜けていた**。+0 を見たときに
+疑うべきものが 2 つ（チャネルが死んでいる / まだ書かれていない）あるのに、前者だけを
+確かめて結論を出している。
+
+## 10. 確定した結論
+
+**アプリ内の `Button(intent:)` の実行は、システムが donation として記録する。**
+
+- アプリは `fdd7b5b`（2026-08-21）以降 `donate()` をどこからも呼んでいない
+  （`grep` で残るのは `deleteDonations` だけ）
+- それでも `AddTodoIntent` / `ToggleTodoCompletionIntent` のタップが Donation ストリームに載る
+- negative control（無操作）では増えない
+- positive control（Spotlight の App Shortcut）も載る = チャネルは生きている
+
+つまり `#53` で donation を不採用にした判断は、**結果的に正しかった**。理由も更新される:
+「規約違反になるから」ではなく、**アプリ内 UI がすべて `Button(intent:)` である限り、
+donate すべき「intent を通らない UI 操作」が存在しない**から。公式サンプル 4 本が
+明示 donate を必要とするのは、UI が Manager を直接呼んでいて（`Button(intent:)` が 0 件）
+その実行がシステムに見えないからで、前提が違う。
+
+> ただし「Donation ストリームに載る」＝「Apple Intelligence の学習に使われる」とまでは
+> 公式に書かれていない。ストリーム名（`IntelligenceEngine.Interaction.Donation`）と
+> WWDC 2026 #343 `6:22–9:46` の Interaction Donations の説明が一致することからの推定である。
+
+## 11. まだ開いていること（#98 A4）
+
+**別プロセス（Widget / Control）起点の `Button(intent:)` が donation に載るかは未確定。**
+
+歴史データでは widget bundle（`dev.touyou.IntentTodo.IntentTodoWidget`）由来の記録が
+Transcript に 13 件あって Donation に 0 件だが、その 13 件の時刻が取れていない（Transcript の
+レイアウトでは時刻の拾い方が効かない）ため、Donation が生きていた時間帯と重なるか確認できない。
+
+今回試して**駄目だった方法**も記録しておく:
+
+- Control Center に `ToggleTodoControl` / `QuickAddTodoControl` を追加することはできた
+  （`inspect` で `dev.touyou.IntentTodo.IntentTodoWidget.QuickAddTodoControl` として見える）
+- しかし**合成タップではコントロールが発火しない**。Transcript が +0 なので intent 自体が
+  走っていない。編集モードを抜けたつもりでも変わらなかった
+- `ToggleTodoControl` は `AppIntentControlConfiguration` の設定シートで対象 todo を選ぶ必要があり、
+  そのピッカーも合成タップで開かなかった
+- ホームウィジェットは行が `Link`（公式推奨に従っている）なので、`Button(intent:)` が無く使えない
+
+次に試すなら実機か、Live Activity のボタン経由。

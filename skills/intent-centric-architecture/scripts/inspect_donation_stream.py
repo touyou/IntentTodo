@@ -27,9 +27,17 @@ donation には列挙用の公開 API が無い（`deleteDonations(matching:)` �
 
 判定の注意:
 
-- **positive control を必ず置く**。Shortcuts アプリから同じ intent を実行した分が出ることを
-  確認してからでないと、「出なかった」がチャネルの盲目とアプリ側の不発のどちらなのか分からない。
+- **`IntelligenceEngine.Interaction.Donation` は遅れて書かれる。** 派生ストリーム
+  （`Library/Biome/compute/sessions/*/subscriptions/` に購読がある）なので、操作直後の `--diff` は
+  必ず +0 になる。実測では **4 分後は未反映、80 分後は反映済み**。**+0 を見たら待つ**。
+  `App.Intents.Transcript` の方は即時（数秒）なので、intent が走ったかどうかの確認はこちらで行う。
+- **positive control を必ず置く**。Spotlight の App Shortcut など、システムが走らせる経路
+  （公式に自動 donate されると書かれている）で出ることを確認してからでないと、「出なかった」が
+  チャネルの盲目・書き込み遅延・アプリ側の不発のどれなのか分からない。
+- **`--bundle` の既定フィルタで絞りすぎない。** 記録の近傍に bundle id が入らないものがあり、
+  絞ると取りこぼす。判定は `--bundle ""` で行う。
 - ファイルの mtime は当てにならない（mmap 書き込みで更新されない）。中身の時刻を見る。
+  中身の時刻は **UTC**。
 """
 
 from __future__ import annotations
