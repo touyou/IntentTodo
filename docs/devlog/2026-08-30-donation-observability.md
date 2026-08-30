@@ -124,3 +124,48 @@ FB を出す候補。
 
 どちらも `#98` の結果を待って `AGENTS.md` / insights 側に反映する。**確定するまで
 「現在のルール」側には書かない**。
+
+## 7. 訂正: positive control が取れず、2 と 3 の結論は成り立たない
+
+同日、差分実験（#98）を回したところ **2 / 3 の解釈が支えを失った**。上の節は消さずに残すが、
+**結論としては採らない**。
+
+実験は「スナップショット → 操作を 1 つだけ → 差分」の形で、`inspect_donation_stream.py` の
+`--snapshot` / `--diff` を使った。
+
+| # | やったこと | Donation | Transcript |
+|---|---|---|---|
+| A2 | 何もしない（アプリ起動のみ） | +0 | +0 |
+| A3 | アプリ内 `Button(intent: AddTodoIntent)` ×1 | **+0** | +1 |
+| A3 | 続けて `Button(intent: ToggleTodoCompletionIntent)` ×3 | **+0** | +7（entity 記録込み） |
+| A3 | 上記のまま 150 秒待って再測定（遅延書き込みの確認） | **+0** | +7 |
+| A1 | **Spotlight の App Shortcut から `ShowTodosIntent`**（システム経由） | **+0** | +2 |
+
+A1 が決定的だった。公式が「システムが走らせた intent は自動 donate される」と明言している
+経路でも Donation ストリームは動かない。つまり **このデバイスでは今 Donation ストリームが
+書かれていない**。したがって A3 の +0 も「`Button(intent:)` は donate されない」ことの
+証拠にならない。**チャネルが盲目なだけ**である。
+
+歴史データの最後の記録は 2026-08-29 01:17 で、Transcript 側は今日も書かれ続けている。
+`com.apple.intelligenceplatformd` は動いており（pid あり）、`Library/IntelligencePlatform/` 配下も
+今日書かれているのに、`Artifacts/donation/donation.db` は 8/28 以降更新されていない。
+何が書き込みを止めているのかは分かっていない（Apple Intelligence の有効化状態などが候補）。
+
+**この失敗が今回いちばん実になった部分**である。positive control を置かずに「出なかった」を
+読むと、2 / 3 のような結論を自信を持って書いてしまう。#98 のチェックリストに
+「A1 を最初に通す」と書いておいたのは正しかったが、**先にこの記録を書いてしまった**のが
+順番の誤りだった。
+
+## 8. それでも確定したこと
+
+`App.Intents.Transcript` の側は生きていて、こちらは使える。
+
+- アプリ内 `Button(intent:)` の実行が**即時**（数秒以内）に載る
+- **呼出元プロセスが bundle id で区別できる**。アプリ内は `dev.touyou.IntentTodo`、
+  Widget / Control は `dev.touyou.IntentTodo.IntentTodoWidget`
+- 無操作では増えない（A2）
+
+`App.Intents.Transcript` という名前は WWDC 2026 #343 `6:47` の *"stores these as
+schema-conforming App Intents in a **temporary transcript**"* と一致する。ただし
+**「transcript に載る」＝「学習に使われる」とは書かれていない**ので、そこは推測しない。
+donation の有無を言うには Donation ストリーム側を生かす必要がある（#98）。
