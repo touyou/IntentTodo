@@ -716,7 +716,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "完了済みのやることなし"
+            "value" : "完了済みのやることはまだありません"
           }
         }
       }
@@ -726,7 +726,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "お気に入りなし"
+            "value" : "お気に入りはまだありません"
           }
         }
       }
@@ -746,7 +746,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "やることなし"
+            "value" : "まだなにも登録していません"
           }
         }
       }
@@ -1039,13 +1039,13 @@
               "mac" : {
                 "stringUnit" : {
                   "state" : "machine_translated",
-                  "value" : "最初のやることを追加するには、+をクリックします。"
+                  "value" : "+をクリックして、やることをひとつ追加してみましょう"
                 }
               },
               "other" : {
                 "stringUnit" : {
                   "state" : "machine_translated",
-                  "value" : "最初のやることを追加するには、+をタップします。"
+                  "value" : "+をタップして、やることをひとつ追加してみましょう"
                 }
               }
             }

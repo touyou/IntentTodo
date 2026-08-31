@@ -423,7 +423,10 @@ private struct AddTodoSheet: View {
         NavigationStack {
             AddTodoView()
         }
-        .presentationDetents([.medium])
+        // Opens at half height and grows to full height when dragged up — the form
+        // scrolls only after it reaches `.large`.
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         #endif
     }
 }
