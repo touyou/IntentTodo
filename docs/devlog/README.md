@@ -26,7 +26,7 @@
 - [05-extensions-and-data-sharing.md](05-extensions-and-data-sharing.md) — Extension 間データ共有・WidgetReloader の経緯
 - [06-control-widget-ios26.md](06-control-widget-ios26.md) — Control Widget の dialog 非表示・`ControlValueProvider` 等の経緯
 - [07-platform-specific.md](07-platform-specific.md) — watchOS/macOS/visionOS/Live Activity のプラットフォーム別の経緯
-- [app-intents-centric-plan.md](app-intents-centric-plan.md) — `APP_INTENTS_CENTRIC_PLAN.md` の beta 追従・SDK バグ対応の顛末
+- [app-intents-centric-plan.md](app-intents-centric-plan.md) — `APP_INTENTS_CENTRIC_PLAN.md` の beta 追従・SDK バグ対応の顛末 + **フェーズ別の実施記録**（Phase 0–11 を何のコミットでどう入れたか / 当時の判断。2026-08-31 に計画側から移送）
 - [2026-08-11-constraint-recheck.md](2026-08-11-constraint-recheck.md) — WWDC 書き起こし全数突き合わせによる制約の再検証セッション（そのもの自体が調査ログ）
 - [2026-08-25-layering-vs-clean-architecture.md](2026-08-25-layering-vs-clean-architecture.md) — 「UseCase 層は廃止」という説明をやめ、Layered / Clean Architecture との対比を明文化した経緯
 - [2026-08-28-docs-role-split.md](2026-08-28-docs-role-split.md) — docs の残タスクを issue に逃がし、「現在のルール / 経緯 / 残タスク」の三分割に整理した経緯（+ そのとき見つかった古い記述の訂正一覧）
