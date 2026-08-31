@@ -1,6 +1,7 @@
 ---
 name: app-intents-execution-and-processes
 description: Work out where an App Intent actually runs, what it can reach there, and whether the app comes to the foreground. Use when a button in a widget, Control Center or a Live Activity does nothing, when an intent crashes or logs "Failed to retrieve dependency of type X", when the app opens on an action that should have stayed silent (or stays closed when it should open), when you moved intents into a Swift package and they stopped appearing in Shortcuts or Siri, when choosing supportedModes or allowedExecutionTargets, when sharing a database or shared state between an app and its extensions, or when adding a second platform and needing to know which APIs exist where.
+license: MIT
 ---
 
 # Execution, processes and packaging

@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents: localization"
+  short_description: "Translate the words an intent shows and speaks"
+  default_prompt: "Use $app-intents-localization to translate this intent's titles, parameter labels, Siri responses and phrases, and to find the copy that never reaches a String Catalog."

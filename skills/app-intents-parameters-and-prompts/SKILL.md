@@ -1,6 +1,7 @@
 ---
 name: app-intents-parameters-and-prompts
 description: Give an App Intent its inputs, and let it ask the person for what it needs. Use when adding parameters to an intent, when parameters exist in the code but cannot be edited in the Shortcuts app, when the Shortcuts editor shows fewer fields than you wrote, when you want the person to confirm before something destructive or pick from a few options, when a field cannot be cleared or emptied from Shortcuts, when you need to tell "leave this alone" apart from "set this to nothing", when a parameter picker offers no suggestions, or when adding a location, photo, link or audio-search parameter — which currently trips an SDK bug that silently removes voice training data.
+license: MIT
 ---
 
 # Parameters and prompts

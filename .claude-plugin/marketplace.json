@@ -1,0 +1,23 @@
+{
+  "name": "intenttodo",
+  "owner": {
+    "name": "touyou",
+    "url": "https://github.com/touyou"
+  },
+  "description": "App Intents-centric design skills, extracted from the IntentTodo sample app",
+  "plugins": [
+    {
+      "name": "app-intents-centric-design",
+      "source": "./",
+      "description": "Eight scene-scoped skills for building Apple platform apps around App Intents, and for finding out when they silently fail",
+      "version": "0.5.0",
+      "author": {
+        "name": "touyou"
+      },
+      "homepage": "https://github.com/touyou/IntentTodo/blob/main/skills/README.md",
+      "repository": "https://github.com/touyou/IntentTodo",
+      "license": "MIT",
+      "category": "development"
+    }
+  ]
+}

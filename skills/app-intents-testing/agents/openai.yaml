@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents: verification"
+  short_description: "Find out whether intents actually work, given that they fail silently"
+  default_prompt: "Use $app-intents-testing to prove whether this App Intents adoption actually works — AppIntentsTesting cases plus the built Metadata.appintents, not a green build."

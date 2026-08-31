@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents: entities and search"
+  short_description: "Model content so the system can find it, filter it and understand it"
+  default_prompt: "Use $app-intents-entities-and-search to turn this app's data into App Entities that Shortcuts can filter, Spotlight can index, and Siri can read aloud and match by App Schema domain."

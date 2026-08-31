@@ -1,6 +1,7 @@
 ---
 name: app-intents-centric-design
 description: Design an Apple platform app (iOS/iPadOS/macOS/watchOS/visionOS) so that everything a person can do is an App Intent and everything they act on is an App Entity, then reach Siri, Shortcuts, widgets, controls, Spotlight and Apple Intelligence from that one definition. Use when you want to make your app's features usable from Siri or the Shortcuts app, are adding App Intents to an app for the first time, are moving actions out of view models or URL handlers, want a review of an existing App Intents adoption, or are deciding what should be an intent at all. Start here when you are not sure which part of App Intents your question belongs to — this skill holds the rules that apply everywhere and points at the sibling skill that covers each specific job.
+license: MIT
 ---
 
 # App Intent-centric design

@@ -1,6 +1,7 @@
 ---
 name: app-intents-system-surfaces
 description: Decide where an action or piece of content should appear outside your app, and use the right API for that place. Use when you want to put a working button in a home screen or lock screen widget, add something to Control Center, show live status in the Dynamic Island or on the lock screen, support an Apple Watch complication or Smart Stack, wire up the Action button, let the camera or a screenshot find your content, change app behaviour per Focus mode, tell Siri what is currently on screen, or make content findable system-wide — and when the question is "where should this action live?", "which of these places is worth it?", or "can Apple's frameworks even reach that place?".
+license: MIT
 ---
 
 # System surfaces

@@ -1,6 +1,7 @@
 ---
 name: app-intents-entities-and-search
 description: Model your app's content so the system can find it, refer to it and understand what it is. Use when turning your data into something Siri and Shortcuts can act on, when the Shortcuts app cannot filter or read your values, when a parameter picker or "Find X where…" action is empty, when you want your content to appear in Spotlight or in meaning-based search, when Siri reads a value aloud badly or fails to match what someone typed, when handling hundreds or thousands of items in one action, when sharing content with other apps or across devices, or when you want Siri to understand your app by category — reminders, notes, mail, media and the other App Schema domains — rather than by the words you happened to choose.
+license: MIT
 ---
 
 # Entities and search

@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents: system surfaces"
+  short_description: "Choose where an action or piece of content should appear outside the app"
+  default_prompt: "Use $app-intents-system-surfaces to decide which system surface this action belongs on — widget, Control Center, Live Activity, watch, Action button, Visual Intelligence, Focus — and which API that place expects."
