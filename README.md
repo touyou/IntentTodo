@@ -219,13 +219,14 @@ cd Packages/UI && swift test
 
 このリポジトリは、本プロジェクトで蓄積した App Intent 中心設計の知見を [Agent Skills](https://agentskills.io/specification) として再利用できる形で同梱しています。**Claude Code / Codex / Gemini CLI / GitHub Copilot / Cursor で同じファイルが動きます。**
 
-- 配布物: [`skills/`](skills/) 配下の 8 skill + [`plugin.json`](plugin.json)（Agent Plugins）/ [`.claude-plugin/`](.claude-plugin/) / [`.agents/plugins/`](.agents/plugins/) のマニフェスト
+- 配布物: [`skills/`](skills/) 配下の 9 skill + [`plugin.json`](plugin.json)（Agent Plugins）/ [`.claude-plugin/`](.claude-plugin/) / [`.agents/plugins/`](.agents/plugins/) のマニフェスト
 - **場面ごとに分割**されていて、「ウィジェットにボタンを付けたい」「押しても何も起きない」「訳が反映されない」のように**やりたいこと / 症状で発火**する
 - 各 skill の分担とスクリプトは [`skills/README.md`](skills/README.md)、エージェント別のインストールと公開手順は [`skills/INSTALL.md`](skills/INSTALL.md) を参照
 
 | skill | 場面 |
 |---|---|
 | `app-intents-centric-design` | 入口。11 の非交渉ルール・導入レベル・症状の振り分け |
+| `app-intents-design-session` | 対話でユースケースを洗い出し、Intent / Entity 集合・サーフェス割当・名前とコピーまで決める進行役 |
 | `app-intents-system-surfaces` | どのシステムサーフェスに出すか（ウィジェット / コントロール / Watch / カメラ / 集中モード） |
 | `app-intents-execution-and-processes` | 実行プロセス・`@Dependency` 登録・パッケージ配置・プラットフォーム可用性 |
 | `app-intents-ui-and-feedback` | `Button(intent:)`・ナビゲーション・dialog / snippet / 通知 |
