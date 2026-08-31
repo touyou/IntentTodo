@@ -21,9 +21,8 @@ public struct LockScreenLiveActivityView: View {
         self.context = context
     }
 
-    /// ボタンに載せる entity。Activity が持っているのは id と title だけだが、
-    /// システムが `perform()` 前に `TodoEntityQuery.entities(for:)` で id から
-    /// 再解決するため、ここでは id が正しければ足りる。
+    /// The activity only knows the id and title, which is enough: the system re-resolves the
+    /// entity from its id before `perform()` runs.
     private var todoEntity: TodoAppEntity {
         TodoAppEntity(id: context.attributes.todoId, title: context.state.title)
     }

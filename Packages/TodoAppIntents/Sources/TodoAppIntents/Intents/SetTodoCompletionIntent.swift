@@ -19,8 +19,9 @@ public struct SetTodoCompletionIntent: SetValueIntent {
     public static let description = IntentDescription("Marks a specific todo as completed or incomplete")
     public static let supportedModes: IntentModes = [.background]
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
-    /// Control から呼ばれるので、未指定だとアプリ未起動時に Widget Extension が書き手になる。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
+    /// Called from a control, so without this the widget extension becomes the writer
+    /// whenever the app is not running.
     public static let allowedExecutionTargets: IntentExecutionTargets = [.main]
 
     /// Control-driven only; Siri / Shortcuts users get `ToggleTodoCompletionIntent`,
@@ -61,8 +62,8 @@ public struct SetTodoCompletionIntent: SetValueIntent {
             )
             throw error
         }
-        // snippet は返さない (Control では提示されない)。フィードバックは
-        // perform() 完了時の自動リロードによるトグル自身の再描画。
+        // No snippet: controls present none. The feedback is the toggle redrawing itself
+        // when the system reloads the control after `perform()` returns.
         return .result()
     }
 }

@@ -2,9 +2,9 @@
 //  TodoServiceTests.swift
 //  TodoAppIntents
 //
-//  Tests for the shared Todo business logic core. Intent perform() 経由のテストは
-//  @Dependency を AppDependencyManager から解決する必要があり SPM テストでは
-//  再現が難しいため、ロジック本体は TodoService のメソッド単位でカバーする。
+//  Tests for the shared Todo business logic core. Going through an intent's `perform()`
+//  would need `@Dependency` resolution, which SPM tests cannot provide, so the logic is
+//  covered method by method here.
 //
 
 import Domain
@@ -60,7 +60,7 @@ struct TodoServiceTests {
         #expect(entity.title == "buy milk")
         #expect(entity.dueDateValue == due)
         #expect(entity.isFavorite == true)
-        // Repository 経由で TodoItem.todoDescription も確認 (Entity 側に expose されていないため).
+        // Checked through the repository: the entity does not expose the description.
         let stored = try repo.fetchAll().first
         #expect(stored?.todoDescription == "2L")
         #expect(stored?.dueDate == due)
@@ -321,7 +321,7 @@ struct TodoServiceTests {
         let overdue = TodoItem(title: "overdue", dueDate: now.addingTimeInterval(-3600))
         let upcoming = TodoItem(title: "upcoming", isFavorite: true, dueDate: now.addingTimeInterval(3600))
         let noDue = TodoItem(title: "no due")
-        // 期限切れでも完了済みなら overdue に数えない。
+        // A completed todo is never overdue, however old its due date.
         let doneOverdue = TodoItem(title: "done", dueDate: now.addingTimeInterval(-7200))
         doneOverdue.isCompleted = true
         let (service, _) = makeService(seed: [overdue, upcoming, noDue, doneOverdue])

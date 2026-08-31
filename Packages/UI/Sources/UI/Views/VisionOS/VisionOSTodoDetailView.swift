@@ -21,7 +21,7 @@ struct VisionOSTodoDetailView: View {
     }
 
     var body: some View {
-        // UUID parse に失敗した場合は @Query を投げずに不在表示へ落とす。
+        // An unparseable id goes straight to the missing state, without querying.
         if let targetId = UUID(uuidString: todo.id) {
             VisionOSTodoDetailQueryView(targetId: targetId)
         } else {
@@ -114,8 +114,8 @@ private struct VisionOSDueDateSection: View {
     let isCompleted: Bool
 
     var body: some View {
-        // Liquid Glass はナビゲーション層 (Ornament) と主要 surface (Header) に
-        // 限定する方針。本文セクションはコンテンツ層なので plain padding で表示。
+        // Liquid Glass stays in the navigation layer (ornament) and the header; body
+        // sections are content, so they use plain padding.
         VStack(alignment: .leading, spacing: 12) {
             Text(.copy("Due Date"))
                 .font(.headline)
@@ -145,7 +145,7 @@ private struct VisionOSTimeRemainingIndicator: View {
     let date: Date
 
     var body: some View {
-        // 毎分再評価して overdue / dueSoon / normal の切替に追従。
+        // Re-evaluated every minute to follow the due-date status transitions.
         TimelineView(.periodic(from: .now, by: 60)) { context in
             let status = DueDateStatus.evaluate(date: date, isCompleted: false, now: context.date)
             VStack {
@@ -198,7 +198,7 @@ private struct VisionOSDescriptionSection: View {
 }
 
 private struct VisionOSSubtasksSection: View {
-    /// 表示前に sort 済み。body 評価のたびに sort を走らせていた旧実装を init 1 回に集約。
+    /// Sorted once at init rather than on every body evaluation.
     private let sortedSubtasks: [SubTask]
 
     init(subtasks: [SubTask]) {
@@ -222,8 +222,7 @@ private struct VisionOSSubtasksSection: View {
     }
 }
 
-/// WWDC 2026 で追加した属性 (所要時間 / 担当者 / 場所) を表示。いずれも未設定なら
-/// セクションごと非表示。
+/// Estimated duration, assignee and location. Hidden entirely when none are set.
 private struct VisionOSDetailsSection: View {
     let item: TodoItem
 
@@ -265,18 +264,17 @@ private struct VisionOSDetailsSection: View {
     }
 }
 
-/// reminders スキーマ属性（tags / urls / recurrence / locationTriggerEvent）の表示と編集。
+/// Shows and edits the schema-derived attributes.
 ///
-/// 空間 UI は `Form` ではなく `VStack` を積む形なので、iOS 側の
-/// `TodoDetailTagsSection` などは再利用せずここに置く。編集シートの中身
-/// （`TodoAttributesEditView`）は共通。
+/// The spatial UI stacks `VStack`s instead of using a `Form`, so the iOS sections are not
+/// reused here — though the edit sheet itself is shared.
 private struct VisionOSAttributesSection: View {
     @Environment(NavigationModel.self) private var navigationModel
 
     let item: TodoItem
 
-    /// 配列属性は `body` から読まず id 経由で引き直す（削除済みオブジェクトの配列読みは
-    /// trap する）。詳細: `TodoDetailContent.tags` のコメント
+    /// Collections are fetched by id rather than read in `body`, because reading one off a
+    /// deleted object traps. See `TodoDetailContent.tags`.
     @State private var tags: [String] = []
     @State private var urls: [URL] = []
 
@@ -307,8 +305,8 @@ private struct VisionOSAttributesSection: View {
             }
             if let recurrenceFrequency {
                 Label {
-                    // 間隔は倍率として添える（`TodoDetailMetadataSection` と同じ条件）。
-                    // 落とすと weekly × 2 が `Weekly` に見えて「毎週」と区別できない。
+                    // The interval is appended as a multiplier: without it, weekly × 2 and
+                    // weekly both read as "Weekly".
                     HStack(spacing: 4) {
                         Text(recurrenceFrequency.localizedStringResource)
                         if item.recurrenceInterval > TodoRecurrenceFrequency.minimumInterval {
@@ -357,8 +355,8 @@ private struct VisionOSActionsSection: View {
     @State private var isConfirmingDelete = false
 
     var body: some View {
-        // visionOS は .buttonStyle(.glass) / .glassProminent を未サポートのため
-        // .bordered のままで運用 (空間 UI の hover effect 側で interactivity を担保)。
+        // visionOS supports neither `.glass` nor `.glassProminent`; the hover effect already
+        // carries the interactivity here.
         HStack(spacing: 20) {
             Button(intent: ToggleFavoriteIntent(todo: entity)) {
                 Label(
@@ -370,8 +368,8 @@ private struct VisionOSActionsSection: View {
             .contentShape(.hoverEffect, .capsule)
             .hoverEffect(.highlight)
 
-            // 確認はアプリ側で取る（`DeleteTodoIntent` の `requestConfirmation` は
-            // アプリ内ボタンからだと提示する面が無く失敗する）。
+            // Confirmed here: `requestConfirmation` has no surface to present on when the
+            // caller is an in-app button.
             Button(role: .destructive) {
                 isConfirmingDelete = true
             } label: {

@@ -38,7 +38,8 @@ public struct CategoryEntityQuery: EntityQuery {
         try fetchAll().map { CategoryAppEntity(from: $0) }
     }
 
-    /// 候補一覧の描画用。名前だけで表現が作れるので、entity を組み立て直さない。
+    /// Builds representations straight from the model: the name is all they need, so no
+    /// entity has to be constructed.
     @MainActor
     public func displayRepresentations(
         for identifiers: [CategoryAppEntity.ID]
@@ -68,7 +69,7 @@ extension CategoryEntityQuery: EntityStringQuery {
 // MARK: - EnumerableEntityQuery
 
 extension CategoryEntityQuery: EnumerableEntityQuery {
-    /// Shortcuts が自動生成する "Find Categories" アクションの説明。
+    /// Describes the "Find Categories" action that Shortcuts generates from this query.
     public static var findIntentDescription: IntentDescription? {
         IntentDescription(
             "Finds the lists (categories) todos are organized into.",

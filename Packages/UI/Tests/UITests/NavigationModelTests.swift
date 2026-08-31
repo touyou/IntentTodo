@@ -170,7 +170,7 @@ struct NavigationModelTests {
     func inAppAddIgnoresBackgroundAdds() {
         let model = NavigationModel()
 
-        // Siri / Shortcuts / ウィジェット経由: シートは開いていない。
+        // Siri, Shortcuts and widgets: the sheet was never open.
         model.dismissAddTodo()
         model.dismissAddTodo()
 

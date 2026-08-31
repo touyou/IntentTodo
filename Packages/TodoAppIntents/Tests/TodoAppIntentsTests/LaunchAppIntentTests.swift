@@ -38,9 +38,8 @@ struct AppScreenTargetTests {
 
 // MARK: - LaunchAppIntent Tests
 //
-// Note: perform() テストは SPM tests では実行できない。
-// `@Dependency var navigationModel: NavigationModel` の解決には AppIntents の
-// perform flow が必要（iOS/visionOS 実行環境のみ）。
+// `perform()` cannot run from SPM tests: resolving `@Dependency` needs the AppIntents
+// dispatch flow.
 
 @Suite("LaunchAppIntent Tests")
 @MainActor
@@ -93,8 +92,8 @@ struct LaunchAppIntentTests {
 
     // MARK: - Target → Filter Mapping
 
-    // perform() 本体は @Dependency 解決が要るので直接叩けない。リスト系ターゲットが
-    // 「ただアプリを開くだけ」に戻らないよう、対応表だけ純関数として押さえておく。
+    // The mapping is a pure function so it can be tested, which is what stops the list
+    // targets from silently regressing to "just opens the app".
 
     @Test("List targets map to the filter they promise")
     func listFilterMapping() {

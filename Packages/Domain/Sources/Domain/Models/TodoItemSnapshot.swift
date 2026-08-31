@@ -7,13 +7,12 @@ import Foundation
 
 /// A `Sendable` copy of everything needed to bring a deleted todo back.
 ///
-/// `TodoItem` は SwiftData の `@Model` なので、削除後は参照しても意味がなく、
-/// `Sendable` でもないため undo のクロージャに持ち越せない。値型に写し取ることで
-/// 「消す → あとで同じ id で戻す」が成立する。
+/// A value-type copy of a todo, which is what makes "delete now, restore under the same id
+/// later" possible: a `@Model` is meaningless once deleted and is not `Sendable`, so it
+/// cannot be captured by an undo handler.
 ///
-/// 使い方は `UndoableIntent` の削除系 Intent（`DeleteTodoIntent` 他）:
-/// **消す前に** `TodoService.snapshot(todoId:)` で取り、`undoManager` の
-/// ハンドラから `TodoService.restore(_:)` に渡す。
+/// Taken **before** deleting, via `TodoService.snapshot(todoId:)`, and passed back to
+/// `TodoService.restore(_:)` from the undo handler.
 public struct TodoItemSnapshot: Sendable, Equatable {
     /// A `Sendable` copy of one sub-task.
     public struct SubTaskSnapshot: Sendable, Equatable {
@@ -51,7 +50,7 @@ public struct TodoItemSnapshot: Sendable, Equatable {
     public let urls: [URL]
     public let locationTriggerEvent: String?
 
-    /// 所属カテゴリの id。リレーションは値として持ち越せないので、復元時に引き直す。
+    /// Relationships cannot be carried by value, so the category is re-resolved on restore.
     public let categoryID: UUID?
 
     /// Sub-tasks are cascade-deleted with the parent, so they have to come back too.

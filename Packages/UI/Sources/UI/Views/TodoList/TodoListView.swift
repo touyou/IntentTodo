@@ -22,11 +22,11 @@ public struct TodoListView: View {
 
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
-    /// 集中モードの絞り込み。`TodoFocusFilterIntent` が書き込むと body が再評価される。
+    /// Focus filtering. `TodoFocusFilterIntent` writes it, which re-evaluates the body.
     @State private var focusFilterStore = TodoFocusFilterStore.shared
-    /// 通知 / ライブアクティビティが塞がれて伝えられなかった記録。
+    /// Feedback that could not be delivered because a channel is disabled in Settings.
     @State private var missedFeedback = MissedFeedbackModel()
-    /// App Shortcut のフレーズをいつ教えるか。
+    /// Decides when to teach an App Shortcut phrase.
     @State private var siriTip = SiriTipModel()
     @State private var showingSettings = false
     @Environment(\.scenePhase) private var scenePhase
@@ -36,12 +36,8 @@ public struct TodoListView: View {
     // MARK: - Computed Properties
 
     private var filteredTodos: [TodoAppEntity] {
-        // SwiftData の `@Query` が返す `[TodoItem]` は class ベースの `PersistentModel`
-        // を要素に持つため、要素の中身変更 (title / isCompleted トグル) では `onChange`
-        // ベースのキャッシュ更新が発火しない。安全側に倒し、body 評価ごとに entity 化する。
-        // 1,000 件規模での map コストが問題になるなら、`TodoItem` のフィールドだけを
-        // 抜き出した軽量 projection (例: SwiftData の `#Predicate` で fetch する struct)
-        // を別途検討する。
+        // Mapped on every body evaluation rather than cached: `@Query` returns reference
+        // types, so changing a field in place would not fire an `onChange`-based cache.
         viewModel.filteredTodos(
             from: todoItems.map { TodoAppEntity(from: $0) },
             focusFilter: focusFilterStore.effectiveFilter
@@ -56,10 +52,8 @@ public struct TodoListView: View {
 
     public var body: some View {
         @Bindable var navigationModel = navigationModel
-        // iOS/iPadOS/macOS 共通で NavigationSplitView。
-        // - iPad/macOS: sidebar + detail の二分割表示
-        // - iPhone (compact width): 自動で push 風に collapse されるので 1 view で両対応
-        // - visionOS は別ファイル (VisionOSTodoView) で別実装
+        // One `NavigationSplitView` covers iPhone, iPad and Mac: at compact width it
+        // collapses into push navigation on its own. visionOS has its own view.
         NavigationSplitView {
             Group {
                 if filteredTodos.isEmpty {
@@ -80,14 +74,13 @@ public struct TodoListView: View {
                 }
             }
             .navigationTitle(.copy("Todos"))
-            // 一覧が空になる原因が Focus のときも見えている必要があるので、List の中
-            // ではなく List の外（上端）に出す。一覧が空で ContentUnavailableView に
-            // 切り替わっても safeAreaInset は残るため、初回追加直後の Siri Tip も届く。
+            // Outside the list, not in it: the banners have to stay visible when the list
+            // is empty — which is exactly when a Focus filter is the explanation.
             .safeAreaInset(edge: .top, spacing: 0) {
                 VStack(spacing: 0) {
                     FocusFilterBanner(store: focusFilterStore)
-                    // 記録の書き手は Extension プロセスにもなり購読できないので、
-                    // 表示のたびと前面復帰のたびに読み直す。
+                    // The writer can be an extension process, so there is nothing to
+                    // subscribe to: re-read on appear and on foregrounding.
                     MissedFeedbackBanner(model: missedFeedback)
                     SiriTipBanner(model: siriTip)
                 }
@@ -95,19 +88,18 @@ public struct TodoListView: View {
             .onAppear { missedFeedback.refresh() }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else {
-                    // 前面から外れたら教育は引っ込める（閉じた扱いにはしない）。
+                    // Leaving the foreground hides the tip without counting as dismissal.
                     siriTip.hide()
                     return
                 }
                 missedFeedback.refresh()
             }
-            // アプリの追加シートから Todo が追加された瞬間 = そのフレーズを覚えると
-            // 次から短縮できる瞬間。Siri / Shortcuts / ウィジェット経由の追加では
-            // カウンタが動かないので、既に使えている人には出ない。
+            // Adding a todo from the app's own sheet is the moment a phrase would have
+            // saved work — and the counter does not move for Siri, Shortcuts or widget
+            // additions, so people already using phrases never see the tip.
             //
-            // macOS では記録もしない。`SiriTipView` が unavailable で一度も出せない
-            // プラットフォームなのに、出した回数（上限 2 回）だけが減っていく状態を
-            // 残さないため。
+            // Not even counted on macOS, where `SiriTipView` is unavailable: otherwise the
+            // two-time budget would be spent on a platform that can never show it.
             #if !os(macOS)
             .onChange(of: navigationModel.inAppAddCount) { _, _ in
                 siriTip.recordInAppAdd()
@@ -117,7 +109,7 @@ public struct TodoListView: View {
                 TodoListToolbar(viewModel: $viewModel, showingSettings: $showingSettings)
             }
             .searchable(text: $viewModel.searchText, prompt: .copy("Search todos"))
-            // sidebar 既定幅は TodoRowView には狭いため ideal を広めに固定 (iPad/macOS)。
+            // The default sidebar width is too narrow for a todo row.
             .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 480)
             #if os(iOS)
             // WWDC 2026: shrink the nav bar as the person scrolls the list down.
@@ -197,10 +189,9 @@ private struct TodoListSidebar: View {
     let onReorder: ([String]) -> Void
 
     var body: some View {
-        // SwiftData @Query の delta 検出により List の行挿入/削除は標準で animate
-        // されるため、明示的な `.animation(value: todos.map(\.id))` は外す。旧実装は
-        // body 評価のたびに `[String]` 配列を再アロケートしていたため、件数が増える
-        // ほどスクロールがカクついていた。
+        // No explicit `.animation(value:)`: `@Query` delta detection already animates row
+        // insertion and removal, and building an id array per body evaluation cost more
+        // than it bought.
         List(selection: $selection) {
             // `.reorderable()` (WWDC 2026) turns any container into a drag-to-reorder
             // one. It's 27+ only, so gate it; on older OSes (or non-manual sort) the
@@ -293,10 +284,10 @@ private struct NavigationBarMinimizeOnScroll: ViewModifier {
 // MARK: - Empty View
 
 private struct TodoListEmptyView: View {
-    /// `ContentUnavailableView` 1 つ分の文言。
+    /// Copy for one `ContentUnavailableView`.
     ///
-    /// 文言は `LocalizedStringResource` で持つ。`String` にすると `Label` / `Text` が
-    /// verbatim 初期化子を選び、リテラルが String Catalog に抽出されない。
+    /// Typed as `LocalizedStringResource`: with `String`, `Label` and `Text` pick their
+    /// verbatim initialisers and the literals never reach the String Catalog.
     private struct EmptyContent {
         let title: LocalizedStringResource
         let icon: String
@@ -365,7 +356,7 @@ private struct TodoListToolbar: ToolbarContent {
     @Binding var showingSettings: Bool
     @Environment(NavigationModel.self) private var navigationModel
 
-    /// `.topBarTrailing` は macOS で利用不可のため分岐。
+    /// `.topBarTrailing` does not exist on macOS.
     private var filterSortPlacement: ToolbarItemPlacement {
         #if os(macOS)
         .automatic
@@ -376,8 +367,8 @@ private struct TodoListToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         #if os(iOS)
-        // 連携（Shortcuts など）の入口。`SettingsView` は macOS では出さない
-        // （`ShortcutsLink` が macOS SDK に無い）ので、ボタンごと iOS 限定にする。
+        // Entry point for the integration settings. `SettingsView` is not built on macOS
+        // (no `ShortcutsLink` there), so the button is iOS-only as well.
         ToolbarItem(placement: .topBarLeading) {
             Button {
                 showingSettings = true
@@ -424,10 +415,8 @@ private struct TodoListToolbar: ToolbarContent {
 private struct AddTodoSheet: View {
     var body: some View {
         #if os(macOS)
-        // macOS では NavigationStack + navigationTitle がタイトル上に大きな余白を
-        // 取って窮屈に見えるため、NavigationStack を外して AddTodoView 単体を表示。
-        // ツールバー (Cancel / Add ボタン) は AddTodoView 側の .toolbar が
-        // ウィンドウバーに自動配置される。
+        // No `NavigationStack` on macOS: with a navigation title it reserves a band of
+        // space above the form. The view's own toolbar lands in the window bar anyway.
         AddTodoView()
             .frame(minWidth: 520, minHeight: 420)
         #else

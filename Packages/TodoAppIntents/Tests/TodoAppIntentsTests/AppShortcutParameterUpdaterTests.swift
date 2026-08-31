@@ -2,9 +2,8 @@
 //  AppShortcutParameterUpdaterTests.swift
 //  TodoAppIntents
 //
-//  パラメータ入りの App Shortcut フレーズ ("Complete <todo> in IntentTodo") は、
-//  `updateAppShortcutParameters()` が呼ばれていないと候補が古いまま一致しなくなる。
-//  呼び出しはパッケージ → アプリの間接層を経由するので、その線がつながっているかを見る。
+//  Parameterised App Shortcut phrases stop matching when the suggestions go stale, so this
+//  checks that the package-to-app indirection which triggers a refetch stays connected.
 //
 
 import Domain
@@ -13,12 +12,11 @@ import Repository
 import Testing
 @testable import TodoAppIntents
 
-/// `AppShortcutParameterUpdater` のハンドラはプロセス全体で 1 つなので、
-/// 並列実行すると互いのハンドラを上書きし合う。`.serialized` で直列化する。
+/// The handler is process-wide, so parallel tests would overwrite each other's.
 @Suite("App Shortcut parameter updates", .serialized)
 @MainActor
 struct AppShortcutParameterUpdaterTests {
-    /// 各テストで自前のハンドラを差し込み、呼ばれた回数を数える。
+    /// Installs a counting handler for the duration of one test.
     private func makeCounter() -> Counter {
         let counter = Counter()
         AppShortcutParameterUpdater.register { counter.increment() }
@@ -38,8 +36,9 @@ struct AppShortcutParameterUpdaterTests {
         #expect(counter.count == 1)
     }
 
-    /// entity が増減したら候補を取り直させる必要がある（wwdc2023-10102 9:24）。
-    /// `TodoService` の変更メソッドが `dataDidChange()` を通っていることの確認でもある。
+    /// Suggestions must be refetched whenever entities appear or disappear
+    /// [Apple: wwdc2023-10102 9:24], which also proves the mutating methods reach
+    /// `dataDidChange()`.
     @Test("TodoService の変更が App Shortcut パラメータ更新を促す")
     func mutationTriggersUpdate() throws {
         let counter = makeCounter()

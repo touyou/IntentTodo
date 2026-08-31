@@ -2,10 +2,10 @@
 //  SwiftDataTodoRepositoryTests.swift
 //  IntentTodo
 //
-//  `MockTodoRepository` と `SwiftDataTodoRepository` は同じプロトコルの**別実装**で、
-//  後者は `#Predicate` マクロ + `SortDescriptor` + `fetchLimit` に依存する。Mock が
-//  緑でも本番だけ壊れる形（optional `Date` 絡みの `#Predicate` は過去にリグレッションを
-//  出している）を捕まえるため、in-memory ストアで本番実装そのものを走らせる。
+//  Runs the real implementation against an in-memory store. `MockTodoRepository` satisfies
+//  the same protocol without touching `#Predicate`, `SortDescriptor` or `fetchLimit`, so it
+//  stays green for failures that only the SwiftData implementation has — `#Predicate` with
+//  optional `Date` comparisons has regressed before.
 //
 
 import Domain
@@ -17,13 +17,12 @@ import Testing
 @Suite("SwiftDataTodoRepository")
 @MainActor
 struct SwiftDataTodoRepositoryTests {
-    /// ディスクに触らない実ストア。テストごとに新しいコンテナを作るので状態は漏れない。
+    /// A real store that never touches disk, rebuilt per test so no state leaks.
     ///
-    /// **`container.mainContext` ではなく `ModelContext(container)` を渡す**。前者は
-    /// コンテナを retain しないので、ヘルパがコンテナをローカルに閉じ込めた時点で解放され、
-    /// 次の `insert` / `save` で SwiftData が `EXC_BREAKPOINT` で落ちる。落ち方が
-    /// アサーション失敗ではなくプロセスクラッシュなので、`Restarting after unexpected exit`
-    /// が延々と並ぶだけで、どのテストのどの行かは crash report を読むまで分からない。
+    /// **`ModelContext(container)`, not `container.mainContext`.** The latter does not retain
+    /// the container, so it is released as soon as this helper returns and the next
+    /// `insert` / `save` traps. That surfaces as a process crash rather than a failed
+    /// assertion, which says nothing about which test caused it.
     private func makeRepository() throws -> SwiftDataTodoRepository {
         let container = try SharedModelContainer.createInMemoryContainer()
         return SwiftDataTodoRepository(modelContext: ModelContext(container))
@@ -35,8 +34,8 @@ struct SwiftDataTodoRepositoryTests {
 
     // MARK: - fetchMostUrgentIncomplete
 
-    /// Control Center の `ToggleUrgentTodoIntent` が握っている経路。ここが黙って nil を
-    /// 返し続けると「期限が近いタスクなし」と表示されたまま期限を過ぎる。
+    /// The path behind `ToggleUrgentTodoIntent`: silently returning nil here would leave the
+    /// control claiming there is nothing due while a deadline passes.
     @Test("fetchMostUrgentIncomplete returns the earliest due incomplete todo")
     func mostUrgentPicksEarliestDue() throws {
         let repository = try makeRepository()
@@ -47,8 +46,7 @@ struct SwiftDataTodoRepositoryTests {
         #expect(try repository.fetchMostUrgentIncomplete()?.title == "soonest")
     }
 
-    /// `#Predicate { ... && $0.dueDate != nil }` の optional 判定。期限なしの todo が
-    /// 混ざっていても、期限つきの最短が選ばれる。
+    /// The optional comparison in the predicate: undated todos must not win.
     @Test("fetchMostUrgentIncomplete ignores todos without a due date")
     func mostUrgentIgnoresNilDueDate() throws {
         let repository = try makeRepository()
@@ -58,7 +56,7 @@ struct SwiftDataTodoRepositoryTests {
         #expect(try repository.fetchMostUrgentIncomplete()?.title == "has due date")
     }
 
-    /// `#Predicate { !$0.isCompleted ... }` の側。完了済みは期限が最短でも選ばれない。
+    /// The completion half of the predicate: a completed todo never wins, however urgent.
     @Test("fetchMostUrgentIncomplete skips completed todos")
     func mostUrgentSkipsCompleted() throws {
         let repository = try makeRepository()
@@ -135,8 +133,8 @@ struct SwiftDataTodoRepositoryTests {
         #expect(try repository.fetchFavorites().map(\.title) == ["starred"])
     }
 
-    /// `fetchCount` は本体を materialize せずに数えるため `fetchIncomplete().count` とは
-    /// 別コードパス。ズレると Control / Widget の件数表示だけが静かに狂う。
+    /// `fetchCount` counts without materialising the objects, so it is a different code path
+    /// from `fetchIncomplete().count`; a mismatch shows up only in the control and widget.
     @Test("incompleteCount matches fetchIncomplete's count")
     func incompleteCountMatchesFetch() throws {
         let repository = try makeRepository()

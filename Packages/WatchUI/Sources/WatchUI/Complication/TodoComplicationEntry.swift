@@ -7,9 +7,8 @@ import WidgetKit
 
 /// Timeline entry containing todo data for complications.
 ///
-/// 型自体は `TodoComplicationProvider` と `TodoComplicationEntryView` が
-/// public に露出するため public だが、内部状態 (count 等) は同一パッケージ
-/// からのみアクセスされるので internal に留める。
+/// Public because the provider and the entry view expose it, while the counts stay internal:
+/// nothing outside this package reads them.
 public struct TodoComplicationEntry: TimelineEntry, Sendable {
     public let date: Date
     let incompleteCount: Int
@@ -17,8 +16,7 @@ public struct TodoComplicationEntry: TimelineEntry, Sendable {
     let nextDueTitle: String?
     let completedToday: Int
     let totalToday: Int
-    /// fetch が失敗した場合は true。complication 表示で「予定なし」と区別するため、
-    /// View 側で "—" や warning icon に切り替える。
+    /// Lets the view switch to "—" or a warning icon instead of showing "nothing due".
     let loadFailed: Bool
 
     init(
@@ -50,7 +48,7 @@ public struct TodoComplicationEntry: TimelineEntry, Sendable {
         )
     }
 
-    /// Fetch 失敗時の表示用エントリ。「予定なし」(全 0) との誤認を防ぐ。
+    /// Entry used when the fetch failed, so it cannot be read as "nothing due".
     static func unavailable(at date: Date = Date()) -> TodoComplicationEntry {
         TodoComplicationEntry(
             date: date,

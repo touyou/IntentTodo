@@ -43,6 +43,7 @@
 - [2026-08-29-schema-vs-watch-target.md](2026-08-29-schema-vs-watch-target.md) — 手書き `__appSchemaEntity` を撤去し `TodoAppEntity` を 2 系統に分けた経緯（App Schema 全 23 ドメインが watchOS / tvOS に無いと分かった件 + iOS アプリのメタデータに watchOS スライスが混ざるのをビルドログで確定した件 + const 抽出が typealias を通らない件）
 - [2026-08-30-donation-observability.md](2026-08-30-donation-observability.md) — `Button(intent:)` の実行がシステムに donate されていると確かめた経緯（donation を読める経路をシミュレータの Biome ストリームに見つけた件 + 逆の結論を 2 回出した原因が mtime と書き込み遅延だった件）
 - [2026-08-31-docs-refine.md](2026-08-31-docs-refine.md) — ドキュメントを 4 層（地図 / 現在のルール / 経緯 / 残タスク）に整理し、`AGENTS.md` を目次へ畳んだ経緯（+ そのとき実装と突き合わせて見つかった古い記述・矛盾の一覧）
+- [2026-08-31-code-comments.md](2026-08-31-code-comments.md) — コードコメントを英語に統一し、履歴 / 将来の計画 / ドキュメントへのリンクを落とした経緯（同日に決めた「コードに `経緯:` ポインタを置く」ルールを撤回している）
 - [insights-changelog.md](insights-changelog.md) — `docs/INSIGHTS.md` / `insights/` 構成の再編履歴
 
 ## 運用方針

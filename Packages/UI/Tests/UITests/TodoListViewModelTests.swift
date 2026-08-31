@@ -381,8 +381,8 @@ struct TodoListViewModelTests {
 
 // MARK: - Localization Helpers
 
-/// ソース言語（en）に固定して `LocalizedStringResource` を解決する。
-/// 固定しないとホストの優先言語（ja）で解決され、Xcode のテストアクション経由でだけ落ちる。
+/// Resolves a `LocalizedStringResource` in the source language. Without pinning it, the
+/// host's preferred language wins and the test fails only when run from Xcode.
 private func englishCopy(_ resource: LocalizedStringResource) -> String {
     var resource = resource
     resource.locale = Locale(identifier: "en")
@@ -398,8 +398,8 @@ struct TodoFilterTests {
         #expect(TodoFilter.allCases.count == 4)
     }
 
-    // `displayName` は `LocalizedStringResource`（パッケージ同梱の String Catalog 参照）。
-    // ソース言語（en）に固定して解決した文字列で比較する。
+    // `displayName` resolves against the package's own catalog, pinned to the source
+    // language for comparison.
     @Test("Each filter has a display name")
     func displayNames() {
         #expect(englishCopy(TodoFilter.all.displayName) == "All")

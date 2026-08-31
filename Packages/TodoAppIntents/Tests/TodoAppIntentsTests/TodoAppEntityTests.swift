@@ -136,14 +136,14 @@ struct TodoAppEntityTests {
         let entity = TodoAppEntity(id: "test-id", title: "My Todo")
         let representation = entity.displayRepresentation
 
-        // 補間形式（キーは "%@"）で渡しているので、解決すると実行時の値そのものになる。
-        // `LocalizedStringResource(stringLiteral:)` に退行すると、存在しないキーの
-        // 引きになってここが "My Todo" 以外に化ける。
+        // Interpolation makes the key "%@", so resolving yields the runtime value.
+        // Regressing to `LocalizedStringResource(stringLiteral:)` would look up a key that
+        // does not exist and this would no longer be "My Todo".
         #expect(String(localized: representation.title) == "My Todo")
     }
 
-    /// `synonyms:` は Siri のマッチ幅を広げるためのもので、アプリ内の表示には出ない。
-    /// 落としても画面上は何も変わらないため、ここで押さえる。
+    /// `synonyms:` only widens Siri's matching and never appears in the app, so dropping it
+    /// would change nothing on screen.
     @Test("DisplayRepresentation offers synonyms for Siri matching")
     func displayRepresentationOffersSynonyms() {
         let entity = TodoAppEntity(id: "test-id", title: "My Todo")

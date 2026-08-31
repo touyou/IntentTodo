@@ -78,8 +78,8 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
   同じ検討を半年後にもう一度させないことがこの記録の目的
 - devlog に「残タスクとして残した」と書くときも、**同時に issue へ起票してポインタを併記**する
 
-同じ切り分けをコードコメントにも適用する:
-[docs/CODING_GUIDELINES.md](docs/CODING_GUIDELINES.md#コード内コメント経緯は書かない)
+**コードコメントは英語**で、実装中に本当に必要な情報だけ（ドキュメントへのリンクも置かない）:
+[docs/CODING_GUIDELINES.md](docs/CODING_GUIDELINES.md#コード内コメント)
 
 ## Git 運用
 

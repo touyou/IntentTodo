@@ -18,9 +18,8 @@ private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoC
 /// Control widget showing incomplete todo count.
 /// Tapping opens the app's incomplete list.
 ///
-/// 未完了数はコントロール面に出ているので、タップでそれを見せ直しても二重表示に
-/// なるだけ（Control は dialog も snippet も提示しない）。グランスは数字、
-/// タップはドリルイン。
+/// The count is already on the control face, so tapping drills in rather than reporting it
+/// again — a control shows neither dialogs nor snippets anyway.
 struct TodoCountControl: ControlWidget {
     static let kind = "dev.touyou.IntentTodo.IntentTodoWidget.TodoCountControl"
 
@@ -42,8 +41,8 @@ struct TodoCountControl: ControlWidget {
 
 extension TodoCountControl {
     /// Value provider is the Apple-recommended way to feed data into a Control Widget.
-    /// body 内で直接 fetch するより、システムが適切なタイミングで `currentValue()` を
-    /// 呼ぶのでバックグラウンド挙動や更新が WidgetKit 側で最適化される。
+    /// The system decides when to call `currentValue()`, which is what lets WidgetKit
+    /// schedule the work; fetching inside `body` bypasses that.
     struct Provider: ControlValueProvider {
         var previewValue: Int { 3 }
 
@@ -56,9 +55,8 @@ extension TodoCountControl {
                 do {
                     return try context.fetchCount(descriptor)
                 } catch {
-                    // fetch 失敗を `?? 0` で吸収すると Control が "0" を表示し、
-                    // ユーザーは「全部完了」と誤認してしまうため throw に変える。
-                    // WidgetKit が前回値 / placeholder を維持し、`?? 0` の嘘表示を回避。
+                    // Absorbing the failure with `?? 0` would display "0", i.e. "all
+                    // done". Throwing keeps WidgetKit on the previous value instead.
                     logger.error("TodoCountControl fetchCount failed: \(String(reflecting: error))")
                     throw error
                 }

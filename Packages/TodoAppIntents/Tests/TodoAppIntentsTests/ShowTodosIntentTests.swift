@@ -2,9 +2,8 @@
 //  ShowTodosIntentTests.swift
 //  TodoAppIntents
 //
-//  Intent perform() は AppDependencyManager 解決の都合で SPM テストでは
-//  動かしにくい。代わりに filter → AppScreenTarget マッピングだけ純関数に
-//  切り出してあるので、ここでは 4 ケースを exhaustive にカバーする。
+//  `perform()` needs `@Dependency` resolution, so only the filter-to-screen mapping is
+//  extracted as a pure function; all four cases are covered here.
 //
 
 import Testing
@@ -19,7 +18,7 @@ struct ShowTodosIntentTests {
 
     @Test("filter .completed routes to .todoList")
     func filterCompleted() {
-        // .completed と .all は同じ画面を開く (どちらも Todo 全体ビュー上で表現するため)
+        // `.completed` and `.all` open the same screen; both are expressed in the full list.
         #expect(ShowTodosIntent.screenTarget(for: .completed) == .todoList)
     }
 

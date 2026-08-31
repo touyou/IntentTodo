@@ -2,8 +2,8 @@
 //  MissedFeedbackTests.swift
 //  TodoAppIntents
 //
-//  「伝えられなかった」記録の読み書き。ここが壊れると設定誘導が出ず、
-//  Control の失敗もライブアクティビティ不在も無音のままになる。
+//  Reading and writing the "could not deliver" records. Broken, nothing points at Settings
+//  and both control failures and missing Live Activities stay silent.
 //
 
 import Foundation
@@ -12,7 +12,7 @@ import Testing
 
 @Suite("MissedFeedback")
 struct MissedFeedbackTests {
-    /// テストごとに独立した UserDefaults を使う（App Group の実ストアを汚さない）。
+    /// A private suite per test, so the real App Group store is left alone.
     private func makeDefaults() -> UserDefaults {
         let suite = "MissedFeedbackTests.\(UUID().uuidString)"
         // swiftlint:disable:next force_unwrapping

@@ -40,9 +40,9 @@ public struct SearchEverythingIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<[TodoOrCategory]> {
-        // 突き合わせは `localizedStandardContains(_:)`（`TodoEntityQuery` と同じ）。
-        // 小文字化して `contains` するとロケール非依存になり、かな/カナやダイアクリ
-        // ティカルマークを別物として扱ってしまう。
+        // `localizedStandardContains(_:)`, as everywhere else user-visible strings are
+        // compared: `lowercased().contains()` is locale-independent and treats kana forms
+        // and diacritics as different characters.
         let needle = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !needle.isEmpty else { return .result(value: []) }
 

@@ -3,12 +3,9 @@
 //  TodoAppIntents
 //
 
-// この型は `.reminders.reminder` の `locationTrigger` を満たすためだけに存在する。
-// App Schema は watchOS に無く、watchOS 版の `TodoAppEntity`（`WatchTodoAppEntity`）は
-// `locationTrigger` を持たないので、**ファイルごと非 watchOS に閉じる**。
-// watchOS 用のフォールバック型を置くと、何からも参照されない entity が watch の
-// メタデータに並ぶだけになる。
-// 経緯: docs/devlog/2026-08-29-schema-vs-watch-target.md
+// Exists only to satisfy `locationTrigger` on `.reminders.reminder`. The whole file is
+// closed to watchOS: there is no schema there to require it, and a fallback type would only
+// add an entity nothing references to the watch metadata.
 #if !os(watchOS)
 
 import AppIntents
@@ -89,8 +86,8 @@ extension TodoLocationTriggerAppEntity {
         return DisplayRepresentation(title: title, subtitle: subtitle(for: event))
     }
 
-    /// 同じ文言を `caseDisplayRepresentations` と共有する（キーが同じなので catalog の
-    /// エントリは 1 つで済む）。
+    /// Shares its strings with `caseDisplayRepresentations`, so the String Catalog needs
+    /// one entry rather than two.
     private static func subtitle(for event: TodoLocationTriggerEvent) -> LocalizedStringResource {
         switch event {
         case .arrive: "Arriving"

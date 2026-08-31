@@ -94,9 +94,8 @@ struct TodoItemTests {
         #expect(todo.createdAt <= afterCreation)
     }
 
-    // NOTE: didSet による自動 modifiedAt 更新は CloudKit マージで発火しない問題で
-    // 撤去済 (`docs/insights/02-swiftdata-concurrency.md`)。modifiedAt の更新責務は
-    // TodoService の各 mutation メソッドに移ったため、検証は TodoServiceTests 側で行う。
+    // Keeping `modifiedAt` current is `TodoService`'s job, not a `didSet` on the model
+    // (which does not fire for CloudKit merges), so it is verified in `TodoServiceTests`.
 }
 
 @Suite("SubTask Tests")

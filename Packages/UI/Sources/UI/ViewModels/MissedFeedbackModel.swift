@@ -2,36 +2,36 @@
 //  MissedFeedbackModel.swift
 //  UI
 //
-//  伝達手段が塞がれていて届かなかったフィードバックを、一覧の設定誘導バナーへ流す。
+//  Surfaces undelivered feedback as a banner in the list that points at Settings.
 //
 
 import Foundation
 import Observation
 import TodoAppIntents
 
-/// `MissedFeedback` の記録を View に見せるストア。
+/// Exposes `MissedFeedback` records to views.
 ///
-/// 記録を書くのは Control / Widget の Extension プロセスにもなるため、値の変化を
-/// 購読する手段が無い。前面に戻ったタイミングで `refresh()` を呼んで読み直す。
+/// The writer can be an extension process, so there is nothing to observe: callers invoke
+/// `refresh()` when the app comes forward.
 @MainActor
 @Observable
 public final class MissedFeedbackModel {
-    /// 表示すべき channel（`MissedFeedback.Channel.allCases` の順）。
+    /// Channels to report, in `MissedFeedback.Channel.allCases` order.
     public private(set) var channels: [MissedFeedback.Channel] = []
 
-    /// テストから差し替えるための注入口。`nil` なら App Group の既定ストア。
+    /// Injectable for tests; `nil` uses the App Group store.
     private let defaults: UserDefaults?
 
     public init(defaults: UserDefaults? = nil) {
         self.defaults = defaults
     }
 
-    /// 記録を読み直す。
+    /// Re-reads the records.
     public func refresh() {
         channels = MissedFeedback.pending(defaults)
     }
 
-    /// バナーを閉じる。記録を消すので、次に取りこぼすまで再表示されない。
+    /// Clears the record, so the banner returns only if feedback is lost again.
     public func dismiss(_ channel: MissedFeedback.Channel) {
         MissedFeedback.clear(channel, defaults: defaults)
         refresh()

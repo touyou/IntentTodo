@@ -23,9 +23,8 @@ public struct VisionOSTodoListView: View {
     @Environment(NavigationModel.self) private var navigationModel
 
     private var filteredTodos: [TodoAppEntity] {
-        // SwiftData の `@Query` が返す `[TodoItem]` は class ベースの `PersistentModel`
-        // を要素に持つため、要素の中身変更 (title / isCompleted トグル) では `onChange`
-        // ベースのキャッシュ更新が発火しない。安全側に倒し、body 評価ごとに entity 化する。
+        // Mapped on every body evaluation rather than cached: `@Query` returns reference
+        // types, so changing a field in place would not fire an `onChange`-based cache.
         viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
     }
 
@@ -92,15 +91,15 @@ private struct VisionOSSidebar: View {
                 }
                 .listStyle(.sidebar)
                 // Collection onscreen (WWDC 2026 #343) — same treatment as
-                // `TodoListSidebar` on iOS/macOS, so "これ" / "the third one" resolves
-                // on visionOS too. `forSelectionType:` は `List` に付けたときだけ効く。
+                // `TodoListSidebar` on iOS/macOS, so "the third one" resolves on visionOS
+                // too. `forSelectionType:` is only honoured when applied to a `List`.
                 .appEntityIdentifier(forSelectionType: TodoAppEntity.self) { todo in
                     EntityIdentifier(for: TodoAppEntity.self, identifier: todo.id)
                 }
             }
         }
         .toolbar {
-            // 連携（Shortcuts など）の入口。`ShortcutsLink` は visionOS SDK にもある。
+            // Entry point for the integration settings; `ShortcutsLink` exists on visionOS.
             ToolbarItem(placement: .topBarLeading) {
                 Button {
                     showingSettings = true
@@ -215,8 +214,8 @@ struct VisionOSTodoRow: View {
     let isSelected: Bool
 
     private var status: DueDateStatus {
-        // スキーマ要求で `dueDate` は `DateComponents?` になったので、比較や整形に使うのは
-        // stored 値の `dueDateValue`。経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+        // `dueDate` is a `DateComponents?` projection required by the schema, so comparisons
+        // and formatting use the stored `dueDateValue`.
         if let dueDate = todo.dueDateValue {
             return DueDateStatus.evaluate(date: dueDate, isCompleted: todo.isCompleted)
         }

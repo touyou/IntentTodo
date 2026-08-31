@@ -2,7 +2,6 @@
 //  IntentTodoApp.swift
 //  IntentTodo
 //
-//  Created by 藤井陽介 on 2026/01/29.
 //
 
 import AppIntents
@@ -19,9 +18,8 @@ private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "Inten
 struct IntentTodoApp: App {
     // MARK: - Properties
 
-    // UIApplicationDelegate と NSApplicationDelegate は別プロトコルのため、
-    // プラットフォームごとに Adaptor を分岐（デファクトパターン）。
-    // 通知ハンドラ本体は NotificationHandler に集約し、両 Delegate から共通に利用する。
+    // `UIApplicationDelegate` and `NSApplicationDelegate` are separate protocols, so only
+    // the adaptor is platform-specific; both delegates share `NotificationHandler`.
     #if os(iOS) || os(visionOS)
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     #elseif os(macOS)
@@ -38,15 +36,14 @@ struct IntentTodoApp: App {
 
     // MARK: - Initialization
 
-    /// UI テストが渡す起動引数。指定されたときだけ in-memory ストアで起動する。
+    /// Launch argument that switches the app to an in-memory store, DEBUG only.
     ///
-    /// UI テストは 1 件ごとにアプリを起こし直すが、共有ストアはプロセスを跨いで残る。
-    /// そのため todo がテスト間で積み上がり、(1) 空状態を前提にしたテストが書けない、
-    /// (2) 一覧の再描画が遅くなって待ち条件がタイムアウトしやすくなる、という 2 つの形で
-    /// テストを不安定にしていた。DEBUG 限定なので出荷ビルドではこの分岐が存在しない。
+    /// The shared store outlives the process, so without this todos accumulate across UI
+    /// tests: tests cannot assume an empty list, and the growing list slows redraws enough
+    /// to time out waits.
     ///
-    /// AppIntents のテスト（`IntentTodoUITest/AppIntents/`）はこの引数を渡さない。
-    /// 実運用と同じ共有ストアの上で entity 解決 / Spotlight index を見たいため。
+    /// The AppIntents tests deliberately do *not* pass it — they want entity resolution and
+    /// Spotlight indexing on the real shared store.
     #if DEBUG
     static let ephemeralStoreArgument = "-uitest-ephemeral-store"
     #endif
@@ -78,22 +75,21 @@ struct IntentTodoApp: App {
             fatalError("Could not create ModelContainer: \(String(reflecting: error))")
         }
 
-        // TodoService は Intent からも View からも参照可能な唯一のビジネスロジック層。
-        // Repository を内包するため、Intent 側は SwiftData を直接触らない。
+        // The single business-logic layer, reachable from both intents and views. It owns
+        // the repository, so intents never touch SwiftData directly.
         let todoService = TodoService.swiftDataBacked(container: modelContainer)
         AppDependencyManager.shared.add(dependency: todoService)
 
-        // Spotlight index の初期投入 (IndexedEntity 準拠だけでは検索対象にならない).
-        // mutation 側 (create / toggle / delete / snooze) は TodoService 内で差分 index.
-        // 件数が増えても初回フレーム描画と競合しないよう、priority を低めに固定する。
+        // Seeds the Spotlight index; `IndexedEntity` conformance alone indexes nothing.
+        // Incremental updates happen inside `TodoService`. Low priority so a large store
+        // cannot compete with the first frame.
         Task(priority: .utility) {
             await todoService.indexAllForSpotlight()
         }
 
-        // パラメータ入りの App Shortcut フレーズ ("Complete <todo> in IntentTodo") は、
-        // システムが一度 suggestedEntities を取得するまで機能しない。
-        // 更新契機はパッケージ側 (TodoService) から通知されるので、その入口を登録し、
-        // 起動時に 1 回自分で叩く (wwdc2023-10102 9:52)。
+        // Parameterised App Shortcut phrases do not work until the system has fetched
+        // suggestions at least once, so the handler is registered and invoked here.
+        // Later invalidations come from `TodoService`. [Apple: wwdc2023-10102 9:52]
         MainActor.assumeIsolated {
             AppShortcutParameterUpdater.register {
                 TodoAppShortcuts.updateAppShortcutParameters()
@@ -107,7 +103,7 @@ struct IntentTodoApp: App {
         self.navigationModel = navigation
         AppDependencyManager.shared.add(dependency: navigation)
 
-        // 通知タップ時のナビゲーションも同じ NavigationModel を使う。
+        // Notification taps navigate through the same `NavigationModel`.
         #if os(iOS) || os(visionOS) || os(macOS)
         MainActor.assumeIsolated {
             NotificationHandler.shared.navigationModel = navigation
@@ -124,9 +120,9 @@ struct IntentTodoApp: App {
                 .task {
                     await requestNotificationPermission()
                 }
-                // アプリが動いていない間の Focus 遷移では TodoFocusFilterIntent の
-                // perform() が呼ばれない（AppIntents Extension を持たないため。
-                // wwdc2022-10121 9:29）。起動時と復帰時に current を取り直して埋める。
+                // Focus changes that happen while the app is not running never reach
+                // `perform()` (there is no AppIntents extension), so the current value is
+                // re-read at launch and on foregrounding. [Apple: wwdc2022-10121 9:29]
                 .task {
                     await TodoFocusFilterStore.shared.syncFromSystem()
                 }
@@ -146,7 +142,7 @@ struct IntentTodoApp: App {
     /// Handle deep link URLs from widgets and from `TodoAppEntity`'s URL
     /// representation (`intenttodo://todo/<id>`).
     ///
-    /// URL の綴りは `TodoDeepLink` に集約してあるので、ここでは解釈結果だけを見る。
+    /// The URL spelling lives in `TodoDeepLink`; this only acts on the parsed result.
     private func handleURL(_ url: URL) {
         guard let link = TodoDeepLink(url: url) else { return }
 
@@ -155,8 +151,8 @@ struct IntentTodoApp: App {
             navigationModel.navigateToRoot()
             navigationModel.showAddTodo()
         case .todo(let id):
-            // 消された Todo の古いリンクを踏んだ場合は何もしない（エラーを見せる
-            // 価値がなく、開いた画面が空になるより現状維持のほうが混乱しない）。
+            // A stale link to a deleted todo does nothing: staying put is less confusing
+            // than opening an empty screen or showing an error.
             let service = TodoService.swiftDataBacked(container: modelContainer)
             guard let todo = service.todo(id: id) else { return }
             navigationModel.navigateToRoot()
@@ -172,14 +168,12 @@ struct IntentTodoApp: App {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])
             if granted {
                 logger.info("Notification permission granted")
-                // 許可が戻ったら過去の取りこぼし記録は消す（設定誘導を出し続けない）。
-                // 既に許可済みの起動でも `requestAuthorization` は true を返すので、
-                // ここが毎起動の回収点になる。
+                // `requestAuthorization` also returns true when permission was already
+                // granted, which makes this the per-launch point to clear stale records.
                 MissedFeedback.clear(.notification)
             } else {
-                // 拒否されると Control / Widget から実行した Intent の失敗を伝える
-                // 経路が無くなる（dialog も snippet も出ない）。ここでは催促せず、
-                // 実際に取りこぼした時点で `MissedFeedback` 経由で一覧が設定誘導を出す。
+                // Denied leaves controls and widgets with no way to report failures. No
+                // nagging here; `MissedFeedback` surfaces it if something is actually lost.
                 logger.warning("Notification permission denied: Control / Widget failures can't be surfaced")
             }
         } catch {

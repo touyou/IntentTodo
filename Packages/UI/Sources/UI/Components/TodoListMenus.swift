@@ -2,18 +2,14 @@
 //  TodoListMenus.swift
 //  UI
 //
-//  Filter / Sort 用の `Picker` を共通化したコンポーネント。iOS の
-//  combined Menu (Filter + Sort 統合) と visionOS の独立 Menu (Filter / Sort
-//  並列) で同じ Picker 中身が二重実装されていた問題を解消する。
-//
-//  Picker のみ切り出して `Menu { … }` でのラップは呼出側に任せることで、
-//  両プラットフォームの UX (combined vs 並列) は維持したまま中身だけ共通化。
+//  Shared `Picker` contents for filtering and sorting. Only the pickers live here; wrapping
+//  them in a `Menu` is left to the caller, so iOS can combine both into one menu while
+//  visionOS keeps them side by side.
 //
 
 import SwiftUI
 
-/// Todo フィルタ用 Picker (Menu の中身として使う想定)。
-/// `TodoFilter` / `TodoSortOrder` は同 UI パッケージ内 (`TodoListViewModel.swift`) で定義。
+/// Filter picker, intended as the contents of a `Menu`.
 public struct FilterPicker: View {
     @Binding private var selection: TodoFilter
 
@@ -31,7 +27,7 @@ public struct FilterPicker: View {
     }
 }
 
-/// Todo ソート用 Picker (Menu の中身として使う想定)。
+/// Sort picker, intended as the contents of a `Menu`.
 public struct SortPicker: View {
     @Binding private var selection: TodoSortOrder
 

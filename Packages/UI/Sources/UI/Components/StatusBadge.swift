@@ -2,24 +2,23 @@
 //  StatusBadge.swift
 //  UI
 //
-//  完了 / お気に入り / 期限ステータスを表示するチップ。iOS と visionOS で
-//  別個の private struct を抱えていたのを 1 つに統合し、size variant でだけ
-//  外見差を出す。
+//  Chip showing completion, favourite and due-date status. One type for every platform, with
+//  a size variant for the visual differences.
 //
 
 import SwiftUI
 
 public struct StatusBadge: View {
-    /// 表示サイズ。視覚優先度の差を吸収するためにのみ使う。
+    /// Absorbs the difference in visual weight between platforms.
     public enum Size: Sendable {
-        /// 標準サイズ — iOS / iPadOS / macOS の Detail Header で使用。
+        /// Used in the detail header on iOS, iPadOS and macOS.
         case compact
-        /// 大きめサイズ — visionOS の空間 UI で視認性を確保するために使用。
+        /// Larger, for legibility in visionOS's spatial UI.
         case prominent
     }
 
-    /// 文言は `LocalizedStringResource` で受ける。`String` で受けると呼出側の
-    /// リテラルが String Catalog に抽出されない（verbatim 扱いになる）。
+    /// `LocalizedStringResource`, not `String`: the latter makes the caller's literal
+    /// verbatim and it never reaches the String Catalog.
     private let title: LocalizedStringResource
     private let systemImage: String
     private let color: Color

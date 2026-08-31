@@ -4,9 +4,9 @@
 //
 //  Local notifications used by Control Center intents to report *failures*.
 //
-//  成功は perform() 完了時の自動リロードでコントロール自身が伝えるので通知しない
-//  (二重表示になるうえ通知センターに残る)。失敗だけは他に伝える手段が無い
-//  (dialog も snippet も Control では表示されない)。
+//  Success needs no notification: the control redraws itself when the system reloads it
+//  after `perform()` returns. Failure has no other channel, because controls present
+//  neither dialogs nor snippets.
 //
 
 import AppIntents
@@ -25,15 +25,16 @@ public enum ControlNotificationHelper {
     ///   off-screen (WWDC 2026 #343). Requires a persistent `AppEntity`
     ///   (`TransientAppEntity` isn't supported here).
     public static func sendErrorNotification(message: String, todoId: String? = nil) {
-        // `UNMutableNotificationContent` / `UNNotificationRequest` は Sendable ではない
-        // ので、Task の中で組む（外で作って渡すと sending 違反になる）。
+        // `UNMutableNotificationContent` and `UNNotificationRequest` are not Sendable, so
+        // they are built inside the task rather than passed into it.
         Task {
             let content = UNMutableNotificationContent()
             content.title = "Todo Error"
             content.body = message
             content.sound = .default
-            // 集中モードの絞り込み中でも黙らされないようにする。`TodoFocusFilterIntent`
-            // が返す述語の許可リストは必ずこの criteria を含む（wwdc2022-10121 13:15）。
+            // Keeps the notification audible while a Focus filter is active: the predicate
+            // returned by `TodoFocusFilterIntent` always allows this criteria.
+            // [Apple: wwdc2022-10121 13:15]
             content.filterCriteria = TodoFocusFilter.systemNotificationCriteria
             if let todoId {
                 content.appEntityIdentifiers = [EntityIdentifier(for: TodoAppEntity.self, identifier: todoId)]
@@ -43,17 +44,17 @@ public enum ControlNotificationHelper {
         }
     }
 
-    /// 通知を出す。**通知が許可されていない場合は記録を残す**。
+    /// Schedules the notification, recording the miss when notifications are denied.
     ///
-    /// `UNUserNotificationCenter.add` は許可が無くても error を返さない（システムが
-    /// 黙って捨てる）。ここで許可状態を先に見ておかないと、Control の失敗が
-    /// 「通知も出ない / コントロールは前の状態のまま」で完全に無音になる。
-    /// 記録は `MissedFeedback` に置き、アプリの一覧が設定誘導のバナーを出す。
+    /// `UNUserNotificationCenter.add` does not report an error in that case — the system
+    /// drops the request — so without checking the status first a failed control action is
+    /// completely silent. The record goes to `MissedFeedback`, which the app's list turns
+    /// into a banner pointing at Settings.
     private static func schedule(_ content: UNNotificationContent, identifierPrefix: String) async {
         let center = UNUserNotificationCenter.current()
         let status = await center.notificationSettings().authorizationStatus
-        // `.ephemeral`（App Clip）は watchOS で unavailable。このアプリは App Clip を
-        // 持たないので候補から外す。
+        // `.ephemeral` (App Clip) is unavailable on watchOS and this app has no App Clip,
+        // so it is not among the accepted statuses.
         guard status == .authorized || status == .provisional else {
             logger.error("notification dropped (\(identifierPrefix)): not authorized (status=\(status.rawValue))")
             MissedFeedback.record(.notification)

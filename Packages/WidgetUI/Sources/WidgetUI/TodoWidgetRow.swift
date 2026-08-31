@@ -11,10 +11,10 @@ import TodoAppIntents
 
 /// Row component for displaying a todo item in widgets.
 ///
-/// 行タップはその Todo の詳細を開くだけなので `Button(intent:)` ではなく `Link` を使う
-/// （公式: "If you want to offer an interaction that opens the app, use `Link`"）。
-/// 宛先は `TodoAppEntity` の `URLRepresentableEntity` と同じ URL で、Siri /
-/// Shortcuts が `OpenTodoIntent` で指すのと同一の場所になる。
+/// Tapping a row only opens the todo, so it is a `Link`, not a `Button(intent:)` — Apple:
+/// "If you want to offer an interaction that opens the app, use `Link`". The destination is
+/// the same URL the entity's `URLRepresentableEntity` produces, so Siri and the widget point
+/// at the same place.
 struct TodoWidgetRow: View {
     let todo: TodoAppEntity
     let compact: Bool
@@ -48,8 +48,7 @@ struct TodoWidgetRow: View {
 
 /// Badge component for displaying due date with appropriate styling.
 ///
-/// Widget は「今日期限」を示す必要があるため `DueDateStatus` とは別に
-/// `isDueToday` 判定を併用している（overdue / today / それ以外）。
+/// Widgets need "due today" as its own state, which `DueDateStatus` does not model.
 struct DueDateBadge: View {
     let date: Date
     let isCompleted: Bool

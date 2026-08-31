@@ -5,7 +5,7 @@
 //  Reports the current incomplete todo count to Siri / Shortcuts / Spotlight,
 //  showing the breakdown (overdue / completed / total) via dialog + snippet.
 //
-//  Control からは呼ばない (Control は dialog も snippet も提示しない)。
+//  Not called from Control Center, which presents neither dialogs nor snippets.
 //
 
 import AppIntents
@@ -22,8 +22,8 @@ public struct ShowTodoCountIntent: AppIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<Int> & ProvidesDialog & ShowsSnippetIntent {
-        // fetch 失敗を `try? ?? 0` で握りつぶすと「全部完了!」と嘘の結果を返すため、
-        // そのまま throw して Siri / Shortcuts 側にエラーとして伝える。
+        // Swallowing a fetch failure with `try? ?? 0` would report "all done" — a lie.
+        // Let it throw so the caller sees an error.
         let count = try todoService.incompleteCount()
         return .result(
             value: count,
@@ -32,13 +32,14 @@ public struct ShowTodoCountIntent: AppIntent {
         )
     }
 
-    /// WWDC 2026 (#343): `full` は音声のみの文脈で単体完結するメッセージ、
-    /// `supporting` は snippet が視覚表示される文脈で添える短い一言。
+    /// `full` is the self-contained sentence for voice-only contexts; `supporting` is the
+    /// short line added when the snippet is also visible. [Apple: wwdc2026-343]
     private func dialog(for count: Int) -> IntentDialog {
         guard count > 0 else {
             return IntentDialog(full: "You've completed every todo.", supporting: "All done.")
         }
-        // 名詞は訳文側で決める（英語の屈折を Swift で組み立てると catalog に載らない）。
+        // The noun is localized, not inflected in Swift: fragments built with `+` or `?:`
+        // never reach the String Catalog.
         let noun = String(localized: count == 1 ? "todo" : "todos")
         return IntentDialog(
             full: "You have \(count) incomplete \(noun).",

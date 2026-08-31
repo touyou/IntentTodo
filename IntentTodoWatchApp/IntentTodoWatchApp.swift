@@ -25,10 +25,9 @@ struct IntentTodoWatchApp: App {
     @State private var navigationModel: NavigationModel
 
     init() {
-        // 開けなければ watch アプリには表示できるデータが何も無いので fatalError のまま。
-        // `try!` と違うのは理由がログに残ること — トラップはメッセージを持たず、
-        // 起動直後のクラッシュは Watch 単体では「開いてすぐ落ちる」以外に手掛かりが無い。
-        // メインアプリの `IntentTodoApp.init()` と同じ形。
+        // Without a store the watch app has nothing to show, so this still traps — but it
+        // logs why first. A bare `try!` leaves no message, and on the watch a launch crash
+        // otherwise presents as "opens and immediately quits".
         let container: ModelContainer
         do {
             container = try SharedModelContainer.createContainer()
@@ -41,8 +40,8 @@ struct IntentTodoWatchApp: App {
         }
         modelContainer = container
 
-        // @Dependency で解決できるよう AppDependencyManager に同期登録する。
-        // Task {} で遅延するとアプリ起動直後の Intent 実行で resolve 漏れが起きる。
+        // Registered synchronously: deferring to a `Task` can lose the race against an
+        // intent that runs right after launch.
         AppDependencyManager.shared.add(dependency: container)
 
         MainActor.assumeIsolated {
@@ -50,11 +49,9 @@ struct IntentTodoWatchApp: App {
             AppDependencyManager.shared.add(dependency: todoService)
         }
 
-        // NavigationModel も登録する。`AddTodoIntent` は完了時に
-        // `navigationModel.dismissAddTodo()` を呼ぶため、未登録だと watch では
-        // **Todo 追加そのものが失敗する**（"Failed to retrieve dependency of type
-        // NavigationModel"。クラッシュしないので画面も変わらず無音で終わる）。
-        // 経緯: docs/devlog/07-platform-specific.md（2026-08-27 の実機確認）
+        // `NavigationModel` too: `AddTodoIntent` calls `dismissAddTodo()` on success, so
+        // without it **adding a todo fails outright** with "Failed to retrieve dependency of
+        // type NavigationModel" — no crash, no error, nothing on screen.
         let navigation = NavigationModel()
         self.navigationModel = navigation
         AppDependencyManager.shared.add(dependency: navigation)

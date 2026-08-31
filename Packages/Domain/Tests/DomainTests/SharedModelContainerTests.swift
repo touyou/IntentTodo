@@ -24,10 +24,9 @@ struct SharedModelContainerTests {
 
     @Test("Container URL is available for App Group")
     func containerURLAvailable() {
-        // macOS では entitlement が無いプロセスでもパス自体は解決される（実測。
-        // 返るのは ~/Library/Group Containers/<id>。ただし書き込みはできない）。
-        // したがってこの assert は「App Group が使える」ことの証明にはならず、
-        // 識別子からパスを組めることだけを見ている。
+        // On macOS the path resolves even without the entitlement (to
+        // ~/Library/Group Containers/<id>, which cannot be written to), so this asserts only
+        // that a path can be derived from the identifier — not that the App Group works.
         let url = SharedModelContainer.sharedContainerURL
 
         #expect(url != nil)
@@ -68,17 +67,15 @@ struct SharedModelContainerTests {
 
     // MARK: - Container Tests
 
-    /// 共有ストアを実際に開けるのは App Group + iCloud の entitlement を持つ
-    /// プロセス（アプリ本体 / 各 Extension）だけ。SPM のテストプロセスには
-    /// entitlement が無く、macOS ではパスが解決できてしまう分だけ質が悪い
-    /// （`configuration` の DEBUG フォールバックが働かず、開けないパスをそのまま
-    /// 掴んで `NSCocoaErrorDomain 256 / SQLite 23` で落ちる）。
+    /// Only an entitled process — the app or one of its extensions — can actually open the
+    /// shared store. An SPM test process has no entitlement, and on macOS that is worse than
+    /// having no path at all: the DEBUG fallback in `configuration` never triggers, so the
+    /// unopenable store is used and creation fails with `NSCocoaErrorDomain 256`.
     ///
-    /// そのため「環境によって落ちるテスト」として明示する。entitlement のある
-    /// ホストで走らせれば成功し、`isIntermittent: true` なのでその場合も緑のまま。
-    /// in-memory 経路の実質的なカバレッジは下の `containerMainContext` にある。
+    /// Marked as a known, environment-dependent issue: on an entitled host it passes, and
+    /// `isIntermittent` keeps that green. The in-memory path is covered by
+    /// `containerMainContext` below.
     ///
-    /// 経緯: docs/devlog/05-extensions-and-data-sharing.md（2026-08-26）
     @Test("Container can be created successfully")
     func containerCreation() throws {
         withKnownIssue(

@@ -9,8 +9,8 @@
 
 import AppIntents
 #if os(iOS) || os(visionOS)
-// AppIntents + UIKit を揃えて import すると cross-import overlay 経由で
-// UISceneAppIntent が使えるようになる。
+// Importing UIKit alongside AppIntents activates the cross-import overlay that provides
+// `UISceneAppIntent`.
 import UIKit
 #endif
 
@@ -22,10 +22,9 @@ import UIKit
 ///
 /// Navigation is written to `NavigationModel` via `@Dependency` in `perform()`,
 /// matching `LaunchAppIntent`'s cold-start-safe pattern.
-/// `URLRepresentableIntent` も満たす。`OpenIntent` で `Target` が
-/// `URLRepresentableEntity` なので `urlRepresentation` は SDK 側の extension が
-/// 組み立ててくれる（`intenttodo://todo/<id>`）。これにより「この Todo を開く」が
-/// URL としても表現でき、ウィジェットの `Link` と Siri / Shortcuts が同じ宛先を指す。
+/// `URLRepresentableIntent` comes for free: for an `OpenIntent` whose `Target` is a
+/// `URLRepresentableEntity`, the SDK synthesises `urlRepresentation`
+/// (`intenttodo://todo/<id>`), so a widget `Link` and Siri point at the same destination.
 public struct OpenTodoIntent: OpenIntent, URLRepresentableIntent {
     public static let title: LocalizedStringResource = "Open Todo"
     public static let description = IntentDescription("Opens the app to a specific todo")
@@ -53,7 +52,7 @@ public struct OpenTodoIntent: OpenIntent, URLRepresentableIntent {
         return .result()
     }
 
-    /// 対象 Todo の詳細へ遷移する。`perform()` とシーン経由の両方から呼ぶ（冪等）。
+    /// Idempotent, and called from both `perform()` and the scene delegate.
     @MainActor
     func applyNavigation() {
         navigationModel.navigateToRoot()
@@ -62,9 +61,9 @@ public struct OpenTodoIntent: OpenIntent, URLRepresentableIntent {
 }
 
 #if os(iOS) || os(visionOS)
-/// `OpenIntent` と組み合わせると `contentIdentifier`（`target.id` 由来）が自動で
-/// 手に入る。SwiftUI の `handlesExternalEvents` で宛先ウィンドウを選ばせたくなった
-/// ときに、この識別子をそのまま活性化条件に使える（wwdc2025-275 23:26）。
+/// Combined with `OpenIntent` this also yields a `contentIdentifier` derived from
+/// `target.id`, usable as a `handlesExternalEvents` activation condition if window
+/// targeting is ever needed. [Apple: wwdc2025-275 23:26]
 extension OpenTodoIntent: UISceneAppIntent {
     public func performNavigation(forScene scene: UIScene) {
         MainActor.assumeIsolated {

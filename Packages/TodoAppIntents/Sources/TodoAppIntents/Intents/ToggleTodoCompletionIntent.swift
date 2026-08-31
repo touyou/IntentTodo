@@ -2,8 +2,6 @@
 //  ToggleTodoCompletionIntent.swift
 //  TodoAppIntents
 //
-//  Siri / Shortcuts / UI / Widget / Live Activity すべての呼出元で共通に使う。
-//
 
 #if os(iOS)
 import ActivityKit
@@ -11,8 +9,8 @@ import Domain
 #endif
 import AppIntents
 
-/// `UndoableIntent`: 取り消しはトグルの逆再生ではなく「元の値へ戻す」。
-/// 理由は `TodoUndoRegistrar.registerCompletionChange` のコメント参照。
+/// Flips a todo's completion state. One intent for every caller: Siri, Shortcuts, the
+/// app's own UI, widgets and Live Activity buttons all run this type.
 public struct ToggleTodoCompletionIntent: UndoableIntent {
     public static var title: LocalizedStringResource { "Toggle Todo Completion" }
 
@@ -26,9 +24,9 @@ public struct ToggleTodoCompletionIntent: UndoableIntent {
 
     public static var supportedModes: IntentModes { .background }
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
-    /// iOS では `LiveActivityIntent` 準拠で実質アプリ実行だが、macOS / watchOS には
-    /// その保証が無いので型で明示する。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
+    /// On iOS the `LiveActivityIntent` conformance already guarantees that; macOS and
+    /// watchOS have no such guarantee, so state it in the type.
     public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
     public static var parameterSummary: some ParameterSummary {
@@ -59,9 +57,8 @@ public struct ToggleTodoCompletionIntent: UndoableIntent {
 
         #if os(iOS)
         if result.isNowCompleted {
-            // Live Activity は完了で用済み。`LiveActivityMonitor` の reconcile は
-            // TodoListView が画面に居るときしか走らないので、ロック画面から完了
-            // させたケースはここで畳まないと出っぱなしになる。
+            // `LiveActivityMonitor` only reconciles while the list is on screen, so a
+            // completion coming from the lock screen has to end the activity here.
             await endMatchingLiveActivity(for: todo.id)
         }
         #endif
@@ -80,8 +77,8 @@ public struct ToggleTodoCompletionIntent: UndoableIntent {
     #endif
 }
 
-// Live Activity のボタンから呼ばれるため、`perform()` がアプリプロセスで走ることを
-// 保証する `LiveActivityIntent` に準拠する（Activity の end 操作に必要）。
+// Ending an activity requires `perform()` to run in the app process, which conformance to
+// `LiveActivityIntent` is what guarantees.
 #if os(iOS)
 extension ToggleTodoCompletionIntent: LiveActivityIntent {}
 #endif

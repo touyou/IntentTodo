@@ -41,9 +41,8 @@ public final class TodoListViewModel {
     /// This logic is UI-specific and not exposed to Siri/Shortcuts.
     /// - Parameters:
     ///   - todos: The source todos to filter and sort.
-    ///   - focusFilter: 集中モードの絞り込み。ユーザーが選んだフィルタより前に効く
-    ///     （システム側の制約なので、UI のフィルタで広げ直せてはいけない）。
-    ///     既定は `.inactive` で、Focus を使っていない環境では従来どおり素通し。
+    ///   - focusFilter: applied before the person's own filter, since a system constraint
+    ///     must not be wideable from the UI. Defaults to `.inactive`.
     /// - Returns: Filtered and sorted todos.
     public func filteredTodos(
         from todos: [TodoAppEntity],
@@ -64,9 +63,9 @@ public final class TodoListViewModel {
         }
 
         // Apply search
-        // 突き合わせは `localizedStandardContains(_:)`（`TodoEntityQuery` と同じ）。
-        // `lowercased().contains()` はロケール非依存で、かな/カナやダイアクリティカル
-        // マークを別物として扱ってしまう。
+        // `localizedStandardContains(_:)`, as in the entity queries: `lowercased()` plus
+        // `contains` is locale-independent and treats kana forms and diacritics as
+        // different characters.
         if !searchText.isEmpty {
             result = result.filter { $0.title.localizedStandardContains(searchText) }
         }
@@ -114,11 +113,8 @@ public final class TodoListViewModel {
         }
     }
 
-    /// 期限なしは昇順・降順のどちらでも**末尾**に置く。
-    ///
-    /// 「日付の大小」ではなく「日付があるものを先に見せる」という並びなので、
-    /// nil の位置は `ascending` で反転させない（反転させると降順のときだけ
-    /// 期限なしが先頭に来る）。
+    /// Todos without a due date sort **last** in both directions: the intent is "dated
+    /// first", not "compare dates", so the nil position does not follow `ascending`.
     private func compareDueDates(_ lhs: Date?, _ rhs: Date?, ascending: Bool) -> Bool {
         switch (lhs, rhs) {
         case (nil, nil):
@@ -144,8 +140,8 @@ public enum TodoFilter: String, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
-    /// メニュー表示用の文言。`String` で返すと `Label` / `Text` が verbatim 初期化子を
-    /// 選び、リテラルが String Catalog に抽出されない。
+    /// A `String` here would make `Label` and `Text` pick their verbatim initialisers,
+    /// leaving the literals out of the String Catalog.
     public var displayName: LocalizedStringResource {
         switch self {
         case .all: return .copy("All")
@@ -192,7 +188,7 @@ public enum TodoSortOrder: String, CaseIterable, Identifiable, Sendable {
 
     public var id: String { rawValue }
 
-    /// メニュー表示用の文言。型の理由は `TodoFilter.displayName` と同じ。
+    /// Typed as in `TodoFilter.displayName`, for the same reason.
     public var displayName: LocalizedStringResource {
         switch self {
         case .createdAtDescending: return .copy("Newest First")

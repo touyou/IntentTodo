@@ -39,7 +39,7 @@ public struct SubTaskEntityQuery: EntityQuery {
             .map { SubTaskAppEntity(from: $0) }
     }
 
-    /// 候補一覧の描画用。親 todo を辿らずに表現だけを組み立てる。
+    /// Builds representations without walking back to the parent todo.
     @MainActor
     public func displayRepresentations(
         for identifiers: [SubTaskAppEntity.ID]

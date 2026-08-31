@@ -34,10 +34,9 @@ public struct TodoVisualIntelligenceQuery: IntentValueQuery {
         // "plant"). Match them against todo titles and category names. The pixel
         // buffer (`input.pixelBuffer`) is available too but image matching needs
         // an ML model, so we use the labels here.
-        // 突き合わせは `localizedStandardContains(_:)`（`TodoEntityQuery` と同じ）。
-        // ラベルは英語主体でも突き合わせ先の Todo は日本語などになるので、小文字化 +
-        // `contains` ではロケール依存の同一視（かな/カナ、ダイアクリティカルマーク、
-        // 全角/半角）が効かない。
+        // `localizedStandardContains(_:)`: the labels arrive in English but the todos they
+        // are matched against may be in any language, so locale-aware equivalence (kana
+        // forms, diacritics, full-width characters) has to stay in play.
         let labels = input.labels
         guard !labels.isEmpty else { return [] }
 

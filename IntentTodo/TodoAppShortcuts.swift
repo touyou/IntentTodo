@@ -3,16 +3,14 @@
 //  IntentTodo
 //
 //  Registers user-facing intents as App Shortcuts so they appear in Siri,
-//  Shortcuts, and Spotlight. `isDiscoverable = false` の内部用 Intent
-//  (QuickSnoozeTodoIntent / SetTodoCompletionIntent 等) は登録しない。
+//  Shortcuts, and Spotlight. Intents marked `isDiscoverable = false` are not registered.
 //
-//  フレーズには可能な限り Intent のパラメータを埋め込む（"Complete \(\.$todo) in ..."）。
-//  候補はシステムが `TodoEntityQuery.suggestedEntities()` から取る。パラメータ無しの
-//  フレーズも各 shortcut に 1 つ残す（指定なしで呼ばれたとき Siri が聞き返せるように）。
+//  Phrases embed a parameter where they can ("Complete \(\.$todo) in ..."), with the values
+//  coming from `TodoEntityQuery.suggestedEntities()`. Each shortcut also keeps one
+//  parameter-free phrase so Siri can ask which todo was meant.
 //
-//  パラメータ付きフレーズは `updateAppShortcutParameters()` が一度も呼ばれていないと
-//  機能しない。呼び出しは `IntentTodoApp` の起動時と `TodoService.dataDidChange()` に
-//  紐づけてある。詳細: docs/insights/03-app-intents-core.md
+//  Parameterised phrases do not work until `updateAppShortcutParameters()` has run at least
+//  once; that call is wired to app launch and to `TodoService.dataDidChange()`.
 //
 //  IMPORTANT: `AppShortcutsProvider` must live in the app target, NOT in an SPM
 //  package. When declared inside a Swift Package, the shortcuts are extracted
@@ -27,7 +25,7 @@ import AppIntents
 import TodoAppIntents
 
 struct TodoAppShortcuts: AppShortcutsProvider {
-    /// Shortcuts アプリに並ぶタイルの背景色。未指定だと既定色になる。
+    /// Background colour of the tiles in the Shortcuts app.
     static let shortcutTileColor: ShortcutTileColor = .teal
 
     static var appShortcuts: [AppShortcut] {
@@ -43,8 +41,8 @@ struct TodoAppShortcuts: AppShortcutsProvider {
             systemImageName: "plus.circle"
         )
 
-        // Query: 1 shortcut に統合（AppShortcuts は 10 件上限）。フィルタは
-        // `TodoFilterType`（AppEnum）で値が事前に確定しているのでフレーズに埋め込める。
+        // One shortcut rather than several, to stay well inside the ten-shortcut limit: the
+        // filter is an `AppEnum`, so its values can be embedded in the phrases.
         AppShortcut(
             intent: ShowTodosIntent(),
             phrases: [

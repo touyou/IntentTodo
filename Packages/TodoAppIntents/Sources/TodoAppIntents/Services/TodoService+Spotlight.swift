@@ -2,15 +2,15 @@
 //  TodoService+Spotlight.swift
 //  TodoAppIntents
 //
-//  Spotlight（= Apple Intelligence / Siri が引く索引）への反映。
+//  Keeps Spotlight — the index Siri and Apple Intelligence read — in step with the store.
 //
-//  `IndexedEntity` 準拠だけでは Spotlight に載らないため、起動時の全件投入と
-//  mutation ごとの差分反映をここで持つ。差分の失敗は Intent の呼出側に伝えない
-//  代わりに連続失敗を数え、閾値を超えたら次回起動でフル再インデックスをやり直す
-//  （`TodoSpotlightIndex` の「失敗からの自己修復」）。
+//  `IndexedEntity` conformance alone does not put anything in Spotlight, so this holds the
+//  launch-time bulk index and the per-mutation deltas. Delta failures are never surfaced to
+//  the intent caller; they are counted instead, and enough of them force a full reindex on
+//  the next launch.
 //
-//  メンバーが private ではなく internal なのは、呼び手（create / update / delete）が
-//  `TodoService.swift` 側に居るため。
+//  Members are internal rather than private because the callers (create / update / delete)
+//  live in `TodoService.swift`.
 //
 
 #if os(iOS) || os(macOS) || os(visionOS)
@@ -27,16 +27,13 @@ extension TodoService {
     /// app launch — `IndexedEntity` conformance alone is not enough for
     /// Spotlight to discover entities (it covers Apple Intelligence surfaces).
     ///
-    /// Spotlight 側からの再インデックス要求には `TodoEntityQuery`
-    /// (`IndexedEntityQuery`) が応答する。こちらは起動時の初期投入専用。
+    /// Reindex requests coming *from* Spotlight are answered by `TodoEntityQuery`
+    /// (`IndexedEntityQuery`); this is only the launch-time seed.
     ///
-    /// 前回コミットした client state と内容ダイジェストが一致していれば**丸ごと省く**。
-    /// 逐次の変更は `reindexSpotlight` が拾っているので、ここが毎起動走る必要はない。
-    /// ダイジェストの作り方と 250 バイト制約は `TodoSpotlightIndex.clientState(for:)`。
-    ///
-    /// ただし差分 index が連続で失敗している（`TodoSpotlightIndex.needsFullReindex()`）
-    /// ときは省略しない。省略すると「index は壊れているが state は最新」から抜け出せず、
-    /// Spotlight / Siri から todo を引けない状態が続く。
+    /// Skipped entirely when the content digest matches the last committed client state,
+    /// since `reindexSpotlight` already tracks individual changes — unless deltas have been
+    /// failing repeatedly, in which case skipping would leave "index broken, state current"
+    /// with no way out.
     public func indexAllForSpotlight() async {
         #if os(iOS) || os(macOS) || os(visionOS)
         await TodoSpotlightIndex.purgeLegacyDefaultIndexIfNeeded()
@@ -52,18 +49,18 @@ extension TodoService {
                 return
             }
             guard !items.isEmpty else {
-                // 空のバッチを endIndexBatch しても state は永続化されない。開かずに抜ける。
-                // 直す対象が無いので修復要求も降ろす。
+                // Ending an empty batch does not persist the state, so do not open one.
+                // Nothing to repair either, so drop any outstanding request.
                 spotlightLogger.info("indexAllForSpotlight nothing to index")
                 TodoSpotlightIndex.clearFullReindexRequest()
                 return
             }
             spotlightLogger.info("indexAllForSpotlight start count=\(items.count) repairing=\(isRepairing)")
-            // batch は index 呼び出しの**前**に開く。
+            // The batch has to be opened *before* the index calls.
             index.beginBatch()
             try await index.indexAppEntities(items.map { TodoAppEntity(from: $0) })
-            // 全件成功したときだけコミットする。途中で throw した起動は前回の state を
-            // 残したままなので、次回起動でフル再インデックスをやり直す。
+            // Committed only when every entity made it, so a launch that threw halfway
+            // keeps the previous state and reindexes fully next time.
             try await index.endBatch(withClientState: state)
             TodoSpotlightIndex.clearFullReindexRequest()
             spotlightLogger.info("indexAllForSpotlight done count=\(items.count)")
@@ -74,14 +71,13 @@ extension TodoService {
         #endif
     }
 
-    // MARK: - 差分反映
+    // MARK: - Incremental Updates
 
     /// Add / update a single todo in Spotlight. Fire-and-forget; Spotlight
     /// failures must not surface to the Intent caller.
     ///
-    /// 同じ id に対して前回の reindex/deindex Task が残っていればキャンセルしてから
-    /// 新しい Task を走らせる。これで連続トグル時に古い状態が後から上書きする
-    /// race condition を避ける。
+    /// Cancels any in-flight task for the same id first, so rapid toggling cannot let an
+    /// older state land after a newer one.
     func reindexSpotlight(_ entity: TodoAppEntity) {
         #if os(iOS) || os(macOS) || os(visionOS)
         let id = entity.id
@@ -104,7 +100,8 @@ extension TodoService {
         #endif
     }
 
-    /// Remove a deleted todo from Spotlight. race 対策は `reindexSpotlight` と同じ。
+    /// Remove a deleted todo from Spotlight. Same in-flight cancellation as
+    /// `reindexSpotlight`.
     func deindexSpotlight(id: String) {
         #if os(iOS) || os(macOS) || os(visionOS)
         inflightSpotlightTasks[id]?.cancel()
@@ -130,14 +127,12 @@ extension TodoService {
     }
 
     #if os(iOS) || os(macOS) || os(visionOS)
-    /// CSSearchableIndex のエラーは `NSError(domain: CSSearchableIndexErrorDomain)`
-    /// で `code` を見れば quotaExceeded(1) / invalidIndexState(2) /
-    /// userInteractionRequired(3) / indexUnavailable(4) を区別できる。
-    /// 一律 `error` で潰さず、判別できるようにログに出しておくと運用で原因切り分けがしやすい。
+    /// `CSSearchableIndexErrorDomain` codes distinguish quotaExceeded(1),
+    /// invalidIndexState(2), userInteractionRequired(3) and indexUnavailable(4), so the code
+    /// is logged rather than flattened into one error.
     ///
-    /// あわせて連続失敗を数える。差分 index の失敗は呼出側に伝えない設計なので、
-    /// 数えておかないと index が壊れたまま復旧する契機が無い
-    /// （`TodoSpotlightIndex.recordFailure` → 次回起動でフル再インデックス）。
+    /// Failures are also counted: nothing else would ever notice a broken index, since they
+    /// are deliberately not reported to the caller.
     static func logSpotlight(_ error: Error, action: String, id: String) {
         let nsError = error as NSError
         spotlightLogger.error(

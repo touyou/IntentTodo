@@ -2,17 +2,15 @@
 //  FocusFilterBanner.swift
 //  UI
 //
-//  集中モードで一覧が絞られていることを示すバナー。
+//  Banner shown while a Focus filter is narrowing the list.
 //
 
 import SwiftUI
 import TodoAppIntents
 
-/// 集中モードで一覧が絞られていることを示し、その場で解除できるようにする。
-///
-/// 標準アプリ（カレンダー）が Focus filter 適用中に「Focus で絞り込み中」の表示と
-/// 解除手段を並べて出しているのと同じ扱い（wwdc2022-10121 2:04）。表示だけ出して
-/// 解除手段が無いと、絞られていることに気づいたユーザーが設定アプリまで行くしかない。
+/// Reports that a Focus filter is active and offers to lift it in place, which is what
+/// Calendar does [Apple: wwdc2022-10121 2:04]. Saying so without offering the escape hatch
+/// would leave Settings as the only way out.
 struct FocusFilterBanner: View {
     let store: TodoFocusFilterStore
 
@@ -37,16 +35,16 @@ struct FocusFilterBanner: View {
             }
             .padding(.horizontal)
             .padding(.vertical, 8)
-            // Liquid Glass 時代のクロームは自前で塗らずシステムマテリアルに任せる。
+            // Chrome is left to the system material rather than painted here.
             .background(.bar)
             .accessibilityElement(children: .combine)
         }
     }
 }
 
-/// 効いている条件の内訳。文言を `String` に連結せず `Text` を並べることで、
-/// 他の文言と同じくローカライズ対象のまま扱える
-/// （カテゴリ名だけはユーザーデータなので `verbatim`）。
+/// Breakdown of the active conditions. Composed from separate `Text` views rather than a
+/// concatenated `String` so each piece stays localizable; only the category name, being user
+/// data, is verbatim.
 private struct FocusFilterConditions: View {
     let filter: TodoFocusFilter
 

@@ -10,9 +10,9 @@ import TodoAppIntents
 
 /// Row component for displaying a todo item on watchOS.
 ///
-/// 行はタップ先が 2 つある: 左の丸が完了トグル、本体が詳細への遷移
-/// （純正リマインダーの watch アプリと同じ分け方）。行全体を完了トグルにすると
-/// 詳細（説明文 / 期限の時刻）を見る手段が watch から無くなる。
+/// Two tap targets per row: the circle toggles completion, the body navigates to the detail
+/// view. Making the whole row a toggle would leave no way to read the description or the due
+/// time on the watch.
 public struct WatchTodoRow: View {
     let todo: TodoItem
     private let entity: TodoAppEntity
@@ -43,13 +43,10 @@ public struct WatchTodoRow: View {
                 }
             }
         }
-        // Onscreen entity (WWDC 2026 #343): 表示中の行が「どの todo か」を Siri /
-        // Apple Intelligence に知らせる。
-        //
-        // iOS 側は List に `.appEntityIdentifier(forSelectionType:)` を 1 つ付けて
-        // 行を一括で紐付けているが、あれは List の **selection 値の型**を手がかりに
-        // する仕組み。watchOS の一覧は selection を持たない（行が
-        // トグル + NavigationLink）ため、行ごとの単一 annotation に落とす。
+        // Tells Siri which todo this row is. The collection form
+        // `.appEntityIdentifier(forSelectionType:)` keys off the `List`'s selection type, and
+        // this list has no selection (rows are a toggle plus a `NavigationLink`), so each row
+        // carries its own annotation instead.
         .appEntityIdentifier(EntityIdentifier(for: entity))
     }
 }

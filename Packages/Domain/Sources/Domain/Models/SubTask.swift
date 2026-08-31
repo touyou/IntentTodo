@@ -8,13 +8,12 @@ import SwiftData
 
 /// A sub-task that belongs to a parent todo item.
 ///
-/// CloudKit 互換のため、すべての属性は宣言時にデフォルト値を持つ。
-/// 詳細は `TodoItem` のコメント参照。
+/// Every attribute has a default value for CloudKit compatibility, as in `TodoItem`.
 @Model
 public final class SubTask {
     // MARK: - Properties
 
-    // 型注釈を省かない理由は `TodoItem` と同じ（永続化スキーマの一覧として読む）。
+    // Type annotations are kept for the same reason as in `TodoItem`.
     // swiftlint:disable redundant_type_annotation
 
     /// Unique identifier for the sub-task.
@@ -57,7 +56,7 @@ public final class SubTask {
     ///
     /// Counterpart to `TodoItem.init(id:…)` — sub-tasks are cascade-deleted with
     /// their parent, so undoing a deletion has to bring them back under the same
-    /// ids as well. 詳細: `TodoItemSnapshot`
+    /// ids as well. See `TodoItemSnapshot`.
     public init(
         id: UUID,
         title: String,

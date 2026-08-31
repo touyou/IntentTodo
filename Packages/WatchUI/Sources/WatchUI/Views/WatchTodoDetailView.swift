@@ -11,9 +11,8 @@ import TodoAppIntents
 
 /// Detail view for a todo item on watchOS.
 ///
-/// 受け取るのは `TodoAppEntity`。一覧からの `NavigationLink` も
-/// `OpenTodoIntent`（Siri / Spotlight）が `NavigationModel.path` に積む値も
-/// entity なので、両方が同じ入口を通る。iOS の `TodoDetailView` と同じ形。
+/// Takes a `TodoAppEntity`, which is what both the list's `NavigationLink` and
+/// `OpenTodoIntent` push, so navigation from the UI and from Siri share one entry point.
 public struct WatchTodoDetailView: View {
     private let todo: TodoAppEntity
 
@@ -22,8 +21,7 @@ public struct WatchTodoDetailView: View {
     }
 
     public var body: some View {
-        // id の parse に失敗したら `@Query` を投げずに不在表示へ落とす
-        // （ランダム UUID で必ずヒットしないクエリを投げるより安い）。
+        // An unparseable id goes straight to the missing state, without querying.
         if let targetId = UUID(uuidString: todo.id) {
             WatchTodoDetailQueryView(targetId: targetId)
         } else {
@@ -35,7 +33,6 @@ public struct WatchTodoDetailView: View {
     }
 }
 
-/// `@Query` を発行するのは id の parse 成功後のみ。
 private struct WatchTodoDetailQueryView: View {
     @Query private var todoItems: [TodoItem]
     @Environment(\.dismiss) private var dismiss
@@ -89,12 +86,10 @@ private struct WatchTodoDetailQueryView: View {
             Section { WatchTodoDetailActionsSection(todo: todo, entity: entity) }
         }
         .navigationTitle(.copy("Details"))
-        // Onscreen entity (WWDC 2026 #343): 開いている todo を Siri /
-        // Apple Intelligence に知らせ、「これを完了して」を解決できるようにする。
-        //
-        // iOS 側は `.userActivity` に `appEntityIdentifier` を載せる形（Handoff の
-        // タイトルも一緒に出したいため）。watchOS は Handoff の当て先が無いので、
-        // Info.plist の `NSUserActivityTypes` 宣言が要らない単一 annotation を使う。
+        // Tells Siri which todo is open, so "complete this" resolves. iOS puts the
+        // identifier on a `.userActivity` to get a Handoff title as well; the watch has
+        // nothing to hand off to, so it uses the modifier that needs no `NSUserActivityTypes`
+        // declaration.
         .appEntityIdentifier(EntityIdentifier(for: entity))
     }
 }
@@ -136,8 +131,8 @@ private struct WatchTodoDetailActionsSection: View {
                 )
             }
 
-            // 確認はアプリ側で取る（`DeleteTodoIntent` の `requestConfirmation` は
-            // アプリ内ボタンからだと提示する面が無く失敗する）。
+            // Confirmed here: `requestConfirmation` has no surface to present on when the
+            // caller is an in-app button.
             Button(role: .destructive) {
                 isConfirmingDelete = true
             } label: {

@@ -27,20 +27,18 @@ public struct AddTodoIntent: AppIntent {
         )
     }
 
-    /// バックグラウンド実行のみ。perform() は OpensIntent / requestForeground を
-    /// 使わず .result(value:) を返すだけなので、`.foreground(.deferred)` を入れても
-    /// 実際にフォアグラウンド化される経路がない。Siri 経由の追加 UI が必要になったら
-    /// その時点で `.foreground(.dynamic)` を足す。
+    /// Creating a todo never needs the app on screen: `perform()` returns a value and a
+    /// snippet, so there is no path that would actually bring it forward.
     public static var supportedModes: IntentModes { .background }
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// Writes SwiftData, so it is pinned to the app process — two processes writing the
+    /// same store can conflict. [Apple: wwdc2026-345 16:30]
     public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
     /// **The summary is the allowlist for the Shortcuts editor**: a `@Parameter` that
     /// appears neither in the sentence nor in the trailing block still resolves but is
     /// never offered as an editable row. Listing every parameter is what makes them
     /// settable from Shortcuts.
-    /// 詳細: docs/insights/03-app-intents-core.md
     public static var parameterSummary: some ParameterSummary {
         Summary("Add todo titled \(\.$title)") {
             \.$todoDescription
@@ -81,21 +79,18 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Assignee", description: "Person responsible for the todo")
     public var assignee: PersonNameComponents?
 
-    /// Location associated with the todo.
+    /// Place name, deliberately a `String` rather than `GeoToolbox.PlaceDescriptor`.
     ///
-    /// 本来は `PlaceDescriptor?`（GeoToolbox）にしたいが、**App Shortcut に登録した Intent の
-    /// `@Parameter`** に system value 型を置くと `AppIntentsSSUTraining` が
-    /// `GeoToolbox.PlaceDescriptorEntity` をそのまま SSU の variable 名に使い、ドットが
-    /// 正規表現 `^[a-zA-Z_][a-zA-Z_$0-9]*$` に落ちて `Metadata.appintents/nlu/` が
-    /// 丸ごと生成されなくなる（ローカルは exit 0、Xcode Cloud は失敗扱い）。この Intent は
-    /// `TodoAppShortcuts` に登録済みなので該当する。SDK バグ、Apple 報告済み（FB24548956 / #57）。
-    /// 場所名を String で受け、緯度経度と合わせて `TodoPlace` が `PlaceDescriptor` を組み直す。
-    /// 詳細: docs/insights/03-app-intents-core.md
-    /// 経緯: docs/devlog/2026-08-28-ssu-system-value-type-bug.md
+    /// A system value type in the `@Parameter` of an App Shortcut-registered intent makes
+    /// `AppIntentsSSUTraining` emit `GeoToolbox.PlaceDescriptorEntity` as a variable name;
+    /// the dot fails its `^[a-zA-Z_][a-zA-Z_$0-9]*$` check and **no voice-training assets
+    /// are produced at all** — while the local build still reports success. SDK bug,
+    /// reported as FB24548956. `TodoPlace` rebuilds a `PlaceDescriptor` from this name plus
+    /// the coordinates.
     @Parameter(title: "Location", description: "Place associated with the todo")
     public var location: String?
 
-    // MARK: - reminders スキーマ属性
+    // MARK: - Reminders Schema Attributes
 
     /// Free-form tags to attach to the new todo.
     @Parameter(title: "Tags", description: "Tags to attach to the todo")
@@ -180,21 +175,16 @@ public struct AddTodoIntent: AppIntent {
             recurrenceInterval: recurrenceInterval ?? TodoRecurrence.minimumInterval,
             locationTriggerEvent: locationTriggerEvent
         )
-        // UI から呼ばれた場合は Add シートを閉じる。Siri / Shortcuts / Widget から
-        // 呼ばれた場合は元から閉じているので no-op。@Query の件数差分でシートを
-        // 閉じていた旧実装は他デバイス / Widget からの追加で誤クローズしたため、
-        // Intent 完了 = シート閉じるという 1 対 1 対応に集約した。
+        // A no-op unless the add sheet is open, which ties "sheet closes" to "intent
+        // succeeded" instead of to a row count that other devices can also change.
         navigationModel.dismissAddTodo()
 
-        // ここで donate しない。公式 (Donations and discovery): "Restrict your donations to
-        // direct interactions with your app's interface, and not to interactions started by
-        // Siri or the Shortcuts app". `perform()` は呼出元を判別できないため、ここでの donate は
-        // Siri / Shortcuts 経由でも必ず走ってしまう。
-        // 詳細: docs/insights/03-app-intents-core.md
-
-        // WWDC 2026: Siri / Shortcuts から呼ばれた場合は作成した Todo を
-        // インタラクティブスニペットで提示し、その場で完了 / お気に入り操作を
-        // 可能にする。UI Button(intent:) 経由ではスニペット / dialog は表示されない。
+        // Deliberately no `donate()` here. Apple: "Restrict your donations to direct
+        // interactions with your app's interface, and not to interactions started by Siri
+        // or the Shortcuts app" — and `perform()` cannot tell the caller apart.
+        //
+        // The dialog and snippet only surface for Siri / Shortcuts / Spotlight callers;
+        // `Button(intent:)` shows neither.
         return .result(
             value: entity,
             dialog: IntentDialog("Added \"\(entity.title)\"."),

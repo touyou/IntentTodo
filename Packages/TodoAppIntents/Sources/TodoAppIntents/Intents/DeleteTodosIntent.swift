@@ -29,7 +29,7 @@ public struct DeleteTodosIntent: DeleteIntent, UndoableIntent {
 
     public static var supportedModes: IntentModes { .background }
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
     public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
     public static var parameterSummary: some ParameterSummary {
@@ -56,7 +56,7 @@ public struct DeleteTodosIntent: DeleteIntent, UndoableIntent {
             dialog: IntentDialog(deletionPrompt)
         )
 
-        // バッチ全体を 1 つの undo にまとめたいので、消しながら snapshot を貯める。
+        // Collected while deleting so the whole batch becomes a single undo step.
         var snapshots: [TodoItemSnapshot] = []
         for entity in entities {
             snapshots.append(try todoService.snapshot(todoId: entity.id))

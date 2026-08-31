@@ -5,17 +5,17 @@
 
 import Foundation
 
-/// 期限日に対する状態を表す共有ドメイン値。各プラットフォームの UI は
-/// 同じ閾値ロジックに基づき見た目（アイコン/色/レイアウト）を決定する。
+/// Shared domain value for a due date's state, so every platform's UI derives its icon,
+/// colour and layout from the same threshold.
 public enum DueDateStatus: Sendable, Equatable {
     case normal
     case dueSoon
     case overdue
 
-    /// "Due soon" 判定の閾値 (1 時間以内)。
+    /// Threshold for "due soon".
     public static let dueSoonThreshold: TimeInterval = 3600
 
-    /// 指定日時と完了フラグから状態を評価する。完了済みは常に `.normal`。
+    /// Completed todos are always `.normal`.
     public static func evaluate(date: Date, isCompleted: Bool, now: Date = Date()) -> DueDateStatus {
         guard !isCompleted else { return .normal }
         let interval = date.timeIntervalSince(now)

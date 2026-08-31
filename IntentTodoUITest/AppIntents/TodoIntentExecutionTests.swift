@@ -2,7 +2,7 @@
 //  TodoIntentExecutionTests.swift
 //  IntentTodoUITest
 //
-//  Intent を実経路（Siri / Shortcuts と同じスタック）で走らせる。
+//  Runs intents through the real stack, the one Siri and Shortcuts use.
 //
 
 import AppIntents
@@ -10,13 +10,13 @@ import AppIntentsTesting
 import XCTest
 
 final class TodoIntentExecutionTests: AppIntentsTestCase {
-    // MARK: - 作成
+    // MARK: - Creation
 
-    /// `AddTodoIntent` を実経路で走らせ、作られた entity が query から見えることまで確認する。
+    /// Runs `AddTodoIntent` and checks the new entity is visible to the query.
     func testAddTodoIntentRunsAndPersists() async throws {
         let title = uniqueTitle("AITest Add")
 
-        // Intent は型名で作り、パラメータは @Parameter のラベルで渡す。
+        // Intents are looked up by type name; parameters use their `@Parameter` labels.
         try await intent("AddTodoIntent").makeIntent(title: title).run()
 
         let matches = try await todoEntity.entities(matching: title)
@@ -25,11 +25,10 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    // MARK: - 完了トグル
+    // MARK: - Completion Toggle
 
-    /// `ToggleTodoCompletionIntent` は Siri / UI / Widget / Live Activity 共通の経路。
-    /// FromExtension 分離を撤去した際にここへ副作用を寄せたので、往復を押さえておく。
-    /// 経緯: docs/devlog/03-app-intents-core.md（2026-08-12 の撤去）
+    /// One intent for Siri, the app UI, widgets and Live Activities, so the round trip is
+    /// worth covering directly.
     func testToggleCompletionRoundTrip() async throws {
         let title = uniqueTitle("AITest Toggle")
         let entity = try await addTodo(title: title)
@@ -58,11 +57,11 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    // MARK: - スヌーズ
+    // MARK: - Snooze
 
-    /// `QuickSnoozeTodoIntent`（Live Activity ボタン用の固定 30 分）。
-    /// 対話版の `SnoozeTodoIntent` は `requestChoice` で応答待ちになり
-    /// AppIntentsTesting からは走らせられないため、ここでは扱わない。
+    /// The fixed-interval variant used by Live Activity buttons.
+    /// The interactive `SnoozeTodoIntent` waits on `requestChoice` and cannot be run from
+    /// AppIntentsTesting at all.
     func testQuickSnoozePushesDueDateByThirtyMinutes() async throws {
         let title = uniqueTitle("AITest Snooze")
         let dueDate = Date().addingTimeInterval(60 * 60)
@@ -74,9 +73,8 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
 
         let snoozed = try await intent("QuickSnoozeTodoIntent").makeIntent(todo: entity).run()
 
-        // entity が露出する `dueDate` はスキーマ要求で `DateComponents?`（分までの射影）。
-        // 秒が落ちるので、期待値も同じ粒度に落として比べる。
-        // 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+        // The exposed `dueDate` is a `DateComponents?` projection with minute precision, so
+        // the expectation is truncated to match.
         let snoozedComponents: DateComponents = try snoozed.value.dueDate
         let expectedComponents = Calendar.current.dateComponents(
             [.year, .month, .day, .hour, .minute],
@@ -91,10 +89,10 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    // MARK: - 部分更新（IntentParameter.valueState）
+    // MARK: - Partial Updates
 
-    /// `UpdateTodoIntent` は「新値 / 明示クリア / 据え置き」を `valueState` で区別する。
-    /// **パラメータを省略した場合**は `.unset` = 据え置き。
+    /// `UpdateTodoIntent` tells new value, explicit clear and leave alone apart via
+    /// `valueState`. An omitted parameter is `.unset`, i.e. leave alone.
     func testUpdateLeavesOmittedParametersUntouched() async throws {
         let title = uniqueTitle("AITest Update Keep")
         let dueDate = Date().addingTimeInterval(3600)
@@ -103,7 +101,7 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
             .run()
         let entity: AnyAppEntity = try created.value
 
-        // title だけ渡す → description / dueDate は据え置きになるはず。
+        // Only the title is passed, so the other fields must survive.
         let newTitle = uniqueTitle("AITest Update Keep New")
         let updated = try await intent("UpdateTodoIntent")
             .makeIntent(todo: entity, title: newTitle)
@@ -119,9 +117,9 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         try await deleteTodos(matching: newTitle)
     }
 
-    /// **明示的に nil を渡した場合**は `.set(nil)` = クリア。
-    /// ここが `.unset` と同じ扱いに退化すると「Shortcuts で説明を消せない」という
-    /// 静かな不具合になる（他のテストでは捕まらない）。
+    /// An explicit nil is `.set(nil)`, i.e. clear.
+    /// Collapsing that into `.unset` would quietly make the description unclearable from
+    /// Shortcuts, and nothing else would catch it.
     func testUpdateClearsExplicitlyNilledParameter() async throws {
         let title = uniqueTitle("AITest Update Clear")
         let created = try await intent("AddTodoIntent")
@@ -130,9 +128,9 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         let entity: AnyAppEntity = try created.value
         XCTAssertEqual(try created.value.todoDescription as String, "clear me")
 
-        // `makeIntent(todoDescription: nil)` は「引数を渡さなかった」= `.unset` になる。
-        // 明示的な null を表現するには、`Optional` 自身が `IntentValueExpressing` に
-        // 適合していることを使って **型付きの nil** を渡す。
+        // `makeIntent(todoDescription: nil)` means "argument not passed", i.e. `.unset`.
+        // An explicit null needs a *typed* nil, which works because `Optional` itself
+        // conforms to `IntentValueExpressing`.
         let explicitNull: any IntentValueExpressing = String?.none
         let cleared = try await intent("UpdateTodoIntent")
             .makeIntent(todo: entity, todoDescription: explicitNull)
@@ -144,11 +142,11 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    // MARK: - バルク処理
+    // MARK: - Bulk Operations
 
-    /// `CompleteTodosIntent` は `LongRunningIntent` + `CancellableIntent` +
-    /// `EntityCollection` + `allowedExecutionTargets = [.main]` を一度に使う。
-    /// 実行プロセス指定を含めて実際に完走することを押さえる。
+    /// `CompleteTodosIntent` combines `LongRunningIntent`, `CancellableIntent`,
+    /// `EntityCollection` and a pinned execution target, so this checks it runs to
+    /// completion as configured.
     func testBulkCompleteMarksAllTargets() async throws {
         let prefix = uniqueTitle("AITest Bulk")
         let first = try await addTodo(title: "\(prefix) 1")
@@ -168,7 +166,7 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         try await deleteTodos(matching: prefix)
     }
 
-    /// `DeleteTodosIntent`（`DeleteIntent`）でまとめて消える。
+    /// Bulk delete through the system `DeleteIntent` protocol.
     func testBulkDeleteRemovesAllTargets() async throws {
         let prefix = uniqueTitle("AITest BulkDelete")
         let first = try await addTodo(title: "\(prefix) 1")
@@ -180,10 +178,10 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         XCTAssertTrue(remaining.isEmpty, "Bulk delete should remove every entity passed in")
     }
 
-    // MARK: - 集計（TransientAppEntity）
+    // MARK: - Summary
 
-    /// `GetTodoSummaryIntent` が返す `TodoListSummaryEntity`（`TransientAppEntity`）。
-    /// Shortcuts の条件分岐がこの各カウントに依存するので、プロパティ名込みで押さえる。
+    /// The transient entity `GetTodoSummaryIntent` returns. Shortcuts conditionals depend on
+    /// these counts, so the property names are part of the contract.
     func testTodoSummaryReflectsNewTodo() async throws {
         let before = try await intent("GetTodoSummaryIntent").makeIntent().run()
         let pendingBefore: Int = try before.value.pendingCount
@@ -199,9 +197,9 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    // MARK: - 複数 Intent の連鎖
+    // MARK: - Chaining
 
-    /// Shortcuts でユーザーが組むのと同じように、Intent の結果を次の Intent へ渡す。
+    /// Feeds one intent's result into the next, as a shortcut would.
     func testAddThenShowChain() async throws {
         let title = uniqueTitle("AITest Chain")
         try await addTodo(title: title)

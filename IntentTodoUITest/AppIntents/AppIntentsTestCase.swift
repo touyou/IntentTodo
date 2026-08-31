@@ -2,28 +2,27 @@
 //  AppIntentsTestCase.swift
 //  IntentTodoUITest
 //
-//  AppIntentsTesting (#295) を使うテストの共通基盤。
+//  Shared base for the AppIntentsTesting cases.
 //
-//  これらのテストはアプリを別プロセスで動かし、Siri / Shortcuts / Spotlight と
-//  同じ App Intents スタックを通す。そのため unit test ターゲットではなく
-//  UI テストバンドルに置く必要がある（Apple 公式要件）。
+//  These run the app in its own process, through the same App Intents stack Siri,
+//  Shortcuts and Spotlight use — which is why Apple requires them to live in a UI test
+//  bundle rather than a unit test target.
 //
-//  各テストは一意タイトルの todo を作って最後に消す自己クリーンアップ設計。
-//  アプリの SwiftData ストアを触るので、後片付けを怠ると次のテストに漏れる。
+//  Each test creates todos with a unique title and deletes them again: they share the
+//  app's real store, so anything left behind leaks into the next test.
 //
 
 import AppIntents
 import AppIntentsTesting
 import XCTest
 
-/// テスト本体を持たない共通基底。サブクラス側にテストを書く。
+/// Base class with no tests of its own.
 class AppIntentsTestCase: XCTestCase {
-    /// アプリターゲットの PRODUCT_BUNDLE_IDENTIFIER と一致させること。
+    /// Must match the app target's `PRODUCT_BUNDLE_IDENTIFIER`.
     static let appBundleID = "dev.touyou.IntentTodo"
 
-    // setUp で組み立て tearDown で捨てる XCTest の fixture。特に `definitions` は
-    // インスタンス生成時ではなく setUp の中（アプリを activate した後）に作る必要がある
-    // ので、宣言時の初期化には置き換えられない。
+    // XCTest fixtures. `definitions` in particular has to be built inside `setUp`, after
+    // the app has been activated, so it cannot become a property initialiser.
     // swiftlint:disable implicitly_unwrapped_optional
     var app: XCUIApplication!
     var definitions: IntentDefinitions!
@@ -33,21 +32,19 @@ class AppIntentsTestCase: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        // `launch()` は起動中のアプリを terminate して再起動するため、テスト数が増えると
-        // シミュレータが "did not return a process handle nor launch error" で散発的に
-        // 落ちる。`activate()` は未起動なら起動、起動済みなら前面化するだけなので、
-        // テストごとの再起動を避けられる。
+        // `activate()`, not `launch()`: the latter terminates and relaunches a running app,
+        // which makes the simulator fail intermittently with "did not return a process
+        // handle nor launch error" once there are enough tests.
         app.activate()
-        // アプリが登録している intents / entities / enums / queries を発見する。
+        // Discovers the intents, entities, enums and queries the app registered.
         definitions = IntentDefinitions(bundleIdentifier: Self.appBundleID)
         try await waitUntilIntentsAreDiscoverable()
     }
 
-    /// アプリを入れ直した直後は App Intents のメタデータサービスがまだアプリを
-    /// 認識しておらず、`IntentDefinitions` 経由の呼び出しが
+    /// Right after the app is reinstalled the App Intents metadata service does not know
+    /// about it yet and calls through `IntentDefinitions` fail — which surfaces as "only the
     /// `AppIntentsServicesMetadataErrorDomain Code=400 "<bundle id> is not present"`
-    /// で落ちる。クリーンビルド後の最初のテストだけが落ちるという分かりにくい失敗に
-    /// なるので、認識されるまで待ってからテスト本体に入る。
+    /// first test after a clean build fails". Waiting for recognition avoids that.
     private func waitUntilIntentsAreDiscoverable(timeout: TimeInterval = 30) async throws {
         let deadline = Date().addingTimeInterval(timeout)
         var lastError: Error?
@@ -68,7 +65,7 @@ class AppIntentsTestCase: XCTestCase {
         definitions = nil
     }
 
-    // MARK: - Definition ショートカット
+    // MARK: - Definition Shortcuts
 
     var todoEntity: AppEntityDefinition { definitions.entities["TodoAppEntity"] }
     var categoryEntity: AppEntityDefinition { definitions.entities["CategoryAppEntity"] }
@@ -81,19 +78,19 @@ class AppIntentsTestCase: XCTestCase {
         "\(prefix) \(UUID().uuidString)"
     }
 
-    /// todo を 1 件作って entity を返す。
+    /// Creates one todo and returns its entity.
     @discardableResult
     func addTodo(title: String) async throws -> AnyAppEntity {
         try await intent("AddTodoIntent").makeIntent(title: title).run().value
     }
 
-    /// `AnyAppEntity` の id。`@Property` ではないので dynamic member lookup
-    /// （`entity.id`）では取れない — 型消去側が持つ `identifier` から読む。
+    /// The id of an `AnyAppEntity`. Not a `@Property`, so dynamic member lookup
+    /// (`entity.id`) cannot reach it; it comes from the type-erased `identifier`.
     func identifier(of entity: AnyAppEntity) -> String {
         entity.identifier.instanceIdentifier
     }
 
-    /// タイトルが一致する todo をすべて削除し、ストアを元に戻す。
+    /// Deletes every todo with a matching title, restoring the store.
     func deleteTodos(matching title: String) async throws {
         let matches = try await todoEntity.entities(matching: title)
         for match in matches {
@@ -101,7 +98,7 @@ class AppIntentsTestCase: XCTestCase {
         }
     }
 
-    /// 非同期に反映される結果（Spotlight index 等）を待つ。
+    /// Waits for results that land asynchronously, such as the Spotlight index.
     func pollUntil<T>(
         timeout: TimeInterval,
         interval: TimeInterval = 0.5,

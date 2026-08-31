@@ -75,12 +75,12 @@ struct NavigationModelTests {
 
 // MARK: - Scene navigation
 
-/// シーン経由のナビゲーション経路が `perform()` と同じ処理を通ることを守る。
+/// Guards that scene-driven navigation goes through the same code as `perform()`.
 ///
-/// `UISceneAppIntent` は iOS / visionOS 専用（macOS では SDK に無い）なので、
-/// macOS で走る SPM テストからは型として触れない。壊れ方は「cold start のときだけ
-/// 目的の画面に行かない」で、アプリを kill してから Siri を叩かないと気づけない。
-/// そこでソースを真として、遷移処理が 1 か所に集約されたままかを確かめる。
+/// `UISceneAppIntent` does not exist in the macOS SDK, so a test running there cannot touch
+/// the type. The failure mode is "only cold start lands on the wrong screen", which needs a
+/// killed app and Siri to notice — so this reads the source instead and checks that the
+/// navigation stays in one place.
 @Suite("Scene navigation wiring")
 struct SceneNavigationWiringTests {
     private static func intentSource(_ fileName: String) throws -> String {
@@ -107,7 +107,7 @@ struct SceneNavigationWiringTests {
             source.contains("func performNavigation(forScene"),
             "\(fileName) は performNavigation(forScene:) を実装すること"
         )
-        // `perform()` 側とシーン側で別々に遷移を書くと、片方だけ直す事故が起きる。
+        // Two separate implementations would invite fixing only one of them.
         #expect(
             source.components(separatedBy: "applyNavigation()").count - 1 >= 2,
             "\(fileName) は perform() とシーン経由の両方から applyNavigation() を呼ぶこと"

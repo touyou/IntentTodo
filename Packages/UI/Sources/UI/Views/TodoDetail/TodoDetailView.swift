@@ -20,9 +20,8 @@ public struct TodoDetailView: View {
     }
 
     public var body: some View {
-        // `TodoAppEntity.id` (String) → `UUID` の parse に失敗したら、@Query を
-        // 投げずに不在表示へ落とす。旧実装はランダム UUID で必ずヒットしないクエリ
-        // を発行していたため SwiftData 側に無駄な往復が発生していた。
+        // An unparseable id goes straight to the missing state instead of issuing a query
+        // that cannot match.
         if let targetId = UUID(uuidString: todo.id) {
             TodoDetailQueryView(targetId: targetId, fallbackTitle: todo.title)
         } else {
@@ -41,10 +40,9 @@ public struct TodoDetailView: View {
 
 // MARK: - Query Wrapper
 
-/// `@Query` を発行するのは parse 成功後のみ。`@Environment(\.dismiss)` は
-/// NavigationSplitView の detail ペインでは効かないため、todo 消滅時は
-/// `NavigationModel.selectedTodo = nil` で selection を解除する (compact width で
-/// 折り畳まれた NavigationStack 上でも selection クリアで自動 pop する)。
+/// `@Environment(\.dismiss)` does nothing in a split view's detail pane, so a todo that
+/// disappears is handled by clearing `NavigationModel.selectedTodo` — which also pops the
+/// collapsed navigation stack at compact width.
 private struct TodoDetailQueryView: View {
     @Query private var todoItems: [TodoItem]
     @Environment(NavigationModel.self) private var navigationModel
@@ -70,8 +68,8 @@ private struct TodoDetailQueryView: View {
                 )
             }
         }
-        // Detail のタイトルは選択中の todo タイトルを反映 (macOS Mail / Notes と同じ慣習)。
-        // Todo が消えたケースでは選択時のタイトルを保持して読みやすさを保つ。
+        // Falls back to the title captured at selection time so a deleted todo does not
+        // leave the pane untitled.
         .navigationTitle(todo?.title ?? fallbackTitle)
         #if os(iOS) || os(visionOS)
         .navigationBarTitleDisplayMode(.inline)
@@ -95,18 +93,16 @@ private struct TodoDetailContent: View {
 
     let todo: TodoItem
 
-    /// 配列属性のスナップショット。
+    /// Snapshot of the collection attributes.
     ///
-    /// **`todo.tags` / `todo.urls` を `body` の中で読んではいけない。** SwiftData は
-    /// 削除済みオブジェクトの配列属性を読むと trap する（scalar は最後の値を返すので耐える）。
-    /// 削除の直後 1 フレームだけ `@Query` の結果に削除済みオブジェクトが残るため、body から
-    /// 読むと詳細画面の再描画でクラッシュする（`testDeleteTodoFromDetailView` で再現）。
-    /// `!todo.isDeleted` のガードは効かない（この時点では false のまま）。
+    /// **Never read `todo.tags` or `todo.urls` inside `body`.** Reading a collection
+    /// attribute off a deleted SwiftData object traps (scalars survive), and for one frame
+    /// after a delete the `@Query` result still contains that object — enough to crash the
+    /// detail view mid-redraw. A `!todo.isDeleted` guard does not help; it is still false at
+    /// that point.
     ///
-    /// 安全なのは **id から引き直す**こと。`TodoAppEntity` の `tags` / `urls` は同じ理由で
-    /// `@DeferredProperty` になっているので、それを読んで state に写す。消えた todo は
-    /// 「見つからない」に落ちるだけで済む。
-    /// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md（#83 で同じ罠を踏んだ）
+    /// Fetching by id is safe, which is why the entity exposes these as
+    /// `@DeferredProperty`: a deleted todo simply resolves to nothing.
     @State private var tags: [String] = []
     @State private var urls: [URL] = []
 
@@ -176,24 +172,24 @@ private struct TodoDetailContent: View {
                 .accessibilityIdentifier("editDetailsButton")
             }
         }
-        // 提示状態を `NavigationModel` に置くのは、閉じるのが `UpdateTodoIntent.perform()`
-        // だから（`@Environment(\.dismiss)` は Intent から触れない）。
+        // Presentation state lives in `NavigationModel` because the intent is what closes
+        // the sheet, and an intent cannot reach `@Environment(\.dismiss)`.
         .sheet(isPresented: $navigationModel.showingAttributeEditor) {
-            // 配列はここでもモデルから読まず、スナップショットを渡す（シート提示中に
-            // todo が消えると同じ trap を踏む）。scalar な属性はモデルから読んでよい。
+            // Snapshots again, not the model's collections: a todo deleted while the sheet
+            // is up would trap the same way. Scalars are safe to read.
             TodoAttributesEditView(todo: todo, tags: tags, urls: urls)
         }
-        // 更新の契機は `modifiedAt`。scalar なので削除済みオブジェクトでも読める。
-        // `UpdateTodoIntent` が保存すると進むので、保存後の表示もここで追従する。
+        // Keyed on `modifiedAt`: a scalar, so it stays readable even for a deleted object,
+        // and it advances whenever `UpdateTodoIntent` saves.
         .task(id: todo.modifiedAt) {
             await refreshCollections(of: entity)
         }
     }
 
-    /// `tags` / `urls` を id から引き直す。消えていれば空になる。
+    /// Re-fetches the collections by id, yielding empty for a deleted todo.
     ///
-    /// `Set<String>` で返るので表示順は自分で決める。人が入れた順は保てないため、
-    /// 照合順で並べて決定的にする（編集して保存すると保存順もこれに揃う）。
+    /// Tags come back as a `Set`, so the order is chosen here: collation order, which at
+    /// least makes it deterministic.
     private func refreshCollections(of entity: TodoAppEntity) async {
         let loadedTags = (try? await entity.tags) ?? []
         tags = loadedTags.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
@@ -280,7 +276,7 @@ private struct TodoDetailTimeRemainingLabel: View {
     let date: Date
 
     var body: some View {
-        // 毎分再評価して overdue/dueSoon の遷移に追従する。
+        // Re-evaluated every minute to follow the overdue / due-soon transitions.
         TimelineView(.periodic(from: .now, by: 60)) { context in
             let interval = date.timeIntervalSince(context.date)
             if interval <= 0 {
@@ -305,7 +301,7 @@ private struct TodoDetailTimeRemainingLabel: View {
         }
     }
 
-    /// `DateComponentsFormatter` はインスタンス生成が高価なため、共有 formatter を使う。
+    /// Shared because `DateComponentsFormatter` is expensive to construct.
     private static let formatter: DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.day, .hour, .minute]
@@ -322,8 +318,7 @@ private struct TodoDetailTimeRemainingLabel: View {
 // MARK: - Subtasks
 
 private struct TodoDetailSubtasksSection: View {
-    /// 表示前に `orderIndex` で sort 済みの配列を保持。`body` 評価のたびに sort
-    /// を走らせていた旧実装を init 1 回に集約する。
+    /// Sorted once at init rather than on every body evaluation.
     private let sortedSubtasks: [SubTask]
 
     init(subtasks: [SubTask]) {
@@ -359,9 +354,9 @@ private struct TodoDetailActionsSection: View {
                 )
             }
 
-            // 確認はアプリ側で取る。`DeleteTodoIntent` の `requestConfirmation` は
-            // アプリ内ボタンからだと提示する面が無く失敗するため、確認後に
-            // 確認なし版の Intent を実行する。
+            // Confirmed here, not by the intent: `requestConfirmation` has no surface to
+            // present on when the caller is an in-app button, so the confirming intent
+            // would fail silently. The non-confirming one runs afterwards.
             Button(role: .destructive) {
                 isConfirmingDelete = true
             } label: {

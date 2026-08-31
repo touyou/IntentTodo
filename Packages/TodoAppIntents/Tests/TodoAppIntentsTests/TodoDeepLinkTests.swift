@@ -2,11 +2,11 @@
 //  TodoDeepLinkTests.swift
 //  TodoAppIntents
 //
-//  URL スキームの作る側と読む側が一致していることを守る。
+//  Guards that the URLs being built and the URLs being parsed agree.
 //
-//  作る側はウィジェットの `Link` と `TodoAppEntity.urlRepresentation`、読む側は
-//  アプリの `onOpenURL`。別ターゲットに分かれているのでビルドでは食い違いを検出できず、
-//  「ウィジェットをタップしても何も起きない」という形でしか出ない。
+//  They are built by the widget's `Link` and by `TodoAppEntity.urlRepresentation`, and parsed
+//  by the app's `onOpenURL` — different targets, so a mismatch compiles fine and only shows
+//  up as "tapping the widget does nothing".
 //
 
 import AppIntents
@@ -44,8 +44,8 @@ struct TodoDeepLinkTests {
         #expect(TodoDeepLink(url: url) == nil)
     }
 
-    /// `TodoAppEntity.urlRepresentation` は DSL リテラルなので `TodoDeepLink` を
-    /// 呼べず、同じ形を 2 回書いている。ここがその 2 つを繋ぎ止める唯一の場所。
+    /// `urlRepresentation` is a DSL literal and cannot call `TodoDeepLink`, so the shape is
+    /// written twice; this is the only thing tying the two together.
     @Test("entity の URL 表現は TodoDeepLink と同じ URL になる")
     func entityURLRepresentationMatchesDeepLink() async {
         let entity = TodoAppEntity(id: Self.todoID, title: "Deep link target")

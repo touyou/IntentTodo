@@ -16,9 +16,8 @@ private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoE
 
 /// A query for fetching todo entities in App Intents.
 ///
-/// `@Dependency var modelContainer` で process-scoped に登録された ModelContainer を
-/// 受け取り、そのたびに repository を組み立てる（legacy `IntentDependencies` singleton
-/// 経由での dual-container 問題を回避）。
+/// Takes the `ModelContainer` registered in whichever process resolves the query and
+/// builds a repository per call, so app and extension never share a stale container.
 public struct TodoEntityQuery: EntityQuery {
     @Dependency
     var modelContainer: ModelContainer
@@ -35,28 +34,25 @@ public struct TodoEntityQuery: EntityQuery {
         let repo = repository()
         return try identifiers.compactMap { identifier in
             guard let uuid = UUID(uuidString: identifier) else {
-                // 不正な UUID は呼び出し側 (Shortcuts / Live Activity) のバグの兆候。
-                // 削除済 todo (fetch nil) は正常系なので、ここで区別してログを残す。
+                // A malformed UUID means the caller is wrong; a missing todo does not.
+                // Logged separately so the two are distinguishable.
                 logger.warning("entities(for:) received invalid UUID string: \(identifier, privacy: .public)")
                 return nil
             }
             guard let todoItem = try repo.fetch(by: uuid) else {
-                return nil  // 既に削除済み (CloudKit merge 等)。正常系なので無音。
+                return nil  // Already deleted (e.g. a CloudKit merge). Expected, so silent.
             }
             return TodoAppEntity(from: todoItem)
         }
     }
 
-    /// 直近の未完了 todo（最大 `suggestedEntityLimit` 件）。
+    /// The most recent incomplete todos, capped at `suggestedEntityLimit`.
     ///
-    /// **全件返してはいけない**。パラメータ入りの App Shortcut フレーズ
-    /// （"Complete \(todo) in IntentTodo"）を使っている場合、システムはここで返した
-    /// **値 1 つにつき App Shortcut を 1 つ生成する**（wwdc2025-244 9:46 "If provided,
-    /// an App Shortcut for each value of that type will be created."）。未完了 todo が
-    /// 数十件あると Shortcuts / Spotlight がそれで埋まる。
-    ///
-    /// `fetchIncomplete()` は `createdAt` の降順なので、先頭から取ると「最近作った未完了」
-    /// になる。全件が必要な場面（Shortcuts の Find アクション等）は `allEntities()` が担う。
+    /// **Never return everything.** With a parameterised App Shortcut phrase the system
+    /// creates one App Shortcut per suggested value — "If provided, an App Shortcut for
+    /// each value of that type will be created" [Apple: wwdc2025-244 9:46] — so a few dozen
+    /// open todos would fill Shortcuts and Spotlight. `allEntities()` is what serves the
+    /// cases that genuinely need every row.
     @MainActor
     public func suggestedEntities() async throws -> [TodoAppEntity] {
         try repository().fetchIncomplete()
@@ -64,15 +60,15 @@ public struct TodoEntityQuery: EntityQuery {
             .map { TodoAppEntity(from: $0) }
     }
 
-    /// Siri / Spotlight に出す候補の上限。HIG の "not more than ten" に合わせている。
+    /// Matches the HIG guidance of "not more than ten" suggestions.
     static let suggestedEntityLimit = 10
 
-    /// 候補一覧の描画用に、表示表現だけをまとめて返す。
+    /// Returns display representations in bulk.
     ///
-    /// 既定実装は `entities(for:)` を呼んでから 1 件ずつ `displayRepresentation` を
-    /// 読む。ここは `TodoItem` から直接組み立てて、表示に使わない `CategoryAppEntity`
-    /// の生成を省く。公式: "Return full representations; the system materializes only
-    /// the components it needs"（画像の遅延クロージャがここで効く）。
+    /// The default implementation resolves full entities first; building straight from
+    /// `TodoItem` skips constructing the `CategoryAppEntity` that never gets shown. Apple:
+    /// "Return full representations; the system materializes only the components it needs"
+    /// — which is what makes the deferred image closure pay off.
     @MainActor
     public func displayRepresentations(
         for identifiers: [TodoAppEntity.ID]
@@ -82,7 +78,7 @@ public struct TodoEntityQuery: EntityQuery {
         for identifier in identifiers {
             guard let uuid = UUID(uuidString: identifier),
                   let item = try repo.fetch(by: uuid) else {
-                continue  // 既に削除済み。`entities(for:)` と同じく正常系。
+                continue  // Already deleted, as in `entities(for:)`.
             }
             representations[identifier] = TodoAppEntity.makeDisplayRepresentation(
                 title: item.title,
@@ -98,9 +94,9 @@ public struct TodoEntityQuery: EntityQuery {
 // MARK: - EntityStringQuery
 
 extension TodoEntityQuery: EntityStringQuery {
-    /// ユーザー入力との比較は `localizedStandardContains(_:)`（`CategoryEntityQuery` と同じ）。
-    /// `lowercased().contains()` はロケール非依存で、かな/カナやダイアクリティカルマークを
-    /// 別物として扱ってしまう。
+    /// The system does not filter for you. Comparison is `localizedStandardContains(_:)`:
+    /// `lowercased().contains()` is locale-independent and treats kana forms and diacritics
+    /// as different characters.
     @MainActor
     public func entities(matching string: String) async throws -> [TodoAppEntity] {
         try repository().fetchAll()
@@ -112,9 +108,8 @@ extension TodoEntityQuery: EntityStringQuery {
 // MARK: - EnumerableEntityQuery
 
 extension TodoEntityQuery: EnumerableEntityQuery {
-    /// `EnumerableEntityQuery` 準拠だけで Shortcuts が "Find Todos" アクションを
-    /// 自動生成する。未指定だと説明もカテゴリも無いアクションとして並ぶので、
-    /// 何が返るか（`resultValueName`）まで含めてここで与える。
+    /// Conforming to `EnumerableEntityQuery` is enough for Shortcuts to generate a
+    /// "Find Todos" action; without this it appears with no description or category.
     public static var findIntentDescription: IntentDescription? {
         IntentDescription(
             "Finds todos and filters them by the conditions you specify.",
@@ -133,22 +128,16 @@ extension TodoEntityQuery: EnumerableEntityQuery {
 // MARK: - IndexedEntityQuery (Spotlight reindexing)
 
 #if os(iOS) || os(macOS) || os(visionOS)
-/// Spotlight からの**再インデックス要求**に応える口。
+/// Answers Spotlight's reindex requests — the receiving half of donating entities.
 ///
-/// Apple 公式 (Making app entities available in Spotlight): "If you donate app entities
-/// to a `CSSearchableIndex` using its `indexAppEntities(_:priority:)` method, implement
-/// the `IndexedEntityQuery` protocol in your entity's query object to handle reindexing."
-/// 本アプリは `TodoService` が donate 側なので、この準拠が対応する受け側になる。
+/// Apple: "If you donate app entities to a `CSSearchableIndex` using its
+/// `indexAppEntities(_:priority:)` method, implement the `IndexedEntityQuery` protocol in
+/// your entity's query object to handle reindexing." Without it, an index Spotlight decides
+/// to rebuild stays empty until the app next launches and reindexes everything.
 ///
-/// これが無いと、Spotlight 側の index が壊れて再構築を要求してきたときに応答先が無く、
-/// 次にアプリが起動して `indexAllForSpotlight()` が走るまで検索に出てこなくなる。
-///
-/// `indexDescription` は「どの index を更新するか」を判別するためのものだが、本アプリの
-/// index は `TodoSpotlightIndex` の 1 本だけなので参照しない。
-///
-/// **このファイルの他のメソッドと違い `@MainActor` を付けられない**（`CSSearchableIndexDescription`
-/// が non-Sendable のため）。nonisolated のまま、内側で `entities(for:)` などを await して
-/// MainActor へホップする。詳細: docs/insights/03-app-intents-core.md
+/// `indexDescription` is unused: there is only one index. These methods **cannot be
+/// `@MainActor`** like the rest of the type, because `CSSearchableIndexDescription` is
+/// non-Sendable; they stay nonisolated and hop inward instead.
 extension TodoEntityQuery: IndexedEntityQuery {
     public func reindexEntities(
         for identifiers: [TodoAppEntity.ID],
@@ -159,8 +148,8 @@ extension TodoEntityQuery: IndexedEntityQuery {
             try await TodoSpotlightIndex.index().indexAppEntities(entities)
         }
 
-        // 要求された id のうち既に消えているものは index からも落とす
-        // (削除直後に要求が来た場合、放置すると Spotlight に幽霊が残る)。
+        // Requested ids that no longer resolve are dropped from the index too, otherwise
+        // a request arriving right after a delete leaves a ghost in Spotlight.
         let resolved = Set(entities.map(\.id))
         let missing = identifiers.filter { !resolved.contains($0) }
         if !missing.isEmpty {

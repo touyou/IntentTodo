@@ -2,34 +2,31 @@
 //  TodoDeepLink.swift
 //  TodoAppIntents
 //
-//  アプリの URL スキームを 1 か所で定義する。
+//  The app's URL scheme, defined once.
 //
-//  作る側（ウィジェットの `Link(destination:)`、`TodoAppEntity` の
-//  `URLRepresentableEntity`）と読む側（アプリの `onOpenURL`）が別ターゲットに
-//  分かれているため、文字列を各所に散らすと片方だけ直して黙って壊れる。
+//  The side that builds URLs (widget `Link(destination:)`, `URLRepresentableEntity`) and the
+//  side that reads them (`onOpenURL`) are in different targets, so spelling the strings out
+//  in both places breaks silently when only one is changed.
 //
-//  詳細: docs/insights/03-app-intents-core.md（URL 表現）
 //
 
 import Foundation
 
-/// アプリが受け付けるディープリンク。
+/// Deep links the app accepts.
 public enum TodoDeepLink: Equatable, Sendable {
-    /// 新規作成シートを開く。
+    /// Opens the add sheet.
     case addTodo
-    /// 指定 Todo の詳細を開く。
+    /// Opens a specific todo's detail view.
     case todo(id: String)
 
-    /// URL スキーム。Info.plist の `CFBundleURLSchemes` と一致していること。
+    /// Must match `CFBundleURLSchemes` in the Info.plist.
     public static let scheme = "intenttodo"
 
     private static let addTodoHost = "addTodo"
     private static let todoHost = "todo"
 
-    /// このリンクを表す URL。
-    ///
-    /// `URLComponents` で組むのは、id に URL で特別な意味を持つ文字が入っても
-    /// パーセントエンコードが効くようにするため（文字列補間だと素通しになる）。
+    /// Built with `URLComponents` so ids containing URL-significant characters get
+    /// percent-encoded; string interpolation would pass them through untouched.
     public var url: URL {
         var components = URLComponents()
         components.scheme = Self.scheme
@@ -41,20 +38,20 @@ public enum TodoDeepLink: Equatable, Sendable {
             components.path = "/\(id)"
         }
         guard let url = components.url else {
-            // scheme / host / path はすべてここで組み立てているので到達しない。
+            // Unreachable: scheme, host and path are all set above.
             preconditionFailure("Failed to build a deep link URL for \(self)")
         }
         return url
     }
 
-    /// 受け取った URL を解釈する。スキームや形が違えば `nil`。
+    /// Parses an incoming URL, returning `nil` for a foreign scheme or shape.
     public init?(url: URL) {
         guard url.scheme == Self.scheme else { return nil }
         switch url.host {
         case Self.addTodoHost:
             self = .addTodo
         case Self.todoHost:
-            // "intenttodo://todo/<id>" の id 部分。空なら解釈しない。
+            // The `<id>` in "intenttodo://todo/<id>"; an empty one is not a link.
             guard let id = url.pathComponents.first(where: { $0 != "/" }), !id.isEmpty else {
                 return nil
             }

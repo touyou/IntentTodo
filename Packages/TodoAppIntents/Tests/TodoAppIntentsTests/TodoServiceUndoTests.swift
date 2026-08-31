@@ -2,9 +2,8 @@
 //  TodoServiceUndoTests.swift
 //  TodoAppIntents
 //
-//  削除の取り消し（`UndoableIntent`）を支える snapshot / restore。
-//  「同じ id で戻る」ことが要点で、id が変わると Spotlight index / donation /
-//  ウィジェットが握っている参照がまとめて迷子になる。
+//  The snapshot / restore pair behind undo. Restoring under the *same* id is the point: a
+//  new id orphans every reference Spotlight, donations and widgets are holding.
 //
 
 import Domain
@@ -41,13 +40,13 @@ struct TodoServiceUndoTests {
 
         let restored = try service.restore(snapshot)
 
-        // 同じ id で戻ること自体が要点（Spotlight / donation / widget の参照が生きる）。
+        // The same id is the point: outside references stay valid.
         #expect(restored.id == item.id.uuidString)
         #expect(restored.title == "task")
         #expect(restored.todoDescription == "details")
         #expect(restored.isFavorite)
-        // `dueDate` はスキーマ要求で `DateComponents?`。往復を見たいのは stored 値なので
-        // `dueDateValue` を比較する（`dueDate` は秒以下を落とす射影）。
+        // Compared against the stored value: `dueDate` is a `DateComponents?` projection
+        // that drops sub-minute precision.
         #expect(restored.dueDateValue == due)
         #expect(restored.assigneeName == "Ada")
         #expect(restored.sortIndex == 3)
@@ -78,7 +77,7 @@ struct TodoServiceUndoTests {
 
         let snapshot = try service.snapshot(todoId: item.id.uuidString)
         try service.delete(todoId: item.id.uuidString)
-        // カテゴリごと消えた状況を作る（別デバイスでの削除が CloudKit で届いた等）。
+        // Reproduces the category being gone too, as after a CloudKit merge.
         let (emptyService, _) = makeService()
         let restored = try emptyService.restore(snapshot)
 

@@ -8,13 +8,13 @@ import SwiftData
 
 /// A category for organizing todo items.
 ///
-/// CloudKit 互換のため、すべての属性は宣言時にデフォルト値を持ち、
-/// to-many リレーションは空配列デフォルト。
+/// Every attribute has a default value and the to-many relationship defaults to empty, for
+/// CloudKit compatibility.
 @Model
 public final class Category {
     // MARK: - Properties
 
-    // 型注釈を省かない理由は `TodoItem` と同じ（永続化スキーマの一覧として読む）。
+    // Type annotations are kept for the same reason as in `TodoItem`.
     // swiftlint:disable redundant_type_annotation
 
     /// Unique identifier for the category.
@@ -28,8 +28,7 @@ public final class Category {
 
     /// Todo items belonging to this category.
     ///
-    /// CloudKit 互換のため optional `[TodoItem]?`。読み取りは `todos ?? []` で
-    /// nil 安全に扱う。
+    /// Optional for CloudKit; readers use `todos ?? []`.
     public var todos: [TodoItem]? = []
 
     // swiftlint:enable redundant_type_annotation

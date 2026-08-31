@@ -2,11 +2,10 @@
 //  IntentExecutionTargetsTests.swift
 //  TodoAppIntents
 //
-//  SwiftData を書き換える Intent が実行プロセスをアプリ本体に固定していることを守る。
+//  Guards that every intent writing SwiftData pins execution to the app process.
 //
-//  この指定を落とすとビルドもテストも通ってしまい、症状は「アプリ未起動のときだけ
-//  Widget Extension プロセスが同じストアに書く」という形でしか出ない。
-//  詳細: docs/insights/03-app-intents-core.md（allowedExecutionTargets）
+//  Dropping the declaration builds and tests clean; the only symptom is the widget extension
+//  writing to the same store while the app is not running.
 //
 
 import AppIntents
@@ -14,7 +13,7 @@ import Foundation
 import Testing
 @testable import TodoAppIntents
 
-/// 1 件分の期待値。パラメータ化テストの引数にするため型名を文字列で持つ。
+/// One expectation. The type name is a string so it can be a test parameter.
 struct MutatingIntentCase: Sendable, CustomStringConvertible {
     let name: String
     let targets: IntentExecutionTargets
@@ -24,9 +23,8 @@ struct MutatingIntentCase: Sendable, CustomStringConvertible {
 
 @Suite("Intent execution targets")
 struct IntentExecutionTargetsTests {
-    /// `TodoService` の変更メソッドを呼ぶ Intent の一覧。
-    /// 新しい書き込み系 Intent を足したらここにも追加する
-    /// （追加漏れは `everyMutatingIntentIsListed` が検出する）。
+    /// Every intent that calls a mutating `TodoService` method. New ones belong here;
+    /// `everyMutatingIntentIsListed` catches omissions.
     private static let mutatingIntents: [MutatingIntentCase] = [
         .init(name: "AddTodoIntent", targets: AddTodoIntent.allowedExecutionTargets),
         .init(name: "UpdateTodoIntent", targets: UpdateTodoIntent.allowedExecutionTargets),
@@ -55,8 +53,8 @@ struct IntentExecutionTargetsTests {
         )
     }
 
-    /// 読み取り専用の Intent は既定 (`.default`) のままにしておく。
-    /// アプリを起こさずに Extension で応答できるほうが速いので、固定する理由がない。
+    /// Read-only intents stay `.default`: answering from an extension without waking the app
+    /// is faster, and there is nothing to protect.
     @Test("読み取り専用 Intent は実行先を固定しない")
     func readOnlyIntentsStayUnpinned() {
         #expect(GetTodoSummaryIntent.allowedExecutionTargets == .default)
@@ -64,11 +62,11 @@ struct IntentExecutionTargetsTests {
         #expect(SearchEverythingIntent.allowedExecutionTargets == .default)
     }
 
-    /// 上のリストへの追加漏れを検出する。
+    /// Catches intents missing from the list above.
     ///
-    /// `Intents/` のソースを読み、`todoService` の変更メソッドを呼んでいるファイルが
-    /// `allowedExecutionTargets` を宣言しているかを直接確かめる。型を実行時に列挙する
-    /// 手段がないため、ソースを真とする。
+    /// Reads the sources under `Intents/` and checks that any file calling a mutating
+    /// `todoService` method also declares `allowedExecutionTargets`. There is no way to
+    /// enumerate the types at runtime, so the source is the reference.
     @Test("TodoService を変更する Intent はすべて実行先を宣言している")
     func everyMutatingIntentDeclaresExecutionTargets() throws {
         let mutatingCalls = [
