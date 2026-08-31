@@ -35,9 +35,9 @@ enum TodoPlace {
 
     /// Decomposes a `PlaceDescriptor` into the primitives stored on the model.
     ///
-    /// 呼び出し元は現在いない。`AddTodoIntent.location` が SSU バグ回避で `String` のままなので
-    /// （同ファイルのコメント参照）復路を通る経路が無いだけで、
-    /// `descriptor(name:latitude:longitude:)` と対になる。
+    /// Currently unused: `AddTodoIntent.location` stays a `String` to avoid the SSU build
+    /// failure, so nothing takes the return trip. Kept as the counterpart of
+    /// `descriptor(name:latitude:longitude:)`.
     static func decompose(_ place: PlaceDescriptor) -> Components {
         Components(
             name: place.commonName,

@@ -2,7 +2,7 @@
 //  TodoServiceFactory.swift
 //  TodoAppIntents
 //
-//  `TodoService` の生成口。SwiftData / Repository への依存をここに閉じ込める。
+//  Confines the SwiftData / Repository dependency to one place.
 //
 
 import Repository

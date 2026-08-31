@@ -2,14 +2,10 @@
 //  TodoAppEntity+Shared.swift
 //  IntentTodo
 //
-//  `TodoAppEntity` のプラットフォーム共通実装。宣言は `TodoAppEntity.swift` で 2 系統に
-//  分かれているが（理由はそちらのコメント）、差分はスキーマ適合とスキーマ要求プロパティ
-//  だけなので、それ以外はここに 1 つだけ書いて `typealias` 経由で両方に効かせる。
-//
-//  **宣言側に書かざるを得ないのはプロパティだけ**（`@Property` / `@ComputedProperty` /
-//  `@DeferredProperty` はメンバに付く attribute で、extension の格納/計算プロパティには
-//  持ち出せないものがあるため）。それ以外をここに寄せることで、2 系統の重複を
-//  プロパティ宣言と init に限定している。
+//  Behaviour shared by both declarations of `TodoAppEntity` (see `TodoAppEntity.swift` for
+//  why there are two). Only the property declarations and initialisers have to be
+//  duplicated per platform — property macros must sit on the members themselves — so
+//  everything else lives here once and reaches both through the typealias.
 //
 
 import AppIntents
@@ -72,9 +68,9 @@ extension TodoAppEntity {
         }
     }
 
-    /// Siri はこの subtitle を読み上げるので、時刻は位置指定表記（"14:30"）ではなく
-    /// 自然文表記で渡す。出す情報が無いときは空文字ではなく `nil`。
-    /// 詳細: docs/insights/03-app-intents-core.md
+    /// Siri reads this subtitle aloud, so times are formatted as prose rather than
+    /// positional ("14:30" is read digit by digit). Returns `nil`, not "", when there is
+    /// nothing to say — an empty `LocalizedStringResource` is a lookup for an empty key.
     private static func subtitle(isCompleted: Bool, dueDate: Date?) -> LocalizedStringResource? {
         if isCompleted {
             return LocalizedStringResource("Completed", comment: "Todo completed status")
@@ -99,7 +95,8 @@ extension TodoAppEntity {
 // MARK: - Derived values
 
 extension TodoAppEntity {
-    /// 期限切れ判定。`@ComputedProperty` の本体は宣言側にあるので、中身だけ共有する。
+    /// The body of the `@ComputedProperty` has to live on the declaration, so only the
+    /// logic is shared here.
     static func isOverdue(isCompleted: Bool, dueDate: Date?) -> Bool {
         guard !isCompleted, let dueDate else { return false }
         return dueDate < Date()
@@ -167,7 +164,7 @@ extension TodoAppEntity {
 // `location` (PlaceDescriptor) is excluded as it isn't guaranteed `Equatable`;
 // the underlying stored name/coordinate are reflected via the model anyway.
 //
-// 比較に使うのは 2 系統の両方にあるフィールドだけ（`dueDate` ではなく `dueDateValue`）。
+// Only fields present on both declarations take part (`dueDateValue`, not `dueDate`).
 public extension TodoAppEntity {
     static func == (lhs: TodoAppEntity, rhs: TodoAppEntity) -> Bool {
         lhs.id == rhs.id
@@ -194,10 +191,10 @@ public extension TodoAppEntity {
 /// Spotlight integration for todo items.
 /// Allows users to search for todos via Spotlight with enhanced attributes.
 extension TodoAppEntity: IndexedEntity {
-    /// `@Property(indexingKey:)` が使っているキーはここで埋めない（どちらが勝つかは
-    /// 公式に未定義）。`contentDescription` は `todoDescription` のマップ先なので、
-    /// 完了状態は `keywords` 側で表現する。`displayName` は `.title` とは別キーで衝突しない。
-    /// 詳細: docs/insights/03-app-intents-core.md
+    /// Only attributes that `@Property(indexingKey:)` cannot express. Filling a key from
+    /// both sides is undefined, and `contentDescription` is already mapped from
+    /// `todoDescription`, so completion state goes into `keywords` instead. `displayName`
+    /// is a different key from `.title` and does not collide.
     public var attributeSet: CSSearchableItemAttributeSet {
         let attributes = CSSearchableItemAttributeSet()
         attributes.displayName = title

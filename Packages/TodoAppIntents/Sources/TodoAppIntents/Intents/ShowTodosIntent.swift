@@ -39,8 +39,8 @@ public struct ShowTodosIntent: AppIntent {
         )
     }
 
-    /// 画面遷移先と filter のマッピングは Intent perform() の外でも検証したいので
-    /// 純関数として切り出す (perform は @Dependency 解決の都合で SPM テストが書きにくい)。
+    /// Pure function so it is testable: `perform()` needs system dispatch to resolve
+    /// `@Dependency` and cannot run from SPM tests.
     static func screenTarget(for filter: TodoFilterType) -> AppScreenTarget {
         switch filter {
         case .all, .completed:
@@ -54,16 +54,9 @@ public struct ShowTodosIntent: AppIntent {
 
     // MARK: - Dialog
 
-    /// Siri/Shortcuts の結果表示 / 読み上げ用メッセージ。
-    /// Control Center からの呼出では表示されないが、データ更新が無いためフィードバック不要。
-    ///
-    /// WWDC 2026 (#343): `IntentDialog(full:supporting:)` で音声単独用と視覚併用を分ける。
-    /// - `full`: 画面が無い文脈(音声のみ)で読み上げる、それ単体で完結するメッセージ。
-    /// - `supporting`: 返却した一覧が視覚表示される文脈で、リストに添える短い一言。
-    /// 名詞は単数形 / 複数形とも訳文側で決める。Swift 側で `"\(noun)s"` のように
-    /// 英語の屈折を組み立てると、その `String` は catalog に載らないまま `%@` に
-    /// 差し込まれ、訳文の中に英語の名詞がそのまま出る。
-    /// 詳細: docs/insights/03-app-intents-core.md「Intent のコピーがどこから引かれるか」
+    /// Both singular and plural forms are localized. Building English inflection in Swift
+    /// (`"\(noun)s"`) produces a `String` that never reaches the String Catalog and gets
+    /// substituted into `%@`, leaving English nouns inside translated sentences.
     private var categoryNoun: (singular: LocalizedStringResource, plural: LocalizedStringResource) {
         switch filter {
         case .all: ("todo", "todos")

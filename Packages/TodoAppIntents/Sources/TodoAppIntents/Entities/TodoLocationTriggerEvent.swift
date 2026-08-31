@@ -12,7 +12,6 @@ import AppIntents
 /// rejected with `requires enum case 'depart'`). The reminders schemas are
 /// unavailable on watchOS, so there it falls back to a plain `AppEnum` under a
 /// distinct type name — same reasoning as `WatchTodoListType`.
-/// 詳細: docs/insights/03-app-intents-core.md
 #if os(watchOS)
 public enum WatchTodoLocationTriggerEvent: String, AppEnum {
     case arrive

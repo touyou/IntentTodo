@@ -2,9 +2,9 @@
 //  TodoAppEntity.swift
 //  IntentTodo
 //
-//  非 watchOS 版（reminders スキーマ適合あり）の宣言と、const 抽出される適合
-//  （`Transferable` / `URLRepresentableEntity`）。watchOS 版は `WatchTodoAppEntity.swift`、
-//  両系統で共有する表示・クエリ・等価性は `TodoAppEntity+Shared.swift`。
+//  The schema-conforming (non-watchOS) declaration, plus the conformances that are read by
+//  const extraction. watchOS uses `WatchTodoAppEntity.swift`; behaviour shared by both
+//  lives in `TodoAppEntity+Shared.swift`.
 //
 
 import AppIntents
@@ -15,28 +15,22 @@ import GeoToolbox
 import Repository
 import SwiftData
 
-// MARK: - なぜ 2 系統なのか
+// MARK: - Why watchOS gets a differently named type
 //
-// `AppSchema` の**全 20 ドメインが watchOS / tvOS で `@available(..., unavailable)`**。
-// reminders 固有の制限ではなく、App Schema が「Apple Intelligence の新しい Siri に語彙を
-// 渡す」仕組みで、その Siri が iPhone / iPad / Mac / visionOS にしか無いため
-// （WWDC 2026 Apple Intelligence Group Lab 35:34 "The new Siri AI is available on iPhone,
-// iPad, Mac, and visionOS."）。ドメインを変えても回避できない。
+// Every `AppSchema` domain is unavailable on watchOS and tvOS, because App Schema feeds
+// vocabulary to the new Siri and that Siri only exists on iPhone, iPad, Mac and visionOS
+// [Apple: wwdc2026-8011 35:34]. Changing domain does not help.
 //
-// 一方 iOS アプリの `appintentsmetadataprocessor` には **watchOS スライスのメタデータが
-// 入力として渡る**（Xcode が自動生成する `IntentTodo.DependencyMetadataFileList` に
-// `Debug-watchsimulator/...` が並ぶ）。同じ mangled name にスキーマ有り / 無しの 2 形が
-// あると**スキーマ無し側が勝ち、iOS の出荷メタデータからスキーマが静かに消える**（実測）。
+// The iOS metadata processor is also fed the watchOS slice, and when the same type name
+// appears twice the later input replaces the earlier one wholesale — dropping the schema
+// (and the properties) from the shipped iOS metadata, with a green build and no
+// diagnostics. Separate type names let both entries coexist.
 //
-// したがって watchOS には**別の型名**を与えるしかない。`__appSchemaEntity` を手書きして
-// watchOS でも適合を宣言する手もあるが、これは
-//   ① `AssistantSchemaEntity` のプロトコル要求ですらない非公開シンボル（マクロと
-//      メタデータ抽出器の間の申し合わせ）で、Apple のガイダンスが使用を禁じている
-//   ② スキーマという機能自体が無いプラットフォームに「この型は reminders.ReminderEntity
-//      です」と主張するメタデータを出すことになり、内容としても誤り
-// の 2 点で採らない。
+// Hand-writing `__appSchemaEntity` to declare conformance on watchOS too is not an option:
+// it is an underscored symbol shared between the macro and the extractor rather than a
+// protocol requirement, and it would assert `reminders.ReminderEntity` on a platform where
+// schemas do not exist.
 //
-// 経緯: docs/devlog/2026-08-29-schema-vs-watch-target.md
 
 #if !os(watchOS)
 
@@ -61,7 +55,6 @@ public struct TodoAppEntity: Hashable, SyncableEntity {
     // `indexingKey:` (WWDC 2026 #240) maps the property onto the Spotlight
     // semantic index via a `CSSearchableItemAttributeSet` key, so semantic search
     // / Q&A can reason over the text.
-    // 経緯: docs/devlog/2026-08-28-xcode27-beta6-recheck.md（visionOS を除外していたのは誤りだった件）
 
     /// The title of the todo item (semantically indexed via `.title`).
     @Property(title: "Title", indexingKey: \.title)
@@ -125,18 +118,15 @@ public struct TodoAppEntity: Hashable, SyncableEntity {
 
     /// Associated location.
     ///
-    /// App Intents ネイティブの `PlaceDescriptor`（GeoToolbox）で持つ。モデル側は CloudKit 互換の
-    /// primitive（名前 + 緯度経度）なので `TodoPlace` が相互変換する。
+    /// Held as the native `GeoToolbox.PlaceDescriptor`; the model stores CloudKit-friendly
+    /// primitives and `TodoPlace` converts between them.
     ///
-    /// SSU training バグ（FB24548956）が発火するのは **App Shortcut に登録した Intent の
-    /// `@Parameter`** だけで、entity の `@Property` は SSU の variable にならないため、ここは
-    /// ネイティブ型のままで問題ない。
-    /// 詳細: docs/insights/03-app-intents-core.md
-    /// 経緯: docs/devlog/2026-08-28-ssu-system-value-type-bug.md
+    /// Unlike an `@Parameter` on an App Shortcut-registered intent, an entity `@Property`
+    /// never becomes an SSU variable, so the FB24548956 build failure does not apply here.
     @Property(title: "Location")
     public var location: PlaceDescriptor?
 
-    // MARK: - reminders スキーマ要求プロパティ
+    // MARK: - Schema-Required Properties
 
     /// When the todo was completed, if it has been (schema-required).
     @Property(title: "Completion Date")
@@ -144,14 +134,13 @@ public struct TodoAppEntity: Hashable, SyncableEntity {
 
     /// Free-form tags (schema-required).
     ///
-    /// `@DeferredProperty` にしているのは `subtaskProgress` と同じ理由 + もう 1 つ:
-    /// **SwiftData は削除済みオブジェクトの配列属性を読むと trap する**（scalar は最後の値を
-    /// 返すので耐える）。`@Query` の結果は削除直後の 1 フレームだけ削除済みオブジェクトを
-    /// 含みうるので、`init(from:)` の中で配列を読むと詳細画面の再描画でクラッシュする（実測）。
-    /// id から引き直す形にすると、消えた todo は「見つからない」に落ちるだけで済む。
+    /// Deferred rather than stored because **reading a collection attribute off a deleted
+    /// SwiftData object traps** (scalars survive and return their last value). A `@Query`
+    /// result can contain a deleted object for one frame, so reading the array inside
+    /// `init(from:)` crashes the detail view mid-redraw. Fetching by id instead degrades to
+    /// "not found".
     ///
-    /// スキーマは `Set<String>` を要求する。モデル側は CloudKit 互換のため `[String]`。
-    /// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+    /// The schema asks for `Set<String>`; the model stores `[String]` for CloudKit.
     @DeferredProperty(title: "Tags")
     public var tags: Set<String> {
         get async throws {
@@ -159,7 +148,7 @@ public struct TodoAppEntity: Hashable, SyncableEntity {
         }
     }
 
-    /// Links attached to the todo (schema-required). `tags` と同じ理由で deferred。
+    /// Links attached to the todo (schema-required). Deferred for the same reason as `tags`.
     @DeferredProperty(title: "URLs")
     public var urls: [URL] {
         get async throws {
@@ -175,13 +164,11 @@ public struct TodoAppEntity: Hashable, SyncableEntity {
     @Property(title: "Location Trigger")
     public var locationTrigger: TodoLocationTriggerAppEntity?
 
-    // MARK: - スキーマ名エイリアス
+    // MARK: - Schema Name Aliases
     //
-    // `.reminders.reminder` はプロパティ名まで一致を要求する（`note` / `creationDate` /
-    // `isFlagged` / `list`）。アプリ側の既存名（`todoDescription` / `createdAt` /
-    // `isFavorite` / `category`）を変えずに済ませるため、`@ComputedProperty` で
-    // スキーマ側の綴りを足している。
-    // 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+    // `.reminders.reminder` matches on property names, so the schema spellings are added as
+    // computed properties instead of renaming the app's own (`todoDescription`,
+    // `createdAt`, `isFavorite`, `category`).
 
     /// The note body (schema-required spelling of `todoDescription`).
     @ComputedProperty(title: "Note")
@@ -203,8 +190,9 @@ public struct TodoAppEntity: Hashable, SyncableEntity {
 
     /// The list this todo belongs to (schema-required spelling of `category`).
     ///
-    /// スキーマは**非 optional**を要求するが、`TodoItem.category` は CloudKit 要件で
-    /// optional。未分類の todo には合成の `CategoryAppEntity.uncategorized` を見せる。
+    /// The schema requires a non-optional value while `TodoItem.category` must be optional
+    /// for CloudKit, so uncategorised todos show the synthetic
+    /// `CategoryAppEntity.uncategorized`.
     @ComputedProperty(title: "List")
     public var list: CategoryAppEntity {
         category ?? .uncategorized
@@ -300,13 +288,10 @@ public struct TodoAppEntity: Hashable, SyncableEntity {
     }
 }
 
-// MARK: - 同一ファイルに置く理由
-//
-// `Transferable` / `URLRepresentableEntity` の宣言は **const 抽出**（swiftconstvalues）で
-// 読まれるため、型宣言と別ファイルに置くと
-// `The property 'transferRepresentation' must be static, have a compile-time constant
-// value, and cannot be computed or dynamic` でメタデータ抽出が落ちる（実測）。
-// 他の共通実装は `TodoAppEntity+Shared.swift` にある。
+// The conformances below stay in this file because const extraction (swiftconstvalues)
+// reads them: declared elsewhere — for instance through a typealias — extraction fails with
+// "The property 'transferRepresentation' must be static, have a compile-time constant
+// value, and cannot be computed or dynamic".
 
 // MARK: - Transferable (structured value export, WWDC 2026 #240/#345)
 
@@ -323,9 +308,9 @@ extension TodoAppEntity: Transferable {
     public static var transferRepresentation: some TransferRepresentation {
         ProxyRepresentation(exporting: \.title)
 
-        // `exporting:` は Transferable DSL で表現の向きを選ぶラベルで（`importing:` /
-        // `exporting:importing:` の兄弟がある）、外すと向きの決定がクロージャの型推論に
-        // 委ねられる。上の `ProxyRepresentation(exporting:)` とも綴りを揃える。
+        // `exporting:` picks the direction of the representation (`importing:` and
+        // `exporting:importing:` are its siblings); omitting it leaves that to closure
+        // type inference.
         // swiftlint:disable:next trailing_closure
         ValueRepresentation(exporting: { (todo: TodoAppEntity) -> IntentPerson in
             guard let name = todo.assigneeName, !name.isEmpty else {
@@ -350,15 +335,12 @@ extension TodoAppEntity: Transferable {
 
 // MARK: - URLRepresentableEntity
 
-/// Todo を URL で指し示せるようにする。
+/// Makes a todo addressable by URL, which is what lets `OpenTodoIntent` satisfy
+/// `URLRepresentableIntent` for free and widgets build the same destination with
+/// `Link(destination:)`.
 ///
-/// これがあると `OpenTodoIntent` が `URLRepresentableIntent` を無償で満たせて、
-/// ウィジェットの `Link(destination:)` からも同じ宛先を作れる。
-///
-/// リテラルの綴りは `TodoDeepLink.todo(id:)` と一致していなければならない
-/// （こちらは DSL なので関数を呼べず、同じ形を 2 回書くしかない）。
-/// 食い違いは `TodoDeepLinkTests` が検出する。
-/// 詳細: docs/insights/03-app-intents-core.md（URL 表現）
+/// The literal must stay in step with `TodoDeepLink.todo(id:)` — this is a DSL and cannot
+/// call a function, so the shape is written twice. `TodoDeepLinkTests` catches drift.
 extension TodoAppEntity: URLRepresentableEntity {
     public static var urlRepresentation: URLRepresentation {
         "intenttodo://todo/\(.id)"

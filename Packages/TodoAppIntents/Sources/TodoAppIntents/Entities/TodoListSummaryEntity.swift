@@ -2,13 +2,6 @@
 //  TodoListSummaryEntity.swift
 //  TodoAppIntents
 //
-//  `TransientAppEntity` (WWDC 2026 #344 / "Entity の作り分け") で実装した
-//  Todo リスト集計エンティティ。通常の AppEntity と違い、
-//  - defaultQuery / EntityQuery が不要
-//  - 永続化されない（SwiftData に保存されない）
-//  - 計算済み値のスナップショットとして Intent の戻り値に使う
-//
-//  Shortcuts で「未完了が N 件以上なら通知」など条件分岐が可能になる。
 //
 
 import AppIntents

@@ -14,7 +14,7 @@ public struct ToggleUrgentTodoIntent: AppIntent {
     public static let description = IntentDescription("Toggles completion of the most urgent todo")
     public static let supportedModes: IntentModes = [.background]
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
     public static let allowedExecutionTargets: IntentExecutionTargets = [.main]
 
     @Dependency
@@ -25,8 +25,9 @@ public struct ToggleUrgentTodoIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ProvidesDialog & ShowsSnippetIntent {
         let result = try todoService.toggleMostUrgentTodo()
-        // 片付けた直後は「残りどれだけか」が次に知りたい情報なので、個別 todo ではなく
-        // サマリ snippet を返す。対象が無かった場合も同じ型で返せる。
+        // "How much is left" is the useful answer right after clearing one, so this
+        // returns the summary snippet rather than the individual todo. The same shape also
+        // covers the case where there was nothing to toggle.
         return .result(
             dialog: dialog(for: result),
             snippetIntent: TodoSummarySnippetIntent()

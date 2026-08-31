@@ -2,32 +2,30 @@
 //  TodoSystemIntegrationTests.swift
 //  IntentTodoUITest
 //
-//  アプリの外側まで届く統合部分。壊れても「アプリ内では正常に見える」ため
-//  手で Siri / 他アプリを触るまで気づけない種類の経路をここで押さえる。
+//  The integrations that reach outside the app. They keep looking fine from inside it, so
+//  without these tests breakage is only noticeable by hand with Siri or another app.
 //
 
 import AppIntents
 import AppIntentsTesting
 import XCTest
 
-/// `XCUIApplication` まわりの API は `@MainActor` なので、それを触るテストは
-/// クラスごと MainActor に載せる。付けないと "Call to main actor-isolated instance
-/// method … in a synchronous nonisolated context" 系の警告が出る（Swift 6 言語モードでは
-/// エラーになる）。
+/// The `XCUIApplication` APIs are `@MainActor`, so the whole class is isolated to it;
+/// otherwise Swift 6 language mode rejects the calls.
 @MainActor
 final class TodoSystemIntegrationTests: AppIntentsTestCase {
     // MARK: - Onscreen entity（view annotation）
 
-    /// `userActivity` + `appEntityIdentifier` で「いま画面に出ている entity」を
-    /// システムへ知らせている経路。落ちると Siri が「これ」を解決できなくなる。
+    /// Publishing the on-screen entity through `userActivity` + `appEntityIdentifier`.
+    /// Without it, Siri cannot resolve "this one".
     func testDetailViewAnnotatesItsEntity() async throws {
         let title = uniqueTitle("AITest Onscreen")
         let entity = try await addTodo(title: title)
 
-        // OpenIntent で詳細画面へ遷移させる（.foreground(.immediate)）。
+        // Navigates to the detail view through the `OpenIntent`.
         try await intent("OpenTodoIntent").makeIntent(target: entity).run()
 
-        // 画面が実際に切り替わってから annotation を読む。
+        // Read after the screen has actually changed.
         let titleText = app.staticTexts[title]
         XCTAssertTrue(titleText.waitForExistence(timeout: 10), "Detail view should show the todo title")
 
@@ -46,12 +44,11 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    /// 一覧側のコレクション annotation（`.appEntityIdentifier(forSelectionType:)`）。
+    /// The collection annotation on the list.
     ///
-    /// 詳細画面の単一 annotation とは別経路で、Siri が「3 つめのやつ」のような参照を
-    /// 解決するための口。`forSelectionType:` は `List` に付けたときだけ効くという
-    /// 制約があり、レイアウトを触った拍子に静かに無効化されうる。アプリ内の見た目は
-    /// 何も変わらないので、ここで押さえないと手で Siri を触るまで気づけない。
+    /// A separate path from the detail view's single annotation, and the one that lets Siri
+    /// resolve "the third one". `forSelectionType:` is only honoured on a `List`, so a
+    /// layout change can disable it with no visible effect inside the app.
     func testListAnnotatesEveryVisibleRow() async throws {
         let firstTitle = uniqueTitle("AITest ListOnscreen A")
         let secondTitle = uniqueTitle("AITest ListOnscreen B")
@@ -59,7 +56,7 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
         let second = try await addTodo(title: secondTitle)
         let expected = Set([identifier(of: first), identifier(of: second)])
 
-        // 一覧が前面に居ることを確認してから読む（詳細画面のままだと 1 件しか出ない）。
+        // Read with the list in front; from the detail view only one row is annotated.
         XCTAssertTrue(
             app.staticTexts[secondTitle].waitForExistence(timeout: 10),
             "The list should be on screen with the newly added todos"
@@ -80,9 +77,8 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
 
     // MARK: - Navigation（@Dependency + perform()）
 
-    /// `LaunchAppIntent` は `@Dependency var navigationModel` へ書き込むことで画面遷移する。
-    /// `onAppIntentExecution` を使わない代わりの経路なので、遷移が起きることを押さえる。
-    /// 経緯: docs/insights/04-ui-integration.md
+    /// `LaunchAppIntent` navigates by writing to `NavigationModel`, which is the alternative
+    /// to `onAppIntentExecution` — so the navigation itself is what gets checked.
     func testLaunchIntentNavigatesToAddSheet() async throws {
         try await intent("LaunchAppIntent").makeIntent(target: "addTodo").run()
 
@@ -95,10 +91,10 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
         app.buttons["cancelButton"].tap()
     }
 
-    // MARK: - ValueRepresentation（他アプリ / システム型への受け渡し）
+    // MARK: - ValueRepresentation
 
-    /// `Transferable` の `ValueRepresentation` で担当者を `IntentPerson` として出す経路。
-    /// アプリ内の表示は担当者名の String のままなので、ここが壊れても画面上は正常に見える。
+    /// Exporting the assignee as an `IntentPerson`. The app itself only ever shows the name
+    /// as a string, so breakage here is invisible on screen.
     func testAssigneeExportsAsIntentPerson() async throws {
         let title = uniqueTitle("AITest Export")
         let entity = try await addTodo(title: title)
@@ -114,7 +110,7 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    /// 担当者が居ない todo は `IntentPerson` の flavor を提供しない（空の値を出さない）。
+    /// A todo with no assignee offers no `IntentPerson` at all, rather than an empty one.
     func testExportThrowsWhenAssigneeIsMissing() async throws {
         let title = uniqueTitle("AITest ExportEmpty")
         let entity = try await addTodo(title: title)
@@ -123,7 +119,7 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
             _ = try await entity.exported(as: IntentPerson.self)
             XCTFail("A todo without an assignee should not export as IntentPerson")
         } catch {
-            // 期待どおり。export 側が throw して flavor ごと提供されない。
+            // As expected: the export throws and the representation is simply absent.
         }
 
         try await deleteTodos(matching: title)
@@ -131,7 +127,7 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
 
     // MARK: - Helpers
 
-    /// 詳細画面を開いたままだと次のテストの起点がずれるので、一覧へ戻す。
+    /// Returns to the list so the next test starts from a known screen.
     private func returnToList() async throws {
         let backButton = app.navigationBars.buttons.element(boundBy: 0)
         if backButton.exists {

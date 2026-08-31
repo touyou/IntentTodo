@@ -2,9 +2,8 @@
 //  AppDelegate.swift
 //  IntentTodo
 //
-//  iOS / visionOS 用の UIApplicationDelegate。通知ハンドラ本体は
-//  NotificationHandler に集約し、ここは install の呼び出しと
-//  SceneDelegate 結線のみを行う。
+//  The iOS / visionOS `UIApplicationDelegate`. The notification delegate body lives in
+//  `NotificationHandler`; this installs it and wires up the SceneDelegate.
 //
 
 #if os(iOS) || os(visionOS)

@@ -2,37 +2,36 @@
 //  AppShortcutParameterUpdater.swift
 //  IntentTodo
 //
-//  Bridges "todo データが変わった" (パッケージ側) と
-//  `TodoAppShortcuts.updateAppShortcutParameters()` (アプリターゲット側) をつなぐ。
+//  Bridges "the todo data changed" (package side) to
+//  `TodoAppShortcuts.updateAppShortcutParameters()` (app target side).
 //
 
 import Foundation
 
-/// App Shortcut のパラメータ候補をシステムに再取得させるための間接層。
+/// Indirection that lets package code ask the system to refetch App Shortcut parameter
+/// suggestions.
 ///
-/// `updateAppShortcutParameters()` は `AppShortcutsProvider` の**具体型**に対する
-/// static メソッドで、その具体型 (`TodoAppShortcuts`) はアプリターゲットにしか置けない
-/// (パッケージに置くと統合メタデータから落ちる。`TodoAppShortcuts.swift` 冒頭参照)。
-/// パッケージ側からは型を参照できないので、アプリ起動時にクロージャを登録してもらう。
+/// `updateAppShortcutParameters()` is a static method on the **concrete**
+/// `AppShortcutsProvider`, and that type can only live in the app target, which package
+/// code cannot reference — so the app registers a closure at launch instead.
 ///
-/// 呼ぶべきタイミング:
-/// - entity の追加 / 削除 / `displayRepresentation` の変化 (リネーム等)
-/// - **アプリの初回起動時**。一度もフェッチされていないとパラメータ付きフレーズが機能しない
+/// Call it when entities are added or removed, when a `displayRepresentation` changes, and
+/// **on first launch**: parameterised phrases do not work until the system has fetched
+/// entities at least once.
 ///
-/// 詳細: docs/insights/03-app-intents-core.md
 @MainActor
 public enum AppShortcutParameterUpdater {
     private static var updateHandler: (@MainActor () -> Void)?
 
-    /// アプリ起動時に `{ TodoAppShortcuts.updateAppShortcutParameters() }` を渡す。
+    /// The app passes `{ TodoAppShortcuts.updateAppShortcutParameters() }` at launch.
     public static func register(_ handler: @escaping @MainActor () -> Void) {
         updateHandler = handler
     }
 
-    /// entity の集合か表示内容が変わったことをシステムに伝える。
+    /// Tells the system the entity set or its display changed.
     ///
-    /// 未登録のプロセス (Widget Extension など) では何もしない。App Shortcut の
-    /// パラメータはアプリターゲットの provider が持つものなので、それで正しい。
+    /// A no-op in processes that never registered a handler, such as the widget extension —
+    /// correct, since the parameters belong to the app target's provider.
     public static func notifyEntitiesChanged() {
         updateHandler?()
     }

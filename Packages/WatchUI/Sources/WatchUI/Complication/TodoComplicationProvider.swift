@@ -47,8 +47,7 @@ public struct TodoComplicationProvider: TimelineProvider {
         let container = modelContainer
         Task { @MainActor in
             let entry = Self.makeEntry(using: container)
-            // 失敗時は短い間隔で再試行 (5 分後)、成功時は 15 分後に通常更新。
-            // 暦の単位ではなく経過時間なので `Calendar` は通さない。
+            // Retried sooner after a failure. Elapsed time, not a calendar unit.
             let nextUpdateMinutes = entry.loadFailed ? 5.0 : 15.0
             let nextUpdate = Date(timeIntervalSinceNow: nextUpdateMinutes * 60)
             completion(Timeline(entries: [entry], policy: .after(nextUpdate)))
@@ -58,15 +57,15 @@ public struct TodoComplicationProvider: TimelineProvider {
     @MainActor
     private static func makeEntry(using modelContainer: ModelContainer?) -> TodoComplicationEntry {
         guard let modelContainer else { return .unavailable() }
-        // 1 fetch で全 Todo を取り、集計は in-memory で行う (watchOS での典型件数で
-        // クエリを 2 回投げるより安い + 集計ロジックが1箇所にまとまる)。
+        // One fetch, aggregated in memory: cheaper than two queries at watch-sized counts,
+        // and it keeps the aggregation in one place.
         let context = modelContainer.mainContext
         let allTodos: [TodoItem]
         do {
             allTodos = try context.fetch(FetchDescriptor<TodoItem>())
         } catch {
-            // fetch 失敗を「予定なし」と誤認させないため unavailable entry を返す。
-            // getTimeline 側の policy で短い間隔のリトライにする。
+            // Reported as unavailable rather than empty, and retried sooner by the timeline
+            // policy above.
             logger.error("complication fetch failed: \(String(reflecting: error))")
             return .unavailable()
         }
@@ -76,8 +75,8 @@ public struct TodoComplicationProvider: TimelineProvider {
             .sorted { ($0.dueDate ?? .distantFuture) < ($1.dueDate ?? .distantFuture) }
         let nextDueTodo = incompleteTodos.first { $0.dueDate != nil }
 
-        // 「今日作られたか」は `isDateInToday` がそのまま答える。自前で日の境界を
-        // 組み立てると DST / 暦の切り替わりを踏むうえ、失敗しうる Optional になる。
+        // `isDateInToday` answers this directly; computing day boundaries by hand would have
+        // to deal with DST and could fail.
         let calendar = Calendar.current
         let todayTodos = allTodos.filter { calendar.isDateInToday($0.createdAt) }
         let completedToday = todayTodos.filter(\.isCompleted).count

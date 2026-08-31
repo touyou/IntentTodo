@@ -34,13 +34,13 @@ struct ToggleTodoControl: ControlWidget {
                     isOn ? "Completed" : "To Do",
                     systemImage: isOn ? "checkmark.circle.fill" : "circle"
                 )
-                // 動詞始まりの hint。クロージャの isOn は「その状態へ遷移させる操作」を指す
-                // (wwdc2024-10157 15:43)。
+                // Verb-first hint. The closure's `isOn` describes the state the action
+                // moves *to*. [Apple: wwdc2024-10157 15:43]
                 .controlWidgetActionHint(isOn ? "Complete Todo" : "Reopen Todo")
             }
             .tint(.accentColor)
         }
-        // 対象 todo が決まっていないと機能しないコントロールなので、追加時に設定を促す。
+        // Useless until a todo is chosen, so prompt for configuration when it is added.
         .promptsForUserConfiguration()
         .displayName("Complete Todo")
         .description("Complete or reopen a todo you choose.")
@@ -67,7 +67,7 @@ extension ToggleTodoControl {
     struct Provider: AppIntentControlValueProvider {
         func previewValue(configuration: SelectTodoConfigurationIntent) -> Snapshot {
             guard let todo = configuration.todo else { return .unconfigured }
-            // previewValue はコントロールギャラリー用。公式ガイダンス通り off 状態で返す。
+            // Shown in the controls gallery; per Apple's guidance it presents the off state.
             return Snapshot(todoId: todo.id, title: todo.title, isCompleted: false)
         }
 
@@ -83,14 +83,14 @@ extension ToggleTodoControl {
                 descriptor.fetchLimit = 1
                 do {
                     guard let item = try context.fetch(descriptor).first else {
-                        // 設定後に削除された todo。設定し直しを促す表示に戻す。
+                        // Configured todo has since been deleted: ask for it again.
                         logger.notice("configured todo no longer exists id=\(todo.id, privacy: .public)")
                         return .unconfigured
                     }
                     return Snapshot(todoId: todo.id, title: item.title, isCompleted: item.isCompleted)
                 } catch {
-                    // fetch 失敗を握り潰すと未完了なのに "Completed" を出す等の嘘表示になる。
-                    // throw して WidgetKit に前回値 / placeholder の維持を委ねる。
+                    // Swallowing the failure would show "Completed" for an open todo.
+                    // Throwing lets WidgetKit keep the previous value instead.
                     logger.error("ToggleTodoControl fetch failed: \(String(reflecting: error))")
                     throw error
                 }

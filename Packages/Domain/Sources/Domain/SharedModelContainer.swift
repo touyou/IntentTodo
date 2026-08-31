@@ -28,10 +28,9 @@ public enum SharedModelContainer {
 
     /// The URL for the shared container directory.
     ///
-    /// **nil は「App Group が使えない」の信頼できる指標ではない**。iOS では
-    /// entitlement が無ければ nil が返るが、**macOS では entitlement の無い
-    /// プロセスでもパスが返る**（`~/Library/Group Containers/<id>`。ただし
-    /// 書き込み不可）。SPM テストがここで nil を期待できないのはそのため。
+    /// **`nil` is not a reliable signal that the App Group is unusable.** iOS returns nil
+    /// without the entitlement, but macOS returns a path even for an unentitled process —
+    /// one that cannot be written to. SPM tests therefore cannot expect nil here.
     public static var sharedContainerURL: URL? {
         FileManager.default.containerURL(
             forSecurityApplicationGroupIdentifier: appGroupIdentifier
@@ -66,16 +65,13 @@ public enum SharedModelContainer {
     /// `fatalError` instead so the misconfig surfaces in TestFlight / App Store
     /// review rather than at unhappy users.
     ///
-    /// In `DEBUG` builds (previews, iOS の SPM テスト) the same path returns a
+    /// In `DEBUG` builds (previews, iOS SPM tests) the same path returns a
     /// default non-shared store so unit tests can still construct a container.
     ///
-    /// **macOS の SPM テストではこのフォールバックに入らない**。上記のとおり
-    /// `sharedContainerURL` がパスを返してしまうため、開けない共有ストアを掴んで
-    /// `createContainer()` が throw する。テスト側はそれを前提に組む
-    /// （`SharedModelContainerTests` / `createInMemoryContainer()`）。
+    /// **The fallback is not reached in macOS SPM tests**: `sharedContainerURL` returns a
+    /// path there, so the unopenable shared store is used and `createContainer()` throws.
+    /// Tests are written around that with `createInMemoryContainer()`.
     ///
-    /// 詳細: docs/insights/05-extensions-and-data-sharing.md
-    /// 経緯: docs/devlog/05-extensions-and-data-sharing.md（2026-08-26）
     public static var configuration: ModelConfiguration {
         if let containerURL = sharedContainerURL {
             let storeURL = containerURL.appendingPathComponent(databaseFilename)

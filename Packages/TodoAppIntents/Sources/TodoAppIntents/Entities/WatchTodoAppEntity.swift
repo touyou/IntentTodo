@@ -2,15 +2,8 @@
 //  WatchTodoAppEntity.swift
 //  IntentTodo
 //
-//  watchOS 版の `TodoAppEntity`。**型名を分けている理由は `TodoAppEntity.swift` の
-//  冒頭コメント**（App Schema が watchOS に無く、同じ mangled name にスキーマ有無の
-//  2 形があると iOS の出荷メタデータからスキーマが消えるため）。
-//
-//  `Transferable` / `URLRepresentableEntity` をここに（`typealias` ではなく具象名で）
-//  書いているのも実測による制約: const 抽出は typealias 越しに型へ結び付かず、
-//  `extension TodoAppEntity: Transferable` と書くと watchOS スライスの抽出が
-//  `The property 'transferRepresentation' must be static, have a compile-time constant
-//  value, and cannot be computed or dynamic` で落ちる。
+//  The watchOS counterpart of `TodoAppEntity`. `TodoAppEntity.swift` explains why the two
+//  platforms need different type names rather than one `#if`-guarded type.
 //
 
 import AppIntents
@@ -25,10 +18,9 @@ import SwiftData
 
 /// An App Intents entity representing a todo item (watchOS).
 ///
-/// スキーマ適合が無いので、スキーマだけが要求するプロパティ（`note` / `creationDate` /
-/// `isFlagged` / `list` / `dueDate`(DateComponents) / `completionDate` / `tags` / `urls` /
-/// `recurrence` / `locationTrigger`）は持たない。watch の UI と Intent が使うのは
-/// ここにある分だけ。
+/// Without a schema there is nothing to satisfy, so the schema-only properties (`note`,
+/// `creationDate`, `isFlagged`, `list`, `completionDate`, `tags`, `urls`, `recurrence`,
+/// `locationTrigger`) are absent. The watch UI and intents only use what is here.
 public struct WatchTodoAppEntity: AppEntity, Hashable, SyncableEntity {
     // MARK: - Properties
 
@@ -53,8 +45,8 @@ public struct WatchTodoAppEntity: AppEntity, Hashable, SyncableEntity {
 
     /// The due date, for the app's own use (comparisons, formatting).
     ///
-    /// 名前が `dueDateValue` なのはスキーマ側の系統と揃えるため（あちらは `dueDate` を
-    /// `DateComponents?` の射影に使っている）。共有 extension が両方から読む。
+    /// Named `dueDateValue` to match the schema-conforming variant, where `dueDate` is
+    /// taken by a `DateComponents?` projection. Shared code reads this name on both.
     public var dueDateValue: Date?
 
     /// The creation date of the todo item.
@@ -150,13 +142,10 @@ public struct WatchTodoAppEntity: AppEntity, Hashable, SyncableEntity {
 /// needs a `#if`. Only the metadata sees the two names apart.
 public typealias TodoAppEntity = WatchTodoAppEntity
 
-// MARK: - const 抽出される適合
-//
-// `Transferable` / `URLRepresentableEntity` の宣言は **const 抽出**（swiftconstvalues）で
-// 読まれるため、型宣言と別ファイルに置くと
-// `The property 'transferRepresentation' must be static, have a compile-time constant
-// value, and cannot be computed or dynamic` でメタデータ抽出が落ちる（実測）。
-// 他の共通実装は `WatchTodoAppEntity+Shared.swift` にある。
+// The conformances below stay in this file because const extraction (swiftconstvalues)
+// reads them: declared through a typealias in another file, extraction fails with
+// "The property 'transferRepresentation' must be static, have a compile-time constant
+// value, and cannot be computed or dynamic".
 
 // MARK: - Transferable (structured value export, WWDC 2026 #240/#345)
 
@@ -173,9 +162,9 @@ extension WatchTodoAppEntity: Transferable {
     public static var transferRepresentation: some TransferRepresentation {
         ProxyRepresentation(exporting: \.title)
 
-        // `exporting:` は Transferable DSL で表現の向きを選ぶラベルで（`importing:` /
-        // `exporting:importing:` の兄弟がある）、外すと向きの決定がクロージャの型推論に
-        // 委ねられる。上の `ProxyRepresentation(exporting:)` とも綴りを揃える。
+        // `exporting:` picks the direction of the representation (`importing:` and
+        // `exporting:importing:` are its siblings); omitting it leaves that to closure
+        // type inference.
         // swiftlint:disable:next trailing_closure
         ValueRepresentation(exporting: { (todo: WatchTodoAppEntity) -> IntentPerson in
             guard let name = todo.assigneeName, !name.isEmpty else {
@@ -200,15 +189,12 @@ extension WatchTodoAppEntity: Transferable {
 
 // MARK: - URLRepresentableEntity
 
-/// Todo を URL で指し示せるようにする。
+/// Makes a todo addressable by URL, which is what lets `OpenTodoIntent` satisfy
+/// `URLRepresentableIntent` for free and widgets build the same destination with
+/// `Link(destination:)`.
 ///
-/// これがあると `OpenTodoIntent` が `URLRepresentableIntent` を無償で満たせて、
-/// ウィジェットの `Link(destination:)` からも同じ宛先を作れる。
-///
-/// リテラルの綴りは `TodoDeepLink.todo(id:)` と一致していなければならない
-/// （こちらは DSL なので関数を呼べず、同じ形を 2 回書くしかない）。
-/// 食い違いは `TodoDeepLinkTests` が検出する。
-/// 詳細: docs/insights/03-app-intents-core.md（URL 表現）
+/// The literal must stay in step with `TodoDeepLink.todo(id:)` — this is a DSL and cannot
+/// call a function, so the shape is written twice. `TodoDeepLinkTests` catches drift.
 extension WatchTodoAppEntity: URLRepresentableEntity {
     public static var urlRepresentation: URLRepresentation {
         "intenttodo://todo/\(.id)"

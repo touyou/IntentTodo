@@ -2,8 +2,6 @@
 //  SnoozeTodoIntent.swift
 //  TodoAppIntents
 //
-//  requestChoice で期間を選ばせる対話版。問い合わせ先の UI が無い呼出元
-//  (Live Activity のボタン) には QuickSnoozeTodoIntent を使う。
 //
 
 import AppIntents
@@ -14,7 +12,7 @@ public struct SnoozeTodoIntent: AppIntent {
     public static let description = IntentDescription("Pushes back the due date by a duration you choose")
     public static let supportedModes: IntentModes = [.background]
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
     public static let allowedExecutionTargets: IntentExecutionTargets = [.main]
 
     public static var parameterSummary: some ParameterSummary {

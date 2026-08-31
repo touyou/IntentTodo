@@ -2,12 +2,11 @@
 //  SceneDelegate.swift
 //  IntentTodo
 //
-//  iOS / visionOS 専用。macOS native ビルドでは UIKit が存在しないためビルドから除外する。
+//  iOS / visionOS only: native macOS has no UIKit.
 //
-//  `AppIntentSceneDelegate` として、シーンに向けて実行される App Intent の
-//  ナビゲーションをこのシーンに適用する（wwdc2025-275 23:52）。
+//  As an `AppIntentSceneDelegate`, it applies the navigation of App Intents targeted at this
+//  scene. [Apple: wwdc2025-275 23:52]
 //
-//  詳細: docs/insights/04-ui-integration.md（UISceneAppIntent）
 //
 
 #if os(iOS) || os(visionOS)
@@ -21,16 +20,15 @@ final class SceneDelegate: NSObject, UIWindowSceneDelegate, AppIntentSceneDelega
         willConnectTo session: UISceneSession,
         options connectionOptions: UIScene.ConnectionOptions
     ) {
-        // cold start 経路。App Intent がきっかけでシーンが作られた場合、その Intent は
-        // `willPerformAppIntent` ではなく接続オプションから渡ってくる。ここを拾わないと
-        // 「アプリは開くが目的の画面に行かない」になる。
+        // Cold start: when an App Intent is what created the scene, it arrives through the
+        // connection options rather than `willPerformAppIntent`. Missing this line means
+        // "the app opens but not on the right screen".
         guard let appIntent = connectionOptions.appIntent else { return }
         appIntent.performNavigation(forScene: scene)
     }
 
-    /// 起動済みのシーンに対する実行。`UISceneAppIntent` 準拠の Intent
-    /// (`LaunchAppIntent` / `OpenTodoIntent`) が自分のナビゲーションを知っているので、
-    /// ここでは宛先シーンを渡して委譲するだけ。Intent ごとの分岐は書かない。
+    /// Runs against an existing scene. Each `UISceneAppIntent` knows its own navigation, so
+    /// this only hands over the target scene — no per-intent branching.
     func scene(_ scene: UIScene, willPerformAppIntent appIntent: any UISceneAppIntent) {
         appIntent.performNavigation(forScene: scene)
     }

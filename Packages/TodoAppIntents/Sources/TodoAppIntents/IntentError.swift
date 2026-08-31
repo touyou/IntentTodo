@@ -31,20 +31,18 @@ public enum IntentError: Error, LocalizedError, Sendable {
 
 // MARK: - CustomAppIntentErrorConvertible
 
-/// Siri / Shortcuts に出る（読み上げられる）文言を、`errorDescription` とは別に決める。
+/// Decides what Siri says, separately from `errorDescription`.
 ///
-/// `errorDescription` は開発者向けに種別のプレフィックス（"Validation error: …"）を
-/// 付けているが、それを Siri に読ませたくない。公式: *"When you throw a conforming error
-/// from a method such as `perform()` […] the framework reads the `appIntentError`
-/// property and uses it directly."* — つまり throw 側で `AppIntentError(wrapping:)` を
-/// 明示的に呼ぶ必要はなく、この準拠だけで変換される。
+/// `errorDescription` carries a developer-facing prefix ("Validation error: …") that should
+/// never be read aloud. Apple: "When you throw a conforming error from a method such as
+/// `perform()` […] the framework reads the `appIntentError` property and uses it directly"
+/// — so the throwing side never has to call `AppIntentError(wrapping:)` itself.
 ///
-/// `.notFound` は既定義の `entityNotFound` に載せる。文言だけでなく「参照先の entity が
-/// 無い」という種別がシステムに伝わるため、`AppIntentError(description:)` で自前の文を
-/// 渡すより情報量が多い。
+/// `.notFound` maps onto the predefined `entityNotFound`, which tells the system *what kind*
+/// of failure it was rather than only what to say.
 ///
-/// 文字列は必ず `"\(message)"` の補間形式で渡す（`LocalizedStringResource` に
-/// ランタイム文字列をリテラルとして渡すとローカライズキー扱いになる）。
+/// Messages go through `"\(message)"` interpolation: a runtime string passed as a
+/// `LocalizedStringResource` literal would be treated as a localization key.
 extension IntentError: CustomAppIntentErrorConvertible {
     public var appIntentError: AppIntentError {
         switch self {

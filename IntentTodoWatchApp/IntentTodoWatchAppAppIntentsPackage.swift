@@ -2,9 +2,8 @@
 //  IntentTodoWatchAppAppIntentsPackage.swift
 //  IntentTodoWatchApp
 //
-//  共有パッケージ TodoAppIntents を使う各ターゲットで宣言する
-//  （wwdc2025-244 の公式手順）。詳細は IntentTodoAppIntentsPackage.swift の
-//  コメントと docs/devlog/03-app-intents-core.md を参照。
+//  Every target consuming the shared package declares its own `AppIntentsPackage`.
+//  [Apple: wwdc2025-244 23:29–24:00]
 //
 
 import AppIntents

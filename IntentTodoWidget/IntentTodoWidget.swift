@@ -41,8 +41,8 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
 
     func timeline(for configuration: Intent, in context: Context) async -> Timeline<TodoWidgetEntry> {
         let entry = await fetchEntry(for: configuration)
-        // リロード期限は「今から 15 分」という経過時間そのもので、暦の単位ではない。
-        // `Calendar` を通すと失敗しうる Optional になるだけで得るものがない。
+        // Elapsed time, not a calendar unit: going through `Calendar` would only add an
+        // optional that can fail.
         let nextUpdate = Date(timeIntervalSinceNow: 15 * 60)
         return Timeline(entries: [entry], policy: .after(nextUpdate))
     }
@@ -77,18 +77,16 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
                 return lhs.createdAt > rhs.createdAt
             }
 
-            // 集中モードの絞り込みはウィジェットにも効かせる。アプリ側と同じ
-            // `TodoFocusFilter.apply` を通すので、一覧とウィジェットで結果がずれない。
-            // 設定は App Group の UserDefaults 経由で受け取る（Focus filter の
-            // `perform()` はアプリプロセスで走るため、ここでは読むだけ）。
+            // Focus filtering applies to widgets too, through the same
+            // `TodoFocusFilter.apply` the list uses so the two cannot disagree. The setting
+            // arrives via the App Group; `perform()` runs in the app process, so this side
+            // only reads.
             let focusFilter = TodoFocusFilter.loadFromSharedDefaults()
             let visibleTodos = focusFilter.apply(to: sortedTodos.map { TodoAppEntity(from: $0) })
 
             let entities = visibleTodos.prefix(10)
-            // 各 size view が独立して `todos.filter { !$0.isCompleted }.count` を
-            // 走らせていた旧実装を、Provider 側で 1 回 precompute する形に集約。
-            // 件数も絞り込み後の母数で数える（絞られた一覧に対して全体の件数を出すと
-            // 「表示 0 件なのに未完了 5 件」という食い違った表示になる）。
+            // Counted here once, over the *filtered* todos: reporting the unfiltered total
+            // next to a filtered list produces "no rows shown, 5 open".
             let incompleteCount = visibleTodos.lazy.filter { !$0.isCompleted }.count
 
             return TodoWidgetEntry(
@@ -117,12 +115,11 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
 struct TodoWidgetEntry: TimelineEntry {
     let date: Date
     let todos: [TodoAppEntity]
-    /// 全 todos のうち未完了件数。各 size view が個別に filter+count せず、Provider
-    /// が 1 回計算した値をそのまま参照するために持つ。
+    /// Precomputed so no size-specific view has to filter and count again.
     let incompleteCount: Int
     let configuration: TodoWidgetConfigurationIntent
-    /// SwiftData fetch が失敗したかどうか。true のときは View 側で空表示ではなく
-    /// 「読み込めません」表示にして、空 ("All done!") との誤認を防ぐ。
+    /// When the fetch failed, views say so rather than showing the empty state — "All
+    /// done!" would be a lie.
     var loadFailed: Bool = false
 }
 
@@ -145,9 +142,8 @@ struct IntentTodoWidget: Widget {
         }
         .configurationDisplayName("Todo List")
         .description("View your todos at a glance.")
-        // `.systemExtraLargePortrait` は iOS/macOS 27 で追加された縦長ファミリー
-        // （WWDC 2026 #277）。本ブランチはデプロイメントターゲットが 27 なので
-        // `#available` での組み立ては不要。
+        // `.systemExtraLargePortrait` is new in the 27 releases [Apple: wwdc2026-277]; the
+        // deployment target is 27, so the list needs no availability check.
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge, .systemExtraLargePortrait])
     }
 }

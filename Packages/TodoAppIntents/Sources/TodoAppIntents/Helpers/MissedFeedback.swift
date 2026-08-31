@@ -2,41 +2,39 @@
 //  MissedFeedback.swift
 //  TodoAppIntents
 //
-//  「ユーザーに伝えられなかった」フィードバックを記録し、アプリが設定誘導を出せるようにする。
+//  Records feedback that could not be delivered, so the app can point at Settings.
 //
 
 import Domain
 import Foundation
 
-/// 伝達手段（通知 / ライブアクティビティ）がシステム設定で塞がれていて、
-/// フィードバックを届けられなかったことの記録。
+/// Notes that feedback could not be delivered because the channel is disabled in Settings.
 ///
-/// **なぜ要るか**: Control / Widget から実行した Intent の失敗は、ローカル通知が唯一の
-/// 伝達手段（dialog も snippet も表示されない。`AGENTS.md` の Dialog 表）。通知が拒否
-/// されているとこの経路が無言で死に、コントロールは前の状態のまま再描画されるので
-/// 「何も起きなかった」と区別できない。ライブアクティビティも同じで、設定で無効なら
-/// 「期限が近い todo が出てこない」理由にユーザーが到達できない。
+/// A control or widget shows neither dialogs nor snippets, so a local notification is the
+/// *only* way a failed intent can report itself. With notifications denied that path dies
+/// silently and the control simply redraws its old state — indistinguishable from "nothing
+/// happened". Live Activities have the same problem: disabled, there is no way for someone
+/// to find out why todos stopped appearing on the lock screen.
 ///
-/// 記録は App Group の `UserDefaults` に置く。書き手は Widget / Control の Extension
-/// プロセスにもなるため、プロセスをまたいで読める場所である必要がある。
-/// 読み手はアプリの一覧画面で、設定誘導のバナーを出してから記録を消す。
+/// Stored in the App Group `UserDefaults` because the writer may be an extension process.
+/// The app's list reads it, offers a route to Settings, and then clears the record.
 public enum MissedFeedback {
-    /// 塞がれ得る伝達手段。
+    /// Channels that Settings can block.
     public enum Channel: String, CaseIterable, Sendable {
-        /// ローカル通知。Control / Widget からの失敗報告の唯一の経路。
+        /// Local notification: the only failure path available to controls and widgets.
         case notification
-        /// ライブアクティビティ（ロック画面 / Dynamic Island）。
+        /// Live Activity, i.e. the lock screen and Dynamic Island.
         case liveActivity
     }
 
     static let sharedDefaultsKey = "missedFeedbackChannels"
 
-    /// App Group の `UserDefaults`。取得できない構成では `nil`（記録は諦める）。
+    /// `nil` when the App Group is unavailable, in which case recording is given up on.
     static func sharedDefaults() -> UserDefaults? {
         UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier)
     }
 
-    /// 伝えられなかったことを記録する。同じ channel の重複は畳む。
+    /// Records an undelivered channel, collapsing duplicates.
     public static func record(_ channel: Channel, defaults: UserDefaults? = nil) {
         guard let defaults = defaults ?? sharedDefaults() else { return }
         var stored = storedRawValues(defaults)
@@ -45,19 +43,15 @@ public enum MissedFeedback {
         defaults.set(stored, forKey: sharedDefaultsKey)
     }
 
-    /// 未通知の記録。`Channel.allCases` の順に返す（表示順を安定させるため）。
+    /// Outstanding records, in `Channel.allCases` order so the display order is stable.
     public static func pending(_ defaults: UserDefaults? = nil) -> [Channel] {
         guard let defaults = defaults ?? sharedDefaults() else { return [] }
         let stored = Set(storedRawValues(defaults))
         return Channel.allCases.filter { stored.contains($0.rawValue) }
     }
 
-    /// 記録を消す。
-    ///
-    /// 呼ぶのは 2 つの場面:
-    /// - ユーザーがバナーを閉じた / 設定へ送ったあと
-    /// - その経路が**また使えるようになった**と分かったとき（通知が許可された /
-    ///   ライブアクティビティが有効に戻った）。古い記録でバナーを出し続けないため
+    /// Clears a record, either after the banner has been acted on or once the channel is
+    /// known to work again — a stale record must not keep the banner on screen.
     public static func clear(_ channel: Channel, defaults: UserDefaults? = nil) {
         guard let defaults = defaults ?? sharedDefaults() else { return }
         let stored = storedRawValues(defaults)

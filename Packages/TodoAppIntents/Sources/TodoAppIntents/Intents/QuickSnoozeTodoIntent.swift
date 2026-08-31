@@ -2,11 +2,6 @@
 //  QuickSnoozeTodoIntent.swift
 //  TodoAppIntents
 //
-//  Live Activity のボタン用スヌーズ。`SnoozeTodoIntent` と分かれている理由は
-//  entity 解決の回避ではなく **対話の有無**: `SnoozeTodoIntent` は
-//  `requestChoice` で期間を選ばせるが、Live Activity のボタンは
-//  背景実行で問い合わせ先の UI が無いため、既定の 30 分固定で即実行する。
-//
 
 #if os(iOS)
 import ActivityKit
@@ -15,20 +10,23 @@ import Domain
 import AppIntents
 import Foundation
 
+/// Snoozes by a fixed interval without asking.
+///
+/// Split from `SnoozeTodoIntent` because of interaction, not because of the caller:
+/// `SnoozeTodoIntent` uses `requestChoice` to pick a duration, and a Live Activity button
+/// runs in the background with no surface to answer on.
 public struct QuickSnoozeTodoIntent: AppIntent {
     public static let title: LocalizedStringResource = "Quick Snooze Todo"
     public static let description = IntentDescription(
         "Pushes back the due date by the default interval without asking"
     )
 
-    /// 期間を選ばせないぶん `SnoozeTodoIntent` の下位互換になるため、
-    /// ユーザーが Shortcuts で選ぶ候補としては出さない。
+    /// Hidden from Shortcuts: it is `SnoozeTodoIntent` minus the choice, so offering both
+    /// would only make the picker ambiguous.
     public static let isDiscoverable = false
     public static let supportedModes: IntentModes = [.background]
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
-    /// iOS では `LiveActivityIntent` 準拠で実質アプリ実行だが、他プラットフォームには
-    /// その保証が無いので型で明示する。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
     public static let allowedExecutionTargets: IntentExecutionTargets = [.main]
 
     public static var parameterSummary: some ParameterSummary {
@@ -74,8 +72,8 @@ public struct QuickSnoozeTodoIntent: AppIntent {
     #endif
 }
 
-// Live Activity のボタンから呼ばれるため、`perform()` がアプリプロセスで走ることを
-// 保証する `LiveActivityIntent` に準拠する（Activity の update 操作に必要）。
+// Updating an activity requires `perform()` to run in the app process, which conformance
+// to `LiveActivityIntent` is what guarantees.
 #if os(iOS)
 extension QuickSnoozeTodoIntent: LiveActivityIntent {}
 #endif

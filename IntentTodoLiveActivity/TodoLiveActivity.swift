@@ -46,8 +46,8 @@ struct TodoDeadlineLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    // Activity が持つのは id と title だけだが、システムが perform() 前に
-                    // TodoEntityQuery.entities(for:) で id から再解決するのでこれで足りる。
+                    // The activity only knows the id and title, which is enough: the system
+                    // re-resolves the entity from its id before `perform()` runs.
                     let todoEntity = TodoAppEntity(
                         id: context.attributes.todoId,
                         title: context.state.title

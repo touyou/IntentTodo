@@ -2,7 +2,7 @@
 //  MissedFeedbackModelTests.swift
 //  UI
 //
-//  設定誘導バナーの表示元。読み直し / 閉じたら消える、を押さえる。
+//  The banner's source of truth: re-reading, and clearing on dismissal.
 //
 
 import Foundation
@@ -35,9 +35,9 @@ struct MissedFeedbackModelTests {
         let defaults = makeDefaults()
         let model = MissedFeedbackModel(defaults: defaults)
 
-        // Control / Widget の Extension プロセスが書いた状況を再現する。
+        // Reproduces a record written by an extension process.
         MissedFeedback.record(.notification, defaults: defaults)
-        // 購読はできないので、refresh() を呼ぶまでは見えない。
+        // Nothing to subscribe to, so it stays invisible until `refresh()`.
         #expect(model.channels.isEmpty)
 
         model.refresh()

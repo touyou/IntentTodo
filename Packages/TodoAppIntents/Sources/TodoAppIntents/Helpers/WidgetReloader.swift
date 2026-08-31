@@ -17,14 +17,13 @@ public enum WidgetReloader {
     /// Call this after any data modification (create, update, delete)
     /// to ensure widgets display the latest data.
     ///
-    /// ホームウィジェットとコントロールは**別の API**で、`WidgetCenter` だけでは
-    /// コントロールは更新されない。システムが自動でリロードするのは
-    /// 「その Intent を実行したコントロール自身」だけなので、他のコントロール
-    /// （例: トグルで完了 → 未完了数のコントロール）は明示的に更新する必要がある。
+    /// Home widgets and controls are **separate APIs**: `WidgetCenter` alone leaves
+    /// controls stale. The system only reloads the one control that ran the intent, so any
+    /// other control — a count next to a toggle, say — has to be reloaded explicitly.
     public static func reloadAllWidgets() {
         #if canImport(WidgetKit)
         WidgetCenter.shared.reloadAllTimelines()
-        // ControlCenter は visionOS では unavailable。
+        // ControlCenter is unavailable on visionOS.
         #if !os(visionOS)
         ControlCenter.shared.reloadAllControls()
         #endif

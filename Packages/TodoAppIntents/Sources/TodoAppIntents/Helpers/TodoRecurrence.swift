@@ -54,7 +54,6 @@ public enum TodoRecurrenceFrequency: String, AppEnum {
 ///
 /// `Calendar.RecurrenceRule` can't be a SwiftData attribute — it compiles but SwiftData
 /// traps while initialising the schema. Same shape as `TodoPlace`.
-/// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
 enum TodoRecurrence {
     /// The smallest interval a repeat can have. The constant itself lives on
     /// `TodoRecurrenceFrequency` so it is reachable from outside the package; this is

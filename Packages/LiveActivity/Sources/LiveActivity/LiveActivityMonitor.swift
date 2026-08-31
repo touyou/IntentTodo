@@ -2,8 +2,8 @@
 //  LiveActivityMonitor.swift
 //  LiveActivity
 //
-//  Todo の配列を監視し、期限1時間以内のものに対して Live Activity を自動で start/end する
-//  SwiftUI ViewModifier。start / end 自体は TodoLiveActivityManager に委譲する。
+//  SwiftUI view modifier that starts and ends Live Activities for todos due within the hour.
+//  The start / end calls themselves live in `TodoLiveActivityManager`.
 //
 
 #if os(iOS)
@@ -17,11 +17,8 @@ private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "LiveA
 struct LiveActivityMonitorModifier: ViewModifier {
     let todos: [TodoItem]
 
-    /// reconcile が反応すべき変化を絞った signature。dueDate を持たない todo は
-    /// Live Activity の対象外なので無視し、対象 todo の `id` / `isCompleted` /
-    /// `dueDate` のみを観測する。これにより dueDate 無 todo の追加・編集では
-    /// `.task` が再起動されなくなる (旧実装は全 todo の id 配列を毎更新で
-    /// 再アロケートしており、件数増で観測コストが線形に増えていた)。
+    /// Narrows what reconciliation reacts to: todos without a due date can never have an
+    /// activity, so adding or editing one does not restart the task.
     private var monitorSignature: [String] {
         todos.compactMap { todo in
             guard let dueDate = todo.dueDate else { return nil }
@@ -30,8 +27,8 @@ struct LiveActivityMonitorModifier: ViewModifier {
     }
 
     func body(content: Content) -> some View {
-        // .task(id:) は id 変化のたびに自動でキャンセル＆再起動するので、
-        // onChange + unstructured Task の組み合わせより安全でシリアル実行が保証される。
+        // `.task(id:)` cancels and restarts on every change, which keeps the work serial —
+        // unlike `onChange` plus an unstructured `Task`.
         content.task(id: monitorSignature) {
             await checkAndReconcileActivities()
         }
@@ -57,9 +54,8 @@ struct LiveActivityMonitorModifier: ViewModifier {
                     dueDate: dueDate
                 )
             } catch {
-                // Activity 上限到達 (8 件) / throttling / Encodable 失敗等。
-                // ユーザー操作で解消可能なので silently 飲まずログを残す。
-                // 同一 todoId に対しては次の reconcile (todos 変化時) で再試行される。
+                // Activity limit reached, throttling, encoding failure. All recoverable, and
+                // the next reconciliation retries, so this logs rather than throwing.
                 logger.error(
                     "startActivity failed for todoId=\(todo.id.uuidString, privacy: .public): \(String(reflecting: error))"
                 )

@@ -2,8 +2,8 @@
 //  TodoLiveActivityManager.swift
 //  LiveActivity
 //
-//  ActivityKit ラッパー。Live Activity の start / update / end を集約。
-//  ActivityKit は iOS 限定のため全体を #if os(iOS) でガード。
+//  ActivityKit wrapper for starting, updating and ending Live Activities. ActivityKit is
+//  iOS-only, so the whole file is guarded.
 //
 
 #if os(iOS)
@@ -28,11 +28,9 @@ public final class TodoLiveActivityManager {
     ///   - title: The todo's title.
     ///   - dueDate: The todo's due date.
     public func startActivity(todoId: String, title: String, dueDate: Date) async throws {
-        // 設定でライブアクティビティが無効なときは throw せず抜ける（呼出側の
-        // reconcile は毎回全 todo を回すので、error にすると同じログで溢れる）。
-        // ただし無言で消えるとユーザーは「期限が近い todo が出てこない」理由に
-        // 到達できないので、ログと `MissedFeedback` の記録は残す。アプリの一覧が
-        // 設定誘導のバナーを出す。
+        // Returns rather than throws when Live Activities are disabled: reconciliation walks
+        // every todo, so an error here would flood the log. It is still recorded, because
+        // otherwise there is no way to find out why nothing appears on the lock screen.
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
             logger.warning(
                 "startActivity skipped for todoId=\(todoId, privacy: .public): Live Activities are disabled in Settings"
@@ -40,7 +38,7 @@ public final class TodoLiveActivityManager {
             MissedFeedback.record(.liveActivity)
             return
         }
-        // 有効に戻っていれば古い記録は消す（バナーを出し続けない）。
+        // Re-enabled, so drop the record instead of leaving the banner up.
         MissedFeedback.clear(.liveActivity)
 
         let existingActivity = Activity<TodoDeadlineActivityAttributes>.activities.first {

@@ -8,18 +8,14 @@ import SwiftData
 
 /// A todo item representing a task to be completed.
 ///
-/// CloudKit 互換のため、すべての属性は宣言時にデフォルト値を持ち、
-/// to-many リレーションは空配列デフォルト。Apple 公式 "Define a CloudKit
-/// compatible schema" の要件:
-/// - 全 attribute は optional または default value 付き
-/// - 全 relationship は optional または default value 付き
+/// Shaped by Apple's "Define a CloudKit compatible schema" requirements: every attribute is
+/// optional or has a default value, and so is every relationship.
 @Model
 public final class TodoItem {
     // MARK: - Properties
 
-    // 永続化スキーマの宣言なので、`= UUID()` / `= Date()` のように初期化子から型が
-    // 読める場合でも型注釈を省かない。CloudKit と突き合わせる際に読む対象がここなので、
-    // 一覧として全プロパティの型が揃って並んでいることに価値がある。
+    // Type annotations are kept even where the initialiser makes them redundant: this list
+    // is what gets read when checking the schema against CloudKit's requirements.
     // swiftlint:disable redundant_type_annotation
 
     /// Unique identifier for the todo item.
@@ -67,14 +63,14 @@ public final class TodoItem {
 
     /// The date the todo was completed, if it has been.
     ///
-    /// `.reminders.reminder` スキーマが `completionDate` を要求する。完了トグルのたびに
-    /// `TodoService` が更新する（`isCompleted` と独立に持たないと「いつ終わったか」が出せない）。
+    /// Required by the `.reminders.reminder` schema and kept in step with `isCompleted` by
+    /// `TodoService` — stored separately because "when" cannot be derived from "whether".
     public var completionDate: Date?
 
     /// Free-form tags.
     ///
-    /// スキーマは `Set<String>` を要求するが、SwiftData / CloudKit 互換のため `[String]` で
-    /// 持ち、entity 境界で `Set` に変換する。既定値ありなので軽量マイグレーションで済む。
+    /// The schema asks for `Set<String>`; stored as `[String]` for SwiftData and CloudKit,
+    /// and converted at the entity boundary.
     public var tags: [String] = []
 
     /// Links attached to the todo.
@@ -82,11 +78,9 @@ public final class TodoItem {
 
     /// How often the todo repeats, if it does (`daily` / `weekly` / `monthly` / `yearly`).
     ///
-    /// `Calendar.RecurrenceRule` を**直接 `@Model` プロパティにはできない**（コンパイルは
-    /// 通るが `ModelContainer` 生成時に SwiftData が schema の初期化で trap する。2026-08-29 実測）。
-    /// 場所や担当者と同じく CloudKit 互換の primitive で持ち、entity 境界（`TodoRecurrence`）で
-    /// `Calendar.RecurrenceRule` に組み直す。
-    /// 経緯: docs/devlog/2026-08-29-reminder-schema-conformance.md
+    /// `Calendar.RecurrenceRule` **cannot be a `@Model` property**: it compiles, but
+    /// SwiftData traps while initialising the schema. Stored as CloudKit-friendly primitives
+    /// and reassembled at the entity boundary by `TodoRecurrence`.
     public var recurrenceFrequency: String?
 
     /// How many frequency units sit between occurrences (2 + `weekly` = every other week).
@@ -94,8 +88,8 @@ public final class TodoItem {
 
     /// Whether arriving at or leaving `locationName` should trigger the todo.
     ///
-    /// `.reminders.locationTrigger` の `event`（arrive / depart）に対応する raw value。
-    /// enum ではなく `String?` で持つのは CloudKit 互換のため。
+    /// Raw value of the `.reminders.locationTrigger` event, stored as a `String?` rather
+    /// than an enum for CloudKit compatibility.
     public var locationTriggerEvent: String?
 
     /// The date when the todo item was created.
@@ -103,8 +97,8 @@ public final class TodoItem {
 
     /// The date when the todo item was last modified.
     ///
-    /// `@Model` プロパティで `didSet` を使うと CloudKit マージ時や KVC 経由の
-    /// 更新で発火しないため、更新側 (TodoService 等) で明示的に触る方針。
+    /// Updated explicitly by callers: `didSet` on a `@Model` property does not fire for
+    /// CloudKit merges or KVC writes.
     public var modifiedAt: Date = Date()
 
     /// User-defined manual ordering index (drag-to-reorder).
@@ -121,9 +115,8 @@ public final class TodoItem {
 
     /// Sub-tasks associated with this todo item.
     ///
-    /// CloudKit 互換のため optional `[SubTask]?`。読み取りは `subTasks ?? []` で
-    /// nil 安全に扱う (View / Service 側で). Apple "Define a CloudKit compatible
-    /// schema" が `to-many relationships must be optional` を要求する。
+    /// Optional because Apple requires to-many relationships to be optional for CloudKit;
+    /// readers use `subTasks ?? []`.
     @Relationship(deleteRule: .cascade, inverse: \SubTask.parentTodo)
     public var subTasks: [SubTask]? = []
 

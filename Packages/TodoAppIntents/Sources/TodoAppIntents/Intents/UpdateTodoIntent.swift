@@ -31,14 +31,13 @@ public struct UpdateTodoIntent: AppIntent {
 
     public static var supportedModes: IntentModes { .background }
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
     public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
     /// **The summary is the allowlist for the Shortcuts editor**, not just a label: a
     /// `@Parameter` named nowhere in it still resolves but is never offered as an
     /// editable row, so a field that isn't listed here has no write path from
     /// Shortcuts at all. Everything this intent can change is therefore listed.
-    /// 詳細: docs/insights/03-app-intents-core.md
     public static var parameterSummary: some ParameterSummary {
         Summary("Update \(\.$todo)") {
             \.$title
@@ -76,12 +75,11 @@ public struct UpdateTodoIntent: AppIntent {
     @Parameter(title: "Assignee")
     public var assigneeName: String?
 
-    // MARK: - reminders スキーマ属性の書き込み経路
+    // MARK: - Reminders Schema Attributes
     //
-    // entity 側（`TodoAppEntity`）は #83 でスキーマに適合させたが、値を**変える**経路が
-    // 無かった。読み取り専用の属性は Shortcuts では「取得はできるが設定できない」形で
-    // 見えるので、同じ 1 Intent に置いて `valueState` の三状態に載せる。
-    // 経緯: docs/devlog/2026-08-29-attribute-write-paths.md
+    // Exposed here rather than in a separate intent so they ride the same tri-state
+    // `valueState` handling. An attribute the entity publishes but no intent can write
+    // shows up in Shortcuts as readable-but-not-settable.
 
     /// Replaces the tag set. `.set(nil)` (an explicitly empty value) clears all tags.
     @Parameter(title: "Tags", description: "Replaces the todo's tags")
@@ -155,16 +153,15 @@ public struct UpdateTodoIntent: AppIntent {
             isFavorite: Self.requiredUpdate($isFavorite.valueState),
             estimatedDuration: estimatedDurationUpdate,
             assigneeName: Self.optionalUpdate($assigneeName.valueState),
-            // 配列フィールドは「値なし」と「空」を区別しない: Shortcuts で空の配列を渡すのと
-            // クリアするのは同じ意味なので、`.set(nil)` を `.set([])` に潰す。
+            // Collection fields treat "no value" and "empty" alike, so `.set(nil)`
+            // collapses to `.set([])`: clearing and passing an empty array mean the same.
             tags: Self.collectionUpdate($tags.valueState),
             urls: Self.collectionUpdate($urls.valueState),
             recurrenceFrequency: Self.optionalUpdate($recurrenceFrequency.valueState),
             recurrenceInterval: Self.requiredUpdate($recurrenceInterval.valueState),
             locationTriggerEvent: Self.optionalUpdate($locationTriggerEvent.valueState)
         )
-        // UI から呼ばれた場合は属性編集シートを閉じる。それ以外の呼出元では元から閉じて
-        // いるので no-op（`AddTodoIntent` が追加シートに対してやっているのと同じ形）。
+        // A no-op unless the attribute editor is open, mirroring `AddTodoIntent`.
         navigationModel.dismissAttributeEditor()
         return .result(value: entity)
     }

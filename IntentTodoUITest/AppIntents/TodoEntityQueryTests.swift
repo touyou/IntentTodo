@@ -2,8 +2,8 @@
 //  TodoEntityQueryTests.swift
 //  IntentTodoUITest
 //
-//  Entity query 群。ここが壊れると「Shortcuts の一覧が空」「ボタンが無反応」
-//  「検索に出ない」といった、他のテストでは捕まらない症状になる。
+//  The entity queries. Breakage here reads as "the Shortcuts list is empty", "the button
+//  does nothing" or "it is not in search" — none of which other tests catch.
 //
 
 import AppIntents
@@ -13,7 +13,7 @@ import XCTest
 final class TodoEntityQueryTests: AppIntentsTestCase {
     // MARK: - EntityStringQuery
 
-    /// `TodoEntityQuery.entities(matching:)`。Shortcuts の文字列マッチ経路。
+    /// The string-matching path Shortcuts uses.
     func testEntityQueryMatchesCreatedTodo() async throws {
         let title = uniqueTitle("AITest Query")
         try await addTodo(title: title)
@@ -25,12 +25,10 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    // MARK: - id からの解決
+    // MARK: - Resolution by id
 
-    /// `TodoEntityQuery.entities(for:)` は Live Activity / Widget のボタンが押されたときに
-    /// システムが `perform()` 前に呼ぶ経路。ここが壊れると「ボタンが無反応」という
-    /// 切り分けにくい症状になるので、id からの再解決を直接押さえておく。
-    /// 経緯: docs/devlog/03-app-intents-core.md（2026-08-12 の A-3）
+    /// `entities(for:)` is what the system calls before `perform()` when a Live Activity or
+    /// widget button is pressed, so breaking it presents as an unresponsive button.
     func testEntityResolutionByIdentifier() async throws {
         let title = uniqueTitle("AITest Resolve")
         let entity = try await addTodo(title: title)
@@ -43,8 +41,8 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    /// 存在しない id は空配列（throw ではない）。削除済み todo を指す古いボタンを
-    /// 押したときに落ちないことの担保。
+    /// An unknown id yields an empty array rather than throwing, so a stale button pointing
+    /// at a deleted todo cannot crash anything.
     func testEntityResolutionOfUnknownIdentifierReturnsEmpty() async throws {
         let resolved = try await todoEntity.entities(identifiers: [UUID().uuidString])
         XCTAssertTrue(resolved.isEmpty)
@@ -52,7 +50,7 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
 
     // MARK: - Enumerable / suggested
 
-    /// `EnumerableEntityQuery.allEntities()` と `suggestedEntities()`（未完了のみ）。
+    /// `allEntities()` versus `suggestedEntities()`, which is incomplete todos only.
     func testAllEntitiesIncludesSuggestedIncompleteTodo() async throws {
         let title = uniqueTitle("AITest Enumerate")
         try await addTodo(title: title)
@@ -63,7 +61,7 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
             "allEntities() should include the newly created todo"
         )
 
-        // 追加直後は未完了なので suggestedEntities() にも出る。
+        // Newly added, so it is incomplete and appears in the suggestions too.
         let suggested = try await todoEntity.suggestedEntities()
         XCTAssertTrue(
             try suggested.contains { try $0.title as String == title },
@@ -73,7 +71,7 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    /// 完了済みの todo は候補から外れる（`suggestedEntities()` は未完了のみ）。
+    /// Completing a todo removes it from the suggestions.
     func testSuggestedEntitiesExcludesCompletedTodo() async throws {
         let title = uniqueTitle("AITest Suggest")
         let entity = try await addTodo(title: title)
@@ -91,9 +89,8 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
 
     // MARK: - Spotlight
 
-    /// `IndexedEntity` + `@Property(indexingKey:)` の実効性を押さえる。
-    /// Intent の戻り値が正しくても Spotlight への index を落とすと Siri / 検索から
-    /// 消えるだけで、他のテストには一切引っかからない。
+    /// Proves the Spotlight indexing actually happens: an intent can return the right value
+    /// while the entity quietly disappears from Siri and search, and nothing else notices.
     func testNewTodoIsIndexedInSpotlight() async throws {
         let title = uniqueTitle("AITest Spotlight")
 
@@ -102,7 +99,7 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
 
         try await addTodo(title: title)
 
-        // index は Intent 完了とは非同期。数回リトライしてから判定する。
+        // Indexing is asynchronous, so this polls before deciding.
         let indexed = try await pollUntil(timeout: 10) {
             try await self.todoEntity.spotlightQuery(title)
         } until: { !$0.isEmpty }
@@ -113,8 +110,8 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
-    /// 削除したら Spotlight からも消える。index の張りっぱなしは
-    /// 「検索から開こうとすると何も無い」という体験になる。
+    /// Deleting removes it from Spotlight too; a stale index means opening a search result
+    /// finds nothing.
     func testDeletedTodoIsRemovedFromSpotlight() async throws {
         let title = uniqueTitle("AITest Deindex")
         try await addTodo(title: title)
@@ -131,10 +128,10 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
         XCTAssertTrue(after.isEmpty, "Deleting a todo should also remove its Spotlight entry")
     }
 
-    // MARK: - 横断検索（@UnionValue）
+    // MARK: - Cross-Type Search
 
-    /// `SearchEverythingIntent` は `TodoOrCategory`（`@UnionValue`）を返す。
-    /// union のメンバー構成が変わると Shortcuts 側の受け取りが壊れる。
+    /// `SearchEverythingIntent` returns a `@UnionValue`; changing its members breaks how
+    /// Shortcuts consumes the result.
     func testSearchEverythingFindsTodoByTitle() async throws {
         let title = uniqueTitle("AITest Union")
         try await addTodo(title: title)

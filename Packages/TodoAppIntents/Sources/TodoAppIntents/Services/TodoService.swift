@@ -6,9 +6,8 @@
 //  and resolved by intents through @Dependency. The repository is injected at
 //  construction time so intents do not need to instantiate it themselves.
 //
-//  Mutation-bearing methods automatically invoke `dataDidChange()` on exit via `defer`
-//  (widget / control reload + App Shortcut パラメータ更新), eliminating per-intent
-//  bookkeeping.
+//  Mutating methods invoke `dataDidChange()` on exit via `defer` — widget and control
+//  reloads plus App Shortcut parameter updates — so no intent has to remember to.
 //
 
 import Domain
@@ -33,8 +32,8 @@ public enum FieldUpdate<Value>: Sendable where Value: Sendable {
 
 // MARK: - Result Types
 //
-// 以下の payload は `@MainActor` 隔離なので Sendable は暗黙に付く（グローバルアクター
-// 隔離型は SE-0316 により public でも推論される）。明示すると重複になる。
+// These payloads are `@MainActor`-isolated, which implies `Sendable` (SE-0316) even for
+// public types; spelling it out would be a redundant conformance.
 
 /// Payload returned after toggling a todo's completion.
 @MainActor
@@ -73,18 +72,16 @@ public struct UrgentTodoToggleResult {
 public final class TodoService {
     // MARK: - Constants
 
-    /// `snooze` のデフォルト延長時間 (30 分)。SnoozeTodoIntent の description とも一致。
+    /// Default snooze interval. Kept in step with the intents' user-facing descriptions.
     public static let defaultSnoozeInterval: TimeInterval = 30 * 60
 
     // MARK: - Dependencies
 
-    /// Spotlight 反映（`TodoService+Spotlight.swift`）からも全件取得するため internal。
+    /// Internal because the Spotlight extension fetches through it as well.
     let repository: any TodoRepositoryProtocol
 
-    /// 進行中の Spotlight 操作 (id 単位)。連続トグルで前タスクをキャンセルし、
-    /// 最新の reindex/deindex だけが Spotlight に反映されるようにする (race condition 対策)。
-    ///
-    /// 実体の操作は `TodoService+Spotlight.swift` にあるため internal。
+    /// In-flight Spotlight work, keyed by todo id, so rapid toggling only lands its latest
+    /// state. Internal because the operations live in `TodoService+Spotlight.swift`.
     var inflightSpotlightTasks: [String: Task<Void, Never>] = [:]
 
     // MARK: - Initialization
@@ -127,9 +124,9 @@ public final class TodoService {
             locationLatitude: locationLatitude,
             locationLongitude: locationLongitude
         )
-        // `.reminders.reminder` 由来の属性は `TodoItem.init` に載せず、既定値のあるプロパティ
-        // として代入する。init の引数を増やすと復元用 init（`TodoItemSnapshot.makeTodoItem`）と
-        // 2 箇所で同じ並びを保たなければならなくなるため。
+        // Schema-derived attributes are assigned rather than passed to `TodoItem.init`:
+        // every added initialiser argument would also have to be mirrored in the restore
+        // path (`TodoItemSnapshot.makeTodoItem`).
         item.tags = TodoAttributes.normalized(tags: tags)
         item.urls = TodoAttributes.normalized(urls: urls)
         item.recurrenceFrequency = recurrenceFrequency?.rawValue
@@ -181,11 +178,11 @@ public final class TodoService {
         try setCompletion(todoId: todoId, isCompleted: true)
     }
 
-    /// 完了状態を変えたら `completionDate` を合わせる。
+    /// Keeps `completionDate` consistent with `isCompleted`.
     ///
-    /// `.reminders.reminder` スキーマは `isCompleted` と `completionDate` を別々に要求する。
-    /// 2 つを独立に持つとずれるので、完了状態を触る経路（トグル / 絶対値セット / 最急トグル）は
-    /// 必ずここを通す。復元（`restore(_:)`）は snapshot の値をそのまま戻すので通さない。
+    /// The `.reminders.reminder` schema asks for both, and they drift apart if maintained
+    /// separately, so every path that changes completion goes through here. Restoring a
+    /// snapshot does not: it puts back the values it captured.
     private func syncCompletionDate(_ item: TodoItem) {
         item.completionDate = item.isCompleted ? Date() : nil
     }
@@ -205,9 +202,8 @@ public final class TodoService {
         guard let uuid = UUID(uuidString: todoId) else {
             throw IntentError.validation("Invalid todo ID")
         }
-        // Spotlight は idempotent。CloudKit merge で既に消えていて
-        // repository.delete が throw した場合でも、ローカル index は消しておく方が
-        // 整合性が取れるので defer で unconditional に呼ぶ。
+        // Deindexing is idempotent, so it runs even when the delete throws (the row may
+        // already be gone via a CloudKit merge) — a stale local index is worse.
         defer {
             deindexSpotlight(id: todoId)
             Self.dataDidChange()
@@ -319,14 +315,10 @@ public final class TodoService {
         return entity
     }
 
-    /// `.reminders.reminder` 由来の属性の部分更新。
+    /// Partial update of the schema-derived attributes.
     ///
-    /// `update(todoId:…)` から切り出しているのは分岐数を分けるためだけで、意味の境界も
-    /// ここに一致する（スキーマが要求して #83 で足したフィールド群）。
-    ///
-    /// `tags` / `urls` は差分ではなく置き換え。「1 つ足す」は呼出側が現在値に足した配列を
-    /// 渡す形で表現する（Shortcuts の編集画面が配列を丸ごと編集する形なので、Intent の
-    /// 意味と UI の意味がずれない）。
+    /// `tags` and `urls` are replaced, not merged: "add one" is expressed by passing the
+    /// current array plus one, which matches how the Shortcuts editor edits collections.
     private func applySchemaAttributes(
         to item: TodoItem,
         tags: FieldUpdate<[String]>,
@@ -399,10 +391,10 @@ public final class TodoService {
         return items.map { TodoAppEntity(from: $0) }
     }
 
-    /// 単一の Todo を id で引く。見つからなければ `nil`。
+    /// Looks up a single todo by id, returning `nil` when it is gone.
     ///
-    /// ディープリンク（`TodoDeepLink.todo(id:)`）の解決用。古いリンクを開いたときに
-    /// エラーを見せる意味がないので、`resolve(todoId:)` と違って throw せず `nil` を返す。
+    /// Used to resolve deep links, where a stale URL should quietly find nothing rather
+    /// than raise the error `resolve(todoId:)` would throw.
     public func todo(id: String) -> TodoAppEntity? {
         guard let uuid = UUID(uuidString: id),
               let item = try? repository.fetch(by: uuid) else {
@@ -425,14 +417,13 @@ public final class TodoService {
 
     // MARK: - Private
 
-    /// データ変更後の共通後処理。
+    /// The one place post-mutation work happens; every mutating method reaches it through
+    /// `defer { Self.dataDidChange() }`.
     ///
-    /// 1. ウィジェット / コントロールのリロード（別 API なので `WidgetReloader` が両方叩く）
-    /// 2. App Shortcut のパラメータ候補の再取得要求。パラメータ入りフレーズ
-    ///    （"Complete \(todo) in IntentTodo"）は候補が古いと一致しなくなるため、
-    ///    entity の追加 / 削除 / 表示名の変化ごとに通知する（wwdc2023-10102 9:24）
-    ///
-    /// 変更系メソッドはすべて `defer { Self.dataDidChange() }` でここを通る。
+    /// 1. Reloads widgets *and* controls — separate APIs, both driven by `WidgetReloader`.
+    /// 2. Asks the system to refetch App Shortcut parameter suggestions. Parameterised
+    ///    phrases stop matching when the suggestions are stale, so this fires on every
+    ///    entity add, remove or rename. [Apple: wwdc2023-10102 9:24]
     private static func dataDidChange() {
         WidgetReloader.reloadAllWidgets()
         AppShortcutParameterUpdater.notifyEntitiesChanged()

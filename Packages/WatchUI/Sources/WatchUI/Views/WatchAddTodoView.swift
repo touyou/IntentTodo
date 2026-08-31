@@ -22,8 +22,8 @@ public struct WatchAddTodoView: View {
                 .textContentType(.none)
                 .accessibilityIdentifier("todoTitleField")
 
-            // Button(intent:) で発火することで、Intent の @Dependency が
-            // AppDependencyManager から解決される (直接 perform() 呼びは不可)。
+            // `Button(intent:)`, not a manual `perform()`: `@Dependency` is only injected
+            // when the system dispatches the intent.
             Button(intent: AddTodoIntent(title: trimmedTitle)) {
                 Label(.copy("Add"), systemImage: "plus.circle.fill")
             }
@@ -32,8 +32,7 @@ public struct WatchAddTodoView: View {
             .accessibilityIdentifier("addButton")
         }
         .navigationTitle(.copy("New Todo"))
-        // シートを閉じるのは `AddTodoIntent` の完了時（`dismissAddTodo()` →
-        // `NavigationModel.showingAddTodo`）。件数差分で閉じる形は、他デバイスや
-        // ウィジェットからの追加で誤クローズするため使わない（iOS 側と同じ理由）。
+        // The sheet is closed by `AddTodoIntent` on success, not by a row-count change that
+        // another device or a widget could also cause.
     }
 }

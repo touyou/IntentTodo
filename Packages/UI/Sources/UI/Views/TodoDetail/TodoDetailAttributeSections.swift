@@ -2,9 +2,8 @@
 //  TodoDetailAttributeSections.swift
 //  UI
 //
-//  詳細画面のうち、Todo の属性を並べるセクション群。`TodoDetailView.swift` から
-//  切り出したのは行数の都合だけで、`VisionOSTodoDetailView.swift` を
-//  `VisionOSTodoView.swift` から分けたのと同じ理由。
+//  The attribute sections of the detail screen, split out from `TodoDetailView.swift` for
+//  file length.
 //
 
 import Domain
@@ -46,7 +45,7 @@ struct TodoDetailLinksSection: View {
 struct TodoDetailMetadataSection: View {
     let todo: TodoItem
 
-    /// 秒で保持された所要時間を "1h 30m" 形式へ整形する。
+    /// Formats the stored seconds as "1h 30m".
     private var formattedDuration: String? {
         guard let seconds = todo.estimatedDuration, seconds > 0 else { return nil }
         return Duration.seconds(seconds)
@@ -71,9 +70,8 @@ struct TodoDetailMetadataSection: View {
                     }
                 }
             }
-            // WWDC 2026 で追加した属性 (所要時間 / 担当者 / 場所) を表示。
-            // 値は Created/Modified と同じく plain Text に揃える (Label を value に
-            // 置くと行が縦に間延びするため)。
+            // Values are plain `Text`, matching the rows above: a `Label` in the value
+            // position stretches the row vertically.
             if let formattedDuration {
                 LabeledContent(.copy("Estimated Duration")) {
                     Text(formattedDuration)
@@ -89,13 +87,13 @@ struct TodoDetailMetadataSection: View {
                     Text(location)
                 }
             }
-            // reminders スキーマ属性のうち、行 1 本で足りるもの。tags / urls は件数が
-            // 増えるので専用セクションに出す。
+            // The schema attributes that fit on one row; tags and urls grow, so they get
+            // sections of their own.
             if let frequency = recurrenceFrequency {
                 LabeledContent(.copy("Repeat")) {
-                    // 頻度の文言は enum の `caseDisplayRepresentations` から来るので Siri と
-                    // 同じ。間隔は倍率として添える（"Every 2 weeks" 形にすると頻度 4 種 ×
-                    // 複数形のキーが必要になり、得られる自然さに見合わない）。
+                    // The frequency reads from the enum's own display representations, so
+                    // it matches Siri. The interval is appended as a multiplier: phrasing it
+                    // as "Every 2 weeks" would need a key per frequency and plural form.
                     HStack(spacing: 4) {
                         Text(frequency.localizedStringResource)
                         if todo.recurrenceInterval > TodoRecurrenceFrequency.minimumInterval {

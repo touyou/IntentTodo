@@ -2,8 +2,6 @@
 //  GetTodoSummaryIntent.swift
 //  TodoAppIntents
 //
-//  `TodoListSummaryEntity`（TransientAppEntity）を返す Intent。
-//  Shortcuts で「未完了が N 件以上なら通知」などの条件分岐に使える。
 //
 
 import AppIntents
@@ -37,8 +35,9 @@ public struct GetTodoSummaryIntent: AppIntent {
         return .result(
             value: summary,
             dialog: IntentDialog(
-                // 屈折は `^[](inflect:)` に任せる。`?:` で "s" / "is" / "are" を
-                // 継ぎ足すと、その断片は catalog に載らず訳文に英語が残る。
+                // Inflection belongs in `^[](inflect:)`. Stitching "s" / "is" / "are" on
+                // with a ternary leaves those fragments out of the String Catalog, so
+                // English words survive into translated output.
                 full: "You have ^[\(summary.pendingCount) pending todo](inflect: true), including ^[\(summary.overdueCount) overdue](inflect: true).",
                 supporting: "\(summary.pendingCount) pending, \(summary.overdueCount) overdue."
             ),

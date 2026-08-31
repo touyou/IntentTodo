@@ -28,8 +28,6 @@ import Domain
 /// the two entries apart, so the schema survives into the app the system reads.
 /// Nothing is visible in the compiler or in a green build — the regression check
 /// lives in `skills/intent-centric-architecture/scripts/inspect_appintents_metadata.py`.
-/// 経緯: docs/devlog/03-app-intents-core.md（2026-08-25 の #49）
-/// 詳細: docs/insights/03-app-intents-core.md
 #if os(watchOS)
 public struct WatchCategoryAppEntity: AppEntity, Hashable {
     public static let typeDisplayRepresentation: TypeDisplayRepresentation = "List"
@@ -198,7 +196,6 @@ extension CategoryAppEntity {
     ///
     /// The name is people-facing copy, so it goes through the main bundle like the
     /// rest of the Intent copy (`TodoAppIntents` has no catalog of its own).
-    /// 詳細: docs/insights/03-app-intents-core.md
     public static var uncategorized: CategoryAppEntity {
         CategoryAppEntity(
             id: uncategorizedID,

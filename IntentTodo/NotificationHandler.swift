@@ -2,9 +2,9 @@
 //  NotificationHandler.swift
 //  IntentTodo
 //
-//  通知デリゲート本体。`UNUserNotificationCenterDelegate` は全プラットフォームで
-//  同一シグネチャのため、プラットフォーム非依存の1クラスに集約し、
-//  iOS / macOS それぞれの AppDelegate から委譲する（Paul Hudson / Swift by Sundell の定番パターン）。
+//  The notification delegate. `UNUserNotificationCenterDelegate` has the same signature on
+//  every platform, so it lives in one platform-independent class that the iOS and macOS app
+//  delegates both install.
 //
 
 import TodoAppIntents
@@ -12,12 +12,12 @@ import UserNotifications
 
 /// Shared cross-platform notification delegate.
 ///
-/// 通知タップ時の「Add Todo 画面を開く」導線は、IntentTodoApp 起動時に注入される
-/// `NavigationModel` に直接書き込むことで実現する（旧 `IntentAppState` 経路は削除）。
+/// Notification taps navigate by writing to the `NavigationModel` injected at launch, the
+/// same object intents write to.
 final class NotificationHandler: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationHandler()
 
-    /// 起動時に `IntentTodoApp.init()` から注入される。通知タップ時にここへ書き込む。
+    /// Injected by `IntentTodoApp.init()`; written to when a notification is tapped.
     @MainActor var navigationModel: NavigationModel?
 
     private override init() {}

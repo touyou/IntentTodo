@@ -2,8 +2,8 @@
 //  TodoSpotlightIndexTests.swift
 //  TodoAppIntents
 //
-//  client state ダイジェストの性質を押さえる。ここが崩れると「毎起動フル再インデックス」
-//  か「変更が Spotlight に反映されない」のどちらかに倒れ、どちらもビルドでは分からない。
+//  Properties of the client-state digest. Getting it wrong means either a full reindex on
+//  every launch or changes that never reach Spotlight, and neither is visible at build time.
 //
 
 #if os(iOS) || os(macOS) || os(visionOS)
@@ -47,14 +47,14 @@ struct TodoSpotlightIndexTests {
     }
 }
 
-/// 差分 index が失敗し続けたときの自己修復。ここが効かないと index が壊れたまま
-/// 復旧せず、Spotlight / Siri から todo を引けない状態が続く（アプリ内では正常に見える）。
+/// Recovery after repeated incremental failures. Without it a broken index never heals, and
+/// the app looks perfectly fine while search finds nothing.
 @Suite("TodoSpotlightIndex self-healing")
 struct TodoSpotlightIndexSelfHealingTests {
-    /// テストごとに独立した UserDefaults を使う（`.standard` を汚さない）。
+    /// A private suite per test, so `.standard` is left alone.
     private func makeDefaults() -> UserDefaults {
         let suite = "TodoSpotlightIndexSelfHealingTests.\(UUID().uuidString)"
-        // suiteName 付きの UserDefaults は必ず生成できる（不正な名前でない限り）。
+        // A suite-named `UserDefaults` always initialises for a valid name.
         // swiftlint:disable:next force_unwrapping
         let defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
@@ -111,7 +111,7 @@ struct TodoSpotlightIndexSelfHealingTests {
         TodoSpotlightIndex.clearFullReindexRequest(defaults)
 
         #expect(TodoSpotlightIndex.needsFullReindex(defaults) == false)
-        // 直後の 1 回の失敗で再び要求が立たない（カウントも 0 に戻っている）。
+        // A single failure right afterwards must not re-raise the request.
         TodoSpotlightIndex.recordFailure(defaults)
         #expect(TodoSpotlightIndex.needsFullReindex(defaults) == false)
     }

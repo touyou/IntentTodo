@@ -7,29 +7,27 @@ import Domain
 import SwiftUI
 import TodoAppIntents
 
-/// 既存 Todo の reminders 属性（tags / urls / recurrence / locationTriggerEvent）を編集する。
+/// Edits the schema-derived attributes of an existing todo.
 ///
-/// 保存は `Button(intent: UpdateTodoIntent(...))`。`UpdateTodoIntent` は
-/// `IntentParameter.valueState` の三状態で「置き換え / クリア / 放置」を区別するので、
-/// この画面が触る 4 つだけを init で代入し、残りは `.unset` のまま渡す（タイトルや期限が
-/// 巻き戻らない）。
-/// 詳細: docs/insights/03-app-intents-core.md
+/// Saving goes through `Button(intent: UpdateTodoIntent(...))`. Because that intent
+/// distinguishes replace / clear / leave alone via `IntentParameter.valueState`, only the
+/// four fields this screen owns are set; everything else stays `.unset` so the title and
+/// due date cannot be rolled back.
 struct TodoAttributesEditView: View {
     @Environment(\.dismiss) private var dismiss
 
     let entity: TodoAppEntity
 
-    /// 場所の有無だけを渡す。`locationTriggerEvent` は場所と対で初めて trigger になるため。
+    /// Only whether a location exists: an event without one is not a trigger.
     let hasLocation: Bool
 
     @State private var attributes: TodoAttributesDraft
 
     /// - Parameters:
-    ///   - todo: 編集対象。scalar な属性だけをここから読む。
-    ///   - tags: 呼出側が id 経由で取り直したタグ。**モデルの配列属性を読んではいけない**
-    ///     ため引数で受ける（削除済みオブジェクトの配列読みは trap する）。
-    ///     詳細: `TodoDetailContent.tags` のコメント
-    ///   - urls: 同上。
+    ///   - todo: the todo being edited; only its scalar attributes are read here.
+    ///   - tags: fetched by the caller via id. Passed in because reading a collection
+    ///     attribute off the model can trap — see `TodoDetailContent.tags`.
+    ///   - urls: same.
     init(todo: TodoItem, tags: [String], urls: [URL]) {
         self.entity = TodoAppEntity(from: todo)
         self.hasLocation = !(todo.locationName ?? "").isEmpty
@@ -70,7 +68,7 @@ struct TodoAttributesEditView: View {
                 )
             }
             #if os(macOS)
-            // AddTodoView と同じ理由で grouped に揃える（既定の .automatic は横端密着）。
+            // `.automatic` sits flush against the window edge on macOS.
             .formStyle(.grouped)
             #endif
             .navigationTitle(.copy("Edit Details"))
@@ -86,10 +84,9 @@ struct TodoAttributesEditView: View {
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
-                    // シートを閉じるのは `UpdateTodoIntent.perform()`
-                    // （`navigationModel.dismissAttributeEditor()`）。ここで併せて
-                    // dismiss すると、Intent が失敗しても閉じてしまい「保存された」ように
-                    // 見える。`AddTodoIntent` と同じ「Intent 完了 = シート閉じる」形に揃える。
+                    // The sheet is closed by `UpdateTodoIntent.perform()`. Dismissing here
+                    // as well would also close it when the intent fails, which reads as
+                    // "saved".
                     Button(intent: updateIntent) {
                         Text(.copy("Save"))
                     }

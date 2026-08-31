@@ -43,8 +43,7 @@ public struct TodoWidgetEntryView: View {
     }
 }
 
-/// fetch 失敗時に表示する代替 View。空の Todo リスト ("All done!") とは
-/// はっきり区別できる文言にしておく。
+/// Shown when the fetch failed, worded so it cannot be mistaken for the empty state.
 struct WidgetLoadFailureView: View {
     var body: some View {
         VStack(spacing: 6) {
@@ -187,16 +186,15 @@ struct LargeTodoWidgetView: View {
     }
 }
 
-/// 縦長ファミリー（iPad / Mac、iOS 27 で追加）。
+/// The tall family added in the 27 releases.
 ///
-/// Large より縦に余裕があるぶん**行数を増やす**のが主目的で、レイアウトの骨格は
-/// 同じ（ヘッダ → 行 → 追加リンク）。`default:` の Small フォールバックに落とすと
-/// 巨大な余白の中に 3 行だけ、という表示になるので専用 case を持たせている。
+/// Same skeleton as Large — header, rows, add link — with more rows. It needs its own case:
+/// falling through to the Small fallback would show three rows in a very large frame.
 struct ExtraLargePortraitTodoWidgetView: View {
     let todos: [TodoAppEntity]
     let incompleteCount: Int
 
-    /// Provider が渡してくるのは最大 10 件。縦長ではその全部が入る。
+    /// The provider supplies at most ten, all of which fit here.
     private static let rowLimit = 10
 
     var body: some View {
@@ -238,7 +236,7 @@ struct ExtraLargePortraitTodoWidgetView: View {
     }
 }
 
-/// 全件完了時の表示。Large / ExtraLargePortrait で共有。
+/// Shown when everything is done. Shared by the Large and tall families.
 struct WidgetAllDoneView: View {
     var body: some View {
         HStack {
@@ -258,8 +256,8 @@ struct WidgetAllDoneView: View {
     }
 }
 
-/// アプリを開くだけのインタラクションは Apple 公式推奨に従い `Link` を使う
-/// (`Button(intent:)` は開く以上の副作用がある場合に限定する)。
+/// A `Link`, per Apple's guidance: `Button(intent:)` is for interactions that do more than
+/// open the app.
 struct WidgetAddTodoLink: View {
     var body: some View {
         Link(destination: TodoDeepLink.addTodo.url) {

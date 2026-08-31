@@ -11,25 +11,22 @@ import WidgetKit
 @main
 struct IntentTodoWidgetBundle: WidgetBundle {
     init() {
-        // Widget Extension プロセスで .background Intent が実行される場合、
-        // メインアプリの AppDependencyManager 登録は引き継がれないので、
-        // この Extension プロセス側でも依存関係を登録する。
+        // `AppDependencyManager` is per-process, so registrations made by the app do not
+        // carry over here.
         //
-        // ただし書き込み系 Intent は全て `allowedExecutionTargets = [.main]` で
-        // アプリ本体に固定済み (WWDC 2026 #345)。このプロセスで実行され得るのは
-        // 読み取り系 (ShowTodoCountIntent / GetTodoSummaryIntent / SearchEverythingIntent 等)
-        // と entity 解決・snippet 描画だけで、SwiftData の書き手はアプリ本体のみ。
+        // Only read-only intents, entity resolution and snippet rendering can run in this
+        // process: every writing intent is pinned to the app with
+        // `allowedExecutionTargets = [.main]`.
         AppDependencyManager.shared.add(dependency: sharedWidgetModelContainer)
 
-        // 読み取り系 Intent が TodoService を @Dependency で受け取れるよう登録。
-        // WidgetBundle.init は main actor で評価されるため assumeIsolated で包む。
+        // `WidgetBundle.init` is evaluated on the main actor, hence `assumeIsolated`.
         MainActor.assumeIsolated {
             let todoService = TodoService.swiftDataBacked(container: sharedWidgetModelContainer)
             AppDependencyManager.shared.add(dependency: todoService)
 
-            // SnippetIntent と TodoAppEntity の deferred property は @Dependency を
-            // 使えず TodoEntityStore から読むため、こちらの登録も別途必要
-            // (無いと Extension プロセスでの解決時に中身が空になる)。
+            // Snippet intents and the entity's deferred properties cannot use
+            // `@Dependency`; they read `TodoEntityStore`, which needs its own registration
+            // or they resolve to empty in this process.
             TodoEntityStore.register(container: sharedWidgetModelContainer)
         }
     }
@@ -38,7 +35,7 @@ struct IntentTodoWidgetBundle: WidgetBundle {
         // Home screen widgets
         IntentTodoWidget()
 
-        // Control Center widgets (visionOS 以外で利用可能。公式表で iOS/iPadOS/macOS/watchOS 対応)
+        // Control Center widgets. Controls are unavailable on visionOS.
         #if !os(visionOS)
         QuickAddTodoControl()
         TodoCountControl()

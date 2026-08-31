@@ -2,7 +2,7 @@
 //  SiriTipModelTests.swift
 //  UI
 //
-//  Siri Tip の表示ポリシー。常設に戻っていないこと（= 出す条件が要る）を押さえる。
+//  Presentation policy for the Siri tip, and that it has not become permanent again.
 //
 
 import Foundation
@@ -40,7 +40,7 @@ struct SiriTipModelTests {
         first.recordInAppAdd()
         first.recordInAppAdd()
 
-        // 起動しなおしても数え直しにはならない。
+        // Relaunching does not restart the count.
         let second = SiriTipModel(defaults: defaults)
         #expect(!second.isPresented)
         second.recordInAppAdd()
@@ -71,7 +71,7 @@ struct SiriTipModelTests {
         #expect(!model.isPresented)
         model.recordInAppAdd()
         #expect(!model.isPresented)
-        // 起動しなおしても復活しない。
+        // Relaunching does not bring it back.
         let relaunched = SiriTipModel(defaults: defaults)
         relaunched.recordInAppAdd()
         #expect(!relaunched.isPresented)
@@ -101,7 +101,7 @@ struct SiriTipModelTests {
         #expect(model.isPresented)
         model.hide()
 
-        // 3 回目は出ない（教育の総量に上限を置く）。
+        // No third presentation: the total is capped.
         model.recordInAppAdd()
         #expect(!model.isPresented)
     }
@@ -109,7 +109,7 @@ struct SiriTipModelTests {
     @Test("Someone who dismissed the old always-on row is not re-taught")
     func honorsLegacyDismissal() {
         let defaults = makeDefaults()
-        // リスト先頭に常設していた頃のキー。false = 閉じられた。
+        // Key from when the tip was permanent; `false` meant dismissed.
         defaults.set(false, forKey: "siriTip.addTodo.isVisible")
         let model = SiriTipModel(defaults: defaults)
 

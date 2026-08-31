@@ -11,9 +11,8 @@ import XCTest
 final class IntentTodoUITest: XCTestCase {
     // MARK: - Properties
 
-    // `setUpWithError()` で組み立て `tearDownWithError()` で捨てる XCTest の
-    // ライフサイクルに乗せた fixture。毎回 unwrap する Optional にしても、テスト側の
-    // 記述が増えるだけで捕まえられる失敗は増えない。
+    // XCTest fixture, built in `setUpWithError()` and torn down again. Making it an optional
+    // to unwrap per test would add noise without catching anything more.
     // swiftlint:disable:next implicitly_unwrapped_optional
     var app: XCUIApplication!
 
@@ -22,13 +21,13 @@ final class IntentTodoUITest: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        // 一部の要素は accessibility label で引いている（`Delete todo` 等、identifier を
-        // 持たない汎用コンポーネント）。ホストの macOS が ja だとシミュレータのアプリも ja で
-        // 起動して英語ラベルが引けなくなるので、テスト対象のアプリの言語を en に固定する。
-        // 経緯: docs/devlog/2026-08-28-ja-localization.md（ja 追加でラベル引きが壊れた件）
-        // 毎回空のストアで起動する。共有ストアはプロセスを跨いで残るので、
-        // テスト間で todo が積み上がって空状態のテストが書けず、一覧の再描画が遅くなって
-        // 待ち条件もタイムアウトしやすくなる（`IntentTodoApp.ephemeralStoreArgument`）。
+        // The language is pinned because some elements are matched by accessibility label:
+        // the simulator otherwise inherits the host's preferred language and the English
+        // labels stop resolving.
+        //
+        // The store is emptied per launch. It outlives the process, so otherwise todos
+        // accumulate across tests — no test can assume an empty list, and the growing list
+        // slows redraws until waits time out.
         app.launchArguments = [
             "-uitest-ephemeral-store",
             "-AppleLanguages", "(en)",
@@ -72,8 +71,8 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(confirmButton.exists, "Add button should exist")
         confirmButton.tap()
 
-        // シートが閉じたことは「タイトル欄が消えたこと」で待つ。固定秒で待つと、
-        // 16 テスト分の待ち時間をまるごと払うことになる。
+        // Waits for the title field to disappear rather than for a fixed interval, which
+        // every test would otherwise pay for.
         XCTAssertTrue(titleField.waitForNonExistence(timeout: 5), "Add sheet should dismiss")
     }
 
@@ -182,10 +181,9 @@ final class IntentTodoUITest: XCTestCase {
 
         // Find and tap the checkbox (using accessibility label)
         //
-        // **条件付き assert にしないこと**。`if checkbox.waitForExistence(...)` で包むと、
-        // 要素が見つからないまま何も検証されず緑になる。実際 ja ローカライズを入れた直後、
-        // アプリが ja で起動して英語ラベルが引けなくなり、このテストが「何も検証せず緑」に
-        // なっていた。経緯: docs/devlog/2026-08-28-ja-localization.md
+        // **Never wrap assertions in `if element.waitForExistence(...)`**: a missing element
+        // then verifies nothing and the test passes. That is exactly what happened when the
+        // app started launching in another language and the English labels stopped matching.
         let checkbox = app.buttons["Mark as complete"].firstMatch
         XCTAssertTrue(checkbox.waitForExistence(timeout: 3), "Incomplete todo should show a complete checkbox")
         checkbox.tap()
@@ -210,7 +208,7 @@ final class IntentTodoUITest: XCTestCase {
 
         // Find and tap the favorite button
         //
-        // ここも条件付き assert にしない（上の `testToggleTodoCompletion` と同じ理由）。
+        // Unconditional for the same reason as `testToggleTodoCompletion` above.
         let favoriteButton = app.buttons["Add to favorites"].firstMatch
         XCTAssertTrue(favoriteButton.waitForExistence(timeout: 3), "Todo row should show a favorite button")
         favoriteButton.tap()
@@ -233,19 +231,16 @@ final class IntentTodoUITest: XCTestCase {
         let todoCell = findTodoCell(title: todoTitle)
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
 
-        // Swipe to delete。スワイプ対象は StaticText ではなく行のセル
-        // （StaticText を swipeLeft してもスワイプアクションは開かない）。
+        // Swiping has to happen on the row's cell: a `StaticText` does not open the swipe
+        // actions.
         let row = app.cells.containing(.staticText, identifier: todoTitle).firstMatch
         XCTAssertTrue(row.waitForExistence(timeout: 5), "Row cell should exist")
         row.swipeLeft()
 
         // Tap delete button
         //
-        // **条件付き assert にしないこと**。`if deleteButton.waitForExistence(...)` で
-        // 包むと、要素が見つからないまま何も検証されず緑になる。
-        // ラベルは `DeleteButton` の `.accessibilityLabel` に合わせて "Delete todo"
-        // （"Delete" ではない）。
-        // 経緯: docs/devlog/06-control-widget-ios26.md（2026-08-12 の削除ボタン不動作）
+        // Unconditional, as above. The label matches `DeleteButton`'s accessibility label —
+        // "Delete todo", not "Delete".
         let deleteButton = app.buttons["Delete todo"].firstMatch
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Swipe should reveal a Delete action")
         deleteButton.tap()
@@ -259,9 +254,9 @@ final class IntentTodoUITest: XCTestCase {
 
     // MARK: - Test: Delete Todo from the detail screen
 
-    /// 詳細画面の「Delete Todo」は確認ダイアログを挟んでから削除する。
-    /// この経路は `DeleteTodoIntent`（`requestConfirmation` 付き）を直接叩いていた頃、
-    /// `LNPerformActionErrorCodeUnsupportedValueType` で失敗して**何も起きなかった**。
+    /// Deleting from the detail view confirms first. While this called the confirming intent
+    /// directly it failed with `LNPerformActionErrorCodeUnsupportedValueType` and **nothing
+    /// happened at all**.
     @MainActor
     func testDeleteTodoFromDetailView() throws {
         let todoTitle = "Detail Delete Test \(Date().timeIntervalSince1970)"
@@ -308,8 +303,8 @@ final class IntentTodoUITest: XCTestCase {
         searchField.tap()
         searchField.typeText("Apple")
 
-        // 絞り込みの完了は「一致しない行が消えること」で待つ。固定秒を挟むと、
-        // 絞り込みが効いていなくても待ち時間が過ぎれば先に進んでしまう。
+        // Waits for the non-matching row to disappear: a fixed delay would move on even if
+        // filtering never happened.
         XCTAssertTrue(
             findTodoCell(title: todoTitle2).waitForNonExistence(timeout: 5),
             "Non-matching todo should be hidden"
@@ -326,7 +321,7 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(filterMenu.waitForExistence(timeout: 5), "Filter menu should exist")
         filterMenu.tap()
 
-        // メニューの出現待ちは下の `waitForExistence(timeout: 1)` が兼ねる。
+        // The `waitForExistence` below doubles as the wait for the menu.
 
         // In SwiftUI Menu with Picker, menu content can appear in different ways
         // depending on iOS version. We check multiple possible element types.
@@ -355,8 +350,8 @@ final class IntentTodoUITest: XCTestCase {
         // Also check if any menu items exist (generic check)
         if !menuOpened {
             // Check for picker selections via images (checkmark.circle.fill indicates selection)
-            // `XCUIElementQuery` に `isEmpty` は無い。件数は要らず「1 件でもあるか」だけ
-            // 知りたいので `firstMatch` で問い合わせる（全件の解決も避けられる）。
+            // `XCUIElementQuery` has no `isEmpty`, and only "any at all" matters here, so
+            // this asks `firstMatch` instead of resolving every match.
             if app.images.matching(identifier: "checkmark").firstMatch.exists {
                 menuOpened = true
             }
@@ -382,9 +377,7 @@ final class IntentTodoUITest: XCTestCase {
 
     @MainActor
     func testEmptyStateShowsAddButton() throws {
-        // 起動ごとに空のストアなので、無条件に空状態を期待できる。
-        // 以前は `if emptyStateButton.waitForExistence { ... }` で包んでいたため、
-        // 空状態が出ていなくても何も検証せず緑になっていた。
+        // The store is empty per launch, so the empty state can be expected unconditionally.
         let emptyStateButton = app.buttons["Add Todo"]
         XCTAssertTrue(
             emptyStateButton.waitForExistence(timeout: 5),
@@ -407,23 +400,21 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
         todoCell.tap()
 
-        // 遷移の完了は下の戻るボタンの出現待ちが兼ねる。
+        // The wait for the back button below doubles as the wait for navigation.
 
         // Verify we're on the detail view by checking for back button
         let backButton = app.navigationBars.buttons.element(boundBy: 0)
         XCTAssertTrue(backButton.waitForExistence(timeout: 3), "Back button should exist on detail view")
     }
 
-    // MARK: - Test: reminders 属性の編集
+    // MARK: - Test: Editing Attributes
 
-    /// 詳細画面の編集シートからタグを足せること。
+    /// Adding a tag from the detail view's edit sheet.
     ///
-    /// ここを UI テストで押さえる理由は 2 つ:
-    /// - `Button(intent: UpdateTodoIntent(...))` はアプリ内から Intent を走らせる経路で、
-    ///   失敗しても**エラー表示が出ない**（依存の解決漏れや対話 API の混入は無音で落ちる）。
-    ///   AppIntentsTesting は Shortcuts 相当の経路を通るのでこの形を再現できない
-    /// - シートが閉じることが「`perform()` が最後まで走った」ことの唯一の可視な証拠
-    ///   （閉じるのは `UpdateTodoIntent` の `navigationModel.dismissAttributeEditor()`）
+    /// This needs a UI test for two reasons: running an intent from an in-app button shows no
+    /// error when it fails — an unregistered dependency or an interactive API fails silently,
+    /// and AppIntentsTesting goes through the Shortcuts-equivalent path instead — and the
+    /// sheet closing is the only visible evidence that `perform()` ran to completion.
     @MainActor
     func testAddTagFromDetailView() throws {
         let todoTitle = "Tag Test \(Date().timeIntervalSince1970)"
@@ -450,23 +441,23 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(saveButton.waitForExistence(timeout: 3), "Save button should exist")
         saveButton.tap()
 
-        // シートが閉じた = Intent が成功した。閉じないまま assert を通してしまうと
-        // 「保存されていないのに緑」になる。
+        // The sheet closing means the intent succeeded; asserting without it would pass
+        // while nothing was saved.
         XCTAssertTrue(tagField.waitForNonExistence(timeout: 5), "Editor sheet should dismiss after saving")
 
-        // 詳細画面のタグセクションに出ること（保存が実際にモデルへ届いた証拠）。
+        // Present in the detail view's tag section, i.e. the save reached the model.
         XCTAssertTrue(
             app.staticTexts["errand"].waitForExistence(timeout: 5),
             "Saved tag should appear in the detail view"
         )
     }
 
-    // MARK: - Test: Settings (Shortcuts の導線)
+    // MARK: - Test: Settings
 
-    /// 設定画面から `ShortcutsLink` に到達できること。
+    /// Reaching `ShortcutsLink` from the settings screen.
     ///
-    /// `ShortcutsLink` はシステム提供の View なので、置き場を動かしても**アプリ内では
-    /// 何も壊れて見えない**（リンクが消えても一覧は正常）。到達可能性をここで押さえる。
+    /// It is a system-provided view, so moving or losing it breaks nothing visible inside the
+    /// app — only its reachability can be checked.
     @MainActor
     func testSettingsShowsShortcutsLink() throws {
         let settingsButton = app.buttons["settingsButton"]

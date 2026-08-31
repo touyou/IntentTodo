@@ -23,27 +23,24 @@ public struct AddTodoView: View {
     @State private var hasDueDate = false
     @State private var isFavorite = false
 
-    // WWDC 2026 で AddTodoIntent / TodoItem に追加した属性の入力。
     @State private var assignee = ""
     @State private var location = ""
     @State private var hasEstimatedDuration = false
     @State private var estimatedDurationMinutes = 30
 
-    /// `.reminders.reminder` 由来の属性（tags / urls / recurrence / locationTriggerEvent）。
+    /// The schema-derived attributes.
     @State private var attributes = TodoAttributesDraft()
 
-    /// 所要時間の選択肢 (分)。
+    /// Duration choices, in minutes.
     private static let durationOptions = [15, 30, 45, 60, 90, 120, 180, 240]
 
     // MARK: - Computed Intent
 
     /// Dynamically generated intent based on current form state.
     ///
-    /// 所要時間 / 担当者は、AddTodoIntent が受け取る App Intents ネイティブ型
-    /// (`Duration` / `PersonNameComponents`) へ橋渡しして渡す。場所は SSU バグ
-    /// (`GeoToolbox.PlaceDescriptorEntity` の variable 名がドットで regex に落ちる) の
-    /// 暫定回避として `PlaceDescriptor` ではなく場所名の String をそのまま渡す。
-    /// 詳細は AddTodoIntent.location のコメント参照。
+    /// Duration and assignee are bridged into the native App Intents types the intent
+    /// takes (`Duration`, `PersonNameComponents`). Location stays a `String` — see
+    /// `AddTodoIntent.location`.
     private var addTodoIntent: AddTodoIntent {
         AddTodoIntent(
             title: title,
@@ -80,7 +77,7 @@ public struct AddTodoView: View {
         !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
-    /// 分単位の所要時間を "30m" / "1h 30m" 形式へ整形する。
+    /// Formats minutes as "30m" or "1h 30m".
     private static func durationLabel(minutes: Int) -> String {
         Duration.seconds(minutes * 60)
             .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
@@ -168,8 +165,7 @@ public struct AddTodoView: View {
             )
         }
         #if os(macOS)
-        // macOS の Form デフォルト (.automatic) は背景無し・横端密着で窮屈なので
-        // grouped にして iOS と同じインセット付きカード見た目に揃える。
+        // `.automatic` sits flush against the window edge on macOS with no background.
         .formStyle(.grouped)
         #endif
         .navigationTitle(.copy("New Todo"))

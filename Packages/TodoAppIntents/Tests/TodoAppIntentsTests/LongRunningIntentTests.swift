@@ -2,13 +2,12 @@
 //  LongRunningIntentTests.swift
 //  TodoAppIntents
 //
-//  バルク完了（`CompleteTodosIntent`）が長時間実行の 3 つの約束を守っていることを守る。
+//  Checks the three obligations of the bulk-complete intent.
 //
-//  `LongRunningIntent` は SDK 上 `ProgressReportingIntent` を継承しているため、
-//  `progress` の更新はプロトコル準拠ではなく**実装の中身**の問題になる。落としても
-//  ビルドもテストも通り、症状は「大量選択のときだけシステムにタスクを打ち切られる」
-//  という形でしか出ないので、ソースを真として押さえる（`IntentExecutionTargetsTests`
-//  の `everyMutatingIntentDeclaresExecutionTargets` と同じ方針）。
+//  `LongRunningIntent` inherits `ProgressReportingIntent`, so updating `progress` is a matter
+//  of implementation rather than conformance: dropping it builds and tests clean, and only
+//  shows up as the system cutting the task short on large selections. Hence reading the
+//  source, as in `IntentExecutionTargetsTests`.
 //
 
 import Foundation
@@ -29,7 +28,7 @@ struct LongRunningIntentTests {
     @Test("進捗を報告している（総数と完了数の両方）")
     func reportsProgress() throws {
         let source = try Self.source()
-        // 総数だけ入れて完了数を更新しないと、進捗 0% のまま打ち切られ得る。
+        // A total with no completed count leaves progress at 0% and invites termination.
         #expect(source.contains("progress.totalUnitCount"))
         #expect(source.contains("progress.completedUnitCount"))
     }
@@ -39,7 +38,7 @@ struct LongRunningIntentTests {
         let source = try Self.source()
         #expect(source.contains("performBackgroundTask"))
         #expect(source.contains("onCancel:"))
-        // CancellableIntent を宣言しても checkCancellation が無ければ止まらない。
+        // Conforming to `CancellableIntent` does nothing without `checkCancellation`.
         #expect(source.contains("Task.checkCancellation()"))
     }
 

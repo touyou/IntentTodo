@@ -2,16 +2,14 @@
 //  ColorHex.swift
 //  UI
 //
-//  `Category.colorHex` (16 進文字列) を SwiftUI `Color` に変換するヘルパ。
-//  Widget / Watch / visionOS でも `Category` の色を再現したくなるため、
-//  個別 View に private extension で持たせず Components に集約する。
+//  Converts `Category.colorHex` into a SwiftUI `Color`. Shared rather than a private
+//  extension because widgets, the watch app and visionOS all reproduce category colours.
 //
 
 import SwiftUI
 
 public extension Color {
-    /// `"#RRGGBB"` または `"RRGGBB"` 形式の 16 進文字列から `Color` を生成する。
-    /// 不正な文字列の場合は `nil` を返す。
+    /// Builds a `Color` from `"#RRGGBB"` or `"RRGGBB"`, returning `nil` for anything else.
     init?(hex: String) {
         var sanitized = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         sanitized = sanitized.replacingOccurrences(of: "#", with: "")

@@ -19,18 +19,16 @@ public struct WatchTodoListView: View {
     )
     private var incompleteTodos: [TodoItem]
 
-    /// Intent が書き込むナビゲーション状態。iOS と同じ `NavigationModel` を共有する
-    /// ので、`OpenTodoIntent`（Siri / Spotlight の「この Todo を開く」）と
-    /// `LaunchAppIntent(.addTodo)` が watch でもそのまま効く。
+    /// The same `NavigationModel` the app uses, so `OpenTodoIntent` and
+    /// `LaunchAppIntent(.addTodo)` work here without watch-specific handling.
     @Environment(NavigationModel.self) private var navigationModel
 
     public init() {}
 
     public var body: some View {
         @Bindable var navigationModel = navigationModel
-        // path を NavigationModel に預ける（iOS の NavigationSplitView + selectedTodo に
-        // 対する、watch のスタック版）。`NavigationModel.showDetail(for:)` が path に
-        // 積むので、Intent 経由の遷移もここに流れ込む。
+        // The path lives in `NavigationModel`, so navigation written by an intent arrives
+        // here too.
         NavigationStack(path: $navigationModel.path) {
             Group {
                 if incompleteTodos.isEmpty {
@@ -57,9 +55,7 @@ public struct WatchTodoListView: View {
                     .accessibilityLabel(.copy("Add todo"))
                 }
             }
-            // 追加はシートで出す。`AddTodoIntent` の完了時に
-            // `navigationModel.dismissAddTodo()` が呼ばれて閉じるため、
-            // 「Intent 完了 = シートが閉じる」が iOS と同じ 1 対 1 対応になる。
+            // Closed by `AddTodoIntent` on success, as on iOS.
             .sheet(isPresented: $navigationModel.showingAddTodo) {
                 WatchAddTodoView()
             }
@@ -82,10 +78,7 @@ public struct WatchTodoListView: View {
     }
 
     private var todoList: some View {
-        // 旧実装は `incompleteTodos.filter { isDueSoon($0) }` と
-        // `incompleteTodos.filter { !isDueSoon($0) }` で同じ配列を 2 周し、
-        // さらに `isDueSoon` の中で `Date()` を都度生成していた。watchOS は
-        // CPU が弱いので 1 周の partition + Date() 1 回に圧縮する。
+        // Partitioned in one pass with a single `Date()`: the watch has little CPU to spare.
         let now = Date()
         let oneHourFromNow = now.addingTimeInterval(3600)
         var dueSoon: [TodoItem] = []

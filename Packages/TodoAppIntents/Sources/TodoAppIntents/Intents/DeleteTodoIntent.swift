@@ -7,8 +7,8 @@ import AppIntents
 
 /// Deletes a todo item.
 ///
-/// `UndoableIntent`: 消す前にスナップショットを取り、`undoManager` に「同じ id で
-/// 戻す」ハンドラを積む。詳細: `TodoUndoRegistrar` / `TodoItemSnapshot`
+/// Undo restores the todo under the *same* id, so Spotlight entries, donations and widget
+/// references stay valid. See `TodoUndoRegistrar`.
 public struct DeleteTodoIntent: UndoableIntent {
     public static var title: LocalizedStringResource { "Delete Todo" }
 
@@ -22,7 +22,7 @@ public struct DeleteTodoIntent: UndoableIntent {
 
     public static var supportedModes: IntentModes { .background }
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
     public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
     public static var parameterSummary: some ParameterSummary {
@@ -49,7 +49,7 @@ public struct DeleteTodoIntent: UndoableIntent {
             dialog: IntentDialog("Delete “\(todo.title)”?")
         )
 
-        // 削除前に取る。消したあとの `TodoItem` からは何も読めない。
+        // Taken before the delete: nothing can be read off a deleted `TodoItem`.
         let snapshot = try todoService.snapshot(todoId: todo.id)
         try todoService.delete(todoId: todo.id)
         TodoUndoRegistrar.registerRestore(

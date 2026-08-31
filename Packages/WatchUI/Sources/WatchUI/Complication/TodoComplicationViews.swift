@@ -95,9 +95,8 @@ struct InlineComplicationView: View {
     var body: some View {
         if let dueDate = entry.nextDueDate {
             Label {
-                // 相対日付の `\(_:style:)` は `LocalizedStringKey` 専用の補間なので
-                // `String.LocalizationValue`（`.copy`）では組めない。bundle を明示した
-                // `LocalizedStringKey` 形で書く（catalog の引き先は `.copy` と同じ）。
+                // `\(_:style:)` is a `LocalizedStringKey`-only interpolation, so it cannot
+                // go through `.copy`. Naming the bundle resolves to the same catalog.
                 // swiftlint:disable:next ui_copy_needs_module_bundle
                 Text("\(entry.incompleteCount) todos • Next: \(dueDate, style: .relative)", bundle: .module)
             } icon: {
@@ -138,7 +137,7 @@ public struct TodoComplicationEntryView: View {
     }
 }
 
-/// fetch 失敗時に表示する代替。「予定なし」(全 0) と区別がつく見た目に。
+/// Shown when the fetch failed, and deliberately distinct from "nothing due".
 struct UnavailableComplicationView: View {
     let family: WidgetFamily
 

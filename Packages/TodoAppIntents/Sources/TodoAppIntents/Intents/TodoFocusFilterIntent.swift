@@ -2,12 +2,6 @@
 //  TodoFocusFilterIntent.swift
 //  TodoAppIntents
 //
-//  集中モードごとに一覧の見せ方を変える Focus filter（wwdc2022-10121 4:17）。
-//  設定 > 集中モード > アプリのフィルタ に現れ、Focus の切り替わりでシステムが
-//  `perform()` を呼ぶ。
-//
-//  詳細: docs/insights/03-app-intents-core.md（Focus filter）
-//
 
 import AppIntents
 import Foundation
@@ -15,13 +9,14 @@ import os.log
 
 private let logger = Logger(subsystem: "com.touyou.IntentTodo", category: "TodoFocusFilterIntent")
 
-/// 集中モード中に表示する Todo を絞り込む。
+/// Narrows which todos are shown while a Focus is on. Appears under
+/// Settings > Focus > App Filters, and the system calls `perform()` on every Focus change.
+/// [Apple: wwdc2022-10121 4:17]
 ///
-/// `allowedExecutionTargets` は宣言しない。Focus filter の実行先は Focus の仕組みが
-/// 決める（アプリが動いていればアプリ、そうでなければ AppIntents Extension。
-/// wwdc2022-10121 9:29）ので、こちらから固定する意味がない。本アプリは Extension を
-/// 持たないため、アプリ未起動中の遷移は `TodoFocusFilterStore.syncFromSystem()` が
-/// 起動時に `current` で取り直して埋める。
+/// No `allowedExecutionTargets`: Focus decides where a filter runs — the app if it is
+/// running, otherwise an AppIntents extension [Apple: wwdc2022-10121 9:29] — so pinning it
+/// has no effect. This app has no extension, so transitions that happen while it is not
+/// running are picked up by `TodoFocusFilterStore.syncFromSystem()` at launch.
 public struct TodoFocusFilterIntent: SetFocusFilterIntent {
     public static let title: LocalizedStringResource = "Filter Todos"
 
@@ -30,7 +25,7 @@ public struct TodoFocusFilterIntent: SetFocusFilterIntent {
         categoryName: "Todos"
     )
 
-    /// Focus の切り替わりでアプリを開いてはいけないので背景実行のみ。
+    /// A Focus change must never bring the app forward.
     public static var supportedModes: IntentModes { .background }
 
     // MARK: - Parameters
@@ -54,7 +49,8 @@ public struct TodoFocusFilterIntent: SetFocusFilterIntent {
 
     // MARK: - Value bridging
 
-    /// パラメータをアプリ側の値型へ落とす。`perform()` と `current` の両方が使う。
+    /// Lowers the parameters into the app's value type. Used by both `perform()` and
+    /// `current`.
     public var resolvedFilter: TodoFocusFilter {
         TodoFocusFilter(
             categoryID: category?.id,
@@ -66,9 +62,8 @@ public struct TodoFocusFilterIntent: SetFocusFilterIntent {
 
     // MARK: - Display
 
-    /// 設定画面のセルに出る文言。設定済みの内容を動的に反映する
-    /// （wwdc2022-10121 8:07）。ランタイム値は `"\(value)"` の補間で渡す
-    /// （`LocalizedStringResource(stringLiteral:)` は実行時文字列をキー扱いする）。
+    /// Shown in the Settings cell, and expected to reflect what is configured rather than
+    /// being static. [Apple: wwdc2022-10121 8:07]
     public var displayRepresentation: DisplayRepresentation {
         let filter = resolvedFilter
         guard filter.isActive else {
@@ -102,12 +97,10 @@ public struct TodoFocusFilterIntent: SetFocusFilterIntent {
 
     // MARK: - App Context
 
-    /// 通知の絞り込み条件をシステムへ返す。
-    ///
-    /// `notificationFilterPredicate` に一致しない `filterCriteria` を持つ通知は
-    /// 黙らされる（wwdc2022-10121 13:15）ので、カテゴリで絞っているときだけ
-    /// 述語を返す。許可リストには必ず `systemNotificationCriteria` を含める
-    /// （失敗通知は Focus 中でも届かないと気づけない）。
+    /// Notifications whose `filterCriteria` do not match `notificationFilterPredicate` are
+    /// silenced [Apple: wwdc2022-10121 13:15], so the predicate is only returned when a
+    /// category is set, and the allow list always includes `systemNotificationCriteria` —
+    /// a swallowed failure notification is indistinguishable from "nothing happened".
     public var appContext: FocusFilterAppContext {
         guard let allowed = resolvedFilter.allowedNotificationCriteria else {
             return FocusFilterAppContext()
@@ -126,7 +119,7 @@ public struct TodoFocusFilterIntent: SetFocusFilterIntent {
             "focus filter applied category=\(filter.categoryID ?? "nil", privacy: .public) urgentOnly=\(filter.showsUrgentOnly) hidesCompleted=\(filter.hidesCompleted)"
         )
         TodoFocusFilterStore.shared.apply(filter)
-        // ウィジェットは共有ストレージ経由で同じ設定を読むので、書いた直後に描き直させる。
+        // Widgets read the same setting through shared storage, so redraw them now.
         WidgetReloader.reloadAllWidgets()
         return .result()
     }

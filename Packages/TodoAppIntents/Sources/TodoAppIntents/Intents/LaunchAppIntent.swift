@@ -2,16 +2,13 @@
 //  LaunchAppIntent.swift
 //  TodoAppIntents
 //
-//  Unified intent for launching the app to specific screens.
-//  Used by Widgets, Shortcuts, and Action Button.
-//
 
 import AppIntents
 import Foundation
 import os.log
 #if os(iOS) || os(visionOS)
-// AppIntents + UIKit の両方を import した時点で cross-import overlay
-// (_AppIntents_UIKit) が有効になり、UISceneAppIntent が見えるようになる。
+// Importing UIKit alongside AppIntents activates the _AppIntents_UIKit cross-import
+// overlay, which is where `UISceneAppIntent` comes from.
 import UIKit
 #endif
 
@@ -70,10 +67,11 @@ public struct LaunchAppIntent: AppIntent {
         return .result()
     }
 
-    /// `target` に対応するナビゲーション状態を書き込む。
+    /// Writes the navigation state for `target`.
     ///
-    /// `perform()` と（シーンのあるプラットフォームでは）`performNavigation(forScene:)`
-    /// の両方から呼ぶため切り出してある。同じ遷移先を 2 回書いても結果は同じ（冪等）。
+    /// Idempotent, and called from both `perform()` and — where scenes exist —
+    /// `performNavigation(forScene:)`. Keeping it in one place is what stops the two
+    /// entry points from drifting apart.
     @MainActor
     func applyNavigation() {
         switch target {
@@ -81,15 +79,14 @@ public struct LaunchAppIntent: AppIntent {
             navigationModel.navigateToRoot()
             navigationModel.showAddTodo()
         case .todoList, .incompleteTodos, .favoriteTodos:
-            // 列挙が約束した遷移先は、必ず対応する状態書き込みまでやること。
-            // ここを `break` にすると「アプリを開くだけ」になる。
+            // Every case the enum promises needs a matching state write. Falling through
+            // to `break` here degrades silently into "just opens the app".
             navigationModel.showList(filter: Self.listFilter(for: target))
         }
     }
 
-    /// 画面ターゲット → リストの絞り込み。`perform()` は `@Dependency` 解決の都合で
-    /// SPM テストから叩けないため、対応表は純関数として切り出して検証する
-    /// (`ShowTodosIntent.screenTarget(for:)` と同じ方針)。
+    /// Screen target to list filter. Extracted as a pure function because `perform()`
+    /// cannot run from SPM tests (`@Dependency` is only injected on system dispatch).
     static func listFilter(for target: AppScreenTarget) -> TodoFilterType {
         switch target {
         case .incompleteTodos:
@@ -103,22 +100,16 @@ public struct LaunchAppIntent: AppIntent {
 }
 
 #if os(iOS) || os(visionOS)
-/// `UISceneAppIntent` は `TargetContentProvidingIntent` を継承しているので、
-/// これ 1 本で `.onAppIntentExecution` 側の要件も満たす。
+/// Receiving the scene means navigation is written with the target window already known.
+/// It also covers cold start, where `SceneDelegate` calls this from
+/// `UIScene.ConnectionOptions.appIntent`. [Apple: wwdc2025-275 23:52]
 ///
-/// シーンを受け取れることの意味は「どのウィンドウに向けた実行なのかが確定した状態で
-/// ナビゲーションを書ける」こと。とくに cold start では `.onAppIntentExecution` が
-/// 取りこぼす経路があり、`SceneDelegate` が `UIScene.ConnectionOptions.appIntent`
-/// からここを呼ぶことで確定的に遷移できる（wwdc2025-275 23:52）。
-///
-/// SwiftUI 側の代替は `contentIdentifier` と `handlesExternalEvents` の組み合わせで
-/// 「どのシーンが処理するか」を宣言する形（同 23:12）。本アプリは `WindowGroup` が
-/// 1 つで宛先の選択が要らないため、cold start を確定させられる delegate 側を採った。
-///
-/// 詳細: docs/insights/04-ui-integration.md（UISceneAppIntent）
+/// The SwiftUI alternative is `contentIdentifier` + `handlesExternalEvents` (same session,
+/// 23:12); with a single `WindowGroup` there is no destination to choose, so the delegate
+/// route wins for being deterministic on cold start.
 extension LaunchAppIntent: UISceneAppIntent {
     public func performNavigation(forScene scene: UIScene) {
-        // 呼び出しは常にシーンデリゲート（メインスレッド）から。
+        // Only ever called from the scene delegate, i.e. the main thread.
         MainActor.assumeIsolated {
             applyNavigation()
         }

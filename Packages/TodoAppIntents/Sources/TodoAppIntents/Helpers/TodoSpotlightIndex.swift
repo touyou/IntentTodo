@@ -2,7 +2,7 @@
 //  TodoSpotlightIndex.swift
 //  IntentTodo
 //
-//  Spotlight index の入口を 1 箇所に集約する。
+//  Single entry point for the Spotlight index.
 //
 
 #if os(iOS) || os(macOS) || os(visionOS)
@@ -13,38 +13,35 @@ import os.log
 
 private let logger = Logger(subsystem: "dev.touyou.IntentTodo", category: "TodoSpotlightIndex")
 
-/// Todo を donate する Spotlight index。
+/// The Spotlight index todos are donated to.
 ///
-/// **名前付き index を使う**。Apple 公式 (Making app entities available in Spotlight) の
+/// **Named, not the default index.** Apple:
 /// Note: "When indexing your app's content, use a named `CSSearchableIndex` type and not
 /// the default index. Use the default index only for prototyping and testing your code
 /// during development."
 ///
-/// 経緯: docs/devlog/03-app-intents-core.md（2026-08-21 の default index からの移行）
 enum TodoSpotlightIndex {
-    /// アプリ固有の index 名。bundle id を前置してぶつからないようにする。
+    /// Prefixed with the bundle id so it cannot collide with another app's index.
     static let name = "dev.touyou.IntentTodo.Todos"
 
     static func index() -> CSSearchableIndex {
         CSSearchableIndex(name: name)
     }
 
-    // MARK: - client state（起動時フル再インデックスの省略）
+    // MARK: - Client State
 
-    /// 索引済みの内容を表す 32 バイトのダイジェスト。
+    /// A 32-byte digest of what is currently indexed, handed to
+    /// `endBatch(withClientState:)` and compared with `fetchLastClientState()` on the next
+    /// launch to decide whether a full reindex can be skipped.
     ///
-    /// `endIndexBatch(withClientState:)` に渡して index 側へ永続化し、次回起動時に
-    /// `fetchLastClientState()` と突き合わせる。一致すれば全件再インデックスを省ける。
+    /// Two constraints shape it:
+    /// - client state is capped at **250 bytes**, which a list of ids exceeds immediately,
+    ///   hence SHA-256
+    /// - the input is **sorted before hashing**: depending on fetch order would make the
+    ///   digest wobble for identical content and force a full reindex every time
     ///
-    /// 実装上の制約が 2 つある:
-    /// - client state は **250 バイト上限**（公式ヘッダ）。id を並べると簡単に超えるので
-    ///   SHA-256 で畳む
-    /// - 入力は必ず**ソートしてから**hash する。fetch 順に依存すると、同じ内容でも
-    ///   ダイジェストがぶれて毎回フル再インデックスになる
-    ///
-    /// `fingerprints` には id だけでなく更新時刻も混ぜる（呼出側の責務）。id の集合が
-    /// 同じでも中身が変わることがある（アプリ未起動中に他デバイスの編集が CloudKit で
-    /// 届いた場合など）。
+    /// Callers mix modification times into `fingerprints`, not just ids: the same set of
+    /// ids can have different contents after a CloudKit merge.
     static func clientState(for fingerprints: [String]) -> Data {
         var hasher = SHA256()
         for fingerprint in fingerprints.sorted() {
@@ -53,7 +50,7 @@ enum TodoSpotlightIndex {
         return Data(hasher.finalize())
     }
 
-    /// 前回コミットされた client state。取得に失敗したら `nil`（＝フル再インデックスへ倒す）。
+    /// The last committed client state, or `nil` — which falls back to a full reindex.
     static func lastClientState(of index: CSSearchableIndex) async -> Data? {
         do {
             return try await index.fetchLastClientState()
@@ -63,23 +60,20 @@ enum TodoSpotlightIndex {
         }
     }
 
-    // MARK: - 失敗からの自己修復
+    // MARK: - Self-Healing
 
-    /// 連続失敗がこの回数に達したら、次の起動でフル再インデックスをやり直す。
-    ///
-    /// 1 回の失敗で倒さないのは、`quotaExceeded` / 一時的な `indexUnavailable` のような
-    /// その場限りの失敗でフル再インデックスを走らせても直らないため。
+    /// Consecutive failures needed before the next launch reindexes everything. Not one:
+    /// transient failures like `quotaExceeded` are not fixed by a full reindex.
     static let failureThreshold = 3
 
     private static let failureCountKey = "spotlight.consecutiveFailureCount"
     private static let needsFullReindexKey = "spotlight.needsFullReindex"
 
-    /// 差分 index（`reindex` / `deindex`）の失敗を記録する。
+    /// Counts a failed incremental update.
     ///
-    /// 差分の失敗は Intent の呼出側には伝えない（Spotlight の不調で todo の操作自体を
-    /// 失敗させるべきではない）ので、放っておくと **index が壊れたまま復旧しない**。
-    /// アプリ内では正常に見え、Spotlight / Siri から引けないことにユーザーは気付けない。
-    /// 閾値に達したら「次回起動でフル再インデックス」の要求を立てる。
+    /// These failures are deliberately not reported to the intent caller — a Spotlight
+    /// problem should not fail the todo operation — so without counting them a broken index
+    /// never recovers. Everything looks fine inside the app while search finds nothing.
     static func recordFailure(_ defaults: UserDefaults = .standard) {
         let count = defaults.integer(forKey: failureCountKey) + 1
         defaults.set(count, forKey: failureCountKey)
@@ -88,35 +82,33 @@ enum TodoSpotlightIndex {
         logger.error("spotlight failed \(count) times in a row; requesting a full reindex on next launch")
     }
 
-    /// 差分 index の成功を記録する（連続失敗のカウントを畳む）。
+    /// Resets the consecutive failure count.
     static func recordSuccess(_ defaults: UserDefaults = .standard) {
         guard defaults.integer(forKey: failureCountKey) != 0 else { return }
         defaults.set(0, forKey: failureCountKey)
     }
 
-    /// フル再インデックスが要求されているか。
-    ///
-    /// `true` の間は起動時の client state 一致による省略を**行わない**。省略してしまうと
-    /// 「index は壊れているが state は最新」の状態から抜け出せない。
+    /// While `true`, launch-time indexing ignores a matching client state — otherwise
+    /// "index broken, state current" has no exit.
     static func needsFullReindex(_ defaults: UserDefaults = .standard) -> Bool {
         defaults.bool(forKey: needsFullReindexKey)
     }
 
-    /// フル再インデックスの要求を降ろす。成功したときだけ呼ぶ。
+    /// Clears the request. Only called after a successful full reindex.
     static func clearFullReindexRequest(_ defaults: UserDefaults = .standard) {
         defaults.set(false, forKey: needsFullReindexKey)
         defaults.set(0, forKey: failureCountKey)
     }
 
-    // MARK: - 旧 default index からの移行
+    // MARK: - Legacy Default Index
 
     private static let purgeFlagKey = "spotlight.legacyDefaultIndexPurged"
 
-    /// `CSSearchableIndex.default()` に残っているアイテムを 1 度だけ消す。
+    /// Clears items left in `CSSearchableIndex.default()` once.
     ///
-    /// 名前付き index へ移す前のバージョンから更新した端末では、消さないと同じ todo が
-    /// Spotlight に二重で出る。default index にはこのアプリの todo しか入れていないので
-    /// 全消しで問題ない。失敗してもフラグを立てないので次回起動で再試行する。
+    /// Devices updating from a build that used the default index would otherwise show every
+    /// todo twice. Deleting everything is safe because only this app's todos were ever put
+    /// there. The flag is not set on failure, so a failed attempt retries next launch.
     static func purgeLegacyDefaultIndexIfNeeded() async {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: purgeFlagKey) else { return }

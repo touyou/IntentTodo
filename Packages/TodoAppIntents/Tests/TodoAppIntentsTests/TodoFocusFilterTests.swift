@@ -2,11 +2,11 @@
 //  TodoFocusFilterTests.swift
 //  TodoAppIntents
 //
-//  集中モード絞り込みの判定と永続化。
+//  Focus filtering: how the value is interpreted and persisted.
 //
-//  ここが壊れると「Focus を切ったのに一覧が絞られたまま」「Focus 中に失敗通知が
-//  黙らされる」という形で出る。どちらもアプリを立ち上げて Focus を切り替えないと
-//  気づけないので、値の解釈は純関数に寄せてテストで押さえる。
+//  Breakage shows up as "the list stays filtered after leaving the Focus" or "failure
+//  notifications are silenced during it" — neither noticeable without toggling a Focus by
+//  hand, which is why the interpretation lives in pure functions.
 //
 
 import Foundation
@@ -118,7 +118,7 @@ struct TodoFocusFilterTests {
         let allowed = try #require(TodoFocusFilter(categoryID: Self.work).allowedNotificationCriteria)
         let predicate = NSPredicate(format: "SELF IN %@", allowed)
 
-        // 失敗通知が黙らされると「何も起きなかった」と区別できなくなる。
+        // A silenced failure notification is indistinguishable from nothing happening.
         #expect(predicate.evaluate(with: TodoFocusFilter.systemNotificationCriteria))
         #expect(predicate.evaluate(with: TodoFocusFilter.notificationCriteria(categoryID: Self.work)))
         #expect(!predicate.evaluate(with: TodoFocusFilter.notificationCriteria(categoryID: Self.home)))
@@ -185,8 +185,8 @@ struct TodoFocusFilterTests {
 
     @Test("Focus filter は実行先を固定しない")
     func focusFilterDoesNotPinExecutionTarget() {
-        // 実行先は Focus の仕組みが決める（アプリ / AppIntents Extension）。
-        // ここを [.main] で固定すると将来 Extension を足したときに噛み合わない。
+        // Focus decides where a filter runs, so pinning it to `[.main]` would conflict with
+        // an AppIntents extension later.
         #expect(TodoFocusFilterIntent.allowedExecutionTargets == .default)
     }
 }

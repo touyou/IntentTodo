@@ -51,9 +51,9 @@ struct IntentErrorTests {
 
     // MARK: - CustomAppIntentErrorConvertible
 
-    /// `AppIntentError(predefinedError:description:)` は受け付けない値を渡すと
-    /// **実行時に `fatalError()`** で落ちる（公式ドキュメント明記）。ビルドでは
-    /// 検出できないので、全ケースを 1 度組み立てて経路を踏む。
+    /// `AppIntentError(predefinedError:description:)` calls `fatalError()` at runtime for
+    /// values it does not accept, and nothing catches that at build time — so every case is
+    /// constructed once here.
     @Test("Every IntentError case builds an AppIntentError", arguments: [
         IntentError.validation("Title cannot be empty"),
         IntentError.notFound("Todo with ID 123"),
@@ -62,7 +62,7 @@ struct IntentErrorTests {
     func appIntentErrorConversion(error: IntentError) {
         let converted = error.appIntentError
 
-        // Siri に読ませる文言は種別プレフィックス無しの生メッセージ。
+        // What Siri reads is the bare message, without the developer-facing prefix.
         #expect(!converted.description.isEmpty)
         #expect(!converted.description.contains("Validation error:"))
         #expect(!converted.description.contains("Not found:"))

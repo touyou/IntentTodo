@@ -2,19 +2,18 @@
 //  Localization.swift
 //  WatchUI
 //
-//  パッケージ内の UI コピーを、このパッケージ自身の String Catalog に結び付ける。
+//  Binds this package's UI copy to this package's own String Catalog.
 //
 
 import Foundation
 
 extension LocalizedStringResource {
-    /// このパッケージの String Catalog（`Resources/Localizable.xcstrings`）を引く UI コピー。
+    /// UI copy resolved against this package's `Resources/Localizable.xcstrings`.
     ///
-    /// SwiftUI の `Text("Cancel")` 形（`LocalizedStringKey`）は既定で `Bundle.main` を
-    /// 見るため、SPM パッケージに同梱した catalog には**当たらない**。文言は必ず
-    /// `Text(.copy("Cancel"))` の形でここを通し、`Bundle.module` に向ける。
+    /// `Text("Cancel")` takes a `LocalizedStringKey`, which resolves against `Bundle.main`
+    /// and therefore never finds a catalog shipped inside a package. Routing copy through
+    /// `Text(.copy("Cancel"))` points it at `Bundle.module` instead.
     ///
-    /// 詳細: docs/insights/04-ui-integration.md「SPM パッケージの UI コピーと String Catalog」
     static func copy(_ key: String.LocalizationValue) -> LocalizedStringResource {
         LocalizedStringResource(key, bundle: .atURL(Bundle.module.bundleURL))
     }

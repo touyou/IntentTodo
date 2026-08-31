@@ -2,30 +2,26 @@
 //  DeleteTodoImmediatelyIntent.swift
 //  TodoAppIntents
 //
-//  `DeleteTodoIntent` と分かれている理由は entity 解決の回避ではなく **対話の有無**。
-//  `DeleteTodoIntent` は `requestConfirmation` で確認を取るが、アプリ内の
-//  `Button(intent:)` には確認を提示する面が無く、
-//  `LNPerformActionErrorCodeUnsupportedValueType` で失敗して**何も起きない**。
-//  UI 側は SwiftUI の `.confirmationDialog` / スワイプ操作自体を確認手段とし、
-//  実際の削除はこちらの確認なし版で行う。
-//  経緯: docs/devlog/06-control-widget-ios26.md（2026-08-12 の削除ボタン不動作）
 //
 
 import AppIntents
 
 /// Deletes a todo without asking for confirmation.
 ///
-/// 呼出元（UI）が既に確認を取っている前提。Siri / Shortcuts から
-/// ユーザーが直接選ぶ用途には確認付きの `DeleteTodoIntent` を使う。
+/// Exists because a confirming intent cannot run from the app's own UI: there is no
+/// surface to answer `requestConfirmation` on, so the run fails with
+/// `LNPerformActionErrorCodeUnsupportedValueType` and *nothing happens*. The UI confirms
+/// with `.confirmationDialog` (or treats the swipe itself as the confirmation) and then
+/// calls this. Siri and Shortcuts use `DeleteTodoIntent` instead.
 public struct DeleteTodoImmediatelyIntent: UndoableIntent {
     public static var title: LocalizedStringResource { "Delete Todo Immediately" }
     public static let description = IntentDescription("Deletes a todo without asking for confirmation.")
 
-    /// 確認なしの破壊的操作なので、ユーザーが選べる候補としては出さない。
+    /// Destructive with no confirmation, so it is never offered as a user-pickable action.
     public static let isDiscoverable = false
     public static var supportedModes: IntentModes { .background }
 
-    /// 書き込み系。Extension プロセスが SwiftData を書かないようアプリ本体に固定（WWDC 2026 #345）。
+    /// Writes SwiftData, so it is pinned to the app process. [Apple: wwdc2026-345 16:30]
     public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
     public static var parameterSummary: some ParameterSummary {
@@ -46,7 +42,7 @@ public struct DeleteTodoImmediatelyIntent: UndoableIntent {
 
     @MainActor
     public func perform() async throws -> some IntentResult {
-        // 確認を出さない分、取り消せることの価値が大きい経路。削除前に snapshot を取る。
+        // No confirmation makes undo the only safety net, so snapshot before deleting.
         let snapshot = try todoService.snapshot(todoId: todo.id)
         try todoService.delete(todoId: todo.id)
         TodoUndoRegistrar.registerRestore(

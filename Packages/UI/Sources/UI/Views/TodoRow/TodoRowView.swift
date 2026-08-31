@@ -56,10 +56,9 @@ public struct TodoRowView: View {
 
     // MARK: - Private
 
-    /// 読み上げ用のラベル。
-    ///
-    /// 連結ではなく「要素ごとにローカライズして `.list` で並べる」形にする。区切り文字
-    /// (`", "`) と語順はロケール依存なので、`+=` で組むと翻訳できない文が残る。
+    /// Built by localizing each part and joining with `.list`, not by concatenation: both
+    /// the separator and the ordering are locale-dependent, and a `+=` chain produces a
+    /// sentence no translator can reach.
     private var accessibilityLabel: String {
         var parts: [String] = [todo.title]
         if todo.isCompleted {

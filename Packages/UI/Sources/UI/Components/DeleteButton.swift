@@ -29,9 +29,9 @@ public struct DeleteButton: View {
     // MARK: - Body
 
     public var body: some View {
-        // スワイプして現れる Delete を押す操作自体が確認になっているので、確認なし版を使う。
-        // 確認付きの `DeleteTodoIntent` はアプリ内ボタンからだと確認を出す面が無く
-        // 失敗する（docs/insights/06-control-widget-ios26.md 参照）。
+        // Swiping to reveal Delete and pressing it is the confirmation, so this uses the
+        // non-confirming intent — `requestConfirmation` has no surface to present on when
+        // the caller is an in-app button, and the run fails silently.
         Button(intent: DeleteTodoImmediatelyIntent(todo: todo)) {
             Label(.copy("Delete"), systemImage: "trash")
         }

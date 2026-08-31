@@ -2,9 +2,9 @@
 //  TodoUndoRegistrar.swift
 //  TodoAppIntents
 //
-//  `UndoableIntent` の undo 登録を 1 箇所に集約する。削除系 Intent が 3 つ
-//  （確認あり / 確認なし / バルク）あり、同じ登録をそれぞれに書くと片方だけ
-//  直し忘れる形の壊れ方をするため。
+//  Undo registration for every `UndoableIntent`, in one place: there are three delete
+//  intents (confirming, non-confirming, bulk) and duplicating the registration invites
+//  fixing only one of them.
 //
 
 import AppIntents
@@ -13,14 +13,14 @@ import Foundation
 
 /// Registers undo handlers for todo mutations performed by `UndoableIntent`s.
 ///
-/// `undoManager` は Intent を走らせた面が用意する。用意されない呼出元（Widget の
-/// `Button(intent:)` 等）では `nil` になるので、登録はすべて no-op になる。
-/// これは失敗ではなく想定どおりの分岐。
+/// `undoManager` is provided by the surface that ran the intent; callers that do not have
+/// one (a widget `Button(intent:)`, for instance) leave it `nil` and every registration
+/// becomes a no-op. That is expected, not a failure.
 enum TodoUndoRegistrar {
-    /// 削除の取り消しを登録する。`snapshots` は**削除前**に取ったもの。
+    /// Registers undo for a delete. `snapshots` must have been taken *before* deleting.
     ///
-    /// `UndoManager.registerUndo(withTarget:handler:)` はハンドラごと `@MainActor`
-    /// なので、`TodoService` をそのまま呼べる（Task へのホップは不要）。
+    /// `UndoManager.registerUndo(withTarget:handler:)` isolates the handler to the main
+    /// actor, so `TodoService` can be called directly without hopping through a task.
     @MainActor
     static func registerRestore(
         _ snapshots: [TodoItemSnapshot],
@@ -30,8 +30,8 @@ enum TodoUndoRegistrar {
         guard let undoManager, !snapshots.isEmpty else { return }
         undoManager.registerUndo(withTarget: service) { service in
             for snapshot in snapshots {
-                // 1 件戻せなくても残りは戻す。undo の途中で throw すると
-                // 「一部だけ戻った」状態がユーザーから見えないまま残る。
+                // One failure must not stop the rest: throwing mid-undo would leave a
+                // partially restored state with nothing to explain it.
                 _ = try? service.restore(snapshot)
             }
         }
@@ -40,11 +40,11 @@ enum TodoUndoRegistrar {
         )
     }
 
-    /// 完了状態の変更の取り消しを登録する。
+    /// Registers undo for a completion change.
     ///
-    /// 復元は「元の値へ戻す」(`setCompletion`)。トグルで戻すと、undo するまでの間に
-    /// 別経路（Siri / ウィジェット / 別デバイスの CloudKit マージ）で状態が変わって
-    /// いた場合に、意図と逆の値へ倒してしまう。
+    /// Undo restores the *previous value* with `setCompletion` rather than toggling back:
+    /// if anything else changed the state meanwhile (Siri, a widget, a CloudKit merge from
+    /// another device), a toggle would land on the wrong value.
     @MainActor
     static func registerCompletionChange(
         todoId: String,

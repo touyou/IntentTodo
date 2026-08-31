@@ -2,8 +2,7 @@
 //  MissedFeedbackBanner.swift
 //  UI
 //
-//  通知 / ライブアクティビティが設定で塞がれていて伝達できなかったことを伝え、
-//  設定アプリへ送るバナー。
+//  Banner reporting feedback that Settings blocked, with a route to Settings.
 //
 
 import SwiftUI
@@ -12,11 +11,9 @@ import TodoAppIntents
 import UIKit
 #endif
 
-/// 「伝えられなかった」記録があるときだけ出る設定誘導バナー。
-///
-/// 出す条件を「設定が無効」ではなく**実際に取りこぼしたとき**にしているのは、
-/// ユーザーが意図的に切っている設定を毎回蒸し返さないため。取りこぼしは
-/// `MissedFeedback` に記録され、閉じると消える。
+/// Appears only when something was actually lost, not merely because a setting is off:
+/// a deliberate choice should not be re-litigated on every launch. The record lives in
+/// `MissedFeedback` and is cleared on dismissal.
 struct MissedFeedbackBanner: View {
     let model: MissedFeedbackModel
 
@@ -63,7 +60,7 @@ private struct MissedFeedbackRow: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 8)
-        // Liquid Glass 時代のクロームは自前で塗らずシステムマテリアルに任せる。
+        // Chrome is left to the system material rather than painted here.
         .background(.bar)
         .accessibilityElement(children: .combine)
     }
@@ -78,14 +75,14 @@ private struct MissedFeedbackRow: View {
     private var message: LocalizedStringResource {
         switch channel {
         case .notification:
-            // Control / Widget から実行した Intent の失敗は通知が唯一の伝達手段。
+            // A notification is the only way a control or widget can report a failure.
             return .copy("Actions from Control Center and widgets can't report failures.")
         case .liveActivity:
             return .copy("Todos due within the hour can't appear on the Lock Screen.")
         }
     }
 
-    /// システム設定の該当ページ。
+    /// The relevant page in Settings.
     private var settingsURL: URL? {
         #if canImport(UIKit)
         return URL(string: UIApplication.openSettingsURLString)

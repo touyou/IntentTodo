@@ -2,14 +2,13 @@
 //  TodoFocusFilter.swift
 //  TodoAppIntents
 //
-//  集中モードごとの絞り込み設定。`TodoFocusFilterIntent`（SetFocusFilterIntent）が
-//  書き、リスト UI とウィジェットが読む。
+//  Per-Focus filtering, written by `TodoFocusFilterIntent` and read by the list UI and the
+//  widgets.
 //
-//  読み手が別プロセス（Widget Extension）にも居るため、転送は App Group の
-//  UserDefaults を通す。値の解釈（どの Todo を残すか）はこの型の純関数に集約し、
-//  UI とウィジェットで判定がずれないようにする。
+//  One reader lives in another process, so the value travels through the App Group
+//  UserDefaults. Deciding *which* todos survive stays in one pure function here, so the app
+//  and the widget cannot disagree.
 //
-//  詳細: docs/insights/03-app-intents-core.md（Focus filter）
 //
 
 import Domain
@@ -17,22 +16,22 @@ import Foundation
 
 // MARK: - Value
 
-/// 集中モード中に「どの Todo を見せるか」の設定一式。
+/// Which todos stay visible while a Focus is on.
 public struct TodoFocusFilter: Equatable, Sendable, Codable {
-    /// 表示対象のカテゴリ ID（`nil` はカテゴリで絞らない）。
+    /// Category to keep, or `nil` to not filter by category.
     public var categoryID: String?
 
-    /// 設定 UI / インジケータ表示用のカテゴリ名。ID から引き直さずに済ませるため
-    /// 一緒に持つ（カテゴリ名の変更は次の Focus 遷移で追従する）。
+    /// Carried alongside the id so the Settings cell and the in-app indicator do not have
+    /// to resolve it. A rename catches up on the next Focus change.
     public var categoryName: String?
 
-    /// 期限が近い / 過ぎている Todo だけを残す。
+    /// Keep only todos that are due soon or overdue.
     public var showsUrgentOnly: Bool
 
-    /// 完了済みを隠す。
+    /// Hide completed todos.
     public var hidesCompleted: Bool
 
-    /// 何も絞らない状態。Focus が切れたときと、未設定のときの値。
+    /// No filtering: the value when no Focus is active and when none is configured.
     public static let inactive = TodoFocusFilter(
         categoryID: nil,
         categoryName: nil,
@@ -52,17 +51,17 @@ public struct TodoFocusFilter: Equatable, Sendable, Codable {
         self.hidesCompleted = hidesCompleted
     }
 
-    /// 1 つでも絞り込みが効いているか。UI のインジケータ表示条件でもある。
+    /// Whether anything is being filtered, which is also the indicator's condition.
     public var isActive: Bool {
         categoryID != nil || showsUrgentOnly || hidesCompleted
     }
 
     // MARK: - Application
 
-    /// 設定を Todo 一覧に適用する。
+    /// Applies the filter to a list of todos.
     ///
-    /// リスト UI とウィジェットの両方から呼ぶ純関数。`now` を引数に取るのは
-    /// 「期限が近い」の判定を固定時刻でテストできるようにするため。
+    /// A pure function called from both the list UI and the widget, so the two cannot
+    /// disagree. `now` is injectable to make "due soon" testable at a fixed time.
     public func apply(to todos: [TodoAppEntity], now: Date = Date()) -> [TodoAppEntity] {
         guard isActive else { return todos }
         return todos.filter { todo in
@@ -73,8 +72,8 @@ public struct TodoFocusFilter: Equatable, Sendable, Codable {
         }
     }
 
-    /// 「急ぎ」の定義は `DueDateStatus` に合わせる（期限切れ or 1 時間以内）。
-    /// UI のバッジ表示と同じ閾値にしておかないと、絞り込み結果と見た目が食い違う。
+    /// "Urgent" is defined by `DueDateStatus`, the same threshold the badges use — a
+    /// different one here would contradict what the rows show.
     static func isUrgent(_ todo: TodoAppEntity, now: Date) -> Bool {
         guard let dueDate = todo.dueDateValue else { return false }
         switch DueDateStatus.evaluate(date: dueDate, isCompleted: todo.isCompleted, now: now) {
@@ -87,23 +86,23 @@ public struct TodoFocusFilter: Equatable, Sendable, Codable {
 
     // MARK: - Notification filter criteria
 
-    /// アプリ自身の都合で出す通知（コントロールの失敗通知など）に付ける criteria。
+    /// Criteria attached to notifications the app raises for itself, such as a failed
+    /// control action.
     ///
-    /// `FocusFilterAppContext.notificationFilterPredicate` に一致しない通知は
-    /// システムが黙らせる（wwdc2022-10121 13:15）。失敗を知らせる通知が消えると
-    /// 「何も起きなかった」と区別できなくなるので、常に許可リストに入れる。
+    /// Notifications that do not match `FocusFilterAppContext.notificationFilterPredicate`
+    /// are silenced [Apple: wwdc2022-10121 13:15], and a silenced failure notification is
+    /// indistinguishable from "nothing happened" — so this is always allowed.
     public static let systemNotificationCriteria = "system"
 
-    /// Todo に紐づく通知の criteria。カテゴリ未設定の Todo は `category:none`。
+    /// Criteria for notifications about a todo. Uncategorised todos use `category:none`.
     public static func notificationCriteria(categoryID: String?) -> String {
         "category:\(categoryID ?? "none")"
     }
 
-    /// この設定で通す通知 criteria の許可リスト。
+    /// The criteria this filter lets through, or `nil` to not filter notifications at all.
     ///
-    /// カテゴリで絞っていないときは `nil`（＝通知は絞らない）。`showsUrgentOnly` /
-    /// `hidesCompleted` は「一覧の見せ方」の設定で、通知の宛先を変える性質のもの
-    /// ではないため通知側には効かせない。
+    /// `showsUrgentOnly` and `hidesCompleted` describe how the *list* looks and have no
+    /// bearing on which notifications are relevant, so they are not applied here.
     public var allowedNotificationCriteria: [String]? {
         guard let categoryID else { return nil }
         return [Self.systemNotificationCriteria, Self.notificationCriteria(categoryID: categoryID)]
@@ -111,18 +110,17 @@ public struct TodoFocusFilter: Equatable, Sendable, Codable {
 
     // MARK: - Shared storage
 
-    /// App Group の UserDefaults に書かれる際のキー。
+    /// Key used in the App Group UserDefaults.
     static let sharedDefaultsKey = "focusFilter"
 
-    /// App Group の UserDefaults。取得できない構成では `nil` を返し、呼び出し側は
-    /// 「絞り込み無し」にフォールバックする。
+    /// `nil` when the App Group is unavailable; callers fall back to no filtering.
     static func sharedDefaults() -> UserDefaults? {
         UserDefaults(suiteName: SharedModelContainer.appGroupIdentifier)
     }
 
-    /// 保存されている設定を読む。未設定・壊れている場合は `.inactive`。
+    /// Reads the stored filter, falling back to `.inactive` when absent or unreadable.
     ///
-    /// `nonisolated` かつ同期。ウィジェットのタイムライン生成からも呼ぶ。
+    /// Synchronous and nonisolated because widget timeline generation calls it too.
     public static func loadFromSharedDefaults(_ defaults: UserDefaults? = nil) -> TodoFocusFilter {
         guard let defaults = defaults ?? sharedDefaults(),
               let data = defaults.data(forKey: sharedDefaultsKey),
@@ -132,7 +130,7 @@ public struct TodoFocusFilter: Equatable, Sendable, Codable {
         return filter
     }
 
-    /// 設定を保存する。`.inactive` はキーごと消す（読み手のフォールバックと同義）。
+    /// Stores the filter. `.inactive` removes the key, which readers treat the same way.
     public func saveToSharedDefaults(_ defaults: UserDefaults? = nil) {
         guard let defaults = defaults ?? Self.sharedDefaults() else { return }
         guard isActive else {

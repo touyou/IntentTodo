@@ -2,16 +2,15 @@
 //  TodoAttributeWritePathTests.swift
 //  TodoAppIntents
 //
-//  `.reminders.reminder` 由来の属性（tags / urls / recurrence / locationTriggerEvent）を
-//  **書ける**ことのテスト。#83 では entity 側の露出だけを入れたので、値が変わる経路が
-//  1 つも無かった。ここで押さえるのは「保存されるか」ではなく次の 3 つ:
+//  Covers *writing* the schema-derived attributes. Three things, none of which is simply
+//  "does it save":
 //
-//  - 正規化（trim / 空要素 / 重複）が entity 境界の型（`Set<String>`）と食い違わないこと
-//  - 置き換え / クリア / 放置の三状態が `FieldUpdate` を通って区別されること
-//  - 読み取り側の組み立て（`Calendar.RecurrenceRule` / `locationTrigger`）が
-//    書いた値から成立すること
+//  - normalisation (trimming, empties, duplicates) agrees with the `Set<String>` the entity
+//    boundary exposes
+//  - replace / clear / leave alone stay distinguishable through `FieldUpdate`
+//  - the read side can rebuild `Calendar.RecurrenceRule` and `locationTrigger` from what was
+//    written
 //
-//  経緯: docs/devlog/2026-08-29-attribute-write-paths.md
 //
 
 import Domain
@@ -66,8 +65,8 @@ struct TodoAttributeWritePathTests {
     @Test("create のタグは trim / 空要素除去 / 重複排除される")
     func createNormalizesTags() throws {
         let (service, repo) = makeService()
-        // 重複判定は大文字小文字 / ダイアクリティカルマークを無視するので "WORK" は同じタグ
-        // （検索の `localizedStandardContains` が区別しないものを 2 件持たない）。
+        // Duplicate detection ignores case and diacritics, so "WORK" is the same tag: two
+        // entries that search cannot tell apart should not both exist.
         _ = try service.create(
             title: "task",
             todoDescription: nil,
@@ -173,7 +172,7 @@ struct TodoAttributeWritePathTests {
         #expect(updated.locationTriggerEvent == nil)
     }
 
-    // MARK: - 読み取り側の組み立て
+    // MARK: - Rebuilding on Read
 
     @Test("書いた頻度と間隔から Calendar.RecurrenceRule が組み直される")
     func writtenRecurrenceRebuildsRule() throws {
@@ -202,7 +201,7 @@ struct TodoAttributeWritePathTests {
             locationTriggerEvent: .arrive
         )
         let item = try stored(in: repo)
-        // 保存自体はされる（場所を後から足せる）が、entity 側は組み立てられない。
+        // Still stored, so a location can be added later, but no trigger can be built yet.
         #expect(item.locationTriggerEvent == "arrive")
         #expect(TodoAppEntity(from: item).locationTrigger == nil)
     }
@@ -248,7 +247,7 @@ struct TodoAttributeWritePathTests {
         #expect(restored.locationTriggerEvent == "depart")
     }
 
-    // MARK: - 正規化ヘルパー単体
+    // MARK: - Normalisation Helpers
 
     @Test("normalized(tags:) は与えられた順序を保つ")
     func normalizationPreservesOrder() {
