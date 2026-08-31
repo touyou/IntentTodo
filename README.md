@@ -215,13 +215,13 @@ cd Packages/UI && swift test
 | `Toggle urgent todo in IntentTodo` | 最緊急 Todo の完了切替 |
 | `Show todo count in IntentTodo` | 未完了数 |
 
-## Claude Code skill として配布
+## Agent Skills として配布
 
-このリポジトリは、本プロジェクトで蓄積した App Intent 中心設計の知見を **Claude Code plugin** として再利用できる形で同梱しています。
+このリポジトリは、本プロジェクトで蓄積した App Intent 中心設計の知見を [Agent Skills](https://agentskills.io/specification) として再利用できる形で同梱しています。**Claude Code / Codex / Gemini CLI / GitHub Copilot / Cursor で同じファイルが動きます。**
 
-- 配布物: [`skills/`](skills/) 配下の 8 skill + [`.claude-plugin/plugin.json`](.claude-plugin/plugin.json)
+- 配布物: [`skills/`](skills/) 配下の 8 skill + [`plugin.json`](plugin.json)（Agent Plugins）/ [`.claude-plugin/`](.claude-plugin/) / [`.agents/plugins/`](.agents/plugins/) のマニフェスト
 - **場面ごとに分割**されていて、「ウィジェットにボタンを付けたい」「押しても何も起きない」「訳が反映されない」のように**やりたいこと / 症状で発火**する
-- 各 skill の分担・スクリプト・インストール手順は [`skills/README.md`](skills/README.md) を参照
+- 各 skill の分担とスクリプトは [`skills/README.md`](skills/README.md)、エージェント別のインストールと公開手順は [`skills/INSTALL.md`](skills/INSTALL.md) を参照
 
 | skill | 場面 |
 |---|---|

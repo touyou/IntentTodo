@@ -1,6 +1,7 @@
 ---
 name: app-intents-testing
 description: Find out whether App Intents actually work, given that they fail with no error at all. Use when the build succeeds but a feature never appears in Shortcuts, Siri or Spotlight, when an action shows up but its parameters or values are missing, when you want automated tests for intents instead of checking by hand, when writing AppIntentsTesting or XCUITest cases for intents, when a test passes but the feature is visibly broken, when you need to see what the build actually told the system, or when you are trying to settle a question like "does that surface support this?" without guessing.
+license: MIT
 ---
 
 # Verifying App Intents

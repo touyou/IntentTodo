@@ -1,7 +1,8 @@
 # App Intents 中心設計 skills
 
 Apple プラットフォーム向けの **App Intent 中心設計** を、別プロジェクトでも再現できる形にまとめた
-Claude Code skill 群。**場面ごとに 8 本**に分かれていて、やりたいことに応じて自動発火する。
+Agent Skills 群。**場面ごとに 8 本**に分かれていて、やりたいことに応じて自動発火する。
+Claude Code / Codex / Gemini CLI / GitHub Copilot / Cursor で同じファイルが使える（[INSTALL.md](INSTALL.md)）。
 
 このリポジトリ ([IntentTodo](https://github.com/touyou/IntentTodo)) はサンプル実装であり、skill 自体は
 他のプロジェクトでも独立して使える。
@@ -61,6 +62,9 @@ skills/
     └── references/{intent-copy, package-ui-copy, siri-phrases, verifying}.md
 ```
 
+各 skill には `SKILL.md` のほかに `agents/openai.yaml`（Codex / ChatGPT アプリ向けの表示名・
+短い説明・既定プロンプト）が入っている。他のエージェントはこのファイルを無視する。
+
 ## スクリプト
 
 skill を入れていなくても単体で使える。すべて標準ライブラリのみ・`--help` あり。
@@ -92,22 +96,25 @@ Shortcuts 編集画面に出ていないパラメータ、登録されなかっ�
 
 ## インストール
 
-### Claude Code plugin として
+[Agent Skills 仕様](https://agentskills.io/specification)に沿っているので、**Claude Code だけでなく
+Codex / Gemini CLI / GitHub Copilot / Cursor でも同じファイルが動く**。エージェント別の手順・
+パッケージ用ファイルの役割・公開手順は [INSTALL.md](INSTALL.md)。
 
 ```
-/plugin install touyou/IntentTodo
+# Claude Code
+/plugin marketplace add touyou/IntentTodo
+/plugin install app-intents-centric-design@intenttodo
+
+# Codex
+codex plugin marketplace add touyou/IntentTodo
+
+# Copilot / Cursor / Gemini CLI / その他（置き場は gh が振り分ける）
+gh skill install touyou/IntentTodo --all --agent github-copilot
 ```
-
-8 本まとめて入る。
-
-### skill ファイルを直接コピー
-
-このディレクトリ配下の skill ディレクトリを、対象プロジェクトの `.claude/skills/` 以下、
-またはユーザーグローバルの `~/.claude/skills/` 以下にコピーする。
 
 skill 同士は名前で相互参照している（「詳細は `app-intents-testing` を見よ」など）うえ、
 スクリプトを相対パスで参照している箇所もあるので、**8 本まとめて入れるのが想定構成**。
-入口 1 本だけをコピーすると参照先が無い状態になる。
+入口 1 本だけを入れると参照先が無い状態になる。
 
 ## 発火タイミング
 

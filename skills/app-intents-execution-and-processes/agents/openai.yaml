@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents: execution and processes"
+  short_description: "Work out where an intent runs, what it can reach, and why a button does nothing"
+  default_prompt: "Use $app-intents-execution-and-processes to work out where this intent actually runs, why a widget or Control Center button does nothing, or why intents moved into a Swift package stopped appearing."

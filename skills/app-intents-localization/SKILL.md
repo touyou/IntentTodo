@@ -1,6 +1,7 @@
 ---
 name: app-intents-localization
 description: Translate the words an App Intent shows and speaks. Use when intent names, descriptions, parameter labels, Siri responses or entity titles stay in the original language after the rest of the app is translated, when strings never show up in the String Catalog to be translated at all, when Siri phrases need to work in another language, when views live in a Swift package and their text is not being extracted, when a translated sentence still has English words stitched into it, or when adding a language to a project that uses App Intents.
+license: MIT
 ---
 
 # Localizing App Intents copy

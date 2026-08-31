@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents: UI and feedback"
+  short_description: "Run intents from your own UI and tell the person what happened"
+  default_prompt: "Use $app-intents-ui-and-feedback to wire this SwiftUI button to an App Intent, drive navigation from it, and pick the feedback channel — dialog, snippet or notification — that the calling surface can actually show."

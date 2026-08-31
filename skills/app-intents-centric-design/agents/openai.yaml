@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents-centric design"
+  short_description: "Decide what should be an App Intent, and review an existing adoption"
+  default_prompt: "Use $app-intents-centric-design to work out which of this app's features should become App Intents and Entities, and to review the adoption against the rules that apply everywhere."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents: parameters and prompts"
+  short_description: "Give an intent inputs people can edit, and ask for what is missing"
+  default_prompt: "Use $app-intents-parameters-and-prompts to add parameters to this intent, make them editable in the Shortcuts app, and ask the person to confirm or choose at run time."

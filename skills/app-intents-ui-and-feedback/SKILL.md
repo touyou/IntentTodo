@@ -1,6 +1,7 @@
 ---
 name: app-intents-ui-and-feedback
 description: Run App Intents from your own app's UI and tell the person what happened. Use when wiring a SwiftUI button to an intent, when tapping a button does nothing at all and no error appears, when a confirmation prompt never shows up, when you want an intent to navigate somewhere or open a specific screen (including from a cold launch), when you need Siri to say something back or read a result aloud, when you want to show a small interactive result view, when a notification never arrives, or when an action clearly succeeded but nothing visible changed on screen or in Control Center.
+license: MIT
 ---
 
 # UI integration and feedback
