@@ -24,6 +24,7 @@ This skill is the entry point and the cross-cutting rules. Each job below has it
 
 | What you are doing | Skill |
 |---|---|
+| Working out *with someone* which intents this app should have, taking an inventory of an existing adoption, going from screens to actions | `app-intents-design-session` |
 | Deciding where an action should appear — widget, Control Center, Watch, Live Activity, Action button, camera, Focus | `app-intents-system-surfaces` |
 | Choosing `supportedModes` / `allowedExecutionTargets`, registering `@Dependency`, laying out packages, platform guards | `app-intents-execution-and-processes` |
 | Running intents from your own SwiftUI UI, navigation, dialogs / snippets / notifications | `app-intents-ui-and-feedback` |
@@ -87,7 +88,7 @@ Rules 1, 2 and 4 are the ones no linter can check — they are design decisions,
 
 ## Workflow
 
-1. **Find the actions, not the screens.** Write use cases as "*who* can *do what* to *which thing*". Verbs are intent candidates, nouns are entity candidates. Drop anything whose only value is "navigate here". ([actions-and-intents](references/actions-and-intents.md))
+1. **Find the actions, not the screens.** Write use cases as "*who* can *do what* to *which thing*". Verbs are intent candidates, nouns are entity candidates. Drop anything whose only value is "navigate here". ([actions-and-intents](references/actions-and-intents.md); to do this *with* the person — question sets, gap triage, artifact templates — use `app-intents-design-session`)
 2. **Design from the smallest surface outward** — complication → widget → control → Live Activity → Shortcuts/Siri → Spotlight → visionOS → main app UI. Constraint is the clarifier; the main app is the most permissive surface and therefore the least informative one to start from. (`app-intents-system-surfaces`)
 3. **Define the minimal entity surface.** `id` + `displayRepresentation` + the few `@Property` members the system actually reads. (`app-intents-entities-and-search`)
 4. **Put the logic in a service, inject it with `@Dependency`.** Register it synchronously at each process entry point. ([side-effects](references/service-and-side-effects.md), `app-intents-execution-and-processes`)
@@ -144,7 +145,7 @@ Four scripts across these skills. All are standard-library Python and work in an
 
 | Script | Lives in | Answers |
 |---|---|---|
-| `audit_intents.py` | this skill (`scripts/`) | 24 static rules + which system surfaces the project reaches |
+| `audit_intents.py` | this skill (`scripts/`) | 24 static rules, which system surfaces the project reaches, and which of the app's actions no intent reaches |
 | `inspect_appintents_metadata.py` | `app-intents-testing` | what the build actually told the system |
 | `inspect_donation_stream.py` | `app-intents-testing` | did a run get donated (simulator only, verification only) |
 | `check_intent_copy_localization.py` | `app-intents-localization` | which intent copy is missing from the String Catalogs |
@@ -159,6 +160,10 @@ python3 scripts/audit_intents.py . --json            # machine-readable
 
 # Which system surfaces this project reaches today, and what each missing one needs.
 python3 scripts/audit_intents.py . --coverage
+
+# What exists (intents / entities / App Shortcut slots) vs the actions in the app
+# that no intent reaches. Material for a design session, not a defect list.
+python3 scripts/audit_intents.py . --gap
 ```
 
 ## Evidence discipline

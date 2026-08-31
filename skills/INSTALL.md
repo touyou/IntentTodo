@@ -1,6 +1,6 @@
 # インストールと配布
 
-8 skill は [Agent Skills 仕様](https://agentskills.io/specification)（`SKILL.md` + `scripts/` +
+9 skill は [Agent Skills 仕様](https://agentskills.io/specification)（`SKILL.md` + `scripts/` +
 `references/`）そのままなので、**この仕様に対応したエージェントならどれでも同じファイルが動く**。
 違うのは「どこに置くか」と「どう配布するか」だけ。skill の中身・発火条件は
 [README.md](README.md) を参照。
@@ -29,7 +29,7 @@ codex plugin marketplace add touyou/IntentTodo
 ```
 
 `.agents/plugins/marketplace.json` が読まれ、`app-intents-centric-design` が 1 プラグインとして
-出てくる（8 skill 入り）。あとは Codex の plugin 一覧からインストールする。
+出てくる（9 skill 入り）。あとは Codex の plugin 一覧からインストールする。
 
 Codex がマーケットプレイスとして見るのは以下の 4 パスで、**先に見つかった 1 つだけ**を使う:
 `.agents/plugins/marketplace.json` → `.agents/plugins/api_marketplace.json` →
@@ -110,7 +110,7 @@ gh skill publish --dry-run   # Agent Skills 仕様に対する検証だけ
 gh skill publish --tag v0.5.0
 ```
 
-`publish` は 8 skill を仕様に照らして検証したうえで、リポジトリに `agent-skills` トピックを付け、
+`publish` は 9 skill を仕様に照らして検証したうえで、リポジトリに `agent-skills` トピックを付け、
 リリースを作る。これで `gh skill search app-intents` から見つかる。
 検証は `skills/*/SKILL.md` を見て、命名規則・ディレクトリ名との一致・`name` / `description` の有無・
 `allowed-tools` の型・インストール時メタデータの残骸を確認する。**リリース前に必ず `--dry-run` を
@@ -128,8 +128,8 @@ gh skill publish --tag v0.5.0
 
 | 事実 | 根拠 |
 |---|---|
-| 8 skill が Agent Skills 仕様に適合 | `gh skill publish --dry-run` が警告なしで通る（2026-08-31 実行） |
-| `.claude-plugin/marketplace.json` + `source: "./"` で 8 skill 入りプラグインとして入る | `claude plugin marketplace add ./` → `install` → キャッシュ内に `skills/` 8 本を確認（2026-08-31 実行） |
+| 9 skill が Agent Skills 仕様に適合 | `gh skill publish --dry-run` が警告なしで通る（2026-08-31 実行） |
+| `.claude-plugin/marketplace.json` + `source: "./"` で 9 skill 入りプラグインとして入る | `claude plugin marketplace add ./` → `install` → キャッシュ内に `skills/` 9 本を確認（2026-08-31 実行） |
 | Codex のマーケットプレイス探索パスと順序 | [openai/codex `core-plugins/src/marketplace.rs`](https://github.com/openai/codex/blob/main/codex-rs/core-plugins/src/marketplace.rs) の `MARKETPLACE_MANIFEST_RELATIVE_PATHS` |
 | Codex は root `plugin.json` を Agent Plugins として読み、`skills/` を固定位置で拾う | [`core-plugins/src/agent_plugin_manifest.rs`](https://github.com/openai/codex/blob/main/codex-rs/core-plugins/src/agent_plugin_manifest.rs) |
 | Codex が受け付ける `$schema` は 1.0.0 のみ | [`utils/plugins/src/plugin_namespace.rs`](https://github.com/openai/codex/blob/main/codex-rs/utils/plugins/src/plugin_namespace.rs) |

@@ -1,0 +1,4 @@
+interface:
+  display_name: "App Intents: design session"
+  short_description: "Work out which intents an app should have, and design where each one shows up"
+  default_prompt: "Use $app-intents-design-session to take an inventory of this app's actions with me and work out which App Intents and Entities it should have, and where each one should appear."

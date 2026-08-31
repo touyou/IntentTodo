@@ -8,6 +8,8 @@ Every rule maps to a section in the skill's references/.
 Usage:
     python3 audit_intents.py [ROOT] [--json] [--only RULE,RULE] [--skip RULE,RULE]
                              [--fail-on {error,warn,never}]
+    python3 audit_intents.py [ROOT] --coverage   # which system surfaces are reached
+    python3 audit_intents.py [ROOT] --gap        # intents that exist vs actions no intent reaches
 
 Exit status: 0 clean, 1 findings at or above --fail-on (default: error).
 
@@ -990,6 +992,218 @@ def print_coverage(rows: list[dict]) -> None:
 
 
 # ---------------------------------------------------------------------------
+# gap analysis
+# ---------------------------------------------------------------------------
+
+# Verb prefixes that indicate a state change a person asked for. Read-only verbs
+# (fetch, load, find, count) are deliberately absent: they are not actions.
+ACTION_VERBS = (
+    "add|append|apply|archive|assign|attach|cancel|clear|complete|copy|create|delete|"
+    "detach|disable|duplicate|edit|enable|export|favorite|favourite|finish|import|"
+    "insert|mark|move|new|pause|pin|postpone|rename|reorder|reset|resume|save|schedule|"
+    "send|set|share|skip|snooze|sort|star|start|stop|submit|toggle|unarchive|undo|"
+    "unpin|unstar|update|upload"
+)
+ACTION_FUNC_RE = re.compile(
+    rf"^\s*(?:@\w+(?:\([^)]*\))?\s+)*(?:public\s+|internal\s+|open\s+)?"
+    rf"(?:static\s+|final\s+|mutating\s+|nonisolated\s+)*func\s+({ACTION_VERBS})(\w*)\s*[(<]",
+    re.IGNORECASE,
+)
+# `favoriteCount()` starts with an action verb but only reads. Names ending in a
+# noun like this are projections, not actions.
+READ_ONLY_SUFFIX_RE = re.compile(
+    r"(Count|Text|Label|Icon|Color|Description|Predicate|Formatter|Descriptor)$"
+)
+# Types that own actions on the app side. A View is excluded on purpose: an action
+# living in a view body is reported by the ui-button probe instead.
+ACTION_OWNER_RE = re.compile(
+    r"(Service|Store|Repository|Manager|UseCase|Interactor|ViewModel|Model|Coordinator|Controller)$"
+)
+
+# (kind, description, pattern, what to ask about it)
+UI_ACTION_PROBES: list[tuple[str, str, str, str]] = [
+    ("url-handler", "URL / universal link handling",
+     r"\.onOpenURL\s*\(|func\s+application\s*\([^)]*open\s+url|NSUserActivityTypeBrowsingWeb",
+     "each branch of the handler is an action candidate; the handler should call the service, never perform()"),
+    ("action-bus", "NotificationCenter used as an action bus",
+     r"NotificationCenter\.default\.post\s*\(",
+     "if a user-visible action travels this bus, an intent should own it instead"),
+    ("menu-command", "macOS menu commands",
+     r":\s*Commands\b|\bCommandMenu\s*\(|\bCommandGroup\s*\(",
+     "menu items are an action catalogue already; wire them with Button(intent:)"),
+    ("quick-action", "Home screen quick actions",
+     r"UIApplicationShortcutItem|shortcutItems",
+     "these predate App Shortcuts and duplicate them; migrate to AppShortcutsProvider"),
+    ("scheme-open", "custom URL scheme construction",
+     r"URL\s*\(\s*string\s*:\s*\"\w+://",
+     "an in-app deep link that Spotlight, Siri and Shortcuts cannot follow; OpenIntent can"),
+]
+
+# A Button whose closure only moves the UI around is not a missing intent.
+UI_NAVIGATION_RE = re.compile(
+    r"dismiss|isPresented|showing|showSheet|present|navigat|path\.|selection|"
+    r"selected|focus|editMode|withAnimation\s*\{\s*\}|scrollTo|columnVisibility|"
+    r"expand|collaps|sortOrder|searchText|filter\s*=|tab\s*=",
+    re.IGNORECASE,
+)
+BUTTON_RE = re.compile(r"\bButton\s*[({]")
+
+
+def _action_owner(f: SwiftFile, line: int) -> str | None:
+    """Name of the innermost action-owning declaration above `line`, if any."""
+    owner = None
+    for d in f.decls:
+        if d.line > line:
+            break
+        if d.kind == "extension" or ACTION_OWNER_RE.search(d.name):
+            owner = d.name
+    return owner
+
+
+def gap(root: str) -> dict:
+    """Inventory what the system can already do, and what the app can do that it cannot.
+
+    Grep-level and deliberately over-inclusive on the candidate side: the point is to
+    have something to triage in a design session, not to be right on its own.
+    """
+    files = [f for f in load_files(root) if not f.is_test]
+
+    intents: list[dict] = []
+    entities: list[dict] = []
+    shortcut_intents: set[str] = set()
+    for f in files:
+        for name in sorted(f.intent_type_names()):
+            intents.append({
+                "name": name,
+                "file": f.path,
+                "schema": bool(re.search(rf"@AppIntent\s*\(\s*schema\s*:[^)]*\)\s*(?:public\s+)?struct\s+{name}\b", f.code)),
+                "discoverable": not re.search(r"isDiscoverable\s*[:=]\s*(?:Bool\s*\{\s*)?false", f.code),
+            })
+        entity_lines = {
+            d.name: d.line for d in f.decls
+            if d.kind != "extension"
+            and ({"AppEntity", "TransientAppEntity"} & set(d.conformances))
+        }
+        for m in re.finditer(
+            r"@AppEntity\s*\([^)]*\)\s*(?:public\s+)?(?:struct|class)\s+(\w+)", f.code
+        ):
+            entity_lines.setdefault(m.group(1), f.code[: m.start()].count("\n") + 1)
+        bounds = sorted(entity_lines.values()) + [len(f.code_lines) + 1]
+        for name, start in entity_lines.items():
+            stop = next(b for b in bounds if b > start)
+            body = "\n".join(f.code_lines[start - 1 : stop - 1])
+            entities.append({
+                "name": name,
+                "file": f.path,
+                "properties": len(re.findall(r"@(?:Computed|Deferred)?Property\s*[(<]", body)),
+            })
+        for m in re.finditer(r"AppShortcut\s*\(\s*intent\s*:\s*(\w+)\s*\(", f.code):
+            shortcut_intents.add(m.group(1))
+
+    intent_files = [f for f in files if f.declares_intent()]
+    intent_code = "\n".join(f.code for f in intent_files)
+
+    actions: list[dict] = []
+    for f in files:
+        if not any(ACTION_OWNER_RE.search(d.name) for d in f.decls):
+            continue
+        for i, ln in enumerate(f.code_lines):
+            m = ACTION_FUNC_RE.match(ln)
+            if not m:
+                continue
+            func = (m.group(1) + m.group(2))
+            if READ_ONLY_SUFFIX_RE.search(func):
+                continue
+            reached = re.search(rf"[.\s(]{re.escape(func)}\s*\(", intent_code) is not None
+            actions.append({
+                "owner": _action_owner(f, i + 1) or f.path,
+                "func": func,
+                "file": f.path,
+                "line": i + 1,
+                "reached_by_intent": reached,
+            })
+
+    ui: list[dict] = []
+    for f in files:
+        for kind, label, pattern, ask in UI_ACTION_PROBES:
+            for line, raw in f.code_find(pattern):
+                ui.append({"kind": kind, "label": label, "file": f.path, "line": line,
+                           "snippet": raw.strip()[:100], "ask": ask})
+        if not f.has(r":\s*(?:[\w\s,]*\b)?View\b"):
+            continue
+        for i, ln in enumerate(f.code_lines):
+            if not BUTTON_RE.search(ln):
+                continue
+            window = "\n".join(f.code_lines[i:i + 6])
+            if "intent:" in window or UI_NAVIGATION_RE.search(window):
+                continue
+            ui.append({"kind": "ui-button", "label": "Button that is not wired to an intent",
+                       "file": f.path, "line": i + 1, "snippet": ln.strip()[:100],
+                       "ask": "if this performs a real action, it belongs in an intent (rule 1)"})
+
+    return {
+        "intents": sorted(intents, key=lambda d: d["name"]),
+        "entities": sorted(entities, key=lambda d: d["name"]),
+        "app_shortcuts": sorted(shortcut_intents),
+        "actions": sorted(actions, key=lambda d: (d["reached_by_intent"], d["owner"], d["func"])),
+        "ui_candidates": sorted(ui, key=lambda d: (d["kind"], d["file"], d["line"])),
+    }
+
+
+GAP_LIST_CAP = 12
+
+
+def _print_capped(rows: list[str]) -> None:
+    for line in rows[:GAP_LIST_CAP]:
+        print(line)
+    if len(rows) > GAP_LIST_CAP:
+        print(f"      … {len(rows) - GAP_LIST_CAP} more (use --json for the full list)")
+
+
+def print_gap(g: dict) -> None:
+    print("What the system can already do:\n")
+    if not g["intents"]:
+        print("  (no AppIntent found — this is a level-0 start; see "
+              "app-intents-centric-design/references/adoption-levels.md)")
+    for it in g["intents"]:
+        marks = []
+        if it["name"] in g["app_shortcuts"]:
+            marks.append("App Shortcut")
+        if it["schema"]:
+            marks.append("schema")
+        if not it["discoverable"]:
+            marks.append("not discoverable")
+        suffix = f"  [{', '.join(marks)}]" if marks else ""
+        print(f"  intent   {it['name']}{suffix}")
+    for e in g["entities"]:
+        prop = f"{e['properties']} @Property" if e["properties"] else "NO @Property — invisible to Shortcuts/Siri"
+        print(f"  entity   {e['name']}  [{prop}]")
+    print(f"\n  App Shortcut slots used: {len(g['app_shortcuts'])}/10")
+
+    unreached = [a for a in g["actions"] if not a["reached_by_intent"]]
+    reached = [a for a in g["actions"] if a["reached_by_intent"]]
+    print("\nActions in the app that no intent reaches (triage: real action, or internal plumbing?):\n")
+    if not unreached:
+        print("  (none found)")
+    _print_capped([f"  gap      {a['owner']}.{a['func']}()\n             {a['file']}:{a['line']}"
+                   for a in unreached])
+
+    by_kind: dict[str, list[dict]] = {}
+    for row in g["ui_candidates"]:
+        by_kind.setdefault(row["kind"], []).append(row)
+    if by_kind:
+        print("\nOther places actions hide today:\n")
+    for kind, rows in by_kind.items():
+        print(f"  {kind}  ({len(rows)}) — {rows[0]['label']}\n             {rows[0]['ask']}")
+        _print_capped([f"             {r['file']}:{r['line']}  {r['snippet']}" for r in rows])
+
+    print(f"\n{len(reached)} action(s) already reached by an intent, {len(unreached)} not, "
+          f"{len(g['ui_candidates'])} other candidate(s).")
+    print("This is a list to talk through, not a list of defects: read it with "
+          "app-intents-design-session/references/gap-analysis.md.")
+
+
+# ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
 
@@ -1016,12 +1230,22 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--list-rules", action="store_true", help="print the rule catalogue and exit")
     ap.add_argument("--coverage", action="store_true",
                     help="report which system surfaces the project reaches, and what the rest would take")
+    ap.add_argument("--gap", action="store_true",
+                    help="inventory the intents/entities that exist, and the actions in the app that no intent reaches")
     ap.add_argument("--fail-on", choices=["error", "warn", "never"], default="error")
     args = ap.parse_args(argv)
 
     if args.list_rules:
         for name, doc in RULES.items():
             print(f"{name}\n    {doc}")
+        return 0
+
+    if args.gap:
+        g = gap(args.root)
+        if args.json:
+            print(json.dumps({"root": os.path.abspath(args.root), **g}, indent=2))
+        else:
+            print_gap(g)
         return 0
 
     if args.coverage:

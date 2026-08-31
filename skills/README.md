@@ -1,20 +1,21 @@
 # App Intents 中心設計 skills
 
 Apple プラットフォーム向けの **App Intent 中心設計** を、別プロジェクトでも再現できる形にまとめた
-Agent Skills 群。**場面ごとに 8 本**に分かれていて、やりたいことに応じて自動発火する。
+Agent Skills 群。**場面ごとに 9 本**に分かれていて、やりたいことに応じて自動発火する。
 Claude Code / Codex / Gemini CLI / GitHub Copilot / Cursor で同じファイルが使える（[INSTALL.md](INSTALL.md)）。
 
 このリポジトリ ([IntentTodo](https://github.com/touyou/IntentTodo)) はサンプル実装であり、skill 自体は
 他のプロジェクトでも独立して使える。
 
-## 8 本の分担
+## 9 本の分担
 
-`app-intents-centric-design` が入口で、残り 7 本が場面ごとの詳細。**どれを呼ぶか分からないときは
+`app-intents-centric-design` が入口で、残り 8 本が場面ごとの詳細。**どれを呼ぶか分からないときは
 入口に投げれば振り分けられる**（症状 → skill の対応表を持っている）。
 
 | skill | 発火する「やりたいこと / 症状」 |
 |---|---|
 | **app-intents-centric-design** | アプリの機能を Siri / ショートカットから使えるようにしたい。既存アプリに後付けしたい。何を Intent にすべきか。設計をレビューしてほしい |
+| **app-intents-design-session** | 何を Intent にすべきか一緒に考えてほしい / 既存の App Intents を棚卸ししたい / 画面ベースの機能一覧をアクションに落としたい / どのアクションにウィジェットやコントロールを与えるか / 名前と Siri の言い回しを決めたい |
 | **app-intents-system-surfaces** | ウィジェットにボタンを付けたい / コントロールセンターに出したい / Dynamic Island / Apple Watch / Action ボタン / カメラで検索 / 集中モード。「どこに出すべき？」 |
 | **app-intents-execution-and-processes** | ウィジェットのボタンが動かない / `Failed to retrieve dependency` / アプリが勝手に開く・開かない / パッケージに置いたら Shortcuts に出ない / 複数プラットフォーム対応 |
 | **app-intents-ui-and-feedback** | アプリ内ボタンから実行したい / 押しても何も起きない / 確認ダイアログが出ない / 実行後に画面遷移したい / Siri に喋らせたい / 通知が来ない |
@@ -40,6 +41,8 @@ skills/
 │   ├── scripts/audit_intents.py         # 24 ルールの静的監査 + サーフェス到達状況
 │   └── references/{adoption-levels, actions-and-intents,
 │                   service-and-side-effects, templates}.md
+├── app-intents-design-session/             # 対話でユースケース → Intent 集合を導く進行役
+│   └── references/{interview, gap-analysis, artifacts}.md
 ├── app-intents-system-surfaces/
 │   └── references/{surface-catalog, controls,
 │                   visual-intelligence-and-onscreen}.md
@@ -78,6 +81,9 @@ python3 app-intents-centric-design/scripts/audit_intents.py . --json
 # いま到達しているシステムサーフェスと、未到達のものに何が必要か（ビルド不要）
 python3 app-intents-centric-design/scripts/audit_intents.py . --coverage
 
+# 実装済みの Intent / Entity / App Shortcut 枠と、どの Intent も届いていないアクション（ビルド不要）
+python3 app-intents-centric-design/scripts/audit_intents.py . --gap
+
 # ビルド成果物の Metadata.appintents を読む（ビルド後）
 python3 app-intents-testing/scripts/inspect_appintents_metadata.py --find MyProject
 python3 app-intents-testing/scripts/inspect_appintents_metadata.py path/to/MyApp.app -v
@@ -113,7 +119,7 @@ gh skill install touyou/IntentTodo --all --agent github-copilot
 ```
 
 skill 同士は名前で相互参照している（「詳細は `app-intents-testing` を見よ」など）うえ、
-スクリプトを相対パスで参照している箇所もあるので、**8 本まとめて入れるのが想定構成**。
+スクリプトを相対パスで参照している箇所もあるので、**9 本まとめて入れるのが想定構成**。
 入口 1 本だけを入れると参照先が無い状態になる。
 
 ## 発火タイミング

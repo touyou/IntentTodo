@@ -1,8 +1,8 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "app-intents-centric-design",
-  "version": "0.5.0",
-  "description": "Eight scene-scoped skills for building Apple platform apps (iOS/iPadOS/macOS/watchOS/visionOS) around App Intents: every user action an AppIntent, every domain object an AppEntity, routed to Shortcuts, Siri, widgets, Control Center, Live Activities, Spotlight, Focus filters and Visual Intelligence from one definition. Each skill fires on what you are trying to do — pick a system surface, work out where an intent runs and why a button silently does nothing, wire up UI and feedback, give an intent parameters people can actually edit, model entities and search, prove any of it works, or translate the words Siri says.",
+  "version": "0.6.0",
+  "description": "Nine scene-scoped skills for building Apple platform apps (iOS/iPadOS/macOS/watchOS/visionOS) around App Intents: every user action an AppIntent, every domain object an AppEntity, routed to Shortcuts, Siri, widgets, Control Center, Live Activities, Spotlight, Focus filters and Visual Intelligence from one definition. Each skill fires on what you are trying to do — run a design session that turns use cases into an intent set, pick a system surface, work out where an intent runs and why a button silently does nothing, wire up UI and feedback, give an intent parameters people can actually edit, model entities and search, prove any of it works, or translate the words Siri says.",
   "author": {
     "name": "touyou",
     "url": "https://github.com/touyou"

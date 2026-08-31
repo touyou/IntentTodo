@@ -124,7 +124,7 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
 - [docs/feedback/](docs/feedback/) — Apple へ提出した Feedback の内容
 - **GitHub issues** — これからやること（#30 実機検証 / #57 GM SDK 棚卸し / #67 登壇準備 / #68 未採用 API）
 - [docs/presentation/](docs/presentation/README.md) — 登壇用のスライド骨子とスクリプト
-- [skills/](skills/README.md) — App Intents 中心設計を他プロジェクトへ持ち出す形（8 skill + スクリプト）。
+- [skills/](skills/README.md) — App Intents 中心設計を他プロジェクトへ持ち出す形（9 skill + スクリプト）。
   エージェント別のインストールと公開手順は [skills/INSTALL.md](skills/INSTALL.md)
 - `docs/references/` — 最新の技術参照（gitignore 対象。WWDC 書き起こしは `references/wwdc/`）
 - `~/Developer/Private/wwdc26-app-intents-samples/` — WWDC26 公式サンプル 4 本（**リポジトリ外に置く**。
