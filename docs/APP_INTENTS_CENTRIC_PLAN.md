@@ -8,10 +8,10 @@
 >
 > **このファイルは「どのセッションの要素を、どの深度まで検証したか」の一覧**（＝到達状況の地図）。
 > 実装形と落とし穴は [insights/](INSIGHTS.md)、API 単位の採用状況は
-> [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md)、**なぜその判断になったかの経緯**は
-> [devlog/](devlog/README.md)、これからやることは GitHub issue（#30 / #57 / #68）にある。
-> 下の「実行フェーズ」にはコミットハッシュと当時の判断が混ざっているが、**現在のルールの出典としては
-> insights 側を見る**こと。
+> [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md)、**実施の記録と経緯**（どのコミットで
+> 何を入れたか / 当時どう判断したか / beta ごとの追従）は
+> [devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)、これからやることは
+> GitHub issue（#30 / #57 / #68）にある。
 
 ---
 
@@ -58,7 +58,7 @@
 | @UnionValue | `UnionValue()` | 複数 Entity 型を 1 パラメータ/結果で | B | ✅ U（2026-08-12 `SearchEverythingIntent` を実 run） |
 | LongRunningIntent | `LongRunningIntent` `performBackgroundTask` | 一括処理を長時間バックグラウンド | B/U | ✅ U（2026-08-12 実 run） |
 | CancellableIntent | `withIntentCancellationHandler` `IntentCancellationReason` | 上記のグレースフルキャンセル | B/U | ✅(B) `8e2d637` |
-| ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets` = `.main` / `.appIntentsExtension` / `.widgetKitExtension`） | FromExtension 整理可否を検証→当時は統合不可と結論。2026-08-12 に前提の crash が iOS 27 で再現しないと実測確認し**分離ごと撤去** | B | ✅ `8e2d637` |
+| ExecutionTargets | `allowedExecutionTargets`（`IntentExecutionTargets` = `.main` / `.appIntentsExtension` / `.widgetKitExtension`） | **書き込み系はすべて `[.main]`**、読み取り系は固定しない。呼出元ごとの Intent 複製（旧 FromExtension 分離）は撤去済み | B | ✅ |
 | SyncableEntity | `SyncableEntity`（`String`/`UUID` id でそのまま適合） | デバイス間 ID 同期 | B | ✅ `d347cb2` |
 
 ### #240 App Schema による Siri 体験 — https://developer.apple.com/jp/videos/play/wwdc2026/240/
@@ -110,135 +110,31 @@
 
 ---
 
-## 実行フェーズ（順序）
+## 実行フェーズ（到達状況）
 
-- **Phase 0 整地** ✅: `#2` を Intent 合成へ revert（`cab8e67`）、本計画を主眼に再焦点化。
-- **Phase 1 基盤 + ドメイン橋渡し** ✅（完了）:
-  - ✅ `TodoAppEntity` の主要属性を `@Property` 公開（`48348aa`）
-  - ✅ Category / SubTask を AppEntity 化 + Query（`1ef65ec`）、Todo→Category 関係を公開
-  - ✅ `Duration`（`002e6a9`）/ `PersonNameComponents`（`6ca1c09`）/ `PlaceDescriptor`（`5e3b4c7`）を
-    ネイティブ型として `@Parameter` + `@Property` 検証（保存は CloudKit 互換 primitive、入力は system 型）
-  - ✅ `ValueRepresentation`(→`IntentPerson` / `PlaceDescriptor`) を `Transferable` 経由で実装（#44）
-  - ✅ **Xcode 27 beta 4**: `TransientAppEntity`（`TodoListSummaryEntity` + `GetTodoSummaryIntent`）を実装。
-    `EntityPropertyQuery` は不採用（#344）。理由は `TodoEntityQuery` が `EnumerableEntityQuery` に
-    適合しており、**Shortcuts の Find アクションと絞り込みはそれだけで自動生成される**ため
-    （公式: "By implementing an `EnumerableEntityQuery`, you enable the Shortcuts app to generate a
-    Find action and do filtering automatically"）。`EntityPropertyQuery` が要るのは
-    "many thousands of entities" 規模で全件ロードが重くなったときで、個人利用の todo 件数では不要。
-    件数が増えたらここを再評価する。
-- **Phase 2 App Schema（reminders）** ✅（reminder 本体まで適合。#56 完了）:
-  - ✅ xcode27 を iOS 27 世代へ引き上げ（`.reminders` は iOS 27+ 限定のため）`ed22d80`
-  - ✅ `TodoListType` → `@AppEnum(schema: .reminders.listType)` `ed22d80`
-  - ✅ `CategoryAppEntity` → `@AppEntity(schema: .reminders.list)`（Category = reminders のリスト）`25d1d61`
-  - ✅ コア `TodoAppEntity` → `@AppEntity(schema: .reminders.reminder)`（#83）。要求 12 プロパティのうち
-    スキーマ側の綴り（`note` / `creationDate` / `isFlagged` / `list`）は `@ComputedProperty` の別名で満たし、
-    `dueDate` だけ型が衝突するので stored を `dueDateValue: Date?` に改名。`completionDate` / `tags` /
-    `urls` / `recurrence` / `locationTriggerEvent` はモデルに追加した。
-    据え置き理由だった「`locationTrigger` の `PlaceDescriptor` が SSU training バグに衝突」は
-    **2026-08-28 に否定**（SSU の variable になるのは App Shortcut 登録済み Intent の `@Parameter` だけ）。
-    経緯: `docs/devlog/2026-08-29-reminder-schema-conformance.md`
-  - ✅ 4 属性（`tags` / `urls` / `recurrence` / `locationTriggerEvent`）の**書き込み経路**を Intent と UI に通した（#85）。
-    このとき `parameterSummary` が Shortcuts 編集画面の allowlist だと分かった。
-    経緯: `docs/devlog/2026-08-29-attribute-write-paths.md`
-  - **watchOS / tvOS には App Schema が存在しない**（全 23 ドメインが `@available(..., unavailable)`。
-    新 Siri の提供範囲＝iPhone / iPad / Mac / visionOS と一致）。`reminders` 固有の制限ではないので
-    ドメインを変えても回避できない。一方 iOS アプリのメタデータには watchOS スライスがマージされ、
-    同じ型名のエントリは後の入力（= 常に watchOS）が前を丸ごと置き換えるため、**watch 用は別型名**にする
-    （`WatchTodoAppEntity` / `WatchCategoryAppEntity` / `WatchTodoListType` /
-    `WatchTodoLocationTriggerEvent`、`TodoLocationTriggerAppEntity` は watch に置かない）。
-    `ShowTodoSearchResultsIntent`（`.system.searchInApp`, #47）は watch に遷移先が無いので除外。
-    この組み合わせが成立しないこと自体は Apple へ報告済み（**FB24570185**、2026-08-30 提出。追跡は #57。
-    提出内容: `docs/feedback/2026-08-30-app-schema-watch-metadata-merge.md`）。
-    経緯: `docs/devlog/2026-08-29-schema-vs-watch-target.md`
+**フェーズごとの実施記録**（何をどのコミットで入れたか / 当時どう判断したか / beta ごとの追従）は
+[docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md#実行フェーズの実施記録2026-06-102026-08-27)
+へ移した。ここには到達状況だけを置く。
 
-- **Phase 3 高度な Intent** ✅（B 深度で完了。R は実機 Siri 手動確認が残る）: #343
-  - ✅ `requestConfirmation`（DeleteTodoIntent）`27fc2db`
-  - ⏸ `IntentDonationManager`: `b4dbd63` で入れたが **#53 で不採用に決着し撤去**（理由は上表 / 実測は
-    [devlog/2026-08-30-donation-observability.md](devlog/2026-08-30-donation-observability.md)）。
-    `deleteDonations(matching:)` だけ削除 3 経路に残っている
-  - ✅ `requestChoice`（SnoozeTodoIntent でスヌーズ時間選択）`db6efa3`
-  - ✅ system intents: `OpenIntent`→`OpenTodoIntent` `375efd1` / `DeleteIntent`→`DeleteTodosIntent`（バルク）`92221d0`
-  - ✅ 会話ダイアログ `IntentDialog(full:supporting:)`（ShowTodosIntent）`1f4bbc7`
-  - 🚫 `RelevantEntities`: **Todo/reminders ドメインに適合する `AppEntityContext` が存在しない**（ドメイン固有の
-    framework overlay context のみ）ため適合不能。詳細は insights/03 参照。
-    経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
-- **Phase 4 大量・実行制御** ✅（B 深度で完了。U/R は実機・一部テストが残る）: #345
-  - ✅ `CompleteTodosIntent` で `EntityCollection` + `LongRunningIntent` + `CancellableIntent` を同時実装 `8e2d637`
-  - ✅ `allowedExecutionTargets [.main]`。FromExtension 分離は entity 解決回避が目的でプロセス制御では統合不可と結論 `8e2d637` → 2026-08-12、前提の crash が iOS 27 で再現しないと実測確認し**分離を撤去**
-    （#42: 選択肢は `.main` / `.appIntentsExtension` / `.widgetKitExtension` の 3 種。`.widgetKitExtension` を踏まえても
-    LA は target 対象外 + entity 解決の有無は target で変えられないため結論不変。entity 解決の実行先が `[.main]` で本体に
-    寄るかは R 深度で未検証）
-  - ✅ `@UnionValue`（`TodoOrCategory`）+ `SearchEverythingIntent` `099dae3`
-  - ✅ `SyncableEntity`（`TodoAppEntity`、String UUID id でそのまま適合）`d347cb2`
-  - 詳細・落とし穴は insights/03「Phase 4: 大量・実行制御」を参照。
-- **Phase 5 Visual Intelligence** ✅（B 深度で完了。R=実機 visual search は手動確認が残る）: #297
-  - ✅ `TodoVisualIntelligenceQuery: IntentValueQuery`（`values(for: SemanticContentDescriptor)` → `[TodoOrCategory]`）`069aa48`
-  - ✅ `TodoSemanticContentSearchIntent`（`@AppIntent(schema: .visualIntelligence.semanticContentSearch)`）`069aa48`
-  - ✅ 結果タップ=`OpenTodoIntent` / 複数結果型=`@UnionValue TodoOrCategory` を再利用
-  - ✅ Mac の visual search 要件（結果 entity が全て openable であること）を満たすため `OpenCategoryIntent`
-    （`CategoryAppEntity` 用 `OpenIntent`）を実装、`#if canImport(VisualIntelligence)` のまま iOS+Mac で成立
-    （iOS/macOS/visionOS の 3 destination フルビルド green）。詳細 insights/03「beta 2 で macOS 対応」/
-    経緯: [docs/devlog/app-intents-centric-plan.md](devlog/app-intents-centric-plan.md)
-  - ⏭ EventKit/Contacts は別フレームワーク連携のため本ブランチ対象外（記録のみ）。詳細 insights/03。
-- **Phase 6 テスト基盤** ✅（B 深度で完了。実 run は手動/CI）: #295
-  - ✅ `IntentTodoUITest`（UIテストバンドル必須）に AppIntentsTesting テストを追加 `be7cf2b` → 2026-08-12 に 10 件へ拡張し実 run グリーン（id 解決 / allEntities / suggestedEntities / Spotlight index / Toggle 往復 / QuickSnooze / TransientAppEntity）
-  - ✅ `makeIntent`/`run`(AddTodo) / `entities(matching:)` / Add→Show 連鎖。buildForTesting + live diagnostics 0件。
-  - 自己クリーンアップ設計（一意タイトルで作成→削除）。詳細 insights/03。
-- **Phase 7 WWDC 2026 追加検証（#42–#48）** ✅（B 深度。iOS/visionOS/watchOS の 3 スキームで `BuildProject` グリーン）:
-  - ✅ #42: `allowedExecutionTargets` に `.widgetKitExtension` がある旨を記録訂正（当時は FromExtension 統合不可の結論も不変。2026-08-12 に分離ごと撤去）
-  - ✅ #43: `@Property(indexingKey:)` で title→`\.title` / 新設 description→`\.contentDescription`（overload は watchOS / tvOS で unavailable なので `#if` 分岐。visionOS は 2026-08-28 に有効化）
-  - ✅ #44: `TodoAppEntity: Transferable` + `ValueRepresentation` で title / `IntentPerson`(担当者) / `PlaceDescriptor`(場所) を export
-  - ✅ #45: `UpdateTodoIntent` + `IntentParameter.valueState` + `TodoService.update`/`FieldUpdate`（新値/明示クリア/据え置きを区別）
-  - ✅ #46: 一覧に `.appEntityIdentifier(forSelectionType:)` / Control のエラー通知に `UNMutableNotificationContent.appEntityIdentifiers`
-  - ✅ #47: `ShowTodoSearchResultsIntent`（`@AppIntent(schema: .system.searchInApp)`）+ `NavigationModel.pendingSearchText` 配線。ownership/requestValue は未採用
-  - ✅ #48: reminder 本体スキーマ適合は当時の再評価では据え置き（list 適合 + 自前 Intent で新 Siri 連携は成立を確認）→ **その後 #56 で適合済み**（上の Phase 2 参照）
-  - 詳細・落とし穴は insights/03「Phase 7」。R 深度（実機 Siri/Spotlight/Visual Intelligence）は手動。
-- **Phase 10 未着手候補の消化** ✅（B/U 深度。iOS/visionOS/macOS/watchOS の 4 destination で `BuildProject` グリーン、
-  SPM テスト 89 件グリーン）:
-  - ✅ `UndoableIntent`: 削除 3 Intent（確認あり / 確認なし / バルク）と `ToggleTodoCompletionIntent`。
-    `TodoItemSnapshot`（Domain）+ `TodoService.snapshot(todoId:)` / `restore(_:)` + `TodoUndoRegistrar`。
-    **同じ id で戻す**のが要点。サブタスクは cascade 削除されるので一緒に復元、カテゴリは id で引き直す
-  - ✅ Spotlight の client state バッチ: `TodoSpotlightIndex.clientState(for:)`（SHA-256 32 バイト）+
-    `beginBatch()` / `endBatch(withClientState:)`。ダイジェストに **`modifiedAt` も混ぜる**（id 集合が同じでも
-    中身が変わることがあるため）
-  - ✅ `DisplayRepresentation` の `synonyms:` と画像の遅延クロージャ（Todo / Category / SubTask）
-  - ✅ `EntityQuery.displayRepresentations(for:)`（3 query）。モデルから直接組み立てて entity 生成を省く
-  - ✅ `EnumerableEntityQuery.findIntentDescription`（`TodoEntityQuery` / `CategoryEntityQuery`）
-  - ✅ `AppShortcutsProvider.shortcutTileColor`
-  - ✅ `IntentError: CustomAppIntentErrorConvertible`（`.notFound` → `entityNotFound`）
-  - ✅ `TodoListSummaryEntity` の複数形 inflection
-  - ✅ visionOS の onscreen annotation（`VisionOSTodoListView` に `forSelectionType:`）+
-    一覧側コレクション annotation のテスト（`testListAnnotatesEveryVisibleRow`）
-  - ✅ `systemExtraLargePortrait`（#277）: `ExtraLargePortraitTodoWidgetView` + `supportedFamilies` 追加。
-    **本ブランチはデプロイメントターゲットが 27 なので `#available` での組み立ては不要**だった
-  - 🚫 donation の再導入は見送り（`Button(intent:)` を唯一の実行経路とする設計を崩す判断が要る）
-  - 詳細は insights/03「Phase 10」。経緯: [docs/devlog/03-app-intents-core.md](devlog/03-app-intents-core.md)（2026-08-22）
-- **Phase 11 未採用だった Intent 種別の消化**（2026-08-26 着手）:
-  - ✅ `SetFocusFilterIntent`（`TodoFocusFilterIntent`）: カテゴリ / 急ぎのみ / 完了を隠す の 3 パラメータ。
-    `TodoFocusFilter`（判定 + App Group 経由の共有）と `TodoFocusFilterStore`（`@Observable`）を足し、
-    リスト UI とホームウィジェットの両方に効かせた。AppIntents Extension を持たないので
-    アプリ未起動中の Focus 遷移は `current` で取り直す。`notificationFilterPredicate` の許可リストには
-    失敗通知用の criteria を常置。詳細と落とし穴は insights/03「Focus filter」
-  - ℹ️ `ProgressReportingIntent` は**すでに採用済み**だった（SDK で `LongRunningIntent: ProgressReportingIntent`。
-    `CompleteTodosIntent` が `progress` を更新している）。「未実装の種別」ではない。
-    残っていた価値は 2 つで、どちらも消化: 進捗 / キャンセル観測 / inflection の 3 契約を
-    ソースで押さえる `LongRunningIntentTests` の追加と、手書きの複数形（`"todo" : "todos"`）を
-    `^[\(n) todo](inflect: true)` へ修正
-  - ✅ `UISceneAppIntent` + `AppIntentSceneDelegate`: `LaunchAppIntent` / `OpenTodoIntent` を準拠させ、
-    `SceneDelegate` の TODO スキャフォルドを回収。狙いはマルチウィンドウではなく **cold start**
-    （`UIScene.ConnectionOptions.appIntent` を拾わないと「アプリは開くが目的の画面に行かない」）。
-    遷移処理は `applyNavigation()` に集約し、`SceneNavigationWiringTests` が集約の維持を検出。
-    詳細は insights/04「UISceneAppIntent」
-  - ✅ `URLRepresentableEntity`（`TodoAppEntity`）+ `URLRepresentableIntent`（`OpenTodoIntent` は
-    `OpenIntent` との組み合わせで無償）。URL の綴りは `TodoDeepLink` に集約し、ウィジェットの行タップを
-    `Link(destination:)` で該当 Todo の詳細へ。DSL リテラルとの二重定義は `TodoDeepLinkTests` が縛る。
-    詳細は insights/03「URL 表現」
-  - 🚫 対象外: `AudioPlaybackIntent`（再生機能なし）/ `CustomIntentMigratedAppIntent`（SiriKit 資産なし）/
-    `LiveActivityStartingIntent`（iOS 17 で deprecated、`LiveActivityIntent` が後継）/
-    `PredictableIntent`（donation ゼロのため提案自体が出ない）
+| フェーズ | 内容 | 到達深度 |
+|---|---|:--:|
+| **0 整地** | 計画の焦点合わせ | ✅ |
+| **1 基盤 + ドメイン橋渡し** | `@Property` 公開 / Category・SubTask の Entity 化 / ネイティブ型パラメータ / `ValueRepresentation` / `TransientAppEntity` | ✅ B・U |
+| **2 App Schema（reminders）** | `listType` / `list` / **`reminder` 本体**（#56）+ 4 属性の書き込み経路（#85） | ✅ B |
+| **3 高度な Intent** | `requestConfirmation` / `requestChoice` / system intents / `IntentDialog(full:supporting:)` | ✅ B（R は #30） |
+| **4 大量・実行制御** | `EntityCollection` + `LongRunningIntent` + `CancellableIntent` / `allowedExecutionTargets` / `@UnionValue` / `SyncableEntity` | ✅ B・U |
+| **5 Visual Intelligence** | `IntentValueQuery` / `.visualIntelligence.semanticContentSearch` / macOS の openable 要件 | ✅ B（実機 visual search は #30） |
+| **6 テスト基盤** | AppIntentsTesting（UI テストバンドル）23 テスト | ✅ U |
+| **7 WWDC 2026 追加検証（#42–#48）** | `indexingKey:` / `Transferable` / `valueState` / コレクション onscreen / `.system.searchInApp` | ✅ B |
+| **10 未着手候補の消化** | `UndoableIntent` / Spotlight client state / `synonyms:` / `displayRepresentations(for:)` / `shortcutTileColor` / inflection / `systemExtraLargePortrait` | ✅ B・U |
+| **11 未採用だった Intent 種別** | `SetFocusFilterIntent` / `UISceneAppIntent` + `AppIntentSceneDelegate` / `URLRepresentableEntity` | ✅ B |
 
-> 各フェーズは機能単位の小コミット + `BuildProject` 確認で進める。R 深度（実機 Siri/Visual Intelligence）は
-> デバイス手動確認が必要なため、コード側は B/U まで到達させ、R は別途手動検証メモを残す。
+対象外と決めたもの: `AudioPlaybackIntent`（再生機能なし）/ `CustomIntentMigratedAppIntent`（SiriKit 資産なし）/
+`LiveActivityStartingIntent`（deprecated）/ `PredictableIntent`（donation ゼロでは提案が出ない）/
+`RelevantEntities`（todo 向け `AppEntityContext` が無い）/ EventKit・Contacts 連携（別フレームワーク軸）。
+
+各要素の**実装形と落とし穴**は [insights/03](insights/03-app-intents-core.md) 以下、**API 単位の状態**は
+[APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) にある。
 
 ---
 
@@ -265,29 +161,9 @@
 
 ---
 
-## すでに適用済みの変更
+## 既知の SDK 制約
 
-| 変更 | 整合 | 状態 | コミット |
-|------|------|------|---------|
-| `@ComputedProperty` / `@DeferredProperty` | Entity 強化（#345） | ✅ keep | `e7321a9` |
-| Onscreen Entities | 外部連携（#240/#343） | ✅ keep | `88deb66` |
-| Interactive Snippet | ビジュアル応答（#343） | ✅ keep | `f96f0ca` |
-| Intent Modes `.foreground(.dynamic)`（OpensIntent 廃止を伴う） | Intent 合成を外す副作用 → 取り消し。**2026-08-27 に「適所なし」と結論**（#55、下記） | ↩︎ revert | `cab8e67` |
-
----
-
-## Xcode 27 beta ごとの変更追跡
-
-| beta | 主な変更 | 対応コミット |
-|------|---------|------------|
-| beta 1 | iOS 27 世代へ引き上げ、`.reminders` schema 有効化 | `ed22d80` |
-| beta 2 | watchOS で assistant schema 非対応化 → `#if os(watchOS)` フォールバック追加、`VisualIntelligence` が Mac で import 可能に → `OpenCategoryIntent` 追加 | `9684418` `8ddc76f` |
-| beta 3 | `PlaceDescriptor` の SSU training バグを回避し `String` へ退避、`AppShortcutsProvider` をアプリターゲットへ移動、toolbar API 追従 | `35d772f` `3280bed` |
-| beta 4 | SSU バグ未修正・ワークアラウンド継続。`TransientAppEntity` 実装（`TodoListSummaryEntity` + `GetTodoSummaryIntent`） | `df4a2aa` |
-| beta 5 (27A5237l) | SSU バグ・watchOS assistant schema unavailable ともに未解消を再確認。コード変更なし | `647acb6` |
-| beta 6 (27A5252f) | 同 2 件ともに未解消を再確認（revert → クリーンビルドで同一エラー / watchOS SDK の `@available(watchOS, unavailable)` 継続）。beta 6 で入った未記録の API は 4 つで、いずれも採用対象外と判定。コード変更なし | 経緯: [2026-08-28-xcode27-beta6-recheck.md](devlog/2026-08-28-xcode27-beta6-recheck.md) |
-
-> **既知の SDK 制約（beta 6 時点で未解消）**: system value 型（`PlaceDescriptor` ほか）の SSU training バグ
+> **Xcode 27 beta 6 時点で未解消**: system value 型（`PlaceDescriptor` ほか）の SSU training バグ
 > （**App Shortcut に登録した Intent の `@Parameter`** に置くと発火。`AddTodoIntent.location` の `String`
 > 退避のみ継続中。`TodoAppEntity.location` は 2026-08-29 に `PlaceDescriptor?` へ戻した。FB24548956）と、
 > watchOS での `reminders`/`system` assistant schema unavailable（フォールバック継続中）。SDK 更新時は
