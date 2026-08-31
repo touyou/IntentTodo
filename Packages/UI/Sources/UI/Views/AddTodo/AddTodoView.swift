@@ -12,27 +12,23 @@ import TodoAppIntents
 ///
 /// This view collects todo details and creates the todo via AddTodoIntent.
 /// Uses `Button(intent:)` with a computed property for dynamic intent generation.
+///
+/// The fields themselves live in `TodoFormSections`, shared with the edit sheet.
 public struct AddTodoView: View {
     // MARK: - Properties
 
     @Environment(\.dismiss) private var dismiss
 
-    @State private var title = ""
-    @State private var todoDescription = ""
-    @State private var dueDate = Date()
-    @State private var hasDueDate = false
-    @State private var isFavorite = false
+    @State private var draft: TodoFormDraft
 
-    @State private var assignee = ""
-    @State private var location = ""
-    @State private var hasEstimatedDuration = false
-    @State private var estimatedDurationMinutes = 30
+    /// The values the sheet opened with, so a half-filled form can ask before it is thrown
+    /// away. Set from the same value as `draft` so the two cannot start out of step —
+    /// `TodoFormDraft()` stamps `dueDate` with the current time.
+    @State private var openedWith: TodoFormDraft
 
-    /// The schema-derived attributes.
-    @State private var attributes = TodoAttributesDraft()
+    @State private var isConfirmingDiscard = false
 
-    /// Duration choices, in minutes.
-    private static let durationOptions = [15, 30, 45, 60, 90, 120, 180, 240]
+    private var hasChanges: Bool { draft != openedWith }
 
     // MARK: - Computed Intent
 
@@ -43,126 +39,34 @@ public struct AddTodoView: View {
     /// `AddTodoIntent.location`.
     private var addTodoIntent: AddTodoIntent {
         AddTodoIntent(
-            title: title,
-            todoDescription: todoDescription.isEmpty ? nil : todoDescription,
-            dueDate: hasDueDate ? dueDate : nil,
-            isFavorite: isFavorite,
-            estimatedDuration: hasEstimatedDuration
-                ? .seconds(estimatedDurationMinutes * 60)
-                : nil,
-            assignee: assigneeComponents,
-            location: trimmedLocation.isEmpty ? nil : trimmedLocation,
-            tags: attributes.tags,
-            urls: attributes.urls,
-            recurrenceFrequency: attributes.recurrenceFrequency,
-            recurrenceInterval: attributes.recurrenceInterval,
-            locationTriggerEvent: attributes.locationTriggerEvent
+            title: draft.trimmedTitle,
+            todoDescription: draft.descriptionValue,
+            dueDate: draft.dueDateValue,
+            isFavorite: draft.isFavorite,
+            estimatedDuration: draft.estimatedDurationValue,
+            assignee: draft.assigneeComponents,
+            location: draft.locationValue,
+            tags: draft.tags,
+            urls: draft.urls,
+            recurrenceFrequency: draft.recurrenceFrequency,
+            recurrenceInterval: draft.recurrenceInterval,
+            locationTriggerEvent: draft.locationTriggerEvent
         )
-    }
-
-    private var trimmedAssignee: String {
-        assignee.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var assigneeComponents: PersonNameComponents? {
-        guard !trimmedAssignee.isEmpty else { return nil }
-        return PersonNameComponentsFormatter().personNameComponents(from: trimmedAssignee)
-    }
-
-    private var trimmedLocation: String {
-        location.trimmingCharacters(in: .whitespacesAndNewlines)
-    }
-
-    private var isValid: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
-    /// Formats minutes as "30m" or "1h 30m".
-    private static func durationLabel(minutes: Int) -> String {
-        Duration.seconds(minutes * 60)
-            .formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
     }
 
     // MARK: - Initialization
 
-    public init() {}
+    public init() {
+        let draft = TodoFormDraft()
+        _draft = State(initialValue: draft)
+        _openedWith = State(initialValue: draft)
+    }
 
     // MARK: - Body
 
     public var body: some View {
         Form {
-            Section {
-                TextField(.copy("Title"), text: $title)
-                    .accessibilityIdentifier("todoTitleField")
-                #if os(iOS)
-                    .textInputAutocapitalization(.sentences)
-                #endif
-
-                TextField(.copy("Description (optional)"), text: $todoDescription, axis: .vertical)
-                    .accessibilityIdentifier("todoDescriptionField")
-                    .lineLimit(3...6)
-            }
-
-            Section {
-                Toggle(.copy("Set Due Date"), isOn: $hasDueDate.animation())
-                    .accessibilityIdentifier("dueDateToggle")
-
-                if hasDueDate {
-                    DatePicker(
-                        .copy("Date"),
-                        selection: $dueDate,
-                        displayedComponents: [.date]
-                    )
-                    .accessibilityIdentifier("dueDatePicker")
-
-                    DatePicker(
-                        .copy("Time"),
-                        selection: $dueDate,
-                        displayedComponents: [.hourAndMinute]
-                    )
-                    .accessibilityIdentifier("dueTimePicker")
-                }
-
-                Toggle(.copy("Mark as Favorite"), isOn: $isFavorite)
-                    .accessibilityIdentifier("favoriteToggle")
-            }
-
-            Section(.copy("Details")) {
-                Toggle(.copy("Set Estimated Duration"), isOn: $hasEstimatedDuration.animation())
-                    .accessibilityIdentifier("estimatedDurationToggle")
-
-                if hasEstimatedDuration {
-                    Picker(.copy("Duration"), selection: $estimatedDurationMinutes) {
-                        ForEach(Self.durationOptions, id: \.self) { minutes in
-                            Text(Self.durationLabel(minutes: minutes)).tag(minutes)
-                        }
-                    }
-                    .accessibilityIdentifier("estimatedDurationPicker")
-                }
-
-                TextField(.copy("Assignee (optional)"), text: $assignee)
-                    .accessibilityIdentifier("assigneeField")
-                #if os(iOS)
-                    .textInputAutocapitalization(.words)
-                #endif
-
-                TextField(.copy("Location (optional)"), text: $location)
-                    .accessibilityIdentifier("locationField")
-                #if os(iOS)
-                    .textInputAutocapitalization(.words)
-                #endif
-            }
-
-            TodoTagsSection(tags: $attributes.tags)
-            TodoLinksSection(urls: $attributes.urls)
-            TodoRecurrenceSection(
-                frequency: $attributes.recurrenceFrequency,
-                interval: $attributes.recurrenceInterval
-            )
-            TodoLocationTriggerSection(
-                event: $attributes.locationTriggerEvent,
-                hasLocation: !trimmedLocation.isEmpty
-            )
+            TodoFormSections(draft: $draft)
         }
         #if os(macOS)
         // `.automatic` sits flush against the window edge on macOS with no background.
@@ -175,7 +79,11 @@ public struct AddTodoView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
                 Button(.copy("Cancel")) {
-                    dismiss()
+                    if hasChanges {
+                        isConfirmingDiscard = true
+                    } else {
+                        dismiss()
+                    }
                 }
                 .accessibilityIdentifier("cancelButton")
             }
@@ -185,9 +93,14 @@ public struct AddTodoView: View {
                     Text(.copy("Add"))
                 }
                 .accessibilityIdentifier("addButton")
-                .disabled(!isValid)
+                .disabled(!draft.isValid)
             }
         }
+        .confirmDiscardingForm(
+            hasChanges: hasChanges,
+            isConfirming: $isConfirmingDiscard,
+            onDiscard: { dismiss() }
+        )
     }
 }
 

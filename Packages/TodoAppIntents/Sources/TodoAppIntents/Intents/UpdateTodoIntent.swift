@@ -46,6 +46,7 @@ public struct UpdateTodoIntent: AppIntent {
             \.$isFavorite
             \.$estimatedDuration
             \.$assigneeName
+            \.$locationName
             \.$tags
             \.$urls
             \.$recurrenceFrequency
@@ -74,6 +75,11 @@ public struct UpdateTodoIntent: AppIntent {
 
     @Parameter(title: "Assignee")
     public var assigneeName: String?
+
+    /// Place name. A `String` for the same reason as `AddTodoIntent.location`: a system
+    /// value type here would take the voice-training assets down with it (FB24548956).
+    @Parameter(title: "Location", description: "Place associated with the todo")
+    public var locationName: String?
 
     // MARK: - Reminders Schema Attributes
     //
@@ -113,13 +119,24 @@ public struct UpdateTodoIntent: AppIntent {
 
     public init() {}
 
-    /// Creates an intent that changes only the reminders-schema attributes.
+    /// Creates an intent carrying every editable field, as the app's edit form does.
     ///
     /// Every parameter is assigned, so each one's `valueState` becomes `.set` — including
-    /// `.set(nil)`, which is how the app's editor clears a field. Parameters this init
-    /// doesn't touch stay `.unset` and are left alone by `perform()`.
+    /// `.set(nil)`, which is how the form clears a field. No parameter has a default: a
+    /// field added to the intent has to be answered here, which is what keeps the form
+    /// from silently editing less than `AddTodoIntent` creates.
+    ///
+    /// The form is therefore last-write-wins over the whole todo, not a partial patch:
+    /// it starts from the current values, so a field left untouched is written back as-is.
     public init(
         todo: TodoAppEntity,
+        title: String,
+        todoDescription: String?,
+        dueDate: Date?,
+        isFavorite: Bool,
+        estimatedDuration: Duration?,
+        assigneeName: String?,
+        locationName: String?,
         tags: [String],
         urls: [URL],
         recurrenceFrequency: TodoRecurrenceFrequency?,
@@ -127,6 +144,13 @@ public struct UpdateTodoIntent: AppIntent {
         locationTriggerEvent: TodoLocationTriggerEvent?
     ) {
         self.todo = todo
+        self.title = title
+        self.todoDescription = todoDescription
+        self.dueDate = dueDate
+        self.isFavorite = isFavorite
+        self.estimatedDuration = estimatedDuration
+        self.assigneeName = assigneeName
+        self.locationName = locationName
         self.tags = tags
         self.urls = urls
         self.recurrenceFrequency = recurrenceFrequency
@@ -153,6 +177,7 @@ public struct UpdateTodoIntent: AppIntent {
             isFavorite: Self.requiredUpdate($isFavorite.valueState),
             estimatedDuration: estimatedDurationUpdate,
             assigneeName: Self.optionalUpdate($assigneeName.valueState),
+            locationName: Self.optionalUpdate($locationName.valueState),
             // Collection fields treat "no value" and "empty" alike, so `.set(nil)`
             // collapses to `.set([])`: clearing and passing an empty array mean the same.
             tags: Self.collectionUpdate($tags.valueState),

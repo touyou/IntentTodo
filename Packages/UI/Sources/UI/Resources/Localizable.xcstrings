@@ -361,6 +361,26 @@
         }
       }
     },
+    "Discard Changes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "変更を破棄"
+          }
+        }
+      }
+    },
+    "Discard Changes?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "変更を破棄しますか?"
+          }
+        }
+      }
+    },
     "Dismiss" : {
       "localizations" : {
         "ja" : {
@@ -451,12 +471,33 @@
         }
       }
     },
+    "Edit" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "編集"
+          }
+        }
+      }
+    },
     "Edit Details" : {
+      "extractionState" : "stale",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "詳細を編集"
+          }
+        }
+      }
+    },
+    "Edit Todo" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることを編集"
           }
         }
       }
@@ -1199,6 +1240,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることをすべて完了しました!"
+          }
+        }
+      }
+    },
+    "Your changes haven’t been saved." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "変更はまだ保存されていません。"
           }
         }
       }

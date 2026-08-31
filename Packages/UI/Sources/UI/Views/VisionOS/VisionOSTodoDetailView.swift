@@ -327,7 +327,7 @@ private struct VisionOSAttributesSection: View {
                 .font(.body)
             }
 
-            Button(.copy("Edit Details")) {
+            Button(.copy("Edit")) {
                 navigationModel.showAttributeEditor()
             }
             .buttonStyle(.bordered)
@@ -338,7 +338,7 @@ private struct VisionOSAttributesSection: View {
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
         .sheet(isPresented: $navigationModel.showingAttributeEditor) {
-            TodoAttributesEditView(todo: item, tags: tags, urls: urls)
+            TodoEditView(todo: item, tags: tags, urls: urls)
         }
         .task(id: item.modifiedAt) {
             let entity = TodoAppEntity(from: item)
