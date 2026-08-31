@@ -2,8 +2,7 @@
 //  TodoAttributeSections.swift
 //  UI
 //
-//  Form sections for the schema-derived attributes, shared by the add screen and the edit
-//  sheet.
+//  Form sections for the schema-derived attributes, composed by `TodoFormSections`.
 //
 //  They only collect input; writing happens in the caller's `Button(intent:)`, so the logic
 //  is not duplicated per screen.
@@ -12,20 +11,6 @@
 import AppIntents
 import SwiftUI
 import TodoAppIntents
-
-// MARK: - Draft
-
-/// Draft state while the form is being edited.
-///
-/// Not a mutable `TodoAppEntity`: its `tags` and `urls` are deferred properties and so are
-/// absent from the snapshot, which makes it useless as a starting point.
-struct TodoAttributesDraft {
-    var tags: [String] = []
-    var urls: [URL] = []
-    var recurrenceFrequency: TodoRecurrenceFrequency?
-    var recurrenceInterval: Int = TodoRecurrenceFrequency.minimumInterval
-    var locationTriggerEvent: TodoLocationTriggerEvent?
-}
 
 // MARK: - Tags
 

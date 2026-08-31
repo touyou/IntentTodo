@@ -277,6 +277,7 @@ public final class TodoService {
         isFavorite: FieldUpdate<Bool> = .unchanged,
         estimatedDuration: FieldUpdate<TimeInterval?> = .unchanged,
         assigneeName: FieldUpdate<String?> = .unchanged,
+        locationName: FieldUpdate<String?> = .unchanged,
         tags: FieldUpdate<[String]> = .unchanged,
         urls: FieldUpdate<[URL]> = .unchanged,
         recurrenceFrequency: FieldUpdate<TodoRecurrenceFrequency?> = .unchanged,
@@ -298,6 +299,7 @@ public final class TodoService {
         if case .set(let value) = isFavorite { item.isFavorite = value }
         if case .set(let value) = estimatedDuration { item.estimatedDuration = value }
         if case .set(let value) = assigneeName { item.assigneeName = value }
+        if case .set(let value) = locationName { apply(locationName: value, to: item) }
 
         applySchemaAttributes(
             to: item,
@@ -313,6 +315,21 @@ public final class TodoService {
         let entity = TodoAppEntity(from: item)
         reindexSpotlight(entity)
         return entity
+    }
+
+    /// Writes the place name, treating blank input as "no place".
+    ///
+    /// The stored coordinate belongs to the name it was resolved from, so a new or cleared
+    /// name drops it rather than leaving the todo pointing at the previous place — which is
+    /// what `TodoPlace` would rebuild a `PlaceDescriptor` from.
+    private func apply(locationName value: String?, to item: TodoItem) {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newName = (trimmed?.isEmpty ?? true) ? nil : trimmed
+        if newName != item.locationName {
+            item.locationLatitude = nil
+            item.locationLongitude = nil
+        }
+        item.locationName = newName
     }
 
     /// Partial update of the schema-derived attributes.

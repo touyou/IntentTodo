@@ -669,6 +669,26 @@ watchOS 27+、tvOS 不可）。本アプリは **手動ソート時のみ**有�
   ダイアログ側に運ぶ必要があるケースなので、スワイプ削除に確認を足す等の変更が入ったら再検討する。
 - **`swipeActionsContainer()`**: メインリストは既に `List` で `.swipeActions` が動作済み。新 API は
   `List` 以外（`LazyVStack` 等）向けなので不要。
+- **`dismissalConfirmationDialog(_:shouldPresent:)`**: 「編集途中のシートを閉じる前に確認」に
+  まさに当たる API だが、**iOS のシートでは発火しない**（`shouldPresent: true` 固定 / シート content
+  の根に配置 / キャンセルの `dismiss()` まで潰して測った）。ビルドは通るので、入れたつもりで
+  何も起きない形になる。採用せず、下記の 2 段構えにしている。
+  経緯: [docs/devlog/2026-08-31-add-edit-form-parity.md](../devlog/2026-08-31-add-edit-form-parity.md)
+
+### 編集途中のシートを閉じる前に確認する
+
+SwiftUI に「dismiss しようとした」を観測する公開 API は無い（`dismissalConfirmationDialog` は
+上記のとおり iOS では空振り）。そのため `View.confirmDiscardingForm(hasChanges:isConfirming:onDiscard:)`
+で 2 段構えにしている:
+
+- `interactiveDismissDisabled(hasChanges)` — 変更があるときだけスワイプ下げ / 外側タップを塞ぐ
+  （detent 間のリサイズは残る）。スワイプそのものに確認は出せないので、塞ぐのが限界
+- 「キャンセル」は dirty なら `confirmationDialog`、clean ならそのまま閉じる
+- dirty 判定は `TodoFormDraft: Equatable` を「開いた時点の値」と比較する。両方を**同じ値から**
+  `init` で初期化すること（`TodoFormDraft()` は `dueDate` に現在時刻を入れるので、別々に作ると
+  常に dirty になる）
+- **保存経路は塞がらない**: Intent は `NavigationModel` のフラグを倒して閉じており、これは
+  presenter 側の状態なので `interactiveDismissDisabled` の対象外
 
 ### 落とし穴
 

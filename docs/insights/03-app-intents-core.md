@@ -1165,6 +1165,12 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   - required モデル列（title 等、Intent では optional 公開）: `if case .set(let v?) = state { .set(v) } else { .unchanged }`
     （`.set(nil)` は据え置き = 必須列は空にできない）
 - `Duration?` → モデルの `TimeInterval?` は perform 内で `duration.map { TimeInterval($0.components.seconds) }` と変換。
+- **アプリのフォームからは全フィールドを `.set` で送る**（`TodoEditView`）。部分パッチではなく todo 全体の
+  last-write-wins になるが、現在値から始めるので触らなかった欄は同じ値が書き戻る。
+  そのため `UpdateTodoIntent` の便宜 init は**全フィールド必須**（デフォルト値を与えると、
+  Intent にフィールドが増えたときフォームが黙って古いままになる）。フォームの中身は
+  `TodoFormSections` に 1 本化し、追加画面と共有している。
+  経緯: [docs/devlog/2026-08-31-add-edit-form-parity.md](../devlog/2026-08-31-add-edit-form-parity.md)
 
 ### コレクション Onscreen + 通知へのエンティティ付与（#343 / #46）
 

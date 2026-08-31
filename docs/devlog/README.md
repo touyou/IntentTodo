@@ -44,6 +44,7 @@
 - [2026-08-30-donation-observability.md](2026-08-30-donation-observability.md) — `Button(intent:)` の実行がシステムに donate されていると確かめた経緯（donation を読める経路をシミュレータの Biome ストリームに見つけた件 + 逆の結論を 2 回出した原因が mtime と書き込み遅延だった件）
 - [2026-08-31-docs-refine.md](2026-08-31-docs-refine.md) — ドキュメントを 4 層（地図 / 現在のルール / 経緯 / 残タスク）に整理し、`AGENTS.md` を目次へ畳んだ経緯（+ そのとき実装と突き合わせて見つかった古い記述・矛盾の一覧）
 - [2026-08-31-code-comments.md](2026-08-31-code-comments.md) — コードコメントを英語に統一し、履歴 / 将来の計画 / ドキュメントへのリンクを落とした経緯（同日に決めた「コードに `経緯:` ポインタを置く」ルールを撤回している）
+- [2026-08-31-add-edit-form-parity.md](2026-08-31-add-edit-form-parity.md) — 追加画面と編集シートのフィールドを一致させた経緯（編集側が 11 フィールド中 4 つしか持っていなかった件 + `location` にそもそも更新経路が無かった件 + 場所名を変えたら座標を落とすと決めた理由 + `dismissalConfirmationDialog` が iOS のシートでは空振りすると測った件）
 - [insights-changelog.md](insights-changelog.md) — `docs/INSIGHTS.md` / `insights/` 構成の再編履歴
 
 ## 運用方針

@@ -166,7 +166,7 @@ private struct TodoDetailContent: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(.copy("Edit Details")) {
+                Button(.copy("Edit")) {
                     navigationModel.showAttributeEditor()
                 }
                 .accessibilityIdentifier("editDetailsButton")
@@ -177,7 +177,7 @@ private struct TodoDetailContent: View {
         .sheet(isPresented: $navigationModel.showingAttributeEditor) {
             // Snapshots again, not the model's collections: a todo deleted while the sheet
             // is up would trap the same way. Scalars are safe to read.
-            TodoAttributesEditView(todo: todo, tags: tags, urls: urls)
+            TodoEditView(todo: todo, tags: tags, urls: urls)
         }
         // Keyed on `modifiedAt`: a scalar, so it stays readable even for a deleted object,
         // and it advances whenever `UpdateTodoIntent` saves.

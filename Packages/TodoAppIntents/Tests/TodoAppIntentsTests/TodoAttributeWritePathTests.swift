@@ -172,6 +172,64 @@ struct TodoAttributeWritePathTests {
         #expect(updated.locationTriggerEvent == nil)
     }
 
+    // MARK: - update: location
+
+    @Test("update が場所名を書き換え、前の座標を残さない")
+    func updateReplacesLocationAndDropsStaleCoordinate() throws {
+        let item = TodoItem(title: "task")
+        item.locationName = "Office"
+        item.locationLatitude = 35.681
+        item.locationLongitude = 139.767
+        let (service, repo) = makeService(seed: [item])
+
+        _ = try service.update(todoId: item.id.uuidString, locationName: .set(" City Hall "))
+
+        let updated = try stored(in: repo)
+        #expect(updated.locationName == "City Hall")
+        // The coordinate described "Office", so keeping it would point the trigger at the
+        // wrong place.
+        #expect(updated.locationLatitude == nil)
+        #expect(updated.locationLongitude == nil)
+    }
+
+    @Test("update の .set(nil) / 空文字が場所を外す")
+    func updateClearsLocation() throws {
+        let item = TodoItem(title: "task")
+        item.locationName = "Office"
+        item.locationLatitude = 35.681
+        item.locationLongitude = 139.767
+        item.locationTriggerEvent = "arrive"
+        let (service, repo) = makeService(seed: [item])
+
+        _ = try service.update(todoId: item.id.uuidString, locationName: .set("   "))
+
+        let updated = try stored(in: repo)
+        #expect(updated.locationName == nil)
+        #expect(updated.locationLatitude == nil)
+        #expect(updated.locationLongitude == nil)
+        // The event survives on its own: it becomes inert, and a place added later revives
+        // it, matching how create treats an event with no place.
+        #expect(updated.locationTriggerEvent == "arrive")
+        #expect(TodoAppEntity(from: updated).locationTrigger == nil)
+    }
+
+    @Test("update の場所名が同じなら座標は保たれる")
+    func updateKeepsCoordinateForSameLocationName() throws {
+        let item = TodoItem(title: "task")
+        item.locationName = "Office"
+        item.locationLatitude = 35.681
+        item.locationLongitude = 139.767
+        let (service, repo) = makeService(seed: [item])
+
+        // The app's edit form always sends every field, so re-saving an untouched location
+        // must not throw the coordinate away.
+        _ = try service.update(todoId: item.id.uuidString, locationName: .set("Office"))
+
+        let updated = try stored(in: repo)
+        #expect(updated.locationLatitude == 35.681)
+        #expect(updated.locationLongitude == 139.767)
+    }
+
     // MARK: - Rebuilding on Read
 
     @Test("書いた頻度と間隔から Calendar.RecurrenceRule が組み直される")
