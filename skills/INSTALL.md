@@ -65,12 +65,30 @@ ChatGPT / Codex 共通の公開ディレクトリは、2026-08 時点で**サー
 
 ## Claude Code
 
+```bash
+claude plugin marketplace add touyou/IntentTodo
+claude plugin install app-intents-centric-design@intenttodo
+```
+
+セッション内からは同じことをスラッシュコマンドでもできる:
+
 ```
 /plugin marketplace add touyou/IntentTodo
 /plugin install app-intents-centric-design@intenttodo
 ```
 
-skill ファイルを直接置く場合は、8 つのディレクトリを対象プロジェクトの `.claude/skills/` か
+`@intenttodo` は `.claude-plugin/marketplace.json` の `name`。同名プラグインが他の
+マーケットプレイスに無ければ省略できる。**`marketplace add` は登録だけ**で、
+`install` を併せて実行しないと skill は入らない。
+
+- `--scope user`（既定）/ `project` / `local` は両コマンドにある
+- CI など TTY でない環境からは `install --yes` が必須
+- モノレポからの取得を軽くするなら
+  `claude plugin marketplace add touyou/IntentTodo --sparse .claude-plugin skills`
+- 状態確認は `claude plugin list` / `claude plugin details app-intents-centric-design`、
+  更新は `claude plugin update`（反映は再起動後）
+
+skill ファイルを直接置く場合は、9 つのディレクトリを対象プロジェクトの `.claude/skills/` か
 ユーザーグローバルの `~/.claude/skills/` にコピーする。
 
 ## Gemini CLI
@@ -98,6 +116,10 @@ gh skill list
 
 `--agent` は github-copilot / claude-code / cursor / codex / gemini-cli / antigravity / amp /
 opencode など 40 種類以上。`gh skill install --help` に一覧がある。
+
+**skill 名も `--all` も付けないと利用可能な skill を列挙して終わる**（grep へ流すための挙動で、
+インストールはされない）。`--agent` を省くと対話で選ばせる形になるので、案内に載せる 1 行には
+`--all --agent <name>` を両方書く。
 
 Copilot 単体で完結させたいなら、リポジトリの `.github/skills/` に置いてコミットする形でもよい。
 
@@ -135,6 +157,7 @@ gh skill publish --tag v0.5.0
 | Codex が受け付ける `$schema` は 1.0.0 のみ | [`utils/plugins/src/plugin_namespace.rs`](https://github.com/openai/codex/blob/main/codex-rs/utils/plugins/src/plugin_namespace.rs) |
 | `extensions["com.openai"].interface` が Codex の表示メタデータになる | 同上 `agent_plugin_manifest.rs`（無い場合は `.codex-plugin/plugin.json` をオーバーレイ） |
 | `agents/openai.yaml` の `interface` フィールド | [Build skills](https://developers.openai.com/codex/skills) |
+| `claude plugin` / `gh skill install` のサブコマンドとフラグ | 各 `--help`（2026-09-01 実行） |
 | 公式ディレクトリが第三者に開いていない | [Build plugins](https://developers.openai.com/codex/build-plugins)（2026-08 時点） |
 
 Codex / Gemini CLI は**手元に CLI が無いため未実行**（`gh skill` と Claude Code は実行済み）。
