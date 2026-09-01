@@ -106,17 +106,19 @@ Shortcuts 編集画面に出ていないパラメータ、登録されなかっ�
 Codex / Gemini CLI / GitHub Copilot / Cursor でも同じファイルが動く**。エージェント別の手順・
 パッケージ用ファイルの役割・公開手順は [INSTALL.md](INSTALL.md)。
 
-```
-# Claude Code
-/plugin marketplace add touyou/IntentTodo
-/plugin install app-intents-centric-design@intenttodo
+```bash
+# Claude Code（セッション内なら /plugin marketplace add … / /plugin install … でも同じ）
+claude plugin marketplace add touyou/IntentTodo
+claude plugin install app-intents-centric-design@intenttodo
 
-# Codex
+# Codex（この後 plugin 一覧から選ぶ）
 codex plugin marketplace add touyou/IntentTodo
 
 # Copilot / Cursor / Gemini CLI / その他（置き場は gh が振り分ける）
 gh skill install touyou/IntentTodo --all --agent github-copilot
 ```
+
+`marketplace add` は登録だけ、`gh skill install` は `--all` が無いと列挙だけで終わる。
 
 skill 同士は名前で相互参照している（「詳細は `app-intents-testing` を見よ」など）うえ、
 スクリプトを相対パスで参照している箇所もあるので、**9 本まとめて入れるのが想定構成**。
