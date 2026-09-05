@@ -62,7 +62,7 @@ resources も無いため）。
 
 1. 各ターゲットの `Localizable.xcstrings` に手動キー（`extractionState: "manual"`）として入れる。
    アプリ +180 / watch アプリ +177 / LiveActivity +187（watch のものは Widget と共有）
-2. 漏れ検出は `skills/intent-centric-architecture/scripts/check_intent_copy_localization.py`。
+2. 漏れ検出は `skills/app-intents-localization/scripts/check_intent_copy_localization.py`。
    メタデータのキー全部が catalog にあるかを 4 ターゲット分見る
 3. `%@`（`DisplayRepresentation(title: "\(title)")` の補間）は `shouldTranslate: false`
 4. 大文字小文字だけ違うキー（`todo` / `Todo` など）でシンボル生成が衝突したので、4 ターゲットとも

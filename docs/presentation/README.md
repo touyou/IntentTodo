@@ -15,6 +15,7 @@ App Intents 中心設計についての登壇・発表用の素材置き場。
 | [03-group-lab-evidence.md](03-group-lab-evidence.md) | **Apple Intelligence Group Lab（WWDC26 #8011）全内容の抜き書き**。全 27 問マップ / App Intents 関連 15 問の詳細 / それ以外も記録用に全件 / 既存メモの要修正点 / 反証カード / 骨子①②への組み込み候補。**尺は考慮せず判明分を全部書いてある** |
 | [99-script.md](99-script.md) | **本番スクリプト（iOSDC 40 分枠 / 本人執筆）** |
 | [99-script.notes.md](99-script.notes.md) | **99 へのフィードバック**（2026-08-30 全面改稿 / 対象は 99 の L22–209）。尺の実測と削り候補 / 事実確認 / 流れの組み直し候補 / 締めの候補 6 案 / スライド任せの面への 1 行 / 想定 Q&A / 一次ソース逐語 |
+| [99-keynote.notes.md](99-keynote.notes.md) | **Keynote 実物（118 面）へのフィードバック**（2026-09-06）。通しの実測尺 / 99-script.notes.md の決定が実物に入っているかの反映状況 / 事実と整合性 / 論理の弱点 / 版面 / **`.key` をレビューする手順** |
 
 > **スライド ID の枝番について**: 骨子② の `T12b` / `T21b` / `T29b` は 2026-08-21（WWDC26 公式サンプルとの突き合わせ）、
 > `T07b` は 2026-08-25（Layered / Clean Architecture との対比）で後から足したもの。既存 ID と `.script.md` の
@@ -29,6 +30,10 @@ App Intents 中心設計についての登壇・発表用の素材置き場。
 
 - **発表前にやることは [#67](https://github.com/touyou/IntentTodo/issues/67) に集約**（数字の再カウント / 一次ソースの裏取り /
   スクショ / 言い方の判断）。骨子ファイルにチェックリストは置かない
+- ⭐ **投影される実物は Keynote（`iosdc2026_appintents_centric.key` / iCloud Drive）で、原稿より先に進んでいる**
+  （`99-script.md` は 83 面・第 2 部が `TBD`、Keynote は 118 面で第 2 部まで入っている）。
+  **内容の確認は Keynote を正とする**。`.key` は protobuf なので、読むには
+  [99-keynote.notes.md の F](99-keynote.notes.md#f-レビューのやり方再現手順)（PDF 書き出し + `text items` / `presenter notes` ダンプ）を使う
 - 骨子ファイルは **1 スライド = 1 見出し（`### S<番号>.`）**。`見せるもの` / `話の要点` / `出典` の 3 点セットで書いてある
 - `.script.md` は同じスライド ID を並べただけの空ファイル。喋る想定の原稿はここに書き足す（骨子側に混ぜない）
 - 骨子の内容は原則すべて既存ドキュメントに裏取りがある。参照元は各スライドの `出典` を見る

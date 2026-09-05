@@ -20,6 +20,7 @@
 
 ## 目次
 
+- [2026-09-06-keynote-deck-review.md](2026-09-06-keynote-deck-review.md) — Keynote の実物（118 面）を AppleScript で読める形にしてレビューした経緯（原稿より Keynote が先に進んでいた件 + 「Keynote のノートも更新済み」が一部事実でなかった件 + 尺の見積もりを 2 回間違えた件）
 - [2026-09-05-reference-sdk-refine.md](2026-09-05-reference-sdk-refine.md) — beta 6 SDK と参照資料を照合し、skills の availability・診断手順・検証範囲を揃えた記録
 
 - [02-swiftdata-concurrency.md](02-swiftdata-concurrency.md) — SwiftData / CloudKit 制約まわりの再検証履歴

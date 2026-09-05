@@ -29,7 +29,7 @@ donation には列挙用の公開 API が無い（`deleteDonations` はあるが
     App.Intents.Transcript                    # intent 実行。即時・呼出元 bundle id 付き
 ```
 
-読み方は `skills/intent-centric-architecture/scripts/inspect_donation_stream.py`
+読み方は `skills/app-intents-testing/scripts/inspect_donation_stream.py`
 （`--snapshot` / `--diff` で「呼出元だけ変えて同じ intent を走らせる」差分実験ができる）。
 
 ## 2. 測ったこと
