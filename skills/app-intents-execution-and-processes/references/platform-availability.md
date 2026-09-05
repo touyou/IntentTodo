@@ -4,14 +4,14 @@ One intent surface, five platforms. This is where the surface area for OS-specif
 
 ## Availability matrix
 
-Every row here was confirmed by building, not by reading. Re-check on SDK bumps — several of these moved between betas.
+This table combines SDK availability and previously measured build behaviour. The Spotlight row was checked against Xcode 27 beta 6 (27A5252f) declarations on 2026-09-05; this is not a new runtime test of every row. Re-check the destination SDK and then the affected build when changing guards.
 
 | API | iOS / iPadOS | macOS | watchOS | visionOS | Guard |
 |---|---|---|---|---|---|
 | `ControlWidget` & friends | ✅ | ✅ | ✅ | ❌ | `#if !os(visionOS)` |
 | `TargetContentProvidingIntent` / `onAppIntentExecution` | ✅ | ❌ | ❌ | ✅ | `#if os(iOS) \|\| os(visionOS)` |
 | `UISceneAppIntent` (`_AppIntents_UIKit`) | ✅ | ❌ (no framework) | ❌ (framework, no type) | ✅ | `#if canImport(_AppIntents_UIKit) && !os(watchOS)` |
-| `@Property(indexingKey:)` | ✅ | ✅ | ❌ | ❌ | `#if os(iOS) \|\| os(macOS)` |
+| `@Property(indexingKey:)` | ✅ 18.4+ | ✅ 15.4+ | ❌ | ✅ 2.4+ | `#if os(iOS) \|\| os(macOS) \|\| os(visionOS)` |
 | **App Schema — all 23 domains** | ✅ (iOS 27+ for `.reminders`) | ✅ | ❌ | ✅ (except `.assistant`, `.visualIntelligence`) | distinct type names, not `#if` on one name |
 | `VisualIntelligence` | ✅ device; ❌ **simulator** | ✅ | ❌ | ❌ (framework present on device SDK!) | `#if canImport(VisualIntelligence) && !os(visionOS)` |
 | `CoreSpotlight` | ✅ | ✅ | ❌ | ✅ | `#if canImport(CoreSpotlight)` |
@@ -46,7 +46,7 @@ Rules:
   - A macro-annotated declaration **cannot be split with `#if`** between the attribute and the body (`Expected '}' in struct`), so the type gets written twice either way.
   - Intents that only make sense with a schema (an in-app search intent, say) can be excluded wholesale with `#if !os(watchOS)`. No functionality is lost: watchOS does not route those experiences.
 - **`Transferable` / `URLRepresentableEntity` must be declared on the concrete type**, not through a `typealias`. These are read by const extraction (swiftconstvalues), which does not follow a typealias, and the failure appears only in the slice where the name *is* a typealias: `The property 'transferRepresentation' must be static, have a compile-time constant value, and cannot be computed or dynamic` [measured].
-- **AppIntentsTesting cannot run intents here** — `run()` fails, so watch coverage has to take a different shape (`app-intents-testing`).
+- **AppIntentsTesting `run()` failed in the recorded watchOS environment** — this was not re-run for beta 6; use the recorded alternative coverage and recheck on SDK updates (`app-intents-testing`).
 - **CPU is the binding constraint.** Patterns that are cosmetic on iPhone are shipping requirements: collapse two `filter` passes into one, hoist repeated `Date()` out of hot closures, move `sorted` out of `body` into `init`.
 - `Button(intent:)` works; only the `role:` overload is missing.
 - **App Groups do not reach the watch** (it is a different device) — CloudKit or Watch Connectivity.
@@ -63,7 +63,7 @@ Rules:
 - No Control Center [Apple: "Developing a WidgetKit strategy" support table]. `#if !os(visionOS)`; `if #available` cannot stop type resolution.
 - `glassBackgroundEffect()` is the native spatial material (visionOS 1.0+) and is distinct from iOS 26's `glassEffect(_:in:)`. Prefer `hoverEffect(.highlight)` / `.lift` for interactivity over interactive glass.
 - `.buttonStyle(.glass)` / `.glassProminent` are not available; use `.bordered` / `.borderedProminent` plus hover effects.
-- `@Property(indexingKey:)` is unavailable, but plain `IndexedEntity` + `attributeSet` works — check before assuming the whole Spotlight path is out.
+- `IndexedEntity` (2.0+), `@Property(indexingKey:)` (2.4+) and `IndexedEntityQuery` (27.0+) are available [Apple SDK: Xcode 27 beta 6]. Include visionOS in Spotlight guards; verify the actual search experience separately.
 
 ## Liquid Glass: where *not* to use it
 

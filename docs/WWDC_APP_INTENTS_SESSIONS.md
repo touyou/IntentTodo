@@ -408,7 +408,7 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 | `@DeferredProperty`（詳細仕様は wwdc2025-275 が出典。345 で扱うのは `RelevantEntities` 等の拡張機能） | 非同期 getter で遅延取得する Entity プロパティマクロ |
 | `Duration` / `PersonNameComponents` ネイティブ型 | `@Parameter` / `@Property` にシステム型をそのまま使えるネイティブ対応 |
 | `AppEntity.ValueRepresentation` | Entity を `IntentPerson` / `PlaceDescriptor` 等のシステム値型に bridge（#240 と共通）|
-| `RelevantEntities.updateEntities(_:for:)` 強化 | `.audio(.workout(activityType:))` など拡張された AppEntityContext に対応 |
+| `RelevantEntities.updateEntities(_:for:)` 強化 | 文脈に応じた Entity 寄付。beta 6 の公開 SDK で確認できる context は `.audio(.nowPlaying)`（[現行の制約](insights/03-app-intents-core.md#relevantentities-は-todo-ドメインに不適合)） |
 | `RelevantEntities.shared.removeAllEntities(for:)` | 特定文脈の Entity 寄付をまとめて削除 |
 | `RelevantEntities.shared.removeEntities(_:from:)` | 特定 Entity のみを指定文脈から削除 |
 | `RelevantEntities.shared.removeAllEntities()` | 全文脈の Entity 寄付を一括削除 |

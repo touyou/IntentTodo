@@ -39,7 +39,7 @@ Cross-session evidence agrees: the Controls session (wwdc2024-10157) never menti
 - **Widget / app button** → the surface already updates. Nothing extra.
 - **Live Activity** → update or end the activity itself; notify only on terminal states.
 
-`perform()` cannot see the caller (`systemContext` has `currentMode` and `isVoiceOnly`, no invocation source), so this is a design-time decision, not a runtime branch.
+`perform()` cannot see the caller (`systemContext` has `currentMode`, `isVoiceOnly`, `locale` and `preciseTimestamp`, no invocation source), so this is a design-time decision, not a runtime branch.
 
 ### Controls have exactly three channels
 

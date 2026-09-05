@@ -28,9 +28,12 @@ Claude Code / Codex / Gemini CLI / GitHub Copilot / Cursor で同じファイル
 ある**。同じ情報を 2 箇所に書かない、という [docs/devlog/README.md](../docs/devlog/README.md) の
 方針をそのまま適用している。
 
-検証ベースは **iOS 27 / Xcode 27 beta 6（2026-08 時点）**。記述には根拠ラベル
-（`[Apple]` / `[measured]` / `[inferred]`）が付いているので、SDK が上がったら `[measured]` を
+検証ベースは **iOS 27 / Xcode 27 beta 6（27A5252f）**。記述には根拠ラベル
+（`[Apple]` / `[Apple SDK]` / `[measured]` / `[inferred]`）が付いているので、SDK が上がったら `[measured]` を
 優先的に再確認すればよい。
+
+資料と SDK が食い違う場合の手順: [source-verification](app-intents-centric-design/references/source-verification.md)。
+宣言の確認と実行時の検証を分けて記録する。
 
 ## 構成
 

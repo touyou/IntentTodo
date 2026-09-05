@@ -17,12 +17,12 @@ Assumes the rules in `app-intents-centric-design`.
 | Rung | Tool | Proves |
 |---|---|---|
 | **0** | the built metadata | that the system was told about it at all |
-| 1 | **AppIntentsTesting** | business logic, in isolation — "entirely in isolation. **No Siri involved.**" |
+| 1 | **AppIntentsTesting** | intent execution and entity/query integration in a live app process; no Siri language routing |
 | 2 | **Shortcuts app** | the shape of the intent: parameters, parameter summary, action list |
 | 3 | **Spotlight** | that content is indexed and findable |
 | 4 | **Siri** | natural language, entity resolution, onscreen references, cross-app — end to end |
 
-**Rung 4 cannot be automated.** "Be sure to test your intents **manually** with Siri and the Shortcuts app" [Apple: wwdc2026-295 24:46]. AppIntentsTesting's public API contains no phrase / utterance / shortcut symbol at all, and it looks intents up by **type name** — the `AppShortcutsProvider` phrase path is structurally out of reach.
+**AppIntentsTesting does not exercise rung 4.** "Be sure to test your intents **manually** with Siri and the Shortcuts app" [Apple: wwdc2026-295 24:46]. AppIntentsTesting's public API contains no phrase / utterance / shortcut symbol at all, and it looks intents up by **type name** — the `AppShortcutsProvider` phrase path is structurally out of reach.
 
 Below the ladder sit two static checks that cost nothing:
 
@@ -40,7 +40,8 @@ python3 scripts/inspect_appintents_metadata.py --find MyProject               # 
 
 | Symptom | Start at |
 |---|---|
-| Action absent from the Shortcuts app entirely | rung 0 — check `autoShortcuts` |
+| Ordinary action absent from the Shortcuts action list | rung 0 — check `actions`, discoverability and package aggregation |
+| Preconfigured App Shortcut or its phrases absent | rung 0 — check `autoShortcuts`, then SSU assets and phrase routing |
 | Action present, fields missing | rung 0 — `actionSummary.wrapper` (`app-intents-parameters-and-prompts`) |
 | Shortcuts cannot filter on a value | rung 0 — the entity's property count |
 | Schema conformance seems not to apply | rung 0 — `assistantDefinedSchemas`, and check for two types claiming one schema |
@@ -52,13 +53,13 @@ python3 scripts/inspect_appintents_metadata.py --find MyProject               # 
 
 ## What stays manual
 
-After everything above, exactly three things need a human:
+After automated checks, keep manual coverage for these system experiences; this list is not a claim that all other paths are automatable:
 
 1. **App Shortcut phrase routing** — say one phrase to Siri.
 2. **How system UI actually looks** — dialog read aloud, snippet rendering, control appearance.
 3. **Anything the simulator lacks** — Visual Intelligence, and the real Control Center gesture path.
 
-Keep that list short and explicit. Everything else belongs on a rung below.
+Record the remaining checks by caller and destination. Passing `run()` does not verify a widget, control or Live Activity button’s actual invocation path.
 
 ## Method for settling "does surface X do Y?"
 

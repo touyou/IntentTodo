@@ -18,7 +18,7 @@ Assumes the rules in `app-intents-centric-design`. The *verb* side is there too.
 2. `displayRepresentation` — title, optional subtitle, optional image.
 3. The few `@Property` members the system actually consumes.
 
-**Only `@Property` members are visible to the system.** A plain `var` is invisible to Shortcuts filters, Siri and Spotlight — and to `AnyAppEntity` dynamic lookup in tests. An entity showing `0 props` in the metadata inspector is a display-only shell.
+**Expose queryable attributes through `@Property`, `@ComputedProperty` or `@DeferredProperty`.** A plain stored `var` does not become a queryable entity property automatically. An entity showing `0 props` has no exposed property surface; its display representation, identity and separately supplied Spotlight attributes can still exist.
 
 ```swift
 public struct TodoAppEntity: AppEntity, Identifiable {
@@ -66,7 +66,7 @@ Queries *can* use `@Dependency`; entities cannot (`app-intents-execution-and-pro
 
 ## Spotlight in one paragraph
 
-`IndexedEntity` + `@Property(title:indexingKey:)` gets you meaning-based search; a hand-written `attributeSet` gets you keywords. **Never write the same `CSSearchableItemAttributeSet` key from both** — precedence is undocumented, so a status string can quietly replace the note text you meant to make searchable. Keep `attributeSet` to keys no `indexingKey:` claims. `indexingKey:` is iOS/macOS only. Details: [spotlight](references/spotlight.md).
+`IndexedEntity` + `@Property(title:indexingKey:)` gets you meaning-based search; a hand-written `attributeSet` gets you keywords. **Never write the same `CSSearchableItemAttributeSet` key from both** — precedence is undocumented, so a status string can quietly replace the note text you meant to make searchable. Keep `attributeSet` to keys no `indexingKey:` claims. `indexingKey:` supports iOS, macOS and visionOS; use plain properties on watchOS/tvOS. Details: [spotlight](references/spotlight.md).
 
 ## App Schema in one paragraph
 

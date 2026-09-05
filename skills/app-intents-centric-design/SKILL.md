@@ -42,7 +42,7 @@ Failures here are almost always silent, so the symptom rarely names the cause.
 | Tapping a button does nothing at all, no error | interactive intent from a button, or a manual `perform()` | `app-intents-ui-and-feedback` |
 | A widget or control button does nothing | dependency not registered in that process | `app-intents-execution-and-processes` |
 | `Failed to retrieve dependency of type X` in the log | same | `app-intents-execution-and-processes` |
-| The action never appears in the Shortcuts app | provider in a package (`autoShortcuts: 0`), or target membership | `app-intents-execution-and-processes`, then `app-intents-testing` |
+| The action never appears in the Shortcuts app | inspect `actions`, discoverability and target membership; for a preconfigured App Shortcut, inspect `autoShortcuts` and provider placement | `app-intents-execution-and-processes`, then `app-intents-testing` |
 | Parameters exist in code but cannot be edited in Shortcuts | missing from `parameterSummary` | `app-intents-parameters-and-prompts` |
 | Shortcuts cannot filter or read a value | the member is not a `@Property` | `app-intents-entities-and-search` |
 | A parameter picker is empty | no `suggestedEntities()` | `app-intents-entities-and-search` |
@@ -79,7 +79,7 @@ Eleven rules that are cheap to follow and expensive to discover. **From** is the
 | 5 | 0 | `AppShortcutsProvider` lives in the app target, never in a package | `autoShortcuts` is the one key not aggregated from packages: shortcuts silently never register | `app-intents-execution-and-processes` · audit `shortcuts-provider-placement` |
 | 6 | 1 | Declare `AppIntentsPackage` in the package **and** in every consuming target with `includedPackages` | Apple's documented indexing/validation step | `app-intents-execution-and-processes` · audit `app-intents-package-registration` |
 | 7 | 0 | Never call `intent.perform()` yourself | `@Dependency` is only injected on system dispatch; a manual call is zero-initialised and crashes | `app-intents-ui-and-feedback` · audit `manual-perform` |
-| 8 | 0 | Interactive intents (`requestConfirmation` / `requestChoice`) are Siri/Shortcuts-only | From an in-app or widget button they fail with no error UI — *nothing happens* | `app-intents-parameters-and-prompts` · audit `interactive-intent-from-button` |
+| 8 | 0 | Keep runtime prompts out of in-app/widget `Button(intent:)` paths | From an in-app or widget button they fail with no error UI — *nothing happens* | `app-intents-parameters-and-prompts` · audit `interactive-intent-from-button` |
 | 9 | 0 | Pick the feedback channel from the **caller**, not from the intent | Controls present neither dialog nor snippet; UI buttons present neither | `app-intents-ui-and-feedback` · audit `control-feedback` |
 | 10 | 1 | A data mutation reloads timelines **and** controls | They are separate APIs; the system only auto-reloads the one control that ran the intent | [side-effects](references/service-and-side-effects.md) · audit `widget-reload-coverage` |
 | 11 | 0 | Donate from the app's UI, never from `perform()` | Apple's rule is per-caller and `perform()` cannot see the caller | [side-effects](references/service-and-side-effects.md) · audit `donate-inside-perform` |
@@ -139,6 +139,8 @@ If you cannot get past step 7, the claim is `[inferred]`: write it down as a hyp
 
 Samples are evidence, not authority. Apple's own ship deprecated API (`static let openAppWhenRun = true` where `supportedModes` is now the documented spelling) and patterns these skills argue against. Read them for composition; check each individual call against its own documentation page.
 
+For a beta SDK or a conflict between a sample and its declaration, use [source verification](references/source-verification.md). It covers local Xcode documentation, availability checks and the limits of each evidence type.
+
 ## Scripts
 
 Four scripts across these skills. All are standard-library Python and work in any project, whether or not the skills are installed.
@@ -168,10 +170,11 @@ python3 scripts/audit_intents.py . --gap
 
 ## Evidence discipline
 
-App Intents behaviour changes every cycle, and the docs are incomplete in ways that are easy to paper over with reasoning. Every claim in these skills carries a tag:
+App Intents behaviour changes every cycle, and the docs are incomplete in ways that are easy to paper over with reasoning. Use the following tags for technical claims, with a source or measurement scope:
 
 - **[Apple]** — stated in Apple documentation or a WWDC session (cited).
-- **[measured]** — observed by running it, with date and OS. Re-check on SDK bumps.
+- **[Apple SDK]** — a public declaration or availability attribute in a named Xcode build. This proves API shape, not runtime behaviour.
+- **[measured]** — observed by running it, with date, OS, destination and Xcode build. Re-check on SDK bumps.
 - **[inferred]** — reasoning only. Treat as a hypothesis; verify before designing around it.
 
 What you will *not* find here is how each rule was arrived at — which hypothesis failed, what the previous version of a rule said, which bug took a month to spot. That is deliberate: these skills state the current rule and what backs it, so they stay readable in any project. The label is the handle you need — a `[measured 2026-08-12, iOS 27]` line tells you exactly what to re-run when the SDK moves, without the story attached.
@@ -190,6 +193,7 @@ When another reviewer (performance, Liquid Glass, SwiftUI-pattern skills) sugges
 
 | File | Covers |
 |---|---|
+| [source-verification](references/source-verification.md) | pin the SDK, reconcile bundled examples with public declarations, distinguish declaration checks from runtime evidence |
 | [adoption-levels](references/adoption-levels.md) | minimum viable adoption in one file, what each level adds, retrofitting an existing app, exit criteria |
 | [actions-and-intents](references/actions-and-intents.md) | verb/noun rule, one-action-one-intent and the three legitimate splits, merging by parameter, naming |
 | [service-and-side-effects](references/service-and-side-effects.md) | the service layer, surface reload fan-out, retriable `perform()`, idempotency, donations, SwiftData + CloudKit, the `@Query` + `onChange` foot-gun |

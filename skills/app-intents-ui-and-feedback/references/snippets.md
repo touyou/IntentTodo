@@ -4,6 +4,7 @@ A `SnippetIntent` returns SwiftUI; the host intent attaches it. This is how a Si
 
 ```swift
 public struct TodoSummarySnippetIntent: SnippetIntent {
+    public static let title: LocalizedStringResource = "Todo summary"
     public static let isDiscoverable = false     // presented via snippetIntent:, not Shortcuts
 
     @MainActor
@@ -16,6 +17,8 @@ public struct TodoSummarySnippetIntent: SnippetIntent {
 // host intent
 return .result(value: count, dialog: dialog, snippetIntent: TodoSummarySnippetIntent())
 ```
+
+`SnippetIntent` requires `perform()` to return a `ShowsSnippetView` result [Apple SDK: Xcode 27 beta 6]. A `var snippet: some View` alone does not satisfy it. Use intent-backed buttons in the returned view; a plain closure button from an overview example is not a substitute for system dispatch.
 
 Rules that decide whether it works:
 

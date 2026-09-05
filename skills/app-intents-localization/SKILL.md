@@ -15,6 +15,8 @@ Together they produce a very specific failure: **the build is green, the source 
 
 Assumes the rules in `app-intents-centric-design`.
 
+The extraction results below describe the measured Swift-package setup, not every possible target layout. Re-check `.stringsdata`, built metadata and runtime bundle lookup when changing package resources or SDK versions. In beta 6, `systemContext.locale` is also available inside intents [Apple SDK: `IntentSystemContext`]; locale is not an invocation-source identifier.
+
 ## What is extracted, and what is not
 
 | Copy | Auto-extracted? | Where it resolves |

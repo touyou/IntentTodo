@@ -28,8 +28,9 @@ App Intents は**無音で失敗する**（ビルドは緑、IDE も綺麗、機
 - **手で実機検証する前に、AppIntentsTesting に寄せられる観点かを先に検討する**。entity の id 解決 /
   候補提示 / Spotlight index / transient entity / onscreen annotation / 三状態のパラメータクリアは
   デバイスが要るように見えて、テストから届く
-- 自動化できないのは「システム UI の見え方」（dialog の読み上げ / snippet の描画 / Control の表示 /
-  Siri のフレーズルーティング）。これは **#30** で手動追跡する
+- **AppIntentsTesting では確認できない**システム UI の見え方（dialog の読み上げ / snippet の描画 /
+  Control の表示）と Siri のフレーズルーティングは **#30** で手動追跡する。`run()` の成功は
+  widget / control / Live Activity のボタン経路の成功を保証しない
 - **watchOS では AppIntentsTesting の `run()` が落ちる**
   （`LNPerformActionPrebuiltErrorCodeActionNotAllowed` / code 4025）。前提データを作れないので
   watchOS 固有の観点は手動確認になる

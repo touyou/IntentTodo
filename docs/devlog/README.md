@@ -20,6 +20,8 @@
 
 ## 目次
 
+- [2026-09-05-reference-sdk-refine.md](2026-09-05-reference-sdk-refine.md) — beta 6 SDK と参照資料を照合し、skills の availability・診断手順・検証範囲を揃えた記録
+
 - [02-swiftdata-concurrency.md](02-swiftdata-concurrency.md) — SwiftData / CloudKit 制約まわりの再検証履歴
 - [03-app-intents-core.md](03-app-intents-core.md) — `AppIntentsPackage` 重複宣言・Primary/FromExtension 分離・実行プロセスの経緯（最大のログ）
 - [04-ui-integration.md](04-ui-integration.md) — `onAppIntentExecution` / cold start / `UISceneAppIntent` の経緯

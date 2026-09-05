@@ -28,9 +28,9 @@ Same execution path as Siri and Shortcuts, no boilerplate, no duplicated logic.
 
 **Argument order: `role` comes first.** `Button(intent:role:)` resolves to a different init and fails with `"extraneous argument label 'intent:'"` [measured — hit on a visionOS build]. `Button(role:intent:)` does not exist on watchOS; drop `role:` there.
 
-## The three ways a button silently does nothing
+## Diagnose a button that silently does nothing
 
-This is the single most common symptom in App Intents, and it has exactly three causes worth checking, in this order.
+Start with these three known failure modes; if none applies, inspect entity resolution, thrown errors and the actual execution process.
 
 | Check | Symptom | Fix |
 |---|---|---|
@@ -56,7 +56,7 @@ If two callers need the same logic and only one of them is an intent, **both cal
 
 An intent that calls `requestConfirmation` or `requestChoice` **fails when invoked from an in-app or widget button** — there is no surface to answer on. It fails with `LNPerformActionErrorCodeUnsupportedValueType`, **shows no error, and nothing happens** [measured 2026-08-12].
 
-This is nasty for three reasons: it looks like a dead button, the same intent succeeds through Siri / Shortcuts / AppIntentsTesting, and therefore **AppIntentsTesting cannot catch it** — only a UI test can, and only one that asserts unconditionally (`app-intents-testing`).
+The button looks dead even when the same intent works through Siri / Shortcuts. **AppIntentsTesting does not exercise the button caller**. Its beta 6 `run()` path also has no prompt-response handler, so test the non-interactive action there and the confirmation flow through UI tests (`app-intents-testing`).
 
 ```swift
 // Siri / Shortcuts: the intent asks.

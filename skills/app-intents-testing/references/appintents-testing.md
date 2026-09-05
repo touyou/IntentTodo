@@ -11,9 +11,8 @@ import AppIntentsTesting
 
 @MainActor override func setUp() async throws {
     app = XCUIApplication()
-    // activate(), never launch(): launch() terminates and restarts a running app,
-    // and with ~10 tests the simulator starts failing with
-    // "did not return a process handle nor launch error".
+    // Reuse the process when isolation does not require a fresh launch.
+    // Cold-start tests must terminate and launch explicitly.
     if app.state == .runningForeground || app.state == .runningBackground {
         app.activate()
     } else {
@@ -59,7 +58,7 @@ Because the app target is never imported, **most mistakes surface at runtime, no
 
 ## Platform limits
 
-- **watchOS: `run()` fails** (error 4025), so intent execution cannot be exercised at all. Cover the watch by testing the shared service and entity layer with unit tests, plus a UI test for the watch app's own flow — do not write watch AppIntentsTesting cases that can only ever be skipped.
+- **watchOS: `run()` failed in the recorded environment** (error 4025); this path was not re-run in the beta 6 audit. Treat it as a measured limitation, not a public API unavailability declaration. Cover the watch by testing the shared service and entity layer with unit tests, plus a UI test for the watch app's own flow — do not write watch AppIntentsTesting cases that can only ever be skipped.
 - **iOS simulator: no `VisualIntelligence`**, so `IntentValueQuery` cases must run on device or macOS.
 - Live Activity and Control Center invocation paths are not reachable; both stay manual.
 

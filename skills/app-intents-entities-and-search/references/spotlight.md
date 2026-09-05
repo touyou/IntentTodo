@@ -5,7 +5,7 @@
 ## Keyword indexing — hand-written `attributeSet`
 
 ```swift
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 extension TodoAppEntity: IndexedEntity {
     public var attributeSet: CSSearchableItemAttributeSet {
         let a = CSSearchableItemAttributeSet()
@@ -24,10 +24,10 @@ extension TodoAppEntity: IndexedEntity {
 
 Maps a value onto a `PartialKeyPath<CSSearchableItemAttributeSet>` declaratively, feeding meaning-based search and Q&A [Apple: wwdc2026-240].
 
-`indexingKey:` is iOS/macOS only, so in a shared package the declaration itself has to branch — an unguarded one fails to compile for watchOS and visionOS:
+`indexingKey:` is available on iOS 18.4+, macOS 15.4+ and visionOS 2.4+; watchOS and tvOS are unavailable [Apple SDK: Xcode 27 beta 6, `EntityProperty.init(title:indexingKey:)`]. In a shared package targeting these versions, branch the declaration:
 
 ```swift
-#if os(iOS) || os(macOS)
+#if os(iOS) || os(macOS) || os(visionOS)
 @Property(title: "Title", indexingKey: \.title) public var title: String
 @Property(title: "Notes", indexingKey: \.contentDescription) public var notes: String?
 #else
@@ -47,7 +47,7 @@ Rule: keep `attributeSet` to the keys **no** `indexingKey:` claims (`dueDate`, `
 Two more details:
 
 - **The key path is not type-checked against your property's type** — the same `indexingKey:` overloads accept `String?` and `AttributedString?` alike [measured]. So choose by **meaning**: `contentDescription` (documents: "a description of the item") over `textContent` (messaging: full message body) for an item's notes.
-- **`indexingKey:` is only vended on iOS and macOS.** watchOS/visionOS fail with `Extra argument 'indexingKey'` + `Cannot infer key path type`. Guard with `#if os(iOS) || os(macOS)` and fall back to plain `@Property` [measured]. Plain `IndexedEntity` + `attributeSet` still works on visionOS, so do not exclude the whole Spotlight path.
+- **Verify declaration availability separately from search behaviour.** The beta 6 SDK exposes `IndexedEntity`, `indexingKey:` and `IndexedEntityQuery` on visionOS. This permits indexing; it does not prove that every Spotlight or Siri presentation behaves like iOS.
 
 ## Use a named index
 
@@ -55,7 +55,7 @@ Apple: "use a named `CSSearchableIndex` type and not the default index. Use the 
 
 ## When to index
 
-Index at launch on a low priority (`Task(priority: .utility)`) and incrementally on mutation from the service — but **only on insert, title change and delete**. Re-indexing on every attribute change is work with no search benefit.
+Index at launch on a low priority (`Task(priority: .utility)`) and incrementally from the service whenever **indexed content changes**: insert, delete, or a change to a mapped property or `attributeSet` value. In the example above, notes, due dates, completion and favourite keywords matter as well as the title. Unrelated changes need no reindex.
 
 `IndexedEntityQuery` lets the system drive reindexing instead of you scheduling it.
 
@@ -65,7 +65,7 @@ To force a reindex while testing: `mdutil -cr <bundle id>` on macOS, Settings �
 
 A named index supports `beginBatch()` / `endBatch(withClientState:)` / `fetchLastClientState()`. Commit a digest of what you indexed, and a launch whose digest matches can skip the whole pass. Three details make or break it [Apple: CosmoTunes sample]:
 
-- Client state is capped at **250 bytes** — hash the id set (e.g. SHA-256 → 32 bytes) rather than storing it. **Sort before hashing**, or `Set` iteration order makes the digest unstable and the optimisation never fires.
+- Client state is capped at **250 bytes**. Store a compact change token or deterministic digest (e.g. SHA-256 → 32 bytes) covering indexed content and the indexing schema version. An id-only digest detects membership changes but misses edits to existing entities. **Sort before hashing** unordered collections.
 - Open `beginBatch()` **before** the index/delete calls. Calling `endBatch(withClientState:)` on an empty no-op batch can leave the state unpersisted, which silently means a full reindex on every launch.
 - Commit only when **every** per-entity call succeeded, so an interrupted launch leaves the previous state in place and the next launch retries.
 

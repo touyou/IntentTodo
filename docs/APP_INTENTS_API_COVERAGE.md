@@ -81,6 +81,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `.foreground(.deferred)` | 背景で始めて必要なら前面 | ✅ | `AddTodoIntent` |
 | `.foreground(.dynamic)` / `continueInForeground()` | `perform()` 内で前面化を判断 | ⏸ | **#55 で「適所なし」と結論**。開くは `OpensIntent`、対話は `requestChoice`、読ませるは dialog + snippet で埋まっている |
 | `systemContext.currentMode` / `canContinueInForeground` | 実行モードの参照 | ⏸ | 上と同じ理由で参照する必要がない |
+| `systemContext.locale` / `isVoiceOnly` | 実行文脈の言語・音声のみかの参照 | ⏸ | beta 6 公開 SDK に存在。現行は返却する値と dialog に表示を任せるため直接参照しない。呼出元の識別には使えない |
 | `allowedExecutionTargets` | 実行プロセスを固定 | ✅ | **書き込み系は全部 `[.main]`**。読み取り系は固定しない。宣言漏れは `IntentExecutionTargetsTests` が検出 |
 | `performBackgroundTask` | 長時間処理の入れ物 | ✅ | `CompleteTodosIntent` |
 | `performBackgroundTask(options:)` / `LongRunningTaskOptions` | `.requiresGPU` の宣言（iOS 27） | 🚫 | GPU を使う処理がない。バルク完了は SwiftData の書き込みだけ |

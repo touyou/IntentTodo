@@ -2,7 +2,7 @@
 
 このプロジェクトが採用している設計の**考え方**と、実装時に毎回確認する条件。
 API ごとの書き方は [insights/](INSIGHTS.md)（このリポジトリ固有の知見）と
-[skills/](../skills/README.md)（他プロジェクトでも使える形にまとめた 8 本）にある。
+[skills/](../skills/README.md)（他プロジェクトでも使える形にまとめた 9 本）にある。
 
 ## 設計思想の背景
 
@@ -112,7 +112,7 @@ Layered / Clean Architecture との対応表・砂時計図・置き場の判定
 | 知りたいこと | 見る場所 |
 |---|---|
 | このリポジトリでの実装形と落とし穴 | [insights/](INSIGHTS.md)（7 トピック） |
-| 他プロジェクトでも通じる書き方・症状からの逆引き | [skills/](../skills/README.md)（8 本） |
+| 他プロジェクトでも通じる書き方・症状からの逆引き | [skills/](../skills/README.md)（9 本） |
 | API ごとの採用 / 不採用の状態 | [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) |
 | なぜ今の形になったか（調査・失敗の記録） | [devlog/](devlog/README.md) |
 

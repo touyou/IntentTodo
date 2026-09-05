@@ -3,6 +3,7 @@
 このドキュメントは、IntentTodoアプリの開発中に得られた技術的なインサイトの目次です。
 各トピックの詳細は個別ファイルを参照してください。
 
+- **参照資料と SDK 宣言の照合手順** → [source-verification](../skills/app-intents-centric-design/references/source-verification.md)
 - **各ルールがどういう経緯で決まったか** → [docs/devlog/](devlog/README.md)
 - **これからやること（未検証・未採用の消化）** → GitHub issue（#30 / #57 / #68）
 - **App Intents API ごとの採用状況** → [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md)

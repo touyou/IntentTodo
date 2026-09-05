@@ -804,16 +804,16 @@ App Intents は「開く」「削除する」等の共通アクションに **sy
 - `ShowTodosIntent` は `ReturnsValue<[TodoAppEntity]>` を返すので、音声単独（full: 件数を完全文で）と
   視覚併用（supporting: 「Here are your incomplete todos.」）を出し分けるのに適合する。
 
-### `RelevantEntities` は Todo ドメインに不適合（ブロッカー記録）
+### `RelevantEntities` は Todo ドメインに不適合
 
 「次の期限/緊急 Todo」を文脈寄付する目的で `RelevantEntities.shared.updateEntities(_:for:)` を検討したが、
 **第二引数 `AppEntityContext` がドメイン固有のファクトリしか持たない**ことが判明（DocumentationSearch 確認）。
 
-- 提供される context は `.audio(.nowPlaying)` / `.audio(.workout(activityType:))`（`AudioContext`。Xcode 27 beta 6 SDK の
-  swiftinterface でも `.nowPlaying` のみで、`.workout(activityType:)` は HealthKit 等のオーバーレイ側にも
-  まだ見当たらない。`AppEntityContext` のファクトリも `.audio(_:)` 1 つだけ）と、framework overlay（HealthKit 等）が定義する domain context のみ。
-  **汎用 / reminders / todo 向けの context 値が存在しない**。
-- どちらの context 例でも todo を寄付するのは意味的に誤り（再生中メディア/ワークアウト扱いになる）という結論は変わらない。
+- **beta 6 の公開 SDK で使えるのは `.audio(.nowPlaying)`**。`AppEntityContext` のファクトリは
+  `.audio(_:)`、`AudioContext` の値は `.nowPlaying` のみ（2026-09-05、iOS / macOS / visionOS /
+  watchOS の swiftinterface 確認）。`.workout(activityType:)` を利用可能 API として扱わない。
+- **汎用 / reminders / todo 向けの context 値は確認できない**。Todo を再生中メディアとして
+  寄付するのは意味的に誤るため、この用途では採用しない。
 - → **本アプリ（reminders ドメイン）では `RelevantEntities` は現状適合不能**。Apple が todo / reminders 向け
   `AppEntityContext` を追加するまで保留。`RelevantIntent` / `RelevantIntentManager`（WidgetConfigurationIntent
   ベースのウィジェット提案）は別軸の API なので、文脈提案が必要なら将来そちらを検討する。
@@ -1060,17 +1060,17 @@ wwdc2026-240 (24:13–25:57) が「progressive validation」として順序を�
 3. **Spotlight** — コンテンツの index
 4. **Siri** — 自然言語・entity 解決・onscreen・cross-app を通した end-to-end
 
-**4 は自動化できない**。wwdc2026-295 (24:46) も "be sure to test your intents **manually** with Siri and
+**4 は AppIntentsTesting の対象外**。wwdc2026-295 (24:46) も "be sure to test your intents **manually** with Siri and
 the Shortcuts app" と手動を明示しており、`AppIntentsTesting` の公開 API にも `shortcut` / `phrase` /
 `siri` / `utterance` に相当するシンボルは 1 つも無い（swiftinterface 全文検索で 0 件）。
 `definitions.intents["..."]` と**型名**で引く設計なので、`AppShortcutsProvider` のフレーズ経路は
-構造上通らない。App Shortcut のフレーズが Siri / Spotlight に出るかは手で確かめるしかない。
+構造上通らない。本プロジェクトでは App Shortcut のフレーズ経路を手動で確かめる（#30）。
 
 ### AppIntentsTesting に寄せられる検証観点
 
 「ビルドが通る」までしか見ていなかった項目のうち、次はテストで実測できる。手で Siri / Shortcuts を触る
-必要があるのは、**App Shortcut のフレーズ routing** と、最終的に**システム UI の見え方**
-（dialog の読み上げ、snippet の描画、Control の表示）だけ。
+観点には、**App Shortcut のフレーズ routing** と、最終的に**システム UI の見え方**
+（dialog の読み上げ、snippet の描画、Control の表示）がある。呼出元固有の経路は別途確認する（#30）。
 
 | 観点 | API | 落ちたときの症状（他のテストでは捕まらない） |
 |------|-----|------------------------------|
@@ -1409,8 +1409,8 @@ CosmoTunes の `DonationManager` も同じことを書いている（*"Avoid iss
 intent's `perform()`, because the framework already donates intents invoked through Siri or
 Shortcuts."*）。
 
-`perform()` は呼出元を判別できない（`IntentSystemContext` が持つのは `currentMode` と
-`isVoiceOnly` だけ。invocation source の API は無い）。したがって `perform()` 内の donate は
+`perform()` は呼出元を判別できない（beta 6 の `IntentSystemContext` は `currentMode`、
+`isVoiceOnly`、`locale`、`preciseTimestamp` を公開するが、invocation source の API は無い）。したがって `perform()` 内の donate は
 **必ず Siri / Shortcuts 経由でも走る = 規約違反になる**。
 
 サンプルが取っている形は 2 通り:

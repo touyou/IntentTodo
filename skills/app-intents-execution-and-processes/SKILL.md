@@ -23,7 +23,7 @@ Assumes the rules in `app-intents-centric-design`.
 |---|---|
 | Widget / control / watch button does nothing, no error UI | the dependency it needs is not registered in the process that ran it |
 | `Failed to retrieve dependency of type X.` on stderr | same — and note it *only* fails the run; nothing crashes |
-| Action never appears in the Shortcuts app or Siri | `AppShortcutsProvider` is in a package (`autoShortcuts: 0`) |
+| Preconfigured App Shortcut never appears | inspect provider placement and `autoShortcuts`; ordinary action discovery uses `actions` instead |
 | Intent exists in the package bundle but not the app bundle | target membership or a missing `includedPackages` |
 | Snippet renders empty when resolved from a widget | the ambient entity store was registered in only one process |
 | Widget shows different data than the app | two containers, no App Group |
@@ -52,13 +52,13 @@ A test can enforce that: enumerate the intents that call a mutating service meth
 
 | Caller | Executes in | Register in |
 |---|---|---|
-| Siri / Shortcuts | main app | `App.init()` |
+| Siri / Shortcuts | main app for app-only or `[.main]` intents; otherwise check eligible extension targets | each eligible process |
 | App UI `Button(intent:)` | main app | `App.init()` |
 | Widget `Button(intent:)`, `.foreground(.immediate)` | main app | `App.init()` |
 | Live Activity button | main app — `perform()` guaranteed [Apple]; entity pre-resolution measured there too [measured 2026-08-12] | `App.init()` |
 | Widget timeline rendering (`entities(for:)`) | **widget extension** [measured 2026-08-12] | `WidgetBundle.init()` |
 | Widget / control `.background`, no `allowedExecutionTargets` | **heuristic** — either | **both**, as insurance |
-| …with `allowedExecutionTargets` set | pinned | that process only |
+| …with a single `allowedExecutionTargets` value | `perform()` pinned | that process for execution; retain registrations required by queries/rendering elsewhere |
 
 As long as any intent leaves `allowedExecutionTargets` unset, dual registration cannot be removed. That is the cost of the default, and it is cheap.
 

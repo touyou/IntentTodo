@@ -11,16 +11,18 @@ python3 -c "import json;d=json.load(open('<…>/MyApp.app/Metadata.appintents/ex
 print({k:len(v) for k,v in d.items() if isinstance(v,(list,dict))})"
 ```
 
+`actions` describes ordinary intents; `autoShortcuts` describes the preconfigured App Shortcuts supplied by `AppShortcutsProvider`. Zero App Shortcuts is valid if none are declared. Verify the expected type and parameters, not only a nonzero count.
+
 ## What each anomaly means
 
 | Reading | Means |
 |---|---|
-| `autoShortcuts: 0` while the package's own bundle shows 8 | the `AppShortcutsProvider` is in a package. It must be in the app target (`app-intents-execution-and-processes`) |
-| an entity with `0 props` | nothing about it is visible to Shortcuts filters, Siri or Spotlight — the members are plain `var`s, not `@Property` |
+| `autoShortcuts: 0` while the package's own bundle shows the expected entries | the `AppShortcutsProvider` is in a package. It must be in the app target (`app-intents-execution-and-processes`) |
+| an entity with `0 props` | no queryable property surface; inspect property macros. Identity, display representation and separately supplied Spotlight attributes are distinct |
 | no `assistantDefinedSchemas` entry on a type annotated `@AppEntity(schema:)` | the schema conformance did not land, even though `displayTypeName` shows the macro ran |
-| **two** types claiming the same schema | a platform fallback shares a type name with the schema version — the watch slice will overwrite the iOS one. A summary "all clear" does **not** catch this (`app-intents-entities-and-search`) |
-| an entity's property count dropped after adding a platform | same collision — the later slice replaced the entry wholesale |
-| `actionSummary.wrapper.otherParameterIdentifiers` shorter than the `@Parameter` list | those parameters are not editable in Shortcuts (`app-intents-parameters-and-prompts`) |
+| **two distinct types** claiming the same schema | inspect duplicate schema adoption; this is separate from a same-named cross-platform type collision |
+| an entity's schema/properties disappeared after adding a platform | compare per-target inputs: a same-named fallback can replace the earlier entry wholesale, leaving only one merged type (`app-intents-entities-and-search`) |
+| `actionSummary.wrapper.otherParameterIdentifiers` shorter than the `@Parameter` list | inspect the full summary, including inline parameters and conditional branches; the trailing-block count alone is not the full allowlist (`app-intents-parameters-and-prompts`) |
 | an action present in the package bundle but missing from the app bundle | target membership or an `includedPackages` problem |
 | a value type printed as a dotted system entity name (`GeoToolbox.PlaceDescriptorEntity`) | fine on an entity `@Property`; on an App-Shortcut-registered intent's `@Parameter` it breaks SSU training |
 | `com.apple.appintents.entity.Syncable` next to an entity | `SyncableEntity` landed |

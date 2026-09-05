@@ -65,7 +65,7 @@ Dedicated "open the app" intents stay `.foreground(.immediate)`. Do not make the
 
 ## `systemContext` does not tell you who called
 
-It exposes `currentMode` and `isVoiceOnly`. There is **no invocation-source property**, so `perform()` cannot branch on "was this Siri or a button". Two consequences:
+The beta 6 public interface exposes `currentMode`, `isVoiceOnly`, `locale` and `preciseTimestamp` [Apple SDK: `IntentSystemContext` and its extensions]. There is **no invocation-source property**, so `perform()` cannot branch on "was this Siri or a button". Two consequences:
 
 - Donations cannot be made caller-conditionally from inside `perform()` (`app-intents-centric-design`).
 - Feedback must be chosen by *design* — return everything that any caller might use, and accept that some callers drop it (`app-intents-ui-and-feedback`).

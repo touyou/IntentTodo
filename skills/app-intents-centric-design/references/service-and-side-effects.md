@@ -57,7 +57,7 @@ If the same `defer` also has to notify the system that App Shortcut parameter va
 
 No — an intent invoked from a widget's own `Button(intent:)` gets an automatic timeline reload when `perform()` returns, and reloads initiated by an interaction are guaranteed [Apple: wwdc2023-10028 10:02, 13:47]. It *is* needed for every non-widget path: Siri, Shortcuts, app UI, notifications. Calling it unconditionally skips the case analysis; the duplicate reload costs nothing.
 
-Other surfaces to refresh from the same place: Live Activities (`Activity.update` / `.end`), watch complications (WidgetKit reload), and the Spotlight index — but only on insert, title change and delete.
+Other surfaces to refresh from the same place: Live Activities (`Activity.update` / `.end`), watch complications (WidgetKit reload), and the Spotlight index — on insert, delete and changes to indexed content. Determine that content from the entity’s `indexingKey:` mappings and `attributeSet`, not just its title.
 
 ## `perform()` is retriable — order the side effects
 
@@ -135,7 +135,7 @@ Hard-deleting rows makes `UndoableIntent` a design change rather than a conforma
 
 Apple is explicit: "Restrict your donations to direct interactions with your app's interface, and **not to interactions started by Siri or the Shortcuts app**" [Apple: *Donations and discovery*].
 
-`perform()` cannot honour that split, because **it cannot tell who called it**: `systemContext` exposes `currentMode` and `isVoiceOnly`, and there is no invocation-source property. So `donate()` inside `perform()` always fires on the Siri/Shortcuts path too. `audit`: `donate-inside-perform`
+`perform()` cannot honour that split, because **it cannot tell who called it**: `systemContext` exposes `currentMode`, `isVoiceOnly`, `locale` and `preciseTimestamp`, and there is no invocation-source property. So `donate()` inside `perform()` always fires on the Siri/Shortcuts path too. `audit`: `donate-inside-perform`
 
 **And in an intent-centric app there is usually nothing left to donate.** `Button(intent:)` taps are already recorded by the system: with no `donate()` call anywhere in the app, one in-app `Button(intent:)` tap produced exactly one new donation record, three taps produced three, and a negative control produced none [measured 2026-08-30, iOS 27 simulator, via the Biome donation stream]. Apple's samples need explicit donation because their UI calls a manager directly — across four samples, `Button(intent:)` appears **zero** times. Different premise, different answer.
 

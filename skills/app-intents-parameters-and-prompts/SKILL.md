@@ -91,8 +91,8 @@ A non-optional `AppEnum` parameter auto-disambiguates: the system asks the perso
 |---|---|---|
 | `requestValue` | one missing parameter | any caller that can prompt |
 | `needsValueError` | same, thrown | same |
-| `requestConfirmation` | yes / no before acting | **Siri / Shortcuts only** |
-| `requestChoice` | one of a few options | **Siri / Shortcuts only** |
+| `requestConfirmation` | yes / no before acting | Siri / Shortcuts; verify other hosts separately |
+| `requestChoice` | one of a few options | Siri / Shortcuts; verify other hosts separately |
 
 The last two **fail silently from a button** — no error, nothing happens (`app-intents-ui-and-feedback`). Keep a non-interactive twin for those callers. Details, `IntentChoiceOption` pitfalls and the confirmation ordering rule are in [asking-and-updating](references/asking-and-updating.md).
 
@@ -105,4 +105,4 @@ The last two **fail silently from a button** — no error, nothing happens (`app
 | File | Covers |
 |---|---|
 | [parameter-summaries](references/parameter-summaries.md) | the allowlist rule in full, conditional summaries, ordering, verifying against the built metadata, system value types and the SSU bug |
-| [asking-and-updating](references/asking-and-updating.md) | `requestValue`, `requestConfirmation`, `requestChoice`, why they are Siri-only, partial updates with `valueState`, the typed-nil test requirement |
+| [asking-and-updating](references/asking-and-updating.md) | `requestValue`, `requestConfirmation`, `requestChoice`, prompt-capable callers and button limitations, partial updates with `valueState`, the typed-nil test requirement |
