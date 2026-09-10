@@ -122,7 +122,10 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
 
 - [docs/devlog/](docs/devlog/README.md) — 各ルールが決まるまでの調査・失敗・再検証
 - [docs/feedback/](docs/feedback/) — Apple へ提出した Feedback の内容
-- **GitHub issues** — これからやること（#30 実機検証 / #57 GM SDK 棚卸し / #67 登壇準備 / #68 未採用 API）
+- **GitHub issues** — これからやること（#30 実機検証 / #57 GM SDK 棚卸し / #67 登壇準備 / #68 未採用 API /
+  #127 macOS のスクショ）
+- `scripts/capture_screenshots.sh` — 提出用スクショを 1 コマンドで撮り直す（使い方は
+  [README.md](README.md#提出用スクリーンショット)）
 - [docs/presentation/](docs/presentation/README.md) — 登壇用のスライド骨子とスクリプト
 - [skills/](skills/README.md) — App Intents 中心設計を他プロジェクトへ持ち出す形（9 skill + スクリプト）。
   エージェント別のインストールと公開手順は [skills/INSTALL.md](skills/INSTALL.md)

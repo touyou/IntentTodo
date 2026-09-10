@@ -5,6 +5,7 @@
 //
 
 import AppIntents
+import Domain
 import os.log
 import SwiftData
 import SwiftUI
@@ -117,6 +118,13 @@ struct IntentTodoApp: App {
         WindowGroup {
             TodoListView()
                 .environment(navigationModel)
+                #if DEBUG
+                // Screenshot runs pass the ephemeral-store argument too, so this replaces
+                // the contents of a throwaway store rather than the person's own todos.
+                .task {
+                    ScreenshotFixture.seedIfRequested(into: modelContainer)
+                }
+                #endif
                 .task {
                     await requestNotificationPermission()
                 }

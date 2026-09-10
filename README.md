@@ -199,6 +199,17 @@ cd Packages/TodoAppIntents && swift test
 cd Packages/UI && swift test
 ```
 
+## 提出用スクリーンショット
+
+```bash
+./scripts/capture_screenshots.sh              # 全プラットフォーム × ja / en
+./scripts/capture_screenshots.sh iphone       # 一部だけ撮り直す
+```
+
+XCUITest で撮って `.xcresult` から取り出す。DEBUG 限定の `ScreenshotFixture`（`Domain`）が
+in-memory ストアに ja / en それぞれのサンプルを流し込むので、何度撮っても同じ画面になる。
+出力は `Screenshots/<platform>/<locale>/`（gitignore）。**macOS はまだ撮れない**（[#127](https://github.com/touyou/IntentTodo/issues/127)）。
+
 ## App Shortcuts
 
 8 件を `IntentTodo/TodoAppShortcuts.swift`（アプリターゲット直下）で定義。
