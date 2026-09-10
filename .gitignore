@@ -50,3 +50,7 @@ __pycache__/
 # The project's own redistributable skill lives under skills/ at repo root.
 .claude/skills/
 .verification/
+
+# App Store submission screenshots (regenerate with scripts/capture_screenshots.sh)
+Screenshots/
+.screenshot-runs/
