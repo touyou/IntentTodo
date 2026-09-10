@@ -160,6 +160,14 @@ struct IntentTodoApp: App {
                 }
         }
         .modelContainer(modelContainer)
+        #if os(macOS)
+        // Keyboard shortcuts for the actions the list and detail views expose. The
+        // same `NavigationModel` the views observe, so a menu item and a button on
+        // screen are two ways into one piece of state.
+        .commands {
+            TodoCommands(navigationModel: navigationModel)
+        }
+        #endif
     }
 
     // MARK: - URL Handling

@@ -26,7 +26,7 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 | プラットフォーム | 実行パターン | AppIntent活用 | 検証状況 |
 |:--|:--|:--|:--|
 | **iOS / iPadOS** | `Button(intent:)` | ✅ 全アクション | ✅ 検証済み |
-| **macOS**（ネイティブ、Catalyst ではない） | `Button(intent:)` | ✅ 全アクション | 🔶 主要アクション + CloudKit 同期は確認済み、残りは [#30](https://github.com/touyou/IntentTodo/issues/30) |
+| **macOS**（ネイティブ、Catalyst ではない） | `Button(intent:)`（メニューバー / コンテキストメニュー含む） | ✅ 全アクション | 🔶 主要アクション + CloudKit 同期は確認済み、残りは [#30](https://github.com/touyou/IntentTodo/issues/30) |
 | **watchOS** | `Button(intent:)` | ✅ 全アクション | 🔲 実機確認は [#30](https://github.com/touyou/IntentTodo/issues/30) |
 | **visionOS** | `Button(intent:)` + Spatial UI | ✅ 全アクション | 🔲 実機確認は [#30](https://github.com/touyou/IntentTodo/issues/30) |
 

@@ -136,8 +136,6 @@ reported back to the person; declining it does not restrict any feature.
 
 ## 8. 提出前の確認
 
-- [ ] `要入力` が全部埋まっている（SKU / App ID は設定済み）
-- [x] プライバシーポリシーが公開 URL で読める（`PRIVACY.md`）
-- [ ] Xcode Cloud の `production` ビルドが ASC に上がっている
-- [ ] 輸出コンプライアンスの質問が出ない（`ITSAppUsesNonExemptEncryption = NO` 済み）
-- [ ] アップロード後に ITMS の警告メールが来ていない
+残っている確認は [#132](https://github.com/touyou/IntentTodo/issues/132)（ASC の `要入力` /
+`production` ビルドのアップロード / 輸出コンプライアンス / ITMS 警告）。
+プライバシーポリシーは `PRIVACY.md` が公開 URL で読める状態になっている。

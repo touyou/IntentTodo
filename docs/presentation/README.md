@@ -29,8 +29,10 @@ App Intents 中心設計についての登壇・発表用の素材置き場。
 
 ## 使い方
 
-- **発表前にやることは [#67](https://github.com/touyou/IntentTodo/issues/67) に集約**（数字の再カウント / 一次ソースの裏取り /
-  スクショ / 言い方の判断）。骨子ファイルにチェックリストは置かない
+- **発表前にやることは issue に集約し、骨子ファイルにチェックリストは置かない**。
+  直近ぶん（数字の再カウント / 一次ソースの裏取り / スクショ / 言い方の判断）は
+  [#67](https://github.com/touyou/IntentTodo/issues/67) で消化済み（2026-09-10 クローズ）。
+  次に出てきたら新しい issue を立てる
 - ⭐ **投影される実物は Keynote（`iosdc2026_appintents_centric.key` / iCloud Drive）で、原稿より先に進んでいる**
   （`99-script.md` は 83 面・第 2 部が `TBD`、Keynote は 118 面で第 2 部まで入っている）。
   **内容の確認は Keynote を正とする**。`.key` は protobuf なので、読むには

@@ -135,6 +135,83 @@ struct IntentTodoApp: App {
 
 ---
 
+## macOS の操作導線（ツールバー / キーボード / コンテキストメニュー）
+
+### サイドバー開閉のボタンは「ウィンドウ左端」に固定する
+
+`NavigationSplitView` が既定で付けるトグルは**サイドバー側ツールバーの trailing 端**に置かれるため、
+サイドバーを畳むたびにウィンドウを横断して動く。開閉の導線が開閉のたびに動くのは操作として成立しない
+ので、既定のトグルを外して自前のものを **サイドバー側ツールバーの先頭**に置く。
+
+```swift
+NavigationSplitView(columnVisibility: $columnVisibility) {
+    SidebarView()
+        .toolbar(removing: .sidebarToggle)   // 既定のトグル（trailing 端）を消す
+        .toolbar {
+            // サイドバー側セクションの先頭 = 信号機の右隣。サイドバーを畳むとセクションごと
+            // ウィンドウ左端へ寄るので、開閉どちらでも同じ位置に居続ける
+            ToolbarItem(placement: .automatic) { sidebarToggle }
+            ToolbarItem(placement: .primaryAction) { addButton }
+            ToolbarItem { filterMenu }
+        }
+} detail: { … }
+```
+
+- **`.navigation` は使わない**。macOS では detail 側セクションの先頭（インラインタイトルの手前）に置かれ、
+  サイドバーの幅ぶんだけ動く。実測で確認した（2026-09-10）
+- 開閉状態はシステム任せにせず `columnVisibility` で持つ。ツールバーのボタンと View メニューの
+  Show/Hide Sidebar（`SidebarCommands()`）が同じ 1 つの状態を動かす
+
+### メニューバーのアクションも `Button(intent:)`、対象は `FocusedValues` から取る
+
+メニュー項目も画面上のボタンと同じ Intent を実行する（`Button(intent:)` は `Commands` の中でも使える）。
+ただし**対象の Entity をコマンド側で capture しない**。メニューは更新のたびに組み直されるだけなので、
+`NavigationModel` を直接読むと古い選択に対して実行され得る。選択は `focusedSceneValue` で publish し、
+`@FocusedValue` で受ける（値が変われば SwiftUI がメニューを組み直す）。
+
+```swift
+// View 側: 画面のどこにフォーカスがあっても効くよう scene 単位で publish する
+.focusedSceneValue(\.selectedTodo, navigationModel.selectedTodo)
+
+// Commands 側
+@FocusedValue(\.selectedTodo) private var selectedTodo
+…
+Button(intent: ToggleTodoCompletionIntent(todo: selectedTodo)) { … }
+    .keyboardShortcut(.return)
+```
+
+提示だけの項目（追加シート / 編集シート / 削除確認）は `NavigationModel` のメソッドを呼ぶ。
+クリック時に読むので陳腐化しない。
+
+現在のショートカット:
+
+| 項目 | ショートカット | 実体 |
+|---|---|---|
+| ファイル ▸ 新規やること | ⌘N | `NavigationModel.showAddTodo()`（`.newItem` を差し替え） |
+| 表示 ▸ サイドバーを表示/隠す | ⌃⌘S | `SidebarCommands()` |
+| 編集 ▸ 検索 | ⌘F | `.searchFocused` の binding を `focusedSceneValue` で渡して true にする |
+| やること ▸ 完了にする / 未完了にする | ⌘↩ | `ToggleTodoCompletionIntent` |
+| やること ▸ お気に入り | ⇧⌘F | `ToggleFavoriteIntent` |
+| やること ▸ 詳細を編集 | ⌘E | `NavigationModel.showAttributeEditor()` |
+| やること ▸ やることを削除 | ⌘⌫ | 確認ダイアログ → `DeleteTodoImmediatelyIntent` |
+
+### Delete キーは `onDeleteCommand`、実行は確認ダイアログの `Button(intent:)`
+
+- **⌫ に `keyboardShortcut(.delete, modifiers: [])` を当てない**。メニューのキー等価はフィールドエディタ
+  より先に評価されるため、検索フィールドの backspace まで奪う。`List` に `.onDeleteCommand` を付ければ
+  レスポンダチェーン経由になり、テキスト入力中は入力側が先に食う
+- `.onDeleteCommand` はクロージャなので `Button(intent:)` にできない。**削除そのものを直接書かず**、
+  `@State` に「削除しようとしている todo」を入れて `.confirmationDialog(_:item:)`（SwiftUI 27）を出し、
+  ダイアログの `Button(role:.destructive, intent: DeleteTodoImmediatelyIntent(...))` が実行する。
+  ⌫ / 行の右クリック / メニューの ⌘⌫ の 3 経路が 1 つの確認とひとつの Intent に収束する
+- 削除は `UndoableIntent` なので、確認のあとでも ⌘Z で戻せる
+- Mac には swipe action が無いので、行のアクション（完了トグル / お気に入り / 削除）は
+  `.contextMenu` に置く。中身は一覧のチェックボックスや星と同じ Intent
+
+経緯: [docs/devlog/2026-09-10-macos-ui-shortcuts.md](../devlog/2026-09-10-macos-ui-shortcuts.md)
+
+---
+
 ## LiveActivity の Intent 設計
 
 ### LiveActivityIntent vs AppIntent
