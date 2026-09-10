@@ -57,8 +57,8 @@ Then check for `must match regular expression`, `Could not archive SSU` and `emi
 > extraction and SSU training do not need a signature — but it also skips re-signing the UI test
 > runner, which then keeps the `com.apple.XCTRunner` template identity instead of
 > `<app-bundle-id>.xctrunner`. AppIntentsTesting checks that binding and rejects the run with
-> `AppIntentsServicesSecurityErrorDomain Code=803 "Unable to run internal tests on a Customer build"`.
-> Every case then *skips*, and a run where nothing executed still reports `TEST SUCCEEDED`.
+> `AppIntentsServicesSecurityErrorDomain Code=803 "Unable to run internal tests on a Customer build"`,
+> and none of the bundle's checks can run.
 
 ## Comparing before and after
 
