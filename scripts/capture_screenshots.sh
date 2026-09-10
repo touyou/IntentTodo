@@ -34,19 +34,12 @@ BUNDLE_ID="dev.touyou.IntentTodo"
 
 # platform | scheme | test target/class | destination
 #
-# macOS is deliberately absent — pass `mac` explicitly to try it. The run does not produce
-# usable images yet (#127): the sidebar row is a single accessibility element that cannot be
-# navigated from, and the window comes back at an arbitrary size rather than one App Store
-# Connect accepts.
 UITEST_PLATFORMS=(
   "iphone|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=iOS Simulator,name=iPhone 17 Pro Max,OS=27.0"
   "ipad|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=iOS Simulator,name=iPad Pro 13-inch (M5),OS=27.0"
+  "mac|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=macOS,arch=arm64"
   "watch|IntentTodoWatchAppUITest|IntentTodoWatchAppUITest/WatchScreenshotTests|platform=watchOS Simulator,name=Apple Watch Ultra 4 (49mm),OS=27.0"
 )
-MAC_PLATFORM="mac|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=macOS,arch=arm64"
-for name in "$@"; do
-  [ "$name" = "mac" ] && UITEST_PLATFORMS+=("$MAC_PLATFORM")
-done
 
 requested=("$@")
 failed=()
@@ -125,6 +118,41 @@ if count == 0:
     sys.exit("no attachments in the result bundle")
 print(f"    {count} screenshot(s) -> {dest}")
 PY
+
+  [ "$platform" = "mac" ] && normalize_mac "$dest"
+  return 0
+}
+
+# App Store Connect only accepts a fixed set of Mac sizes, and a window capture lands a
+# little off whatever the window was asked to be — the title bar is not part of the content.
+# Scale to fit, then pad to the exact size with the window's own background colour.
+normalize_mac() {
+  local dest=$1 width height
+  width=${MAC_WIDTH:-2880}
+  height=${MAC_HEIGHT:-1800}
+  python3 - "$dest" "$width" "$height" <<'PY'
+import pathlib, subprocess, sys
+
+dest, target_w, target_h = pathlib.Path(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3])
+
+def pixel_size(path):
+    out = subprocess.run(["sips", "-g", "pixelWidth", "-g", "pixelHeight", str(path)],
+                         capture_output=True, text=True).stdout
+    values = {line.split(":")[0].strip(): int(line.split(":")[1])
+              for line in out.splitlines() if ":" in line and "pixel" in line}
+    return values["pixelWidth"], values["pixelHeight"]
+
+for png in sorted(dest.glob("*.png")):
+    width, height = pixel_size(png)
+    # Fit inside the target rather than `sips -Z`, which only bounds the longer side and
+    # then lets the pad step crop the other one — that is what cut the title bar off.
+    scale = min(target_w / width, target_h / height)
+    subprocess.run(["sips", "-z", str(round(height * scale)), str(round(width * scale)), str(png)],
+                   capture_output=True)
+    subprocess.run(["sips", "--padToHeightWidth", str(target_h), str(target_w),
+                    "--padColor", "1C1C1E", str(png)], capture_output=True)
+PY
+  echo "    normalized to ${width}x${height}"
 }
 
 # --- Apple Vision Pro ----------------------------------------------------------------------

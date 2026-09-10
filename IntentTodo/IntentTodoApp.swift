@@ -52,7 +52,12 @@ struct IntentTodoApp: App {
     init() {
         do {
             #if DEBUG
+            // `ScreenshotFixture.isRequested` is part of the condition, not just the
+            // separate argument: the fixture wipes the store before writing, so the two
+            // decisions must not be able to disagree. Reading one flag rather than two
+            // removes the failure where the fixture runs against the real store.
             let usesEphemeralStore = ProcessInfo.processInfo.arguments.contains(Self.ephemeralStoreArgument)
+                || ScreenshotFixture.isRequested
             let container = usesEphemeralStore
                 ? try SharedModelContainer.createInMemoryContainer()
                 : try SharedModelContainer.createContainer()
@@ -122,9 +127,20 @@ struct IntentTodoApp: App {
                 // Screenshot runs pass the ephemeral-store argument too, so this replaces
                 // the contents of a throwaway store rather than the person's own todos.
                 .task {
-                    ScreenshotFixture.seedIfRequested(into: modelContainer)
+                    await ScreenshotFixture.seedIfRequested(into: modelContainer)
                     openRequestedScreenshotScreen()
                 }
+                #if os(macOS)
+                // A capture of the window comes out at the window's size times the backing
+                // scale, and App Store Connect only accepts a fixed set of Mac sizes. 1440
+                // x 900 points on a 2x display is 2880x1800, which is one of them.
+                .frame(
+                    minWidth: ScreenshotFixture.isRequested ? 1440 : nil,
+                    maxWidth: ScreenshotFixture.isRequested ? 1440 : nil,
+                    minHeight: ScreenshotFixture.isRequested ? 900 : nil,
+                    maxHeight: ScreenshotFixture.isRequested ? 900 : nil
+                )
+                #endif
                 #endif
                 .task {
                     await requestNotificationPermission()

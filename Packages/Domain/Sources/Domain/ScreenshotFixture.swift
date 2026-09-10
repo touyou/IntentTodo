@@ -59,6 +59,9 @@ public enum ScreenshotFixture {
 
     // MARK: - Seeding
 
+    @MainActor
+    private static var hasSeeded = false
+
     /// Seeds `container` when the process asked for the fixture, otherwise does nothing.
     ///
     /// **Call this from the scene, not from `App.init()`.** `ModelContainer.init` returns
@@ -67,16 +70,19 @@ public enum ScreenshotFixture {
     /// `NSInternalInconsistencyException: No eligible connection available`. The test then
     /// reports nothing but "the app crashed".
     @MainActor
-    public static func seedIfRequested(into container: ModelContainer, now: Date = Date()) {
+    public static func seedIfRequested(into container: ModelContainer, now: Date = Date()) async {
         guard isRequested else { return }
-        // The fixture wipes the store before writing, so it must never reach a real one.
-        // The caller is expected to have passed `-uitest-ephemeral-store` as well; if that
-        // argument was dropped or ignored, refusing here is the difference between a failed
-        // screenshot run and deleting somebody's todos.
-        guard container.configurations.allSatisfy(\.isStoredInMemoryOnly) else {
-            logger.critical("Refusing to seed the screenshot fixture: the container is not in memory")
-            return
-        }
+        // Once per process. The scene's `.task` runs again whenever the view is rebuilt.
+        guard !hasSeeded else { return }
+        hasSeeded = true
+
+        // The store finishes loading after `ModelContainer.init` returns, and a fetch issued
+        // before that comes back empty even though rows are there. On macOS that meant the
+        // wipe below deleted nothing while the inserts landed, so every run stacked another
+        // six todos on the last. `deleteAllData()` is not the way out: it invalidates the
+        // contexts, and using `mainContext` straight after traps inside SwiftData.
+        try? await Task.sleep(for: .seconds(1))
+
         do {
             try seed(into: container.mainContext, now: now)
         } catch {
@@ -87,7 +93,7 @@ public enum ScreenshotFixture {
     /// Inserts the fixture into `context`, replacing whatever is already there.
     ///
     /// - Parameters:
-    ///   - context: The context to seed. Expected to belong to an in-memory container.
+    ///   - context: The context to seed.
     ///   - now: The reference date the relative due dates are built from.
     public static func seed(into context: ModelContext, now: Date = Date()) throws {
         // Deleted one by one rather than with `delete(model:)`: the batch form goes through

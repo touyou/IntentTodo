@@ -107,7 +107,7 @@ struct IntentTodoWatchApp: App {
                 // Screenshot runs pass the ephemeral-store argument too, so this replaces
                 // the contents of a throwaway store rather than the person's own todos.
                 .task {
-                    ScreenshotFixture.seedIfRequested(into: modelContainer)
+                    await ScreenshotFixture.seedIfRequested(into: modelContainer)
                 }
                 #endif
         }
