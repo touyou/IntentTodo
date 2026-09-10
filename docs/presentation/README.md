@@ -13,6 +13,7 @@ App Intents 中心設計についての登壇・発表用の素材置き場。
 | [02-constraints-and-craft.md](02-constraints-and-craft.md) | **スライド骨子②: 実践で見えた制約・工夫・コツ**。IntentTodo で実測した内容ベース |
 | [02-constraints-and-craft.script.md](02-constraints-and-craft.script.md) | 上記の想定スクリプト置き場 |
 | [03-group-lab-evidence.md](03-group-lab-evidence.md) | **Apple Intelligence Group Lab（WWDC26 #8011）全内容の抜き書き**。全 27 問マップ / App Intents 関連 15 問の詳細 / それ以外も記録用に全件 / 既存メモの要修正点 / 反証カード / 骨子①②への組み込み候補。**尺は考慮せず判明分を全部書いてある** |
+| [05-apple-event-2026-evidence.md](05-apple-event-2026-evidence.md) | **Apple Event 2026-09-09（iPhone Duo / Audio Intelligence）の抜き書き**。発表事実 / 使える角度 3 つ（透明化・scene の複数化・voice-only）/ **どの Duo API が Xcode 27.0 RC SDK に入っているかの実測** / 反証カード / 使わないと判断したもの。**尺は考慮せず判明分を全部書いてある** |
 | [99-script.md](99-script.md) | **本番スクリプト（iOSDC 40 分枠 / 本人執筆）** |
 | [99-script.notes.md](99-script.notes.md) | **99 へのフィードバック**（2026-08-30 全面改稿 / 対象は 99 の L22–209）。尺の実測と削り候補 / 事実確認 / 流れの組み直し候補 / 締めの候補 6 案 / スライド任せの面への 1 行 / 想定 Q&A / 一次ソース逐語 |
 | [99-keynote.notes.md](99-keynote.notes.md) | **Keynote 実物（118 面）へのフィードバック**（2026-09-06）。通しの実測尺 / 99-script.notes.md の決定が実物に入っているかの反映状況 / 事実と整合性 / 論理の弱点 / 版面 / **`.key` をレビューする手順** |

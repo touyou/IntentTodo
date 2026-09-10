@@ -111,7 +111,7 @@ extension TodoAppEntity {
     /// Entities can't use `@Dependency` (that is intents-only), so the shared
     /// container is read from `TodoEntityStore`, which the app registers at launch.
     static func loadSubtaskProgress(forID id: String) async throws -> String {
-        try await MainActor.run {
+        await MainActor.run {
             guard let item = liveItem(forID: id) else {
                 return String(localized: "No subtasks")
             }
@@ -140,7 +140,7 @@ extension TodoAppEntity {
 extension TodoAppEntity {
     /// Re-fetches the tags by id. Same shape as `loadSubtaskProgress`.
     static func loadTags(forID id: String) async throws -> Set<String> {
-        try await MainActor.run {
+        await MainActor.run {
             guard let item = liveItem(forID: id) else { return [] }
             return Set(item.tags)
         }
@@ -148,7 +148,7 @@ extension TodoAppEntity {
 
     /// Re-fetches the attached links by id.
     static func loadURLs(forID id: String) async throws -> [URL] {
-        try await MainActor.run {
+        await MainActor.run {
             guard let item = liveItem(forID: id) else { return [] }
             return item.urls
         }

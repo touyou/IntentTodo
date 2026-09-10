@@ -27,7 +27,7 @@
 | `indexingKey:` / `IndexedEntityQuery` の面 | watchOS / tvOS のみ不可 | **同じ** | なし |
 | `TargetContentProvidingIntent` / `onAppIntentExecution` | macOS / watchOS unavailable | **同じ** | なし |
 | 27.0 で新規に生えた公開 API | 4 件（記録済み） | **追加なし** | なし |
-| **AppIntentsTesting のシミュレータ実行** | 全緑 | **全件 skip（803）** | **RC で退行** |
+| **AppIntentsTesting のシミュレータ実行** | 全 23 件 passed | **17/17 skip（803）/ 0 passed** | **RC で退行** |
 
 **SDK の API 面は beta 6 から動いていない。代わりに、シミュレータで AppIntentsTesting が
 まったく走らなくなった。**
@@ -120,26 +120,52 @@ Error Domain=AppIntentsServicesSecurityErrorDomain Code=803
 "Unable to run internal tests on a Customer build"
 ```
 
-同時に、シミュレータの `intelligencetasksd` が**クラッシュループしている**（当日 26 本の crash report）:
+### 同時に、シミュレータのシステムサービスが**軒並み**同じ形で落ちている
+
+`XPCPeerRequirement.hasEntitlement(_:)` がシミュレータで未実装のまま trap する:
 
 ```
-libswiftXPC.dylib  static XPCPeerRequirement.hasEntitlement(_:)
-  → __XPC_API_MISUSE__
+libswiftCore.dylib  _assertionFailure(_:_:file:line:flags:)
+libswiftXPC.dylib   __XPC_INTERNAL_CRASH__(_:file:line:)
+libswiftXPC.dylib   __XPC_API_MISUSE__(_:file:line:)
+libswiftXPC.dylib   static XPCPeerRequirement.hasEntitlement(_:)
 XPC-swiftoverlay/PeerRequirement.swift:13:
   Fatal error: API Misuse | XPC Peer Requirement isn't implemented on simulators yet
 ```
 
-呼び出し元は `IntelligenceTasksEngine`。**エンタイトルメント確認の XPC がシミュレータで
-未実装のまま trap する**という形で、803 の security error と話が繋がる位置にいる
-（因果は Apple 側にしか確定できないので、ここでは「同時刻に起きている」までに留める）。
+**この上 4 フレームが完全に同一のまま、呼び出し元だけが違うクラッシュが 3 種類出る**
+（クリーンな再実行 1 回ぶんの内訳）:
+
+| プロセス | 直上のフレーム | 件数 |
+|---|---|---|
+| `intelligencetasksd` | `IntelligenceTasksEngine` | 15 |
+| **`AppIntentsLiveEntityService`** | `XPCSystem.Session.handleReceivedRequest(_:replyUsing:)` | 2 |
+| `SettingsSearchReindexService` | `XPCSystem.Session.handleReceivedRequest(_:replyUsing:)` | 1 |
+
+つまり **App Intents 固有の問題ではなく、「エンタイトルメント確認を XPC でやっている
+システムサービスがシミュレータでは全部落ちる」**。`AppIntentsLiveEntityService` が
+**受信リクエストの処理中**に落ちているのは、まさに AppIntentsTesting が叩く経路にあたる。
+
+803 が "**Customer build**" と言っているのも、**エンタイトルメント確認そのものができない**
+結果と読むのが自然。ただし因果は Apple 側にしか確定できないので、断定はしない。
 
 ### 切り分けたこと
+
+初回の測定はビルド・テストを重ねた騒がしい状態だったため、**machine を静かにして測り直した**
+（他プロセスなし / `simctl shutdown all` / **デバイスを `simctl erase`** / `build-for-testing` を
+分離 / `-parallel-testing-enabled NO`）。結果は変わらなかった:
+
+```
+17 件 skipped / 0 passed / 0 failed
+Error Domain=AppIntentsServicesSecurityErrorDomain Code=803  × 17
+```
 
 | 疑い | 実測 |
 |---|---|
 | 並列テスト（clone）のせい | `-parallel-testing-enabled NO` でも 803 |
-| DerivedData / デバイスの残留状態 | `simctl create` した**新品のデバイス**でも 803 |
+| DerivedData / デバイスの残留状態 | `simctl create` した新品でも、`simctl erase` した既存デバイスでも 803 |
 | dyld shared cache が beta のまま | `simctl runtime dyld_shared_cache update --all` 済み。`usable` 応答、変化なし |
+| 同時に走っていた他のビルド / テスト | 静かな状態で単独実行しても 803。**クラッシュも同じ形で出続ける** |
 | リポジトリ側の設定 | 変更していない。同じツリーが beta 6 では全緑だった |
 
 ### いちばん危ないところ: **skip なので緑になる**
@@ -155,9 +181,9 @@ Test Suite 'IntentTodoUITest.xctest' passed
 [docs/TESTING.md](../TESTING.md) の「緑になる嘘テスト」がそのまま起きている。
 skip の扱いは #119 で決める。
 
-### 副次: Control Widget が trap する
+### Control Widget の trap は**並列実行のときだけ**（803 とは別物）
 
-同じテスト実行で `IntentTodoWidgetExtension` も落ちている（当日 6 本）:
+最初の（並列 clone を使った）実行では `IntentTodoWidgetExtension` も 6 回落ちていた:
 
 ```
 libswiftCore.dylib  _assertionFailure(_:_:file:line:flags:)
@@ -165,14 +191,16 @@ WidgetKit           (?)
 IntentTodoWidgetExtension.debug.dylib  closure #1 in QuickAddTodoControl.body.getter
 ```
 
-`QuickAddTodoControl` は `ControlWidgetButton(action: LaunchAppIntent.addTodo())` だけの
-コントロール。RC の `WidgetKit/ControlAction.swift` には
-`Unable to create an LNAction from` / `Unable to obtain LNActionMetadata from` /
-`Can't create CHSIntentReference from` という assertion 候補があり、いずれも
-**App Intents メタデータの解決失敗**を指す。803 と同根の疑いが濃いが、
-WidgetKit 側のシンボルを解決できていないので断定はしない（#119）。
+**静かな状態でのクリーンな再実行では 1 度も出なかった。** 803 は 17/17 で再現するのに
+この crash は消えるので、**803 とは別物**。並列 clone 特有の状態で踏むものと見て、
+`QuickAddTodoControl` 側の欠陥とは扱わない。
 
-アプリを普通に起動した限りではこの crash は出ない（テスト実行時のみ観測）。
+> 最初はこれを「803 と同根の疑いが濃い」と書きかけた。根拠にしていたのは
+> RC の `WidgetKit/ControlAction.swift` に `Unable to create an LNAction from` /
+> `Unable to obtain LNActionMetadata from` という assertion 候補が並んでいることだけで、
+> **どの assertion に当たったかは確認できていなかった**。再現しない以上、この推測は取り下げる。
+
+アプリを普通に起動した限りでもこの crash は出ない。
 
 ## 5. 回帰確認（RC / 変更なしのツリー）
 
@@ -186,20 +214,60 @@ WidgetKit 側のシンボルを解決できていないので断定はしない�
     `ListType` / `LocationTriggerEvent` / `system.SystemSearchInAppIntent`）が iOS 側に残り、
     watchOS 側は `assistant schemas: none`（意図どおり）
   - App Shortcut 8 件、phrase の欠落なし
-- **AppIntentsTesting の 3 スイートは実行できていない**（§4）
+- **AppIntentsTesting の 3 スイートは実行できていない**（§4。17/17 skip / 0 passed / 0 failed）
 
-## 6. ビルド警告 2 種（RC で観測 / 出所は未確定）
+## 6. ビルド警告（#120 / #113）
 
-beta 6 のときの記録に警告が無いので「RC で増えた」とは断定できない（当時 0 件だったとは書かれていない）。
-どちらも実体のある指摘なので #120 に切り出した。
+beta 6 のときの記録に警告の件数が無いので「RC で増えた」とは断定できない。
 
-| 警告 | 件数 | 中身 |
+### 直したもの
+
+| 警告 | 件数 | 対応 |
 |---|---|---|
-| `no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]` | 10 | `TodoAppEntity+Shared.swift` の `try await MainActor.run { … }`。クロージャが throw しない |
-| `The property 'typeDisplayRepresentation' should not be overridden in an AppEntity that conforms to a schema` | 1 | `TodoAppEntity+Shared.swift:24`。`reminders.ReminderEntity` に適合しているので schema 側が持つ |
+| `no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]` | 10 | `TodoAppEntity+Shared.swift` の 3 箇所で `try await MainActor.run` → `await MainActor.run`。`MainActor.run` は `rethrows` で、クロージャが throw しないので `try` が不要だった。関数側の `async throws` は `@DeferredProperty` のローダー署名として維持 |
+| 同上 | 1 | `IntentTodoUITest/AppIntents/TodoEntityQueryTests.swift:142`。クロージャが `try?` を使っているので外側の `try` が不要 |
 
-2 つ目は**消すと UI コピーが変わる**（"Todo" / "N todos" が schema 由来の表示に置き換わる）ので、
-機械的に直さず #120 で判断する。
+### 残したもの
+
+**`typeDisplayRepresentation` should not be overridden in an AppEntity that conforms to a schema**
+（`TodoAppEntity+Shared.swift:24`、1 件）。
+
+実測すると、**この上書きは出荷メタデータではすでに捨てられていた**。schema 適合の entity は
+全部 `displayTypeName` が空になる:
+
+| entity | schema | `displayTypeName.key` |
+|---|---|---|
+| `TodoAppEntity` | `reminders.ReminderEntity` | **`""`** |
+| `CategoryAppEntity` | `reminders.ListEntity` | **`""`** |
+| `TodoLocationTriggerAppEntity` | `reminders.LocationTriggerEntity` | **`""`** |
+| `SubTaskAppEntity` / `TodoListSummaryEntity` | なし | `"Subtask"` / `"Todo List Summary"` |
+| `WatchTodoAppEntity` / `WatchCategoryAppEntity` | なし | `"Todo"` / `"List"` |
+
+`CategoryAppEntity` は上書きしていない（`CategoryAppEntity.swift:33` の宣言は `#if os(watchOS)` 側の
+`WatchCategoryAppEntity`）し、`TodoLocationTriggerAppEntity` は宣言なしでビルドが通る
+——**マクロが供給しているので、上書きしているのは `TodoAppEntity` だけ**。
+
+watchOS では `TodoAppEntity` が `WatchTodoAppEntity`（schema なしの素の `AppEntity`）の typealias なので、
+`#if os(watchOS)` で watch 側にだけ残す形にして測ったところ:
+
+- **警告 0 件**、出荷メタデータは**全 entity で完全一致**（watch も `"Todo"` のまま）、`checks: all clear`
+- ただし **Swift レベルの値が `"Todo"` → `""` になる**。マクロが生成するのは**空**の
+  `TypeDisplayRepresentation` であって、reminders schema の名前が入るわけではなかった
+- `TodoAppEntityTests.swift:127`「TypeDisplayRepresentation names the type」がこれを明示的に守っていて落ちる
+
+**「システムが読むメタデータは変わらない」対「Swift レベルの型名を失う」のトレードオフ**なので、
+入れずに #120 へ判断を戻した。
+
+### ついでに見つかったもの（#113）
+
+テストターゲット側に `comparing non-optional value of type 'X' to 'nil' always returns true` が 2 件。
+`RepositoryTests.swift:17` の `#expect(repository != nil)` と
+`AppIntentsTests.swift:14` の `#expect(package != nil)` で、どちらも**常に true**。
+「緑になる嘘テスト」と同じ species なので #113 に寄せた。
+
+`DomainTests-product` / `RepositoryTests-product` の
+`Metadata extraction skipped, no AppIntents.framework dependency found` は、AppIntents に依存しない
+テストバンドルなので想定どおり。対応しない。
 
 ## 7. 測らなかったもの
 
