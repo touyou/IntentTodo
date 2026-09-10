@@ -54,3 +54,6 @@ __pycache__/
 # App Store submission screenshots (regenerate with scripts/capture_screenshots.sh)
 Screenshots/
 .screenshot-runs/
+
+# asc CLI のレビュー成果物（plan / approval は実行のたびに作り直す）
+.asc/
