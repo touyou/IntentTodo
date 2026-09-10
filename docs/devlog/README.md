@@ -20,7 +20,7 @@
 
 ## 目次
 
-- [2026-09-10-xcode27-rc-recheck.md](2026-09-10-xcode27-rc-recheck.md) — Xcode 27 RC（27A266a）で SDK 制約を棚卸しした経緯（SSU バグ / watchOS schema / 公開 API は beta 6 から変化なし + **AppIntentsTesting がシミュレータで 803 になり全件 skip、しかも skip なので緑になる**件 / #119）
+- [2026-09-10-xcode27-rc-recheck.md](2026-09-10-xcode27-rc-recheck.md) — Xcode 27 RC（27A266a）で SDK 制約を棚卸しした経緯（SSU バグ / watchOS schema / 公開 API は beta 6 から変化なし + **`CODE_SIGNING_ALLOWED=NO` を `test` に持ち込んで AppIntentsTesting を 803 で全 skip させ、SDK の退行だと 1 日誤診した件** / #119）
 - [2026-09-06-keynote-deck-review.md](2026-09-06-keynote-deck-review.md) — Keynote の実物（118 面）を AppleScript で読める形にしてレビューした経緯（原稿より Keynote が先に進んでいた件 + 「Keynote のノートも更新済み」が一部事実でなかった件 + 尺の見積もりを 2 回間違えた件）
 - [2026-09-05-reference-sdk-refine.md](2026-09-05-reference-sdk-refine.md) — beta 6 SDK と参照資料を照合し、skills の availability・診断手順・検証範囲を揃えた記録
 

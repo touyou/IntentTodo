@@ -68,10 +68,11 @@ Record the remaining checks by caller and destination. Passing `run()` does not 
 3. Record the result with date, OS and Xcode version, and label it `[measured]`.
 4. If you cannot run it, label the claim `[inferred]` and do not design around it.
 
-Two traps that have each produced a wrong design:
+Three traps that have each produced a wrong conclusion:
 
 - **A positive list in documentation does not imply exclusion.** "Siri, Spotlight and Shortcuts display snippets" does not say controls don't.
 - **Do not infer the mechanism from the effect.** "The schema-less side wins the metadata merge" was really "the last input wins"; only a run with the inputs reordered showed it. Observing *that* something happens and concluding *why* are two experiments.
+- **Hold your own invocation constant too.** A whole grid of "ruled out: parallelism / device state / caches" rules out nothing if every row carried the same wrong flag. `CODE_SIGNING_ALLOWED=NO`, copied over from a metadata `build`, made every AppIntentsTesting case skip with `AppIntentsServicesSecurityErrorDomain Code=803` — and that got written up as an SDK regression before anyone ran the suite from Xcode. Before blaming the SDK, diff your command line against the IDE's.
 
 And when a measurement comes back empty, check whether the thing you are reading is even written yet. Two false negatives here came from trusting a file's `mtime` (mmap writes do not update it) and from reading a derived stream before the system had generated it (minutes, not seconds). A **positive control** — run the thing that definitely should appear — only helps if it is also given time to appear.
 

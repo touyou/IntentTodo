@@ -27,10 +27,10 @@
 | `indexingKey:` / `IndexedEntityQuery` の面 | watchOS / tvOS のみ不可 | **同じ** | なし |
 | `TargetContentProvidingIntent` / `onAppIntentExecution` | macOS / watchOS unavailable | **同じ** | なし |
 | 27.0 で新規に生えた公開 API | 4 件（記録済み） | **追加なし** | なし |
-| **AppIntentsTesting のシミュレータ実行** | 全 23 件 passed | **17/17 skip（803）/ 0 passed** | **RC で退行** |
+| **AppIntentsTesting のシミュレータ実行** | 全 23 件 passed | **全 23 件 passed** | なし（[誤診した](#4-appintentstesting-は壊れていないcode_signing_allowedno-が原因だった119)） |
 
-**SDK の API 面は beta 6 から動いていない。代わりに、シミュレータで AppIntentsTesting が
-まったく走らなくなった。**
+**SDK は beta 6 から何も動いていない。** 一度「AppIntentsTesting が RC で壊れた」と書いたが、
+**それはこちらが `CODE_SIGNING_ALLOWED=NO` を付けて `test` を走らせていたせい**だった（§4）。
 
 ## 1. `PlaceDescriptor` の SSU training バグ: **未解消**（回避策は存置）
 
@@ -107,100 +107,104 @@ beta 6 で記録した 4 件（`LongRunningTaskOptions` / `RunSystemShortcutInte
 `@available(watchOS, unavailable)` のまま（native macOS SDK には iOSSupport 側の
 `_AppIntents_SwiftUI` しか無い）。
 
-## 4. **AppIntentsTesting がシミュレータで走らなくなった**（RC の退行 / #119）
+## 4. AppIntentsTesting は壊れていない。**`CODE_SIGNING_ALLOWED=NO` が原因だった**（#119）
+
+> **この節は 2 度書き直している。** 最初は「RC で AppIntentsTesting が退行した」と書いた。
+> **それは誤りで、原因はこちらの測り方だった。** 誤診にたどり着いた経緯もそのまま残す。
+
+### 結論
 
 `IntentTodoUITest` の 3 スイート（`TodoEntityQueryTests` / `TodoIntentExecutionTests` /
-`TodoSystemIntegrationTests`）が、beta 6 では全 23 件 passed だったのに、RC では
-**1 件も実行されない**。
+`TodoSystemIntegrationTests`）は、RC でも **23 件すべて passed**（skip 0 / 失敗 0）。
+beta 6 と同じ。
 
-`AppIntentsTestCase.setUp()` が `suggestedEntities()` を 30 秒ポーリングし、毎回これで落ちる:
+**`xcodebuild ... test` に `CODE_SIGNING_ALLOWED=NO` を付けると、AppIntentsTesting は動かない。**
 
 ```
 Error Domain=AppIntentsServicesSecurityErrorDomain Code=803
 "Unable to run internal tests on a Customer build"
 ```
 
-### 同時に、シミュレータのシステムサービスが**軒並み**同じ形で落ちている
+### なぜそうなるか
 
-`XPCPeerRequirement.hasEntitlement(_:)` がシミュレータで未実装のまま trap する:
+`CODE_SIGNING_ALLOWED=NO` は **UI テストランナーの再署名ごと飛ばす**。すると
+`XCTRunner.app` テンプレートの identity がそのまま残る:
+
+| | 通常のビルド | `CODE_SIGNING_ALLOWED=NO` |
+|---|---|---|
+| runner の `Identifier` | `dev.touyou.IntentTodo.IntentTodoUITest.xctrunner` | **`com.apple.XCTRunner`** |
+| runner の署名 | `flags=0x2(adhoc)` | **`flags=0x0(none)`**（未署名） |
+| アプリ本体 | ad-hoc 署名 | `linker-signed` のみ |
+
+AppIntentsTesting はテスト対象アプリの App Intents をアプリのプロセス経由で叩くので、
+**「このランナーはそのアプリのテストランナーである」ことを署名で確かめている**。
+ランナーが `com.apple.XCTRunner` のままだとその紐付けが成立せず、
+`AppIntentsServicesSecurityErrorDomain` が拒否する。
+
+### 因果の確定（同じデバイス・同じテスト・署名の有無だけを変えた）
+
+| ビルド | 結果 |
+|---|---|
+| `CODE_SIGNING_ALLOWED=NO` なし | **passed**（8.5 秒） |
+| `CODE_SIGNING_ALLOWED=NO` あり | **skipped**、803 |
+| なし / 3 スイート全部 | **23 passed / 0 skipped / 0 failed / 803 は 0 件** |
+
+### 誤診の経緯（同じ間違いを繰り返さないために）
+
+1. SSU バグの確認（§1）で `CODE_SIGNING_ALLOWED=NO` を使った。**`build` には正しい**
+   （署名なしでメタデータ抽出と SSU training は走る）
+2. そのままコマンドラインを使い回して `test` を走らせた。**ここが間違い**
+3. 803 が出た。文面が "Customer build" で、シミュレータランタイムが beta から
+   Customer ビルド（24A434）へ変わった直後だったので、**SDK 側の退行だと読んだ**
+4. 並列テスト / デバイス残留状態 / dyld cache を潰して「環境ノイズではない」と確認したが、
+   **どの切り分けでも `CODE_SIGNING_ALLOWED=NO` は付けたまま**だった。
+   変数を 1 つも動かしていないので、何回やっても同じ答えしか出ない
+5. `intelligencetasksd` などのクラッシュ（後述）が同時に出ていたので、
+   **無関係な現象を傍証として採用してしまった**
+6. 本人が Xcode から手で実行し、そのログに **803 が 1 件も出ていなかった**ことで発覚した
+
+**教訓**: 「SDK の退行だ」と結論する前に、**自分のコマンドラインと IDE の差分を 1 つずつ潰す**。
+とくに「他のコマンドから流用したフラグ」は真っ先に疑う。
+`--fail-on` 系の切り分け表を作ると「たくさん試した」感が出るが、
+**同じ誤った定数を全行に置いたままなら切り分けになっていない**。
+
+### `CODE_SIGNING_ALLOWED=NO` を使ってよい場所・だめな場所
+
+| 用途 | 可否 |
+|---|---|
+| `build`（SSU / メタデータ抽出の確認） | ✅ 使ってよい。§1 の SSU 再現はこれで正しい |
+| `build-for-testing` / `test` / `test-without-building` | 🚫 **AppIntentsTesting が 803 で全 skip する** |
+
+### 併発していたクラッシュは 803 とは無関係だった
+
+`XPCPeerRequirement.hasEntitlement(_:)` がシミュレータで未実装のまま trap する現象自体は実在する:
 
 ```
-libswiftCore.dylib  _assertionFailure(_:_:file:line:flags:)
-libswiftXPC.dylib   __XPC_INTERNAL_CRASH__(_:file:line:)
-libswiftXPC.dylib   __XPC_API_MISUSE__(_:file:line:)
 libswiftXPC.dylib   static XPCPeerRequirement.hasEntitlement(_:)
+  → __XPC_API_MISUSE__
 XPC-swiftoverlay/PeerRequirement.swift:13:
   Fatal error: API Misuse | XPC Peer Requirement isn't implemented on simulators yet
 ```
 
-**この上 4 フレームが完全に同一のまま、呼び出し元だけが違うクラッシュが 3 種類出る**
-（クリーンな再実行 1 回ぶんの内訳）:
+`intelligencetasksd` / `AppIntentsLiveEntityService` / `SettingsSearchReindexService` の
+3 プロセスから同一シグネチャで出る。**ただしテストは 23 件すべて通るので、
+AppIntentsTesting を妨げてはいない。** これを 803 の傍証に使ったのが誤りだった。
 
-| プロセス | 直上のフレーム | 件数 |
-|---|---|---|
-| `intelligencetasksd` | `IntelligenceTasksEngine` | 15 |
-| **`AppIntentsLiveEntityService`** | `XPCSystem.Session.handleReceivedRequest(_:replyUsing:)` | 2 |
-| `SettingsSearchReindexService` | `XPCSystem.Session.handleReceivedRequest(_:replyUsing:)` | 1 |
+同様に、並列 clone のときだけ出ていた `IntentTodoWidgetExtension` の
+`QuickAddTodoControl.body.getter` からの WidgetKit `assertionFailure` も、
+署名ありの実行では出ない。
 
-つまり **App Intents 固有の問題ではなく、「エンタイトルメント確認を XPC でやっている
-システムサービスがシミュレータでは全部落ちる」**。`AppIntentsLiveEntityService` が
-**受信リクエストの処理中**に落ちているのは、まさに AppIntentsTesting が叩く経路にあたる。
+### 残る本物の論点: **skip は緑になる**
 
-803 が "**Customer build**" と言っているのも、**エンタイトルメント確認そのものができない**
-結果と読むのが自然。ただし因果は Apple 側にしか確定できないので、断定はしない。
-
-### 切り分けたこと
-
-初回の測定はビルド・テストを重ねた騒がしい状態だったため、**machine を静かにして測り直した**
-（他プロセスなし / `simctl shutdown all` / **デバイスを `simctl erase`** / `build-for-testing` を
-分離 / `-parallel-testing-enabled NO`）。結果は変わらなかった:
-
-```
-17 件 skipped / 0 passed / 0 failed
-Error Domain=AppIntentsServicesSecurityErrorDomain Code=803  × 17
-```
-
-| 疑い | 実測 |
-|---|---|
-| 並列テスト（clone）のせい | `-parallel-testing-enabled NO` でも 803 |
-| DerivedData / デバイスの残留状態 | `simctl create` した新品でも、`simctl erase` した既存デバイスでも 803 |
-| dyld shared cache が beta のまま | `simctl runtime dyld_shared_cache update --all` 済み。`usable` 応答、変化なし |
-| 同時に走っていた他のビルド / テスト | 静かな状態で単独実行しても 803。**クラッシュも同じ形で出続ける** |
-| リポジトリ側の設定 | 変更していない。同じツリーが beta 6 では全緑だった |
-
-### いちばん危ないところ: **skip なので緑になる**
-
-`waitUntilIntentsAreDiscoverable` は `XCTSkip` を投げる。したがって単体で走らせると
+原因が自分側だったこととは別に、`waitUntilIntentsAreDiscoverable` が `XCTSkip` を投げるので
 
 ```
 Executed 1 test, with 1 test skipped and 0 failures (0 unexpected)
 Test Suite 'IntentTodoUITest.xctest' passed
 ```
 
-と出る。**AppIntents の検証が 1 行も実行されていないのに TEST SUCCEEDED になる。**
-[docs/TESTING.md](../TESTING.md) の「緑になる嘘テスト」がそのまま起きている。
-skip の扱いは #119 で決める。
-
-### Control Widget の trap は**並列実行のときだけ**（803 とは別物）
-
-最初の（並列 clone を使った）実行では `IntentTodoWidgetExtension` も 6 回落ちていた:
-
-```
-libswiftCore.dylib  _assertionFailure(_:_:file:line:flags:)
-WidgetKit           (?)
-IntentTodoWidgetExtension.debug.dylib  closure #1 in QuickAddTodoControl.body.getter
-```
-
-**静かな状態でのクリーンな再実行では 1 度も出なかった。** 803 は 17/17 で再現するのに
-この crash は消えるので、**803 とは別物**。並列 clone 特有の状態で踏むものと見て、
-`QuickAddTodoControl` 側の欠陥とは扱わない。
-
-> 最初はこれを「803 と同根の疑いが濃い」と書きかけた。根拠にしていたのは
-> RC の `WidgetKit/ControlAction.swift` に `Unable to create an LNAction from` /
-> `Unable to obtain LNActionMetadata from` という assertion 候補が並んでいることだけで、
-> **どの assertion に当たったかは確認できていなかった**。再現しない以上、この推測は取り下げる。
-
-アプリを普通に起動した限りでもこの crash は出ない。
+と出る点は変わらない。**23 件が 1 件も実行されていないのに `TEST SUCCEEDED` になる。**
+今回まさにこれで 1 日誤診した。skip の扱いは #119 で決める。
 
 ## 5. 回帰確認（RC / 変更なしのツリー）
 
@@ -214,7 +218,7 @@ IntentTodoWidgetExtension.debug.dylib  closure #1 in QuickAddTodoControl.body.ge
     `ListType` / `LocationTriggerEvent` / `system.SystemSearchInAppIntent`）が iOS 側に残り、
     watchOS 側は `assistant schemas: none`（意図どおり）
   - App Shortcut 8 件、phrase の欠落なし
-- **AppIntentsTesting の 3 スイートは実行できていない**（§4。17/17 skip / 0 passed / 0 failed）
+- **AppIntentsTesting の 3 スイート 23 件すべて passed**（署名ありのビルドで。§4）
 
 ## 6. ビルド警告（#120）
 
@@ -329,7 +333,7 @@ watch 側は前提が揃っていなかったので、そこも埋めた:
 
 ## 8. 測らなかったもの
 
-- **watchOS の `run()` が 4025 で落ちる件**（#30）。iOS 側で AppIntentsTesting 自体が
-  走らない状態なので、watchOS を測っても切り分けにならない
-- 実機の Siri / Visual Intelligence 経路（#30）。§4 が実機でも起きるかはここでは判定できない
-- macOS / visionOS ターゲットのビルド。iOS で退行が出た時点で、まずそちらを確定させた
+- **watchOS の `run()` が 4025 で落ちる件**（#30）。iOS 側が通ることが分かったので測り直せる状態
+  になったが、今回は測っていない
+- 実機の Siri / Visual Intelligence 経路（#30）
+- macOS / visionOS ターゲットのビルド

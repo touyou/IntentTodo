@@ -34,9 +34,13 @@ App Intents は**無音で失敗する**（ビルドは緑、IDE も綺麗、機
 - **watchOS では AppIntentsTesting の `run()` が落ちる**
   （`LNPerformActionPrebuiltErrorCodeActionNotAllowed` / code 4025）。前提データを作れないので
   watchOS 固有の観点は手動確認になる
-- 🚨 **Xcode 27 RC（27A266a）+ iOS 27.0 Simulator 24A434 では AppIntentsTesting が 1 件も走らない**。
-  `AppIntentsServicesSecurityErrorDomain Code=803` で全件 skip し、**skip なので `TEST SUCCEEDED` になる**。
-  この層を「通った」と読まないこと。詳細と切り分けは **#119**
+- 🚨 **`xcodebuild ... test` に `CODE_SIGNING_ALLOWED=NO` を付けない**。UI テストランナーの再署名ごと
+  飛ぶので identity が `com.apple.XCTRunner` のままになり、AppIntentsTesting が
+  `AppIntentsServicesSecurityErrorDomain Code=803 "Unable to run internal tests on a Customer build"`
+  で**全件 skip する**。`build` に付けるのは問題ない（SSU / メタデータ確認）
+- ⚠️ **skip は `TEST SUCCEEDED` になる**。`AppIntentsTestCase` は metadata が来ないと `XCTSkip` を
+  投げるので、23 件が 1 件も実行されなくても緑に見える。この層は**件数まで見る**
+  （経緯: [devlog/2026-09-10](devlog/2026-09-10-xcode27-rc-recheck.md#4-appintentstesting-は壊れていないcode_signing_allowedno-が原因だった119) / #119）
 
 検証の梯子（Apple が示す順序）と AppIntentsTesting の落とし穴:
 [insights/03-app-intents-core.md](insights/03-app-intents-core.md#phase-6-テスト基盤295-appintentstesting) /
