@@ -99,6 +99,7 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
 | [docs/CODING_GUIDELINES.md](docs/CODING_GUIDELINES.md) | Swift / SwiftUI / SwiftLint / UI コピー / SwiftData / コメント方針 |
 | [docs/TESTING.md](docs/TESTING.md) | TDD / テストの 3 層 / 緑になる嘘テスト / 静的チェック |
 | [docs/PLAN.md](docs/PLAN.md) | 要件とマルチプラットフォーム展開マトリクス |
+| [docs/APP_STORE_LISTING.md](docs/APP_STORE_LISTING.md) | App Store Connect に入れる文言（ja / en）と提出前チェック |
 
 **実装知見（このリポジトリ固有）** — 目次は [docs/INSIGHTS.md](docs/INSIGHTS.md)
 

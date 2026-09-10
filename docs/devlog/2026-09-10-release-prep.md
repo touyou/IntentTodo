@@ -139,40 +139,53 @@ UI テストからは「アプリがクラッシュしました」としか見�
 |---|---|---|---|
 | iPhone 17 Pro Max | 4 | 1320x2868 | ✅ 6.9" と一致 |
 | iPad Pro 13-inch (M5) | 4 | 2064x2752 | ✅ 13" と一致 |
-| Apple Watch Ultra 4 (49mm) | 2 | 422x514 | 要確認（#127） |
+| Apple Watch Ultra 4 (49mm) | 2 | 422x514 | ✅ 一致 |
 | Apple Vision Pro | 3 | 3840x2160 | ✅ 一致 |
-| macOS | — | — | 撮れていない（#127） |
+| macOS | 3 | 2880x1800 | ✅ 一致 |
 
-撮り方が 2 系統に分かれた。**iPhone / iPad / Watch は XCUITest**（`XCUIScreen.main.screenshot()` が
-デバイスのフレームバッファをそのまま返し、ASC の要求ピクセル数と一致する）、
+撮り方が 2 系統に分かれた。**iPhone / iPad / Watch / Mac は XCUITest**、
 **visionOS は `simctl io screenshot`**（上記 (d)）。
 
 visionOS と macOS に設定画面が無いのは仕様。`SettingsView` は `ShortcutsLink` を中心に組んであり、
 `ShortcutsLink` が macOS に無いので `TodoListToolbar` が `#if os(iOS)` でボタンごと落としている。
 テスト側も同じ `#if` で揃えた。
 
-### macOS は落とした（#127）
+### macOS で 4 つ踏んだ
 
-3 つ重なっていて、この回では終わらなかった:
+一度これだけで諦めかけた（#127 を立てた）が、visionOS 用に作った「起動引数で画面を選ぶ」
+仕組みがそのまま効いて解決した。
 
 1. **ウィンドウが復元されず、アクセシビリティツリーがメニューバーだけになる。**
    前回セッションの状態を macOS が復元し、ウィンドウ 0 枚で起動していた。
-   `-ApplePersistenceIgnoreState YES` を launch argument に足して解消（これは直った）
+   `-ApplePersistenceIgnoreState YES` を launch argument に足して解消
 2. **サイドバーの行から詳細へ遷移できない。** macOS では 1 行が
    `checkbox_<uuid>-favorite_<uuid>` という 1 個の Button に畳まれていて、`NavigationLink` が
-   別要素として出てこない。`Cell` を tap しても選択されない
-3. **`-uitest-ephemeral-store` が効いていない疑い。** UI テスト中のリストに
-   フィクスチャと手元の実データが同時に並んでいた。`ProcessInfo.arguments` には
-   引数が届いている（`ps` で確認）のに共有ストアが開かれている。**原因未解明**
+   別要素として出てこない。`Cell` を tap しても選択されない。
+   → **タップをやめ、画面ごとに `-uitest-screenshot-screen` を付けて起動し直す**形にした
+3. **`app.screenshot()` も `XCUIScreen.main` も、macOS ではディスプレイ全体が返る。**
+   デスクトップと他のアプリごと写る。`app.windows.firstMatch.screenshot()` でウィンドウだけにした
+4. **リストが実行のたびに 6 件ずつ増えていた。** フィクスチャは書く前にストアを空にするが、
+   **`ModelContainer.init` が返った直後の fetch は、行があっても空で返る**（ストアのロードが
+   終わっていない）。削除が空振りして挿入だけが効いていた。
+   `deleteAllData()` は解ではない——コンテキストを無効化するので、直後に `mainContext` を
+   触ると SwiftData の中で trap する。**1 秒待ってから fetch → delete** に落ち着いた
 
-3 を踏まえて `ScreenshotFixture.seedIfRequested` に
-**「in-memory コンテナでなければ seed しない」ガード**を入れた。
-フィクスチャは書く前にストアを空にするので、これが無いと実データを消しうる。
+寸法は `.frame` でウィンドウを 1440x900 pt に固定し（2x で 2880x1800）、
+撮ったあと `sips` で ASC の寸法ちょうどに合わせている。
+`sips -Z` は長辺しか見ないので、そのままパディングすると短辺が切られてタイトルバーが消える。
+**縮小率は両辺で min を取ってから**パディングする。
 
-`scripts/capture_screenshots.sh` の既定のプラットフォーム一覧から macOS を外し、
-`./scripts/capture_screenshots.sh mac` と明示したときだけ走るようにした。
+`ScreenshotFixture.seedIfRequested` には
+**「in-memory コンテナでなければ seed しない」ガード**も入れてある。
+フィクスチャはストアを空にするので、これが無いと実データを消しうる。
 
-## 4. production ブランチ
+## 4. App Store Connect に入れる文言
+
+[docs/APP_STORE_LISTING.md](../APP_STORE_LISTING.md) に ja / en 両方の下書きを置いた。
+App 名 / サブタイトル / 説明 / キーワード / プライバシーポリシー / 審査メモまで、
+そのまま貼れる形。本人しか決められないもの（SKU・サポート URL・連絡先）は `要入力` にしてある。
+
+## 5. production ブランチ
 
 Xcode Cloud は `production` ブランチで発火し、Xcode 27 でビルドする設定になっている。
 上の確認（4 プラットフォームの Release ビルド + 実署名 archive + テスト全部）が緑になった状態で

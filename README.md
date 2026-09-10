@@ -212,9 +212,11 @@ DEBUG 限定の `ScreenshotFixture`（`Domain`）が in-memory ストアに ja /
 | プラットフォーム | 撮り方 | 画素数 |
 |:--|:--|:--|
 | iPhone 17 Pro Max / iPad Pro 13" / Apple Watch Ultra | XCUITest が操作して `XCUIScreen.main.screenshot()` を添付 | 1320x2868 / 2064x2752 / 422x514 |
-| Apple Vision Pro | `simctl io screenshot`（部屋ごと撮る）。画面は起動引数 `-uitest-screenshot-screen` で選ぶ | 3840x2160 |
+| Mac | XCUITest が起動引数 `-uitest-screenshot-screen` で画面を選び、ウィンドウだけを撮る | 2880x1800 |
+| Apple Vision Pro | `simctl io screenshot`（部屋ごと撮る）。画面の選び方は Mac と同じ | 3840x2160 |
 
-**macOS はまだ撮れない**（[#127](https://github.com/touyou/IntentTodo/issues/127)）。
+いずれも App Store Connect が受け付ける寸法。ASC へ入れる文言は
+[docs/APP_STORE_LISTING.md](docs/APP_STORE_LISTING.md)。
 
 ## App Shortcuts
 
