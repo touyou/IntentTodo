@@ -455,18 +455,22 @@
 
 ---
 
-### T21b. ⭐ 中心設計にしたせいで、公式ルールを原理的に満たせなくなった話（donation）
+### T21b. ⭐ 公式ルールを原理的に満たせない…と思ったら、満たす必要が無かった話（donation）
 
-> 2026-08-21 追加。第4部の締めにも、T30 の「代償」列の 1 行にも使える。
-> D-1 の ③（`requestConfirmation` が UI から呼べない）と**同じ形**の乖離なので、
-> 「理想と現実の乖離」を 2 本立てにするなら対になる。
+> 2026-08-21 追加。**2026-08-30 にオチが裏返った**（実測で前提が崩れたため。下記「答え合わせ」）。
+> 第4部の締めにも、T30 の「代償」列の 1 行にも使える。
+> D-1 の ③（`requestConfirmation` が UI から呼べない）と**同じ形**の乖離に見えて、
+> **こちらだけ解消している**ので、2 本立てにするなら「代償」と「思い込み」の対比になる。
+>
+> ⚠️ 本番構成（`99-script.md` / Keynote）では**前半で問いだけ出して、第 2 部の D-2 で答え合わせ**する
+> 2 段構えになっている。このカード 1 枚で完結させるなら下記をそのまま使う。
 
-- **見せるもの**: 「公式ルール」「`perform()` から見える情報」「本アプリの UI」の 3 枚を並べて、真ん中が空白になっている図
+- **見せるもの**: 「公式ルール」「`perform()` から見える情報」「本アプリの UI」の 3 枚を並べて、真ん中が空白になっている図 → 答え合わせで**空白のはずの真ん中がシステムに埋められていた**ことを重ねる
 - **話の要点**:
   - 公式ルールは**呼出元ベース**:
     > "Restrict your donations to direct interactions with your app's interface, and **not to interactions started by Siri or the Shortcuts app**."
     > — Apple 公式 [Donations and discovery](https://developer.apple.com/documentation/AppIntents/donations-and-discovery)
-  - ところが **`perform()` は呼出元を判別できない**。`systemContext`（`IntentSystemContext`）が持つのは `currentMode` と `isVoiceOnly` だけで、invocation source に相当するプロパティが無い
+  - ところが **`perform()` は呼出元を判別できない**。`systemContext`（`IntentSystemContext`）が公開するのは `currentMode` / `isVoiceOnly` / `locale` / `preciseTimestamp` で、invocation source に相当するプロパティが無い（RC 27A266a で確認）
   - つまり `perform()` の末尾で `donate()` を呼ぶと、**Siri / Shortcuts 起点の実行でも必ず走る** = 公式が「するな」と言っている donate をしてしまう。しかも**エラーにもならないので気づかない**（今回撤去するまで実際にそうなっていた）
   - **公式サンプルの回避策はどちらも「UI が Intent を通らない」前提**:
 
@@ -476,12 +480,24 @@
     | CosmoTunes | UI のタップ地点から `DonationManager` 経由で donate（`perform()` の中では donate するなとコメントに明記） |
   - **本アプリは UI も `Button(intent:)`**（＝設計の核そのもの）。サービスに届く時点で必ず Intent 経由なので、**上のどちらもそのまま当てはまらない**
   - ⭐ **想定質問「Intent に donate 用のフラグを 1 個持たせて、UI から渡せばいいのでは？」への答え**（実際に出た質問）。これは**成立しない**。素のプロパティは Intent のシリアライズ面（`@Parameter`）に乗らないので実行プロセスに届かず、**アプリ内 `Button(intent:)` だけ通って Widget / Control で静かに落ちる**。`@Parameter` にすると今度は統合メタデータに乗るので **Siri / Shortcuts 側からそのフラグを立てられてしまい**、避けたかった違反が起こる（しかも保存済みショートカットに焼き付いて消せない）。そして根本的に、Apple のガイダンスは「呼出元で分岐せよ」ではなく**「`perform()` の中では donate するな」**（システムが自分の走らせた Intent を既に donate しているため二重計上）。つまり **donate は「呼出元を知っている層 = UI」に置くしかない**、という T21b の結論に戻ってくる
-  - 現状の選択: **規約違反になる donate を消す**。結果として **UI タップ由来の donation はゼロ**になった（Siri の予測精度を捨てた）。戻す手段は `AppIntent.callAsFunction(donate:)` で一部の UI 経路だけ直接実行に変えること — つまり**「全部 `Button(intent:)`」を部分的にやめる**判断が要る
+  - 当座の選択: **規約違反になる donate を消す**。ここまでが「代償を払った」つもりでいた地点
   - 一方 **`deleteDonations(matching:)` は呼出元に関係なく正しい**（消えた entity への提案を残さない後片付け）ので、削除経路には入れたまま
-  - **代償の重さは 2026 で増した**: Group Lab（#8011 `21:47`）で Apple は **新しい intent donation を「Siri に影響を与える主要な手段」として押している**。ユーザーの操作を donate すると Siri が学習し、「いつもこのアプリでこの人に連絡する」を覚える。⚠️ つまり **中心設計を徹底すると、Apple が今年一番推している導線を 1 本落とすことになる**。ここは正直に言ったほうが誠実で、話も強い
+  - **重く見えた理由**: Group Lab（#8011 `21:47`）で Apple は **新しい intent donation を「Siri に影響を与える主要な手段」として押している**。donate すると Siri が学習し、「いつもこのアプリでこの人に連絡する」を覚える。つまり **Apple が今年一番推している導線を 1 本落とした**ように見えていた
     （出典: [03-group-lab-evidence.md](03-group-lab-evidence.md) B-1）
-  - **話のオチ**: 「これは**バグではなく、設計を徹底したことの帰結**です。Apple のサンプルは 2 本とも "UI はサービスを直接呼ぶ" 前提で書かれている。つまり **App Intents 中心設計は Apple が想定している標準形ではない**。徹底するなら、こういう "公式ルールを書けない場所" が出てくることを引き受ける必要がある」
-- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「donation は『アプリ UI 起点の操作』だけ」/ [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)（2026-08-21）/ [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md)
+  - ⭐ **答え合わせ（2026-08-30 実測）: 落ちていなかった**。`donate()` を 1 行も書いていないのに、アプリ内 `Button(intent:)` のタップは**システムが donation として記録している**
+
+    | 呼出元 | Donation |
+    |---|---|
+    | 何もしない（negative control） | +0 |
+    | アプリ内 `Button(intent: AddTodoIntent)` ×1 | **+1** |
+    | アプリ内 `Button(intent: ToggleTodoCompletionIntent)` ×3 | **+3** |
+    | Spotlight の App Shortcut（positive control） | **+2** |
+
+    観測は iOS 27 シミュレータの Biome ストリーム（`IntelligenceEngine.Interaction.Donation`）の直読み。**donation には列挙用の公開 API が無い**（`deleteDonations` はあるが read が無い）ので、こうするしかなかった。⚠️ **発表では「非公開パスでの観測なので、`推定` を含む」と口頭で断る**
+  - **なぜ公式サンプルは手で donate しているのか**: 4 本とも **UI が Manager を直接呼んでいて、その実行がシステムに見えない**から（`Button(` 94 件のうち `Button(intent:)` は **0 件**）。wwdc2026-343 `6:33` の *"Apple Intelligence can't learn from actions people take through your app's UI without your help"* は、**UI の操作が intent の実行になっていない**アプリに向けた話。前提が違えば答えも違う
+  - **話のオチ**: 「**代償だと思っていたものが、実は徹底したことの効能でした**。公式サンプルが手で書いている donate は、UI が全部 `Button(intent:)` なら**書くところが残らない**。ただしこれが分かったのは**非公開のストリームを読んだから**で、公開 API では今も確かめられません。⭐ **『規約を満たせない』と『規約を満たす必要が無い』は、観測手段が無いと区別できない**」
+  - 残っている未確定: **別プロセス（Widget / Control / Live Activity）起点は測れていない**（シミュレータでコントロールが合成タップで発火しない）。ここが「載らない」なら、その経路だけ明示 donate が要る
+- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「そもそも `Button(intent:)` の実行はシステムが donation として記録している」/ [../devlog/2026-08-30-donation-observability.md](../devlog/2026-08-30-donation-observability.md) / [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)（2026-08-21）/ [../APP_INTENTS_CENTRIC_PLAN.md](../APP_INTENTS_CENTRIC_PLAN.md)
 
 ---
 

@@ -130,8 +130,9 @@
 | **11 未採用だった Intent 種別** | `SetFocusFilterIntent` / `UISceneAppIntent` + `AppIntentSceneDelegate` / `URLRepresentableEntity` | ✅ B |
 
 対象外と決めたもの: `AudioPlaybackIntent`（再生機能なし）/ `CustomIntentMigratedAppIntent`（SiriKit 資産なし）/
-`LiveActivityStartingIntent`（deprecated）/ `PredictableIntent`（donation ゼロでは提案が出ない）/
-`RelevantEntities`（todo 向け `AppEntityContext` が無い）/ EventKit・Contacts 連携（別フレームワーク軸）。
+`LiveActivityStartingIntent`（deprecated）/ `RelevantEntities`（todo 向け `AppEntityContext` が無い）/
+EventKit・Contacts 連携（別フレームワーク軸）。`PredictableIntent` は「donation ゼロでは提案が出ない」を
+理由に対象外にしていたが、その前提が実測で崩れたので**未採用候補**（#68）に戻した。
 
 各要素の**実装形と落とし穴**は [insights/03](insights/03-app-intents-core.md) 以下、**API 単位の状態**は
 [APP_INTENTS_API_COVERAGE.md](APP_INTENTS_API_COVERAGE.md) にある。
@@ -150,8 +151,13 @@
   済んでいるが、残りは FoundationModels 側の導線と結果表示 UI で、作業の主体が App Intents から離れる
 - UI タップ由来の donation（#53）— **入れない**。公式の 2 方式はどちらも「UI からは Intent を直接呼ぶ」
   前提で、「UI も `Button(intent:)` で Siri と同じ経路を通す」原則と両立しない。加えて
-  `Button(intent:)` の実行はシステムが既に donation として記録している（2026-08-30 実測）。
-  **再訪の条件**: `PredictableIntent` による提案を機能として欲しくなったとき
+  `Button(intent:)` の実行はシステムが既に donation として記録している（2026-08-30 実測）ので、
+  donate すべきものが残っていない。**再訪の条件**: 別プロセス起点が記録されないと分かったとき（#30）
+- アプリ内実行の `callAsFunction(donate:)` への載せ替え（#99）— **やらない**。donate という動機が
+  上の実測で消え、残る利点（戻り値 / エラー / `requestConfirmation`・`requestChoice`）は
+  `@Dependency` + `NavigationModel` と Intent の 2 本立て（`DeleteTodoIntent` ÷
+  `DeleteTodoImmediatelyIntent` / `SnoozeTodoIntent` ÷ `QuickSnoozeTodoIntent`）で足りている。
+  載せ替えると別プロセスは `Button(intent:)` のままなので、呼び出し形が 2 種類に増える
 - watchOS の onscreen annotation（#54）— **実装済み**。行ごとの単一 annotation（`List` に selection が
   無く `forSelectionType:` が効かない）。自動テスト不可のため手動確認は #30
 
