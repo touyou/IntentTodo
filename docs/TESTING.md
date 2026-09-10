@@ -38,9 +38,10 @@ App Intents は**無音で失敗する**（ビルドは緑、IDE も綺麗、機
   飛ぶので identity が `com.apple.XCTRunner` のままになり、AppIntentsTesting が
   `AppIntentsServicesSecurityErrorDomain Code=803 "Unable to run internal tests on a Customer build"`
   で**全件 skip する**。`build` に付けるのは問題ない（SSU / メタデータ確認）
-- ⚠️ **skip は `TEST SUCCEEDED` になる**。`AppIntentsTestCase` は metadata が来ないと `XCTSkip` を
-  投げるので、23 件が 1 件も実行されなくても緑に見える。この層は**件数まで見る**
-  （経緯: [devlog/2026-09-10](devlog/2026-09-10-xcode27-rc-recheck.md#4-appintentstesting-は壊れていないcode_signing_allowedno-が原因だった119) / #119）
+- **この層で `XCTSkip` を使わない**。skip は `TEST SUCCEEDED` になるので、23 件が 1 件も実行されなくても
+  緑に見える（実際にそれで 1 日誤診した）。`AppIntentsTestCase` は metadata に届かなければ**失敗**する。
+  security 系のエラーは「待っても直らない設定ミス」として**待たずに**失敗させる
+  （経緯: [devlog/2026-09-10](devlog/2026-09-10-xcode27-rc-recheck.md#4-appintentstesting-は壊れていないcode_signing_allowedno-が原因だった119)）
 
 検証の梯子（Apple が示す順序）と AppIntentsTesting の落とし穴:
 [insights/03-app-intents-core.md](insights/03-app-intents-core.md#phase-6-テスト基盤295-appintentstesting) /

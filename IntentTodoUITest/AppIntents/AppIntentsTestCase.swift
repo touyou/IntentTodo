@@ -16,6 +16,16 @@ import AppIntents
 import AppIntentsTesting
 import XCTest
 
+/// The App Intents stack could not be reached, so nothing in the bundle can be verified.
+///
+/// `LocalizedError` as well: XCTest also reports the thrown error through `localizedDescription`,
+/// which otherwise degrades to the generic "operation could not be completed" string.
+struct IntentsUnreachable: Error, LocalizedError, CustomStringConvertible {
+    let description: String
+
+    var errorDescription: String? { description }
+}
+
 /// Base class with no tests of its own.
 class AppIntentsTestCase: XCTestCase {
     /// Must match the app target's `PRODUCT_BUNDLE_IDENTIFIER`.
@@ -45,6 +55,10 @@ class AppIntentsTestCase: XCTestCase {
     /// about it yet and calls through `IntentDefinitions` fail — which surfaces as "only the
     /// `AppIntentsServicesMetadataErrorDomain Code=400 "<bundle id> is not present"`
     /// first test after a clean build fails". Waiting for recognition avoids that.
+    ///
+    /// **Never `XCTSkip` here.** A skipped run still reports `TEST SUCCEEDED`, so a build that
+    /// cannot reach App Intents at all looks exactly like a passing one — every case in this
+    /// bundle silently stops verifying anything.
     private func waitUntilIntentsAreDiscoverable(timeout: TimeInterval = 30) async throws {
         let deadline = Date().addingTimeInterval(timeout)
         var lastError: Error?
@@ -53,11 +67,35 @@ class AppIntentsTestCase: XCTestCase {
                 _ = try await todoEntity.suggestedEntities()
                 return
             } catch {
+                // Waiting only helps the transient case. A rejected runner stays rejected, and
+                // polling it burns the timeout once per test before reporting the same thing.
+                if let reason = Self.configurationFailure(for: error) {
+                    throw IntentsUnreachable(description: reason)
+                }
                 lastError = error
                 try await Task.sleep(for: .milliseconds(500))
             }
         }
-        throw XCTSkip("App Intents metadata never became available: \(String(describing: lastError))")
+        throw IntentsUnreachable(
+            description: """
+            App Intents metadata never became available within \(Int(timeout))s, so none of \
+            this bundle's checks could run. Last error: \(String(describing: lastError))
+            """
+        )
+    }
+
+    /// Describes `error` when it is a setup problem that waiting cannot fix, else `nil`.
+    private static func configurationFailure(for error: Error) -> String? {
+        let error = error as NSError
+        guard error.domain == "AppIntentsServicesSecurityErrorDomain" else { return nil }
+        return """
+        App Intents rejected this test runner (\(error.domain) \(error.code): \
+        \(error.localizedDescription)). This is a build configuration problem, not a flake. \
+        The usual cause is passing CODE_SIGNING_ALLOWED=NO to `xcodebuild test`: it skips \
+        re-signing the UI test runner, leaving it with the com.apple.XCTRunner template \
+        identity instead of \(Self.appBundleID).IntentTodoUITest.xctrunner, and AppIntentsTesting \
+        checks that binding. Drop the flag — it is only needed for metadata/SSU `build` runs.
+        """
     }
 
     override func tearDown() {
