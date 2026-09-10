@@ -24,13 +24,29 @@ struct IntentTodoWatchApp: App {
     /// as on iOS: intents write navigation state via `@Dependency`, views observe it.
     @State private var navigationModel: NavigationModel
 
+    /// Launch argument that switches the app to an in-memory store, DEBUG only.
+    ///
+    /// Same argument and same reason as the iOS app: the shared store outlives the process,
+    /// so without it the watch UI tests branch on whatever the previous run left behind and
+    /// cannot assert the empty state.
+    #if DEBUG
+    static let ephemeralStoreArgument = "-uitest-ephemeral-store"
+    #endif
+
     init() {
         // Without a store the watch app has nothing to show, so this still traps — but it
         // logs why first. A bare `try!` leaves no message, and on the watch a launch crash
         // otherwise presents as "opens and immediately quits".
         let container: ModelContainer
         do {
+            #if DEBUG
+            let usesEphemeralStore = ProcessInfo.processInfo.arguments.contains(Self.ephemeralStoreArgument)
+            container = usesEphemeralStore
+                ? try SharedModelContainer.createInMemoryContainer()
+                : try SharedModelContainer.createContainer()
+            #else
             container = try SharedModelContainer.createContainer()
+            #endif
         } catch {
             logger.critical("Watch ModelContainer init failed: \(String(reflecting: error))")
             let nsError = error as NSError

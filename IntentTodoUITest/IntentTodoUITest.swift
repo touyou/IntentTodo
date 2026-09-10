@@ -58,12 +58,13 @@ final class IntentTodoUITest: XCTestCase {
         titleField.tap()
         titleField.typeText(title)
 
-        // Set favorite if needed
+        // Set favorite if needed. The caller asked for it, so a missing toggle is a failure —
+        // skipping it silently left `testAddTodoWithFavorite` asserting only that some todo
+        // was added, with the favorite half never exercised.
         if favorite {
             let favoriteToggle = app.switches["favoriteToggle"]
-            if favoriteToggle.exists {
-                favoriteToggle.tap()
-            }
+            XCTAssertTrue(favoriteToggle.waitForExistence(timeout: 5), "Favorite toggle should exist")
+            favoriteToggle.tap()
         }
 
         // Tap Add button
@@ -321,56 +322,39 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(filterMenu.waitForExistence(timeout: 5), "Filter menu should exist")
         filterMenu.tap()
 
-        // The `waitForExistence` below doubles as the wait for the menu.
-
-        // In SwiftUI Menu with Picker, menu content can appear in different ways
-        // depending on iOS version. We check multiple possible element types.
-        // The menu contains: Filter picker (All, Incomplete, Completed, Favorites) and Sort submenu
-
-        // Check for any evidence the menu opened:
-        // 1. Check for filter options (staticTexts, buttons, images)
-        // 2. Check for "Filter" or "Sort" labels
-        // 3. Check for checkmarks (selected state indicator)
-
-        var menuOpened = false
-
-        // Check for filter options
-        let possibleTexts = ["All", "Incomplete", "Completed", "Favorites", "Filter", "Sort"]
-        for text in possibleTexts {
-            if app.staticTexts[text].waitForExistence(timeout: 1) {
-                menuOpened = true
-                break
-            }
-            if app.buttons[text].exists {
-                menuOpened = true
-                break
-            }
+        // Every case of `TodoFilter`, plus the sort submenu, has to be on screen. The
+        // language is pinned in `setUpWithError`, so these labels resolve.
+        //
+        // Previously this walked a chain of fallbacks and ended at "more than 2 buttons
+        // exist", which is true whenever the app is running at all — the menu could fail to
+        // open and the test still passed.
+        for label in ["All", "Incomplete", "Completed", "Favorites", "Sort"] {
+            XCTAssertTrue(
+                menuItem(label).waitForExistence(timeout: 5),
+                "Filter menu should offer '\(label)'"
+            )
         }
 
-        // Also check if any menu items exist (generic check)
-        if !menuOpened {
-            // Check for picker selections via images (checkmark.circle.fill indicates selection)
-            // `XCUIElementQuery` has no `isEmpty`, and only "any at all" matters here, so
-            // this asks `firstMatch` instead of resolving every match.
-            if app.images.matching(identifier: "checkmark").firstMatch.exists {
-                menuOpened = true
-            }
-        }
+        // Dismiss the menu so the next test starts from the list.
+        let navBar = app.navigationBars.firstMatch
+        XCTAssertTrue(navBar.waitForExistence(timeout: 5), "Navigation bar should exist")
+        navBar.tap()
+    }
 
-        // If still not found, check for any popover or sheet content
-        if !menuOpened {
-            // The menu should have at least some content - check for any new elements
-            let initialButtonCount = app.buttons.count
-            menuOpened = initialButtonCount > 2 // More than just navigation bar buttons
-        }
-
-        XCTAssertTrue(menuOpened, "Filter menu should open and display options")
-
-        // Tap outside to dismiss menu (tap on navigation bar area)
-        let navBar = app.navigationBars["Todos"]
-        if navBar.exists {
-            navBar.tap()
-        }
+    /// A row of the filter / sort menu.
+    ///
+    /// Which element type a `Picker` inside a `Menu` lands in has moved between iOS
+    /// releases, so this matches either rather than pinning one and re-breaking later.
+    /// It still resolves to a single element, so callers can assert on it directly.
+    @MainActor
+    private func menuItem(_ label: String) -> XCUIElement {
+        let predicate = NSPredicate(format: "elementType == %d OR elementType == %d",
+                                    XCUIElement.ElementType.button.rawValue,
+                                    XCUIElement.ElementType.staticText.rawValue)
+        return app.descendants(matching: .any)
+            .matching(predicate)
+            .matching(NSPredicate(format: "label == %@", label))
+            .firstMatch
     }
 
     // MARK: - Test: Empty State

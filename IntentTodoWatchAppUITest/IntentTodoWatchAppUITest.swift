@@ -20,7 +20,16 @@ final class IntentTodoWatchAppUITest: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["--uitesting"]
+        // Pinned for the same two reasons as `IntentTodoUITest`: elements matched by
+        // accessibility label need the English strings to resolve (the simulator otherwise
+        // inherits the host's preferred language), and the shared store outlives the process,
+        // so without an empty store every test has to branch on leftover todos.
+        app.launchArguments = [
+            "--uitesting",
+            "-uitest-ephemeral-store",
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US"
+        ]
         app.launch()
     }
 
@@ -122,31 +131,27 @@ final class IntentTodoWatchAppUITest: XCTestCase {
 
     @MainActor
     func testToggleTodoCompletion() throws {
-        // Note: This test requires pre-existing todos in the database.
-        // Since text input is not reliable on watchOS simulator, we test
-        // that the list view loads and any existing todos can be interacted with.
+        // Text input is not reliable on the watchOS simulator, so this cannot create a todo
+        // and toggle it. What it can pin down is that the list surface itself comes up: the
+        // store is empty per launch, so the empty state is the expected content and is
+        // asserted directly rather than as the fallback of an `if`.
+        let emptyState = app.staticTexts["All Done!"]
+        XCTAssertTrue(emptyState.waitForExistence(timeout: 5), "Empty store should show the empty state")
 
-        // Check if there are any todos in the list
-        let list = app.scrollViews.firstMatch
-        if list.waitForExistence(timeout: 3) {
-            // List exists - verify it's visible
-            XCTAssertTrue(list.isHittable, "Todo list should be visible")
-        } else {
-            // No list visible - empty state should be shown
-            let emptyState = app.staticTexts["All Done!"]
-            XCTAssertTrue(emptyState.waitForExistence(timeout: 3), "Empty state should be shown when no todos")
-        }
+        let addButton = app.buttons["addTodoButton"].firstMatch
+        XCTAssertTrue(addButton.waitForExistence(timeout: 5), "Add button should be reachable from the list")
     }
 
     // MARK: - Test: Empty State
 
     @MainActor
     func testEmptyStateMessage() throws {
-        // If there are no incomplete todos, should show "All Done!" message
+        // The store is empty per launch, so the empty state is expected unconditionally.
         let allDoneText = app.staticTexts["All Done!"]
-        if allDoneText.waitForExistence(timeout: 3) {
-            XCTAssertTrue(allDoneText.exists, "Empty state should show 'All Done!' message")
-        }
+        XCTAssertTrue(
+            allDoneText.waitForExistence(timeout: 5),
+            "Empty state should show 'All Done!' message"
+        )
     }
 
     // MARK: - Test: Sections

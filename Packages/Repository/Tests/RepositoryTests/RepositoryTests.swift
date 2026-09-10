@@ -10,11 +10,16 @@ import Testing
 
 @Suite("Repository Tests")
 struct RepositoryTests {
-    @Test("Repository protocol and mock are accessible")
+    @Test("A fresh mock satisfies the protocol and starts empty")
     @MainActor
-    func repositoryModuleAccessible() {
-        let repository = MockTodoRepository()
-        #expect(repository != nil)
+    func freshMockStartsEmpty() throws {
+        // Typed as the protocol so conformance is enforced at compile time; the assertion
+        // covers the part that can actually regress — `MockTodoRepository()` seeding rows
+        // would make every test that builds on it start from a dirty store.
+        let repository: any TodoRepositoryProtocol = MockTodoRepository()
+
+        #expect(try repository.fetchAll().isEmpty)
+        #expect(try repository.incompleteCount() == 0)
     }
 
     @Test("RepositoryError cases are defined")
