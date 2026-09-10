@@ -20,6 +20,10 @@ import SwiftData
 
 // MARK: - AppEntity Requirements
 
+#if os(watchOS)
+// Only the watch declaration is a plain `AppEntity`, so it has to carry this itself.
+// Elsewhere `@AppEntity(schema:)` supplies it and an override is dropped during metadata
+// extraction — every schema-conforming entity ships an empty `displayTypeName`.
 public extension TodoAppEntity {
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         TypeDisplayRepresentation(
@@ -27,7 +31,10 @@ public extension TodoAppEntity {
             numericFormat: LocalizedStringResource("\(placeholder: .int) todos", comment: "Number of todos")
         )
     }
+}
+#endif
 
+public extension TodoAppEntity {
     var displayRepresentation: DisplayRepresentation {
         Self.makeDisplayRepresentation(
             title: title,

@@ -216,7 +216,7 @@ IntentTodoWidgetExtension.debug.dylib  closure #1 in QuickAddTodoControl.body.ge
   - App Shortcut 8 件、phrase の欠落なし
 - **AppIntentsTesting の 3 スイートは実行できていない**（§4。17/17 skip / 0 passed / 0 failed）
 
-## 6. ビルド警告（#120 / #113）
+## 6. ビルド警告（#120）
 
 beta 6 のときの記録に警告の件数が無いので「RC で増えた」とは断定できない。
 
@@ -227,7 +227,7 @@ beta 6 のときの記録に警告の件数が無いので「RC で増えた」�
 | `no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]` | 10 | `TodoAppEntity+Shared.swift` の 3 箇所で `try await MainActor.run` → `await MainActor.run`。`MainActor.run` は `rethrows` で、クロージャが throw しないので `try` が不要だった。関数側の `async throws` は `@DeferredProperty` のローダー署名として維持 |
 | 同上 | 1 | `IntentTodoUITest/AppIntents/TodoEntityQueryTests.swift:142`。クロージャが `try?` を使っているので外側の `try` が不要 |
 
-### 残したもの
+### `typeDisplayRepresentation` の上書きも外した（本人判断で GO）
 
 **`typeDisplayRepresentation` should not be overridden in an AppEntity that conforms to a schema**
 （`TodoAppEntity+Shared.swift:24`、1 件）。
@@ -253,23 +253,81 @@ watchOS では `TodoAppEntity` が `WatchTodoAppEntity`（schema なしの素の
 - **警告 0 件**、出荷メタデータは**全 entity で完全一致**（watch も `"Todo"` のまま）、`checks: all clear`
 - ただし **Swift レベルの値が `"Todo"` → `""` になる**。マクロが生成するのは**空**の
   `TypeDisplayRepresentation` であって、reminders schema の名前が入るわけではなかった
-- `TodoAppEntityTests.swift:127`「TypeDisplayRepresentation names the type」がこれを明示的に守っていて落ちる
 
-**「システムが読むメタデータは変わらない」対「Swift レベルの型名を失う」のトレードオフ**なので、
-入れずに #120 へ判断を戻した。
+**「Swift レベル」= プロセス内で Swift が `TodoAppEntity.typeDisplayRepresentation` を読んだ値**で、
+システムが読む `Metadata.appintents` とは別。schema 適合 entity については後者がすでに空なので、
+**システムから見た挙動は変わらない**。プロセス内で読んでいるのはテスト 1 本だけだった
+（`grep` で全ターゲットを確認）。
 
-### ついでに見つかったもの（#113）
-
-テストターゲット側に `comparing non-optional value of type 'X' to 'nil' always returns true` が 2 件。
-`RepositoryTests.swift:17` の `#expect(repository != nil)` と
-`AppIntentsTests.swift:14` の `#expect(package != nil)` で、どちらも**常に true**。
-「緑になる嘘テスト」と同じ species なので #113 に寄せた。
+`TodoAppEntityTests.swift`「TypeDisplayRepresentation names the type」は、実測した契約に書き直した:
+watchOS では `"Todo"`、それ以外では**空**。Apple 側が schema 由来の名前を入れ始めたら落ちるので、
+黙って食い違うのではなく気づける形になっている。
 
 `DomainTests-product` / `RepositoryTests-product` の
 `Metadata extraction skipped, no AppIntents.framework dependency found` は、AppIntents に依存しない
 テストバンドルなので想定どおり。対応しない。
 
-## 7. 測らなかったもの
+## 7. 「緑になる嘘テスト」を潰した（#113）
+
+`audit_intents.py --fail-on error` が error にしていた 3 件と、コンパイラ警告から見つかった 2 件。
+**`0 error(s)`** になった。
+
+| 場所 | 何が起きていたか | 直し方 |
+|---|---|---|
+| `IntentTodoUITest.swift` `testFilterMenu` | フォールバックの連鎖の末尾が「ボタンが 2 個より多い」で、**アプリが起動していれば常に true**。メニューが開かなくても緑 | `TodoFilter` の全ケース + `Sort` の存在を無条件に assert |
+| `IntentTodoWatchAppUITest.swift` `testEmptyStateMessage` | 本体まるごとが `if allDoneText.waitForExistence { … }` の中。**要素が出なければ何も検証せず緑** | 無条件 assert |
+| `IntentTodoWatchAppUITest.swift` `testToggleTodoCompletion` | 残っていた状態で分岐。else 側は英語ラベル依存で、watch テストは言語を固定していなかった。**そもそも完了トグルを一度も叩いていなかった** | フィクスチャで todo を 1 件用意し、実際にトグルして行が消えることを assert |
+| `IntentTodoWatchAppUITest.swift` `testListHasSections` | 「セクションがある **or** 空状態」で、空ストアなら必ず後者で通る。**セクションヘッダを検証していなかった** | フィクスチャ前提で `Upcoming` を無条件 assert |
+| `IntentTodoUITest.swift` `addTodo(title:favorite:)` | `if favoriteToggle.exists { tap }`。**`testAddTodoWithFavorite` がお気に入りを一度も検証していなかった**（audit は warn 扱いだったが実害があった） | toggle の存在を assert してから tap |
+| `RepositoryTests.swift` / `AppIntentsTests.swift` | `#expect(x != nil)` が非 Optional 相手で**常に true** | 「新品の mock は空」「package は他を巻き込まない」という落ちうる assert に置き換え |
+
+watch 側は前提が揃っていなかったので、そこも埋めた:
+
+- **watch アプリに DEBUG 限定の `-uitest-ephemeral-store` を追加**（iOS と同じ引数・同じ理由）。
+  共有ストアはプロセスより長生きするので、前の実行の残りで分岐するしかなかった
+- **watch テストの言語を `en` に固定**（iOS 側は既にやっていた）。
+  `app.staticTexts["All Done!"]` はホストが ja のままだと永遠に解決しない
+- **DEBUG 限定の `-uitest-seed-todo` を追加**。`typeText` が watchOS シミュレータで信用できないので、
+  add sheet 経由では行を用意できない。フィクスチャが無いから完了テストは「リストが出た」しか
+  見られず、それが「トグルを一度も叩かないまま緑」の正体だった
+
+### watch で分かったこと 2 つ
+
+- **行のタイトルは `staticText` ではなく `button`**（`NavigationLink` のラベルなので）。
+  `app.staticTexts["Seeded Todo"]` は解決しない。`app.debugDescription` を吐かせて確定させた:
+
+  ```
+  Cell, label: 'Mark as complete, Seeded Todo'
+    Button, identifier: 'circle', label: 'Mark as complete'
+    Button, label: 'Seeded Todo'
+  ```
+
+- **完了させると行はリストから消える**。watch の `@Query` は `!isCompleted` で絞っているので、
+  iOS のように `Mark as incomplete` へ変わるのを待っても永遠に来ない。
+  最初その形で書いて落ちた（アプリの挙動が正しく、テストの期待が間違っていた）
+
+### assert に歯があることを確認した
+
+直したものが「たまたま緑」でないことを、**わざと壊して落ちることで**確かめた:
+
+| 実験 | 結果 |
+|---|---|
+| `testFilterMenu` から `filterMenu.tap()` を外す | `XCTAssertTrue failed - Filter menu should offer 'All'` で失敗 |
+| watch の期待文字列を存在しないものに差し替え | `XCTAssertTrue failed - Empty state should show 'All Done!' message` で失敗 |
+| watch `testToggleTodoCompletion` から `checkbox.tap()` を外す | `XCTAssertTrue failed - Completed todo should leave the list` で失敗 |
+
+いずれも元に戻して再実行し、緑を確認した。
+
+### 残した warn
+
+`audit_intents.py` の warn は 5 件残っている。うち conditional-assert は 2 件で、どちらも
+**assert ではなく操作の分岐**なので嘘にならない:
+
+- `IntentTodoUITest.swift:296` — `if list.exists { list.swipeDown() }`。直後の検索フィールドの
+  assert は無条件なので、swipe が飛べばそこで落ちる
+- `TodoSystemIntegrationTests.swift:133` — `returnToList()` の後片付け
+
+## 8. 測らなかったもの
 
 - **watchOS の `run()` が 4025 で落ちる件**（#30）。iOS 側で AppIntentsTesting 自体が
   走らない状態なので、watchOS を測っても切り分けにならない

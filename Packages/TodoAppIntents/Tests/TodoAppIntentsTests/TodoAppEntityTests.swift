@@ -124,11 +124,20 @@ struct TodoAppEntityTests {
         #expect(entity.isOverdue == false)
     }
 
-    @Test("TypeDisplayRepresentation names the type")
-    func typeDisplayRepresentationConfigured() {
+    @Test("The schema owns the type display representation")
+    func typeDisplayRepresentationComesFromTheSchema() {
         let representation = TodoAppEntity.typeDisplayRepresentation
 
+        #if os(watchOS)
+        // The watch declaration is a plain `AppEntity`, so it carries its own name.
         #expect(String(localized: representation.name) == "Todo")
+        #else
+        // `@AppEntity(schema: .reminders.reminder)` supplies this, and what it supplies is
+        // empty. Overriding it here compiles but is dropped during metadata extraction, so
+        // the app would be asserting a name the system never sees. Failing here means the
+        // schema started providing one — worth looking at rather than silently disagreeing.
+        #expect(String(localized: representation.name).isEmpty)
+        #endif
     }
 
     @Test("DisplayRepresentation shows correct title")

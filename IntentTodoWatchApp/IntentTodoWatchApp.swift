@@ -24,13 +24,40 @@ struct IntentTodoWatchApp: App {
     /// as on iOS: intents write navigation state via `@Dependency`, views observe it.
     @State private var navigationModel: NavigationModel
 
+    /// Launch argument that switches the app to an in-memory store, DEBUG only.
+    ///
+    /// Same argument and same reason as the iOS app: the shared store outlives the process,
+    /// so without it the watch UI tests branch on whatever the previous run left behind and
+    /// cannot assert the empty state.
+    #if DEBUG
+    static let ephemeralStoreArgument = "-uitest-ephemeral-store"
+
+    /// Launch argument that seeds one known incomplete todo, DEBUG only.
+    ///
+    /// `typeText` is not reliable on the watchOS simulator, so a UI test cannot create a todo
+    /// through the add sheet. Without a fixture the completion test has no row to tap and can
+    /// only assert that the list came up — which is how it ended up passing while never
+    /// exercising the toggle at all.
+    static let seedTodoArgument = "-uitest-seed-todo"
+
+    /// Title of the seeded todo. The UI test matches on it.
+    static let seededTodoTitle = "Seeded Todo"
+    #endif
+
     init() {
         // Without a store the watch app has nothing to show, so this still traps — but it
         // logs why first. A bare `try!` leaves no message, and on the watch a launch crash
         // otherwise presents as "opens and immediately quits".
         let container: ModelContainer
         do {
+            #if DEBUG
+            let usesEphemeralStore = ProcessInfo.processInfo.arguments.contains(Self.ephemeralStoreArgument)
+            container = usesEphemeralStore
+                ? try SharedModelContainer.createInMemoryContainer()
+                : try SharedModelContainer.createContainer()
+            #else
             container = try SharedModelContainer.createContainer()
+            #endif
         } catch {
             logger.critical("Watch ModelContainer init failed: \(String(reflecting: error))")
             let nsError = error as NSError
@@ -39,6 +66,21 @@ struct IntentTodoWatchApp: App {
             fatalError("Could not create ModelContainer for the watch app: \(String(reflecting: error))")
         }
         modelContainer = container
+
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains(Self.seedTodoArgument) {
+            MainActor.assumeIsolated {
+                do {
+                    try SwiftDataTodoRepository(modelContext: container.mainContext)
+                        .create(TodoItem(title: Self.seededTodoTitle))
+                } catch {
+                    // A silent failure here would surface as "the completion test can't find
+                    // its row", which reads like an app bug rather than a missing fixture.
+                    logger.critical("Seeding the UI test todo failed: \(String(reflecting: error))")
+                }
+            }
+        }
+        #endif
 
         // Registered synchronously: deferring to a `Task` can lose the race against an
         // intent that runs right after launch.

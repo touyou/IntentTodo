@@ -20,7 +20,16 @@ final class IntentTodoWatchAppUITest: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["--uitesting"]
+        // Pinned for the same two reasons as `IntentTodoUITest`: elements matched by
+        // accessibility label need the English strings to resolve (the simulator otherwise
+        // inherits the host's preferred language), and the shared store outlives the process,
+        // so without an empty store every test has to branch on leftover todos.
+        app.launchArguments = [
+            "--uitesting",
+            "-uitest-ephemeral-store",
+            "-AppleLanguages", "(en)",
+            "-AppleLocale", "en_US"
+        ]
         app.launch()
     }
 
@@ -29,6 +38,22 @@ final class IntentTodoWatchAppUITest: XCTestCase {
     }
 
     // MARK: - Helper Methods
+
+    /// Title of the todo the app seeds under `-uitest-seed-todo`.
+    /// Must match `IntentTodoWatchApp.seededTodoTitle`.
+    static let seededTodoTitle = "Seeded Todo"
+
+    /// Relaunches the app with one known incomplete todo already in the store.
+    ///
+    /// `setUpWithError` launches with an empty store because most tests want the empty
+    /// state; the tests that need a row ask for it here rather than making every other
+    /// test start from a populated list.
+    @MainActor
+    private func relaunchWithSeededTodo() {
+        app.terminate()
+        app.launchArguments.append("-uitest-seed-todo")
+        app.launch()
+    }
 
     /// Adds a todo with the given title.
     /// - Parameter title: The title for the new todo.
@@ -122,51 +147,54 @@ final class IntentTodoWatchAppUITest: XCTestCase {
 
     @MainActor
     func testToggleTodoCompletion() throws {
-        // Note: This test requires pre-existing todos in the database.
-        // Since text input is not reliable on watchOS simulator, we test
-        // that the list view loads and any existing todos can be interacted with.
+        // `typeText` is not reliable on the watchOS simulator, so the todo comes from a
+        // launch-argument fixture instead of the add sheet.
+        relaunchWithSeededTodo()
 
-        // Check if there are any todos in the list
-        let list = app.scrollViews.firstMatch
-        if list.waitForExistence(timeout: 3) {
-            // List exists - verify it's visible
-            XCTAssertTrue(list.isHittable, "Todo list should be visible")
-        } else {
-            // No list visible - empty state should be shown
-            let emptyState = app.staticTexts["All Done!"]
-            XCTAssertTrue(emptyState.waitForExistence(timeout: 3), "Empty state should be shown when no todos")
-        }
+        // The row's title is the label of the `NavigationLink`, so it resolves as a button
+        // rather than a static text.
+        let todoCell = app.buttons[Self.seededTodoTitle].firstMatch
+        XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Seeded todo should appear in the list")
+
+        let checkbox = app.buttons["Mark as complete"].firstMatch
+        XCTAssertTrue(checkbox.waitForExistence(timeout: 5), "Incomplete todo should show a complete checkbox")
+        checkbox.tap()
+
+        // The watch list queries `!isCompleted`, so completing the only todo empties it —
+        // there is no "Mark as incomplete" row to look for here as there is on iOS.
+        XCTAssertTrue(todoCell.waitForNonExistence(timeout: 5), "Completed todo should leave the list")
+        XCTAssertTrue(
+            app.staticTexts["All Done!"].waitForExistence(timeout: 5),
+            "Completing the only todo should show the empty state"
+        )
     }
 
     // MARK: - Test: Empty State
 
     @MainActor
     func testEmptyStateMessage() throws {
-        // If there are no incomplete todos, should show "All Done!" message
+        // The store is empty per launch, so the empty state is expected unconditionally.
         let allDoneText = app.staticTexts["All Done!"]
-        if allDoneText.waitForExistence(timeout: 3) {
-            XCTAssertTrue(allDoneText.exists, "Empty state should show 'All Done!' message")
-        }
+        XCTAssertTrue(
+            allDoneText.waitForExistence(timeout: 5),
+            "Empty state should show 'All Done!' message"
+        )
     }
 
     // MARK: - Test: Sections
 
     @MainActor
     func testListHasSections() throws {
-        // Note: Text input is not reliable on watchOS simulator, so we test
-        // that section headers are properly defined (if todos exist).
+        // "Sections exist OR the empty state is shown" was true either way, so the section
+        // header was never actually verified. The fixture makes the expected branch
+        // deterministic: one todo with no due date lands in "Upcoming".
+        relaunchWithSeededTodo()
 
-        // Check if section headers exist when there are todos
         let upcomingSection = app.staticTexts["Upcoming"]
-        let dueSoonSection = app.staticTexts["Due Soon"]
-        let emptyState = app.staticTexts["All Done!"]
-
-        // Either sections should exist (if there are todos) or empty state should be shown
-        let hasContent = upcomingSection.waitForExistence(timeout: 3) ||
-                        dueSoonSection.waitForExistence(timeout: 1) ||
-                        emptyState.waitForExistence(timeout: 1)
-
-        XCTAssertTrue(hasContent, "Should show either section headers or empty state")
+        XCTAssertTrue(
+            upcomingSection.waitForExistence(timeout: 5),
+            "A todo with no due date should appear under 'Upcoming'"
+        )
     }
 
     // MARK: - Test: Navigation
