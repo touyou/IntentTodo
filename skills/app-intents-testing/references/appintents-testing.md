@@ -58,6 +58,7 @@ Because the app target is never imported, **most mistakes surface at runtime, no
 
 ## Platform limits
 
+- **Never pass `CODE_SIGNING_ALLOWED=NO` to `test`.** It skips re-signing the UI test runner, which then keeps the `com.apple.XCTRunner` template identity instead of `<app-bundle-id>.xctrunner`. AppIntentsTesting verifies that binding and rejects the run with `AppIntentsServicesSecurityErrorDomain Code=803 "Unable to run internal tests on a Customer build"`. Every case skips, and the run still reports `TEST SUCCEEDED` [measured 2026-09-10, iOS 27 / Xcode 27 RC 27A266a].
 - **watchOS: `run()` failed in the recorded environment** (error 4025); this path was not re-run in the beta 6 audit. Treat it as a measured limitation, not a public API unavailability declaration. Cover the watch by testing the shared service and entity layer with unit tests, plus a UI test for the watch app's own flow — do not write watch AppIntentsTesting cases that can only ever be skipped.
 - **iOS simulator: no `VisualIntelligence`**, so `IntentValueQuery` cases must run on device or macOS.
 - Live Activity and Control Center invocation paths are not reachable; both stay manual.

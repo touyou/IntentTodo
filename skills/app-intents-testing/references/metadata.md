@@ -53,6 +53,13 @@ xcodebuild -project MyApp.xcodeproj -scheme MyApp \
 
 Then check for `must match regular expression`, `Could not archive SSU` and `emitted errors` — the tool exits 0 either way, so `BUILD SUCCEEDED` proves nothing here.
 
+> **Do not carry `CODE_SIGNING_ALLOWED=NO` over to `test`.** It is correct for `build` — metadata
+> extraction and SSU training do not need a signature — but it also skips re-signing the UI test
+> runner, which then keeps the `com.apple.XCTRunner` template identity instead of
+> `<app-bundle-id>.xctrunner`. AppIntentsTesting checks that binding and rejects the run with
+> `AppIntentsServicesSecurityErrorDomain Code=803 "Unable to run internal tests on a Customer build"`.
+> Every case then *skips*, and a run where nothing executed still reports `TEST SUCCEEDED`.
+
 ## Comparing before and after
 
 The metadata is the right place to verify most structural changes, because the diff is mechanical: property counts per entity, schema claims per type, parameter identifiers per action. When a change is supposed to alter one of those and does not, that is the finding.
