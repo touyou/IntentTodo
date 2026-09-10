@@ -34,6 +34,9 @@ App Intents は**無音で失敗する**（ビルドは緑、IDE も綺麗、機
 - **watchOS では AppIntentsTesting の `run()` が落ちる**
   （`LNPerformActionPrebuiltErrorCodeActionNotAllowed` / code 4025）。前提データを作れないので
   watchOS 固有の観点は手動確認になる
+- 🚨 **Xcode 27 RC（27A266a）+ iOS 27.0 Simulator 24A434 では AppIntentsTesting が 1 件も走らない**。
+  `AppIntentsServicesSecurityErrorDomain Code=803` で全件 skip し、**skip なので `TEST SUCCEEDED` になる**。
+  この層を「通った」と読まないこと。詳細と切り分けは **#119**
 
 検証の梯子（Apple が示す順序）と AppIntentsTesting の落とし穴:
 [insights/03-app-intents-core.md](insights/03-app-intents-core.md#phase-6-テスト基盤295-appintentstesting) /

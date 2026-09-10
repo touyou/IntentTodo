@@ -163,7 +163,7 @@
 
 ## 既知の SDK 制約
 
-> **Xcode 27 beta 6 時点で未解消**: system value 型（`PlaceDescriptor` ほか）の SSU training バグ
+> **Xcode 27 RC（27A266a）時点で未解消**: system value 型（`PlaceDescriptor` ほか）の SSU training バグ
 > （**App Shortcut に登録した Intent の `@Parameter`** に置くと発火。`AddTodoIntent.location` の `String`
 > 退避のみ継続中。`TodoAppEntity.location` は 2026-08-29 に `PlaceDescriptor?` へ戻した。FB24548956）と、
 > watchOS での `reminders`/`system` assistant schema unavailable（フォールバック継続中）。SDK 更新時は

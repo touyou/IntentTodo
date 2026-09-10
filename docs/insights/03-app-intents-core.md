@@ -712,7 +712,7 @@ assistant schema に適合させると、Siri / Apple Intelligence がコンテ�
   `type: TodoListType`）、`TodoListType` を `@AppEnum(schema: .reminders.listType)` に。マクロが
   `typeDisplayRepresentation` を生成するので手書きは削除、`Hashable` はマクロ backing が非 Hashable のため明示実装。
 - **落とし穴（watchOS / tvOS 非対応）**: **`AppSchema` の全 23 ドメインが watchOS / tvOS で
-  `@available(..., unavailable)`**（Xcode 27 beta 6 の SDK swiftinterface を全数確認）。`reminders`
+  `@available(..., unavailable)`**（Xcode 27 RC 27A266a の SDK swiftinterface を全数確認）。`reminders`
   固有ではないので**ドメインを変えても回避できない**。App Schema は新しい Siri に語彙を渡す仕組みで、
   その Siri が iPhone / iPad / Mac / visionOS にしか無いため（WWDC 2026 Apple Intelligence Group Lab
   `35:34`）。
@@ -809,7 +809,7 @@ App Intents は「開く」「削除する」等の共通アクションに **sy
 「次の期限/緊急 Todo」を文脈寄付する目的で `RelevantEntities.shared.updateEntities(_:for:)` を検討したが、
 **第二引数 `AppEntityContext` がドメイン固有のファクトリしか持たない**ことが判明（DocumentationSearch 確認）。
 
-- **beta 6 の公開 SDK で使えるのは `.audio(.nowPlaying)`**。`AppEntityContext` のファクトリは
+- **RC 27A266a の公開 SDK で使えるのは `.audio(.nowPlaying)`**。`AppEntityContext` のファクトリは
   `.audio(_:)`、`AudioContext` の値は `.nowPlaying` のみ（2026-09-05、iOS / macOS / visionOS /
   watchOS の swiftinterface 確認）。`.workout(activityType:)` を利用可能 API として扱わない。
 - **汎用 / reminders / todo 向けの context 値は確認できない**。Todo を再生中メディアとして
@@ -1117,7 +1117,7 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
   妥当。`textContent`（`CSMessaging` カテゴリ、メール/メッセージ本文全文を想定した意味）よりも Todo の詳細説明という
   ユースケースに近いため——これは型の制約ではなく意味の制約による選択。
 - **落とし穴（プラットフォーム）**: `indexingKey:` オーバーロードは **watchOS / tvOS で unavailable**
-  （Xcode 27 beta 6 の SDK は `@available(watchOS, unavailable)` / `@available(tvOS, unavailable)`。
+  （Xcode 27 RC 27A266a の SDK は `@available(watchOS, unavailable)` / `@available(tvOS, unavailable)`。
   `IndexedEntity` は `macOS 15 / iOS 18 / visionOS 2`、`IndexedEntityQuery` は 27 世代の 3 OS）。
   watchOS では `Extra argument 'indexingKey'` + `Cannot infer key path type` でビルド失敗するため、
   `IndexedEntity` 拡張と同じ `#if os(iOS) || os(macOS) || os(visionOS)` で分岐し、watchOS は素の `@Property`
@@ -1409,7 +1409,7 @@ CosmoTunes の `DonationManager` も同じことを書いている（*"Avoid iss
 intent's `perform()`, because the framework already donates intents invoked through Siri or
 Shortcuts."*）。
 
-`perform()` は呼出元を判別できない（beta 6 の `IntentSystemContext` は `currentMode`、
+`perform()` は呼出元を判別できない（RC 27A266a の `IntentSystemContext` は `currentMode`、
 `isVoiceOnly`、`locale`、`preciseTimestamp` を公開するが、invocation source の API は無い）。したがって `perform()` 内の donate は
 **必ず Siri / Shortcuts 経由でも走る = 規約違反になる**。
 

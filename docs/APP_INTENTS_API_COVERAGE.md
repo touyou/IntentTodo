@@ -65,7 +65,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `UISceneAppIntent` + `AppIntentSceneDelegate` | cold start でシーンに Intent を届ける | ✅ | `LaunchAppIntent` / `OpenTodoIntent` + `SceneDelegate.applyNavigation()` |
 | `URLRepresentableIntent` | Intent を URL で表現 | ✅ | `OpenTodoIntent`（`OpenIntent` との組み合わせで無償） |
 | `AudioPlaybackIntent` | 再生系 | 🚫 | 再生機能がない |
-| `RunSystemShortcutIntent` / `SystemShortcut` | システム側ショートカットの実行（iOS 27, iOS 限定） | 🚫 | `SystemShortcut` に公開イニシャライザが無く、アプリから値を作れない（beta 6 の swiftinterface で確認） |
+| `RunSystemShortcutIntent` / `SystemShortcut` | システム側ショートカットの実行（iOS 27, iOS 限定） | 🚫 | `SystemShortcut` に公開イニシャライザが無く、アプリから値を作れない（RC 27A266a の swiftinterface で確認） |
 | `_ModelDelegationIntent` / `IntentResponseStream` | 応答をストリームで返す（iOS 27） | 🚫 | 下線付き + `@_documentation(visibility: internal)`。公開 API として使えない |
 | `CustomIntentMigratedAppIntent` | SiriKit からの移行 | 🚫 | SiriKit 資産がない |
 | `LiveActivityStartingIntent` | 旧・LA 開始専用 | ⛔ | iOS 17 で deprecated。`LiveActivityIntent` が後継 |
@@ -81,7 +81,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `.foreground(.deferred)` | 背景で始めて必要なら前面 | ✅ | `AddTodoIntent` |
 | `.foreground(.dynamic)` / `continueInForeground()` | `perform()` 内で前面化を判断 | ⏸ | **#55 で「適所なし」と結論**。開くは `OpensIntent`、対話は `requestChoice`、読ませるは dialog + snippet で埋まっている |
 | `systemContext.currentMode` / `canContinueInForeground` | 実行モードの参照 | ⏸ | 上と同じ理由で参照する必要がない |
-| `systemContext.locale` / `isVoiceOnly` | 実行文脈の言語・音声のみかの参照 | ⏸ | beta 6 公開 SDK に存在。現行は返却する値と dialog に表示を任せるため直接参照しない。呼出元の識別には使えない |
+| `systemContext.locale` / `isVoiceOnly` | 実行文脈の言語・音声のみかの参照 | ⏸ | RC 27A266a の公開 SDK に存在（`preciseTimestamp` / `isVoiceOnly` / `locale` の 3 つ）。現行は返却する値と dialog に表示を任せるため直接参照しない。呼出元の識別には使えない |
 | `allowedExecutionTargets` | 実行プロセスを固定 | ✅ | **書き込み系は全部 `[.main]`**。読み取り系は固定しない。宣言漏れは `IntentExecutionTargetsTests` が検出 |
 | `performBackgroundTask` | 長時間処理の入れ物 | ✅ | `CompleteTodosIntent` |
 | `performBackgroundTask(options:)` / `LongRunningTaskOptions` | `.requiresGPU` の宣言（iOS 27） | 🚫 | GPU を使う処理がない。バルク完了は SwiftData の書き込みだけ |
@@ -195,7 +195,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `UNMutableNotificationContent.appEntityIdentifiers` | 通知に entity を紐付け | ✅ | Control のエラー通知 |
 | `AppEntityAnnotatable` / `UICollectionViewAppIntentsDataSource` | UIKit 側の onscreen 提供 | 🚫 | SwiftUI アプリなので対象外 |
 | `MusicContent.appEntityIdentifiers` / `AlarmConfiguration.appEntityIdentifier` | Now Playing / AlarmKit との紐付け | 🚫 | 該当機能がない |
-| `RelevantEntities` + `AppEntityContext` | 文脈に応じた entity 寄付 | 🚫 | **todo / reminders 向けの `AppEntityContext` が存在しない**ため適合不能（beta 6 でもファクトリは `.audio(_:)` の 1 つだけ） |
+| `RelevantEntities` + `AppEntityContext` | 文脈に応じた entity 寄付 | 🚫 | **todo / reminders 向けの `AppEntityContext` が存在しない**ため適合不能（RC 27A266a でもファクトリは `.audio(_:)` の 1 つだけ） |
 | `RelevantIntent` / `RelevantIntentManager` | Smart Stack への Intent 提案 | ⬜ | `WidgetConfigurationIntent` があるので donation なしで成立する経路（#68） |
 | `IntentDonationManager.donate(_:)` / `AppIntent.donate()` | 実行履歴の寄付 | ⏸ | **#53 で不採用決着**。`perform()` 内 donate は規約違反。加えて **`Button(intent:)` の実行はシステムが既に donation として記録している**（2026-08-30 実測）ので、UI が全部 `Button(intent:)` の本アプリには donate すべきものが残らない。別プロセス起点は未確定（#98） |
 | `deleteDonations(matching:)` | 消えた entity の提案を消す | ✅ | 削除 3 経路すべて（呼出元に関係なく正しい後片付け） |
