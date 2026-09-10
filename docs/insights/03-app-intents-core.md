@@ -1424,10 +1424,11 @@ Shortcuts."*）。
 **本アプリは UI も `Button(intent:)` で同じ Intent を走らせる設計**なので、上のどちらも
 そのままでは当てはまらない（サービス層に届く時点で常に Intent 経由）。現状は
 「規約違反になる donate を消す」を優先して `perform()` 内の donate を撤去した。UI タップ分を
-donate し直したい場合の選択肢は `AppIntent.callAsFunction(donate:)`
+donate し直す選択肢は `AppIntent.callAsFunction(donate:)`
 （"Runs the intent's action after resolving any parameters, and optionally donates the intent"）で
-一部の UI 経路だけ `Button(intent:)` から直接実行へ切り替える形。未着手候補として
-`docs/APP_INTENTS_CENTRIC_PLAN.md` に置いてある。
+一部の UI 経路だけ `Button(intent:)` から直接実行へ切り替える形だが、**これは採らない**（#99）。
+次節のとおり donate すべきものが残っていないうえ、別プロセスは `Button(intent:)` のままなので
+呼び出し形が 2 種類に増える。
 
 **却下した 3 案目: Intent に「呼出元フラグ」を持たせる形**（`shouldDonate` のような専用プロパティを
 UI 側で立てて `perform()` 内の donate を切り替える）は成立しない。理由は 2 つとも機械的:
@@ -1449,7 +1450,7 @@ UI 側で立てて `perform()` 内の donate を切り替える）は成立し�
 
 もう 1 つのコストとして、donation には観測用の公開 API が無い（`deleteDonations` はあるが列挙は無い）。
 **AppIntentsTesting で押さえられない**ので、「効いているか確認できないコードを Intent の公開スキーマに
-足す」形になる。これも未着手のまま置いている理由の一部。
+足す」形になる。これも不採用にしている理由の一部。
 
 ### そもそも `Button(intent:)` の実行はシステムが donation として記録している
 
@@ -1462,7 +1463,8 @@ UI 側で立てて `perform()` 内の donate を切り替える）は成立し�
 wwdc2026-343 `6:33` の *"Apple Intelligence can't learn from actions people take through your app's
 UI without your help"* は **UI の操作が intent の実行になっていない**アプリの話で、前提が違う。
 
-- 別プロセス（Widget / Control）起点が記録されるかは**未確定**（#98）
+- 別プロセス（Widget / Control / Live Activity）起点が記録されるかは**未確定**。シミュレータでは
+  コントロールが合成タップで発火せず測れないので実機案件（#30）
 - 「ストリームに載る」＝「学習に使われる」とまでは公式に書かれていない（ストリーム名と
   wwdc2026-343 `6:22–9:46` の一致からの推定）
 - 観測は `skills/app-intents-testing/scripts/inspect_donation_stream.py`。**非公開パスなので

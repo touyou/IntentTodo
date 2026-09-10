@@ -124,7 +124,8 @@ Siri フレーズまで通し）。
 
 1. **フィードバック経路の拡張** — Control は dialog も snippet も出ないため、`.controlWidgetStatus(_:)` が
    実際に出るなら通知に頼らない経路が 1 本増える
-2. **提案** — `RelevantIntent` は donation なしで成立する（`PredictableIntent` は donation ゼロだと出ない）。
+2. **提案** — `RelevantIntent` は donation なしで成立する。`PredictableIntent` も、前提の donation を
+   システムが記録している以上ゼロではない（2026-08-30 実測）ので候補に戻る。
    on/off の置き場は設定の連携セクション（`SettingsView`）にできた
 3. **連携先の拡張** — `AudioPlaybackIntent`（「この Todo をやる間これを流す」）。未採用の Intent 種別で、
    設定の連携セクションが受け皿になる。なお SDK 27 の assistant schema に music / health ドメインは無い
