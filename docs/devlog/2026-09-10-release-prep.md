@@ -110,8 +110,23 @@ UI テストからは「アプリがクラッシュしました」としか見�
 `xcodebuild -testLanguage ja -testRegion JP` に置き換えた。
 これはアプリ側の `Locale.current` も動かすので、フィクスチャの言語選択もこれ 1 つで揃う。
 
-**(d) visionOS では `XCUIScreen.main.screenshot()` が 1x1 の画像を返す。**
-掴むべき単一のフレームバッファが無い。`app.screenshot()`（アプリのウィンドウ）に切り替えた。
+**(d) visionOS は XCUITest では撮れない。`simctl` に切り替えた。**
+`XCUIScreen.main.screenshot()` は 1x1 の画像を返す（掴むべき単一のフレームバッファが無い）。
+`app.screenshot()` に替えると画像自体は出るが、**1280x720 に切り取られた平たい矩形**で、
+ウィンドウの下と右が欠け、visionOS の見え方でもなければ ASC の寸法（3840x2160）でもなかった。
+
+`xcrun simctl io <device> screenshot` は**部屋ごと 3840x2160 で描画してくれる**。ASC の要件と一致し、
+実際のストアの visionOS スクショと同じ見え方になる。ただし simctl はタップできないので、
+画面遷移の手段を別に用意する必要があった:
+
+- **ディープリンクは使えない。** `simctl openurl` は外部からの遷移として扱われ、
+  「"Intento" で開きますか?」の確認がキャプチャの上に載る
+- **起動引数で開く画面を指定する形にした**（`-uitest-screenshot-screen detail`）。
+  画面ごとに起動し直して 1 枚ずつ撮る
+- **通知許可のダイアログもキャプチャに載る。** iOS のシミュレータはたまたま自動で許可していた
+  だけだった。フィクスチャ実行時は許可要求ごと飛ばすようにした
+- **撮る前にデバイスを erase する。** 前の実行が空間に残したウィンドウやアラートが
+  そのまま写り込む。部屋ごと撮るということはそういうこと
 
 **(e) watchOS で行をタップすると完了トグルを押していた。**
 1 行の中でボタンは「ナビゲーションリンク」「完了チェックボックス」の順。
@@ -125,8 +140,12 @@ UI テストからは「アプリがクラッシュしました」としか見�
 | iPhone 17 Pro Max | 4 | 1320x2868 | ✅ 6.9" と一致 |
 | iPad Pro 13-inch (M5) | 4 | 2064x2752 | ✅ 13" と一致 |
 | Apple Watch Ultra 4 (49mm) | 2 | 422x514 | 要確認（#127） |
-| Apple Vision Pro | 3 | 1280x720 / 580x640 | 3840x2160 が要る（#127） |
+| Apple Vision Pro | 3 | 3840x2160 | ✅ 一致 |
 | macOS | — | — | 撮れていない（#127） |
+
+撮り方が 2 系統に分かれた。**iPhone / iPad / Watch は XCUITest**（`XCUIScreen.main.screenshot()` が
+デバイスのフレームバッファをそのまま返し、ASC の要求ピクセル数と一致する）、
+**visionOS は `simctl io screenshot`**（上記 (d)）。
 
 visionOS と macOS に設定画面が無いのは仕様。`SettingsView` は `ShortcutsLink` を中心に組んであり、
 `ShortcutsLink` が macOS に無いので `TodoListToolbar` が `#if os(iOS)` でボタンごと落としている。

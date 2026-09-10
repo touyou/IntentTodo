@@ -8,6 +8,16 @@
 #
 # Output goes to Screenshots/<platform>/<locale>/NN-name.png (gitignored).
 #
+# Two mechanisms, because the platforms need different things:
+#
+#   * iPhone / iPad / Apple Watch — XCUITest drives the app and attaches
+#     `XCUIScreen.main.screenshot()`, which is the device's framebuffer at exactly the pixel
+#     size App Store Connect asks for.
+#   * Apple Vision Pro — `simctl io screenshot`, which renders the whole simulated room at
+#     3840x2160 (the size ASC wants). `XCUIScreen.main` returns a 1x1 image there, and
+#     `app.screenshot()` returns a flat, clipped rectangle of the window with no environment
+#     around it. Navigation therefore goes through deep links rather than taps.
+#
 # Never pass CODE_SIGNING_ALLOWED=NO to `xcodebuild test`: it skips re-signing the UI test
 # runner and AppIntentsTesting-adjacent services reject it with
 # AppIntentsServicesSecurityErrorDomain 803. See docs/devlog/2026-09-10-xcode27-rc-recheck.md.
@@ -20,24 +30,26 @@ OUT="$ROOT/Screenshots"
 WORK="${SCREENSHOT_WORK_DIR:-$ROOT/.screenshot-runs}"
 LOCALES="${LOCALES:-en ja}"
 
+BUNDLE_ID="dev.touyou.IntentTodo"
+
 # platform | scheme | test target/class | destination
 #
-# macOS is deliberately absent from the default set — pass `mac` explicitly to try it. The
-# run does not produce usable images yet (#127): the sidebar row is a single accessibility
-# element that cannot be navigated from, and the window comes back at an arbitrary size
-# rather than one App Store Connect accepts.
-PLATFORMS=(
+# macOS is deliberately absent — pass `mac` explicitly to try it. The run does not produce
+# usable images yet (#127): the sidebar row is a single accessibility element that cannot be
+# navigated from, and the window comes back at an arbitrary size rather than one App Store
+# Connect accepts.
+UITEST_PLATFORMS=(
   "iphone|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=iOS Simulator,name=iPhone 17 Pro Max,OS=27.0"
   "ipad|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=iOS Simulator,name=iPad Pro 13-inch (M5),OS=27.0"
-  "vision|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=visionOS Simulator,name=Apple Vision Pro,OS=27.0"
   "watch|IntentTodoWatchAppUITest|IntentTodoWatchAppUITest/WatchScreenshotTests|platform=watchOS Simulator,name=Apple Watch Ultra 4 (49mm),OS=27.0"
 )
 MAC_PLATFORM="mac|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=macOS,arch=arm64"
 for name in "$@"; do
-  [ "$name" = "mac" ] && PLATFORMS+=("$MAC_PLATFORM")
+  [ "$name" = "mac" ] && UITEST_PLATFORMS+=("$MAC_PLATFORM")
 done
 
 requested=("$@")
+failed=()
 
 wanted() {
   [ ${#requested[@]} -eq 0 ] && return 0
@@ -47,51 +59,49 @@ wanted() {
   return 1
 }
 
+region_for() {
+  case "$1" in
+    ja) echo JP ;;
+    *)  echo US ;;
+  esac
+}
+
 mkdir -p "$WORK"
-failed=()
 
-for entry in "${PLATFORMS[@]}"; do
-  IFS='|' read -r platform scheme testid destination <<< "$entry"
-  wanted "$platform" || continue
+# --- XCUITest-driven platforms ------------------------------------------------------------
 
-  for locale in $LOCALES; do
-    echo "==> $platform / $locale"
-    bundle="$WORK/$platform-$locale.xcresult"
-    log="$WORK/$platform-$locale.log"
-    rm -rf "$bundle"
+capture_via_uitest() {
+  local platform=$1 scheme=$2 testid=$3 destination=$4 locale=$5
+  local bundle="$WORK/$platform-$locale.xcresult"
+  local log="$WORK/$platform-$locale.log"
+  rm -rf "$bundle"
 
-    case "$locale" in
-      ja) region=JP ;;
-      *)  region=US ;;
-    esac
+  # -testLanguage / -testRegion, not -AppleLanguages launch arguments: this is what moves
+  # `Locale.current` inside the app under test, which the fixture reads to pick its titles.
+  if ! xcodebuild test \
+    -project IntentTodo.xcodeproj \
+    -scheme "$scheme" \
+    -destination "$destination" \
+    -only-testing:"$testid" \
+    -resultBundlePath "$bundle" \
+    -testLanguage "$locale" \
+    -testRegion "$(region_for "$locale")" \
+    > "$log" 2>&1; then
+    echo "    FAILED — see $log"
+    failed+=("$platform/$locale")
+    return
+  fi
 
-    # -testLanguage / -testRegion, not -AppleLanguages launch arguments: this is what moves
-    # `Locale.current` inside the app under test, which the fixture reads to pick its titles.
-    if ! xcodebuild test \
-      -project IntentTodo.xcodeproj \
-      -scheme "$scheme" \
-      -destination "$destination" \
-      -only-testing:"$testid" \
-      -resultBundlePath "$bundle" \
-      -testLanguage "$locale" \
-      -testRegion "$region" \
-      > "$log" 2>&1; then
-      echo "    FAILED — see $log"
-      failed+=("$platform/$locale")
-      continue
-    fi
+  local dest="$OUT/$platform/$locale"
+  rm -rf "$dest" && mkdir -p "$dest"
 
-    dest="$OUT/$platform/$locale"
-    rm -rf "$dest"
-    mkdir -p "$dest"
+  local staging="$WORK/$platform-$locale-attachments"
+  rm -rf "$staging"
+  xcrun xcresulttool export attachments --path "$bundle" --output-path "$staging" > /dev/null
 
-    staging="$WORK/$platform-$locale-attachments"
-    rm -rf "$staging"
-    xcrun xcresulttool export attachments --path "$bundle" --output-path "$staging" > /dev/null
-
-    # The exported filenames are opaque; manifest.json maps them back to the names the test
-    # gave each attachment.
-    python3 - "$staging" "$dest" <<'PY'
+  # The exported filenames are opaque; manifest.json maps them back to the names the test
+  # gave each attachment.
+  python3 - "$staging" "$dest" <<'PY'
 import json, pathlib, re, shutil, sys
 
 staging, dest = (pathlib.Path(p) for p in sys.argv[1:3])
@@ -115,8 +125,94 @@ if count == 0:
     sys.exit("no attachments in the result bundle")
 print(f"    {count} screenshot(s) -> {dest}")
 PY
+}
+
+# --- Apple Vision Pro ----------------------------------------------------------------------
+
+vision_udid() {
+  # There is one device of this name per installed runtime, so the 27.0 section has to be
+  # isolated before matching — otherwise an older runtime's device wins and the install
+  # fails with "needs a newer version of iOS".
+  xcrun simctl list devices available \
+    | awk '/-- visionOS 27.0 --/{f=1;next} /^-- /{f=0} f && /Apple Vision Pro/' \
+    | head -1 | sed -E 's/.*\(([0-9A-F-]{36})\).*/\1/'
+}
+
+capture_vision() {
+  local locale=$1
+  local udid app dest log="$WORK/vision-$locale.log"
+
+  udid=$(vision_udid)
+  if [ -z "$udid" ]; then
+    echo "    FAILED — no visionOS 27.0 'Apple Vision Pro' simulator"
+    failed+=("vision/$locale")
+    return
+  fi
+
+  if ! xcodebuild build -project IntentTodo.xcodeproj -scheme IntentTodo \
+      -destination "platform=visionOS Simulator,name=Apple Vision Pro,OS=27.0" \
+      > "$log" 2>&1; then
+    echo "    FAILED — build, see $log"
+    failed+=("vision/$locale")
+    return
+  fi
+  app=$(xcodebuild -project IntentTodo.xcodeproj -scheme IntentTodo \
+        -destination "platform=visionOS Simulator,name=Apple Vision Pro,OS=27.0" \
+        -showBuildSettings 2>/dev/null \
+        | awk -F' = ' '/ BUILT_PRODUCTS_DIR = /{print $2; exit}')/IntentTodo.app
+
+  # Erased once per script run. `simctl io screenshot` captures the whole simulated room,
+  # so anything the previous run left floating there — a stray system alert, a window that
+  # was never closed — ends up in the shot. Only a fresh device reliably clears it.
+  if [ -z "${vision_device_prepared:-}" ]; then
+    xcrun simctl shutdown "$udid" 2>/dev/null || true
+    xcrun simctl erase "$udid"
+    vision_device_prepared=1
+  fi
+
+  xcrun simctl boot "$udid" 2>/dev/null || true
+  xcrun simctl bootstatus "$udid" -b > /dev/null
+  xcrun simctl install "$udid" "$app"
+
+  dest="$OUT/vision/$locale"
+  rm -rf "$dest" && mkdir -p "$dest"
+
+  # One launch per screen. The alternative — one launch plus `simctl openurl` — fails
+  # visibly: a URL arriving from outside puts an "Open in …?" confirmation over the shot.
+  local screens=("01-list:list" "02-detail:detail" "03-add:add")
+  for entry in "${screens[@]}"; do
+    local name=${entry%%:*} screen=${entry##*:}
+    xcrun simctl terminate "$udid" "$BUNDLE_ID" 2>/dev/null || true
+    sleep 1
+    xcrun simctl launch "$udid" "$BUNDLE_ID" \
+      -uitest-ephemeral-store -uitest-screenshot-fixture \
+      -uitest-screenshot-screen "$screen" \
+      -AppleLanguages "($locale)" -AppleLocale "${locale}_$(region_for "$locale")" > /dev/null
+    sleep 12
+    xcrun simctl io "$udid" screenshot "$dest/$name.png" > /dev/null 2>&1
+  done
+
+  xcrun simctl terminate "$udid" "$BUNDLE_ID" 2>/dev/null || true
+  echo "    ${#screens[@]} screenshot(s) -> $dest"
+}
+
+# --- Run -----------------------------------------------------------------------------------
+
+for entry in "${UITEST_PLATFORMS[@]}"; do
+  IFS='|' read -r platform scheme testid destination <<< "$entry"
+  wanted "$platform" || continue
+  for locale in $LOCALES; do
+    echo "==> $platform / $locale"
+    capture_via_uitest "$platform" "$scheme" "$testid" "$destination" "$locale"
   done
 done
+
+if wanted vision; then
+  for locale in $LOCALES; do
+    echo "==> vision / $locale"
+    capture_vision "$locale"
+  done
+fi
 
 echo
 echo "=== sizes ==="
