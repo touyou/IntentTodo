@@ -12,8 +12,9 @@
 
 | 項目 | 値 |
 |---|---|
+| App ID | `6788623037` |
 | バンドル ID | `dev.touyou.IntentTodo` |
-| SKU | `要入力`（例: `INTENTO-1`） |
+| SKU | `dev.touyou.IntentTodo`（設定済み） |
 | プライマリカテゴリ | 仕事効率化 / Productivity |
 | セカンダリカテゴリ | ユーティリティ / Utilities |
 | 権利（Copyright） | `2026 Yosuke Fujii` |
@@ -31,177 +32,40 @@ watchOS は iOS アプリに埋め込み、macOS と visionOS はネイティブ
 
 ---
 
-## 2. 日本語（プライマリ）
+## 2. 文言（ja / en）
 
-### App 名（30 文字）
-
-```
-Intento
-```
-
-### サブタイトル（30 文字）
+**`metadata/` が正**。App 名 / サブタイトル / 説明 / キーワード / プロモーションテキスト /
+各種 URL は `asc` で ASC と同期する。ここに同じ文章を二重に置かない。
 
 ```
-声からも、ウィジェットからも
+metadata/
+  ios/       app-info/{en-US,ja}.json  version/1.0.0/{en-US,ja}.json
+  macos/     同じ
+  visionos/  同じ
 ```
 
-代替案:
+**1.0.0 のバージョンレコードは iOS / macOS / visionOS で別々**なので、3 つとも入れる必要がある。
+`app-info/`（名前・サブタイトル・プライバシーポリシー URL）はアプリ単位なので中身は 3 つとも同じ。
 
-```
-Siri とショートカットのための ToDo
-```
+### 反映のしかた
 
-### プロモーションテキスト（170 文字 / 審査なしで差し替え可）
+```bash
+# 1. 今 ASC に入っているものを取り込む（手で編集した分を拾う）
+asc metadata pull --app 6788623037 --version 1.0.0 --platform IOS --dir metadata/ios
 
-```
-話しかけるだけで、やることが増えたり片づいたりします。ウィジェット、コントロールセンター、
-ロック画面、Apple Watch、Spotlight — アプリを開かずに済む場所ならどこでも同じ操作ができます。
-```
+# 2. 差分を見る（書き込みなし）
+asc metadata plan --app 6788623037 --version 1.0.0 --platform IOS --dir metadata/ios
 
-### 説明（4000 文字）
-
-```
-Intento は「アプリを開く」を前提にしないやることリストです。
-
-やることの追加も、完了も、あと回しも、Siri に話しかければ終わります。ホーム画面のウィジェット、
-コントロールセンター、ロック画面、Apple Watch の文字盤、Spotlight の検索結果 — どこから触っても
-同じ操作が同じように動きます。アプリを開くのは、じっくり見直したいときだけで構いません。
-
-■ 声で操作する
-「Intento でやることを追加」「Intento で〇〇を完了」のように話しかけるだけ。やることの名前を
-そのまま文に混ぜられるので、選び直す手間がありません。
-
-■ 開かずに済ませる
-・ウィジェット（小・中・大・特大）に今日のやることを表示。チェックはその場で
-・コントロールセンターからワンタップで追加、未完了の数を確認、いちばん急ぎのものを完了
-・ロック画面のライブアクティビティで進行中のやることを追いかける
-・Apple Watch のコンプリケーションに残り件数と次の期限
-
-■ 探す
-Spotlight でやることのタイトルを検索。カメラを向けた先や画面の中身からも探せます。
-
-■ 集中する
-集中モードと連動して、いま見るべきやることだけを残します。カテゴリで絞る、急ぎだけにする、
-完了したものを隠す — モードごとに切り替わります。
-
-■ ショートカットに組み込む
-25 種類のアクションを公開しています。「やることの一覧を取得」「条件に合うものを探す」
-「まとめて完了する」など、ほかのアプリと組み合わせた自動化にそのまま使えます。
-
-■ すべての Apple デバイスで
-iPhone、iPad、Mac、Apple Watch、Apple Vision Pro。iCloud で同期するので、どこで足しても
-どこでも見えます。
-
-データはあなたの iCloud の中だけにあります。アカウント登録はありません。広告もトラッキングも
-ありません。
+# 3. 承認して反映
+asc metadata approve --review-dir .asc/metadata/review --all
+asc metadata apply --app 6788623037 --version 1.0.0 --platform IOS --dir metadata/ios \
+  --review-dir .asc/metadata/review --confirm
 ```
 
-### キーワード（100 文字 / カンマ区切り・スペースなし）
+`--platform` を `MAC_OS` / `VISION_OS` に変え、`--dir` も合わせて 3 回まわす。
 
-```
-todo,タスク,やること,リマインダー,siri,ショートカット,ウィジェット,音声,習慣,メモ,予定,効率化
-```
-
-### サポート URL
-
-```
-要入力
-```
-（GitHub の issue ページを充てるなら `https://github.com/touyou/IntentTodo/issues`）
-
-### マーケティング URL（任意）
-
-```
-要入力
-```
-
-### プライバシーポリシー URL
-
-```
-要入力
-```
-**必須。** 収集ゼロでも URL は要る。内容は §5 のドラフトをそのまま置ける。
-
-### このバージョンの新機能（4000 文字）
-
-```
-最初のリリースです。
-```
-
----
-
-## 3. English
-
-### App Name（30）
-
-```
-Intento
-```
-
-### Subtitle（30）
-
-```
-Todos by voice and widget
-```
-
-### Promotional Text（170）
-
-```
-Say it and it's on the list. Add, complete and snooze from Siri, widgets, Control Center,
-the Lock Screen, Apple Watch and Spotlight — the app itself is optional.
-```
-
-### Description（4000）
-
-```
-Intento is a todo list that does not assume you will open it.
-
-Add something, finish it, or push it to later just by asking Siri. The same actions work
-from a Home Screen widget, from Control Center, from the Lock Screen, from your Apple Watch
-face and from Spotlight results. Opening the app is for when you actually want to sit and
-look at the list.
-
-■ Say it
-"Add a todo in Intento." "Complete <todo> in Intento." Todo names go straight into the
-phrase, so there is no picker to work through afterwards.
-
-■ Skip the app
-· Widgets in every size, with a checkbox on each row
-· Control Center: add in one tap, see how many are left, finish the most urgent one
-· A Live Activity on the Lock Screen for whatever is in progress
-· An Apple Watch complication with the count and the next due date
-
-■ Find it
-Search your todos from Spotlight — including from what your camera or your screen is
-looking at.
-
-■ Focus
-Tie a Focus to a category, to urgent items only, or to hiding what is done. The list and
-the widgets both follow it.
-
-■ Automate it
-25 actions are published to Shortcuts: get the list, find the ones that match, complete a
-batch. They compose with everything else on your device.
-
-■ Everywhere
-iPhone, iPad, Mac, Apple Watch and Apple Vision Pro, kept in step through iCloud.
-
-Your todos live in your own iCloud. No account, no ads, no tracking.
-```
-
-### Keywords（100, comma separated, no spaces）
-
-```
-todo,task,reminder,siri,shortcuts,widget,voice,checklist,productivity,list,planner,focus
-```
-
-### What's New（4000）
-
-```
-First release.
-```
-
----
+> **`plan` を飛ばさない。** ローカルが正なので、ASC 側で手直しした内容は `pull` しない限り
+> 上書きされる。`deletes` は既定で無効（`allowDeletes: false`）。
 
 ## 4. App プライバシー（ASC の質問）
 
@@ -221,30 +85,13 @@ Todo の中身は端末とユーザー自身の iCloud プライベートデー�
 
 ---
 
-## 5. プライバシーポリシー（ドラフト）
+## 5. プライバシーポリシー
 
-置き場が決まったら貼る。
+[PRIVACY.md](../PRIVACY.md)（ja / en 併記）。ASC の `privacyPolicyUrl` はこの raw URL を指す:
 
 ```
-Intento プライバシーポリシー
-
-Intento は、あなたが入力したやることを、お使いの Apple デバイスと、あなた自身の iCloud
-プライベートデータベースにのみ保存します。開発者はその内容を取得も閲覧もしません。
-
-・アカウント登録はありません
-・解析ツール、広告、トラッキングは一切組み込んでいません
-・第三者へ提供するデータはありません
-
-アプリの設定値（集中モードの絞り込み条件など）は、アプリと Extension だけがアクセスできる
-App Group の内部に保存されます。
-
-データを削除したい場合は、アプリからやることを削除するか、デバイスからアプリを削除して
-ください。iCloud 上のデータは iOS の「設定 > Apple Account > iCloud」から削除できます。
-
-お問い合わせ: <要入力>
+https://github.com/touyou/IntentTodo/blob/main/PRIVACY.md
 ```
-
----
 
 ## 6. 審査メモ（App Review Information）
 
@@ -280,14 +127,17 @@ reported back to the person; declining it does not restrict any feature.
 | Apple Vision Pro | `Screenshots/vision/<locale>/` | 3840x2160 × 3 |
 | Apple Watch | `Screenshots/watch/<locale>/` | 422x514 × 2 |
 
-ロケールは `en` と `ja` の 2 本。ASC はロケールごとにスクショを差し替えられる。
+ロケールは `en` と `ja` の 2 本。**3 つのバージョンレコードすべてにアップロード済み**
+（iOS に iPhone / iPad / Apple Watch、macOS に Desktop、visionOS に Vision Pro）。
+
+差し替えるときは `asc screenshots upload --version-id <ID> --path ... --device-type ...`。
 
 ---
 
 ## 8. 提出前の確認
 
-- [ ] `要入力` が全部埋まっている
-- [ ] プライバシーポリシーが公開 URL で読める
+- [ ] `要入力` が全部埋まっている（SKU / App ID は設定済み）
+- [x] プライバシーポリシーが公開 URL で読める（`PRIVACY.md`）
 - [ ] Xcode Cloud の `production` ビルドが ASC に上がっている
 - [ ] 輸出コンプライアンスの質問が出ない（`ITSAppUsesNonExemptEncryption = NO` 済み）
 - [ ] アップロード後に ITMS の警告メールが来ていない
