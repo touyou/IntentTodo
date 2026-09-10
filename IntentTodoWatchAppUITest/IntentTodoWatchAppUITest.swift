@@ -39,6 +39,22 @@ final class IntentTodoWatchAppUITest: XCTestCase {
 
     // MARK: - Helper Methods
 
+    /// Title of the todo the app seeds under `-uitest-seed-todo`.
+    /// Must match `IntentTodoWatchApp.seededTodoTitle`.
+    static let seededTodoTitle = "Seeded Todo"
+
+    /// Relaunches the app with one known incomplete todo already in the store.
+    ///
+    /// `setUpWithError` launches with an empty store because most tests want the empty
+    /// state; the tests that need a row ask for it here rather than making every other
+    /// test start from a populated list.
+    @MainActor
+    private func relaunchWithSeededTodo() {
+        app.terminate()
+        app.launchArguments.append("-uitest-seed-todo")
+        app.launch()
+    }
+
     /// Adds a todo with the given title.
     /// - Parameter title: The title for the new todo.
     /// - Note: On watchOS simulator, text input via typeText can be unreliable.
@@ -131,15 +147,26 @@ final class IntentTodoWatchAppUITest: XCTestCase {
 
     @MainActor
     func testToggleTodoCompletion() throws {
-        // Text input is not reliable on the watchOS simulator, so this cannot create a todo
-        // and toggle it. What it can pin down is that the list surface itself comes up: the
-        // store is empty per launch, so the empty state is the expected content and is
-        // asserted directly rather than as the fallback of an `if`.
-        let emptyState = app.staticTexts["All Done!"]
-        XCTAssertTrue(emptyState.waitForExistence(timeout: 5), "Empty store should show the empty state")
+        // `typeText` is not reliable on the watchOS simulator, so the todo comes from a
+        // launch-argument fixture instead of the add sheet.
+        relaunchWithSeededTodo()
 
-        let addButton = app.buttons["addTodoButton"].firstMatch
-        XCTAssertTrue(addButton.waitForExistence(timeout: 5), "Add button should be reachable from the list")
+        // The row's title is the label of the `NavigationLink`, so it resolves as a button
+        // rather than a static text.
+        let todoCell = app.buttons[Self.seededTodoTitle].firstMatch
+        XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Seeded todo should appear in the list")
+
+        let checkbox = app.buttons["Mark as complete"].firstMatch
+        XCTAssertTrue(checkbox.waitForExistence(timeout: 5), "Incomplete todo should show a complete checkbox")
+        checkbox.tap()
+
+        // The watch list queries `!isCompleted`, so completing the only todo empties it —
+        // there is no "Mark as incomplete" row to look for here as there is on iOS.
+        XCTAssertTrue(todoCell.waitForNonExistence(timeout: 5), "Completed todo should leave the list")
+        XCTAssertTrue(
+            app.staticTexts["All Done!"].waitForExistence(timeout: 5),
+            "Completing the only todo should show the empty state"
+        )
     }
 
     // MARK: - Test: Empty State
@@ -158,20 +185,16 @@ final class IntentTodoWatchAppUITest: XCTestCase {
 
     @MainActor
     func testListHasSections() throws {
-        // Note: Text input is not reliable on watchOS simulator, so we test
-        // that section headers are properly defined (if todos exist).
+        // "Sections exist OR the empty state is shown" was true either way, so the section
+        // header was never actually verified. The fixture makes the expected branch
+        // deterministic: one todo with no due date lands in "Upcoming".
+        relaunchWithSeededTodo()
 
-        // Check if section headers exist when there are todos
         let upcomingSection = app.staticTexts["Upcoming"]
-        let dueSoonSection = app.staticTexts["Due Soon"]
-        let emptyState = app.staticTexts["All Done!"]
-
-        // Either sections should exist (if there are todos) or empty state should be shown
-        let hasContent = upcomingSection.waitForExistence(timeout: 3) ||
-                        dueSoonSection.waitForExistence(timeout: 1) ||
-                        emptyState.waitForExistence(timeout: 1)
-
-        XCTAssertTrue(hasContent, "Should show either section headers or empty state")
+        XCTAssertTrue(
+            upcomingSection.waitForExistence(timeout: 5),
+            "A todo with no due date should appear under 'Upcoming'"
+        )
     }
 
     // MARK: - Test: Navigation

@@ -31,6 +31,17 @@ struct IntentTodoWatchApp: App {
     /// cannot assert the empty state.
     #if DEBUG
     static let ephemeralStoreArgument = "-uitest-ephemeral-store"
+
+    /// Launch argument that seeds one known incomplete todo, DEBUG only.
+    ///
+    /// `typeText` is not reliable on the watchOS simulator, so a UI test cannot create a todo
+    /// through the add sheet. Without a fixture the completion test has no row to tap and can
+    /// only assert that the list came up — which is how it ended up passing while never
+    /// exercising the toggle at all.
+    static let seedTodoArgument = "-uitest-seed-todo"
+
+    /// Title of the seeded todo. The UI test matches on it.
+    static let seededTodoTitle = "Seeded Todo"
     #endif
 
     init() {
@@ -55,6 +66,21 @@ struct IntentTodoWatchApp: App {
             fatalError("Could not create ModelContainer for the watch app: \(String(reflecting: error))")
         }
         modelContainer = container
+
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains(Self.seedTodoArgument) {
+            MainActor.assumeIsolated {
+                do {
+                    try SwiftDataTodoRepository(modelContext: container.mainContext)
+                        .create(TodoItem(title: Self.seededTodoTitle))
+                } catch {
+                    // A silent failure here would surface as "the completion test can't find
+                    // its row", which reads like an app bug rather than a missing fixture.
+                    logger.critical("Seeding the UI test todo failed: \(String(reflecting: error))")
+                }
+            }
+        }
+        #endif
 
         // Registered synchronously: deferring to a `Task` can lose the race against an
         // intent that runs right after launch.

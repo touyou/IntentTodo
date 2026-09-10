@@ -276,7 +276,8 @@ watchOS では `"Todo"`、それ以外では**空**。Apple 側が schema 由来
 |---|---|---|
 | `IntentTodoUITest.swift` `testFilterMenu` | フォールバックの連鎖の末尾が「ボタンが 2 個より多い」で、**アプリが起動していれば常に true**。メニューが開かなくても緑 | `TodoFilter` の全ケース + `Sort` の存在を無条件に assert |
 | `IntentTodoWatchAppUITest.swift` `testEmptyStateMessage` | 本体まるごとが `if allDoneText.waitForExistence { … }` の中。**要素が出なければ何も検証せず緑** | 無条件 assert |
-| `IntentTodoWatchAppUITest.swift` `testToggleTodoCompletion` | 残っていた状態で分岐。else 側は英語ラベル依存で、watch テストは言語を固定していなかった | 空ストアを前提に無条件 assert |
+| `IntentTodoWatchAppUITest.swift` `testToggleTodoCompletion` | 残っていた状態で分岐。else 側は英語ラベル依存で、watch テストは言語を固定していなかった。**そもそも完了トグルを一度も叩いていなかった** | フィクスチャで todo を 1 件用意し、実際にトグルして行が消えることを assert |
+| `IntentTodoWatchAppUITest.swift` `testListHasSections` | 「セクションがある **or** 空状態」で、空ストアなら必ず後者で通る。**セクションヘッダを検証していなかった** | フィクスチャ前提で `Upcoming` を無条件 assert |
 | `IntentTodoUITest.swift` `addTodo(title:favorite:)` | `if favoriteToggle.exists { tap }`。**`testAddTodoWithFavorite` がお気に入りを一度も検証していなかった**（audit は warn 扱いだったが実害があった） | toggle の存在を assert してから tap |
 | `RepositoryTests.swift` / `AppIntentsTests.swift` | `#expect(x != nil)` が非 Optional 相手で**常に true** | 「新品の mock は空」「package は他を巻き込まない」という落ちうる assert に置き換え |
 
@@ -286,6 +287,24 @@ watch 側は前提が揃っていなかったので、そこも埋めた:
   共有ストアはプロセスより長生きするので、前の実行の残りで分岐するしかなかった
 - **watch テストの言語を `en` に固定**（iOS 側は既にやっていた）。
   `app.staticTexts["All Done!"]` はホストが ja のままだと永遠に解決しない
+- **DEBUG 限定の `-uitest-seed-todo` を追加**。`typeText` が watchOS シミュレータで信用できないので、
+  add sheet 経由では行を用意できない。フィクスチャが無いから完了テストは「リストが出た」しか
+  見られず、それが「トグルを一度も叩かないまま緑」の正体だった
+
+### watch で分かったこと 2 つ
+
+- **行のタイトルは `staticText` ではなく `button`**（`NavigationLink` のラベルなので）。
+  `app.staticTexts["Seeded Todo"]` は解決しない。`app.debugDescription` を吐かせて確定させた:
+
+  ```
+  Cell, label: 'Mark as complete, Seeded Todo'
+    Button, identifier: 'circle', label: 'Mark as complete'
+    Button, label: 'Seeded Todo'
+  ```
+
+- **完了させると行はリストから消える**。watch の `@Query` は `!isCompleted` で絞っているので、
+  iOS のように `Mark as incomplete` へ変わるのを待っても永遠に来ない。
+  最初その形で書いて落ちた（アプリの挙動が正しく、テストの期待が間違っていた）
 
 ### assert に歯があることを確認した
 
@@ -295,15 +314,13 @@ watch 側は前提が揃っていなかったので、そこも埋めた:
 |---|---|
 | `testFilterMenu` から `filterMenu.tap()` を外す | `XCTAssertTrue failed - Filter menu should offer 'All'` で失敗 |
 | watch の期待文字列を存在しないものに差し替え | `XCTAssertTrue failed - Empty state should show 'All Done!' message` で失敗 |
+| watch `testToggleTodoCompletion` から `checkbox.tap()` を外す | `XCTAssertTrue failed - Completed todo should leave the list` で失敗 |
 
-どちらも元に戻して再実行し、緑を確認した。
-
-> **測っていないこと**: watch 側の ephemeral store が効いていること自体は単独で確かめていない。
-> 効いていなければ残った todo で**失敗する**（黙って緑にはならない）ので、この形で許容した。
+いずれも元に戻して再実行し、緑を確認した。
 
 ### 残した warn
 
-`audit_intents.py` の warn は 6 件残っている。うち conditional-assert は 2 件で、どちらも
+`audit_intents.py` の warn は 5 件残っている。うち conditional-assert は 2 件で、どちらも
 **assert ではなく操作の分岐**なので嘘にならない:
 
 - `IntentTodoUITest.swift:296` — `if list.exists { list.swipeDown() }`。直後の検索フィールドの
