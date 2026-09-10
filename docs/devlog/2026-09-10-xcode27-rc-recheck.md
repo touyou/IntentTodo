@@ -194,17 +194,49 @@ AppIntentsTesting を妨げてはいない。** これを 803 の傍証に使っ
 `QuickAddTodoControl.body.getter` からの WidgetKit `assertionFailure` も、
 署名ありの実行では出ない。
 
-### 残る本物の論点: **skip は緑になる**
+### 本物の論点だった「skip は緑になる」は直した（#119）
 
-原因が自分側だったこととは別に、`waitUntilIntentsAreDiscoverable` が `XCTSkip` を投げるので
+原因が自分側だったこととは別に、`waitUntilIntentsAreDiscoverable` が `XCTSkip` を投げていたので
 
 ```
 Executed 1 test, with 1 test skipped and 0 failures (0 unexpected)
 Test Suite 'IntentTodoUITest.xctest' passed
 ```
 
-と出る点は変わらない。**23 件が 1 件も実行されていないのに `TEST SUCCEEDED` になる。**
-今回まさにこれで 1 日誤診した。skip の扱いは #119 で決める。
+と出ていた。**23 件が 1 件も実行されていないのに `TEST SUCCEEDED`**。誤診が 1 日残った直接の原因はこれ。
+
+**skip をやめて失敗にした。** ラベルを「環境依存 skip」に変えるだけでは意味がない——
+XCTest の skip は名前を何にしても緑なので、同じ失敗モードがそのまま再現する。
+
+代わりに「環境依存かどうか」は**原因の分類**に使い、どちらも失敗にした:
+
+| エラー | 挙動 |
+|---|---|
+| `AppIntentsServicesSecurityErrorDomain`（803 など） | **待たずに即失敗**。待っても直らないうえ、23 件 × 30 秒を捨てることになる。メッセージに `CODE_SIGNING_ALLOWED=NO` の可能性と対処を書く |
+| それ以外（`…MetadataErrorDomain` 400 の reinstall 直後など） | 従来どおり 30 秒ポーリング。タイムアウトしたら **skip ではなく失敗** |
+
+`IntentsUnreachable` は `LocalizedError` にも適合させた。XCTest は
+`localizedDescription` 経由でも投げられたエラーを出すので、conformance が無いと
+そちら側が「操作を完了できませんでした」に落ちる。
+
+実測:
+
+| ビルド | 変更前 | 変更後 |
+|---|---|---|
+| 署名あり | 23 passed | **23 passed**（変化なし） |
+| `CODE_SIGNING_ALLOWED=NO` | **skipped**（38 秒）→ `TEST SUCCEEDED` | **failed**（5.6 秒）→ `TEST EXECUTE FAILED` / `exit=65` |
+
+失敗時のメッセージ:
+
+```
+App Intents rejected this test runner (AppIntentsServicesSecurityErrorDomain 803:
+Unable to run internal tests on a Customer build). This is a build configuration
+problem, not a flake. The usual cause is passing CODE_SIGNING_ALLOWED=NO to
+`xcodebuild test`: it skips re-signing the UI test runner, leaving it with the
+com.apple.XCTRunner template identity instead of
+dev.touyou.IntentTodo.IntentTodoUITest.xctrunner, and AppIntentsTesting checks that
+binding. Drop the flag — it is only needed for metadata/SSU `build` runs.
+```
 
 ## 5. 回帰確認（RC / 変更なしのツリー）
 
