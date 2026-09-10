@@ -27,6 +27,7 @@ Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
 | チェックボックス、お気に入り | `Button(intent:)` | パラメータが既知 |
 | 削除ボタン | `Button(role:intent:)` + 確認なし版 Intent | **`role:` を先に書く**（下記注記）。`requestConfirmation` 付きの Intent は UI から呼べない（下節） |
 | 作成フォーム | `Button(intent:)` + Computed Property | 動的にIntent生成、dismissは`onChange`で |
+| macOS のメニューバー / コンテキストメニュー | `Button(intent:)`（`Commands` の中でも使える） | 対象の Entity は `@FocusedValue` から取る（capture すると古い選択に効く）。詳細: [07-platform-specific.md](07-platform-specific.md#macos-の操作導線ツールバー--キーボード--コンテキストメニュー) |
 
 > **引数順の罠**: `Button(role:intent:)` は `role:` を**先に**書く。`Button(intent: X, role: .destructive)` の順だと別 init に解決されて `"extraneous argument label 'intent:'"` エラーになる（visionOS ビルドで実際に発生、詳細は `07-platform-specific.md` の「Button(intent:role:) の引数順」）。
 
@@ -38,6 +39,7 @@ Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
 |------|------------|----------------|
 | 詳細画面の削除ボタン（`TodoDetailView` / `VisionOSTodoView`） | `.confirmationDialog` + `@State var isConfirmingDelete` | `DeleteTodoImmediatelyIntent` |
 | リストのスワイプ削除（`DeleteButton`） | スワイプして Delete を押す操作自体が確認 | `DeleteTodoImmediatelyIntent` |
+| macOS の一覧（⌫ / 行の右クリック / やること ▸ 削除） | `.confirmationDialog(_:item:)` + `@State var todoPendingDeletion`（3 経路とも同じダイアログ） | `DeleteTodoImmediatelyIntent` |
 | Siri / Shortcuts | Intent 内の `requestConfirmation` | `DeleteTodoIntent` |
 
 `DeleteTodoIntent`（確認付き）は Siri / Shortcuts 専用と考える。**AppIntentsTesting では検出できない**（Siri/Shortcuts 経路では成功するため）ので、UI 経路は UI テストで押さえる。経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)、詳細: [03-app-intents-core.md](03-app-intents-core.md)。

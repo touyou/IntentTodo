@@ -20,6 +20,7 @@
 
 ## 目次
 
+- [2026-09-10-macos-ui-shortcuts.md](2026-09-10-macos-ui-shortcuts.md) — Mac のフィードバック 3 件に答えた経緯（既定のサイドバートグルが**サイドバーの trailing 端**に居て開閉のたびに動いていた件 / `.navigation` が detail 側に載ると分かるまで / ⌫ を `keyboardShortcut` ではなく `onDeleteCommand` にした理由 / メニューの対象を `FocusedValues` に載せた理由）
 - [2026-09-10-release-prep.md](2026-09-10-release-prep.md) — 1.0 提出前の下ごしらえ（privacy manifest / 輸出コンプライアンス / 4 プラットフォームの Release ビルドと実署名 archive / 提出用スクショの自動撮影で踏んだ 5 つ + **ja のスクショが全部英語で撮れていた件** / macOS だけ落とした理由は #127）
 - [2026-09-10-xcode27-rc-recheck.md](2026-09-10-xcode27-rc-recheck.md) — Xcode 27 RC（27A266a）で SDK 制約を棚卸しした経緯（SSU バグ / watchOS schema / 公開 API は beta 6 から変化なし + **`CODE_SIGNING_ALLOWED=NO` を `test` に持ち込んで AppIntentsTesting を 803 で全 skip させ、SDK の退行だと 1 日誤診した件** / #119）
 - [2026-09-06-keynote-deck-review.md](2026-09-06-keynote-deck-review.md) — Keynote の実物（118 面）を AppleScript で読める形にしてレビューした経緯（原稿より Keynote が先に進んでいた件 + 「Keynote のノートも更新済み」が一部事実でなかった件 + 尺の見積もりを 2 回間違えた件）

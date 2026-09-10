@@ -29,6 +29,17 @@ public struct TodoListView: View {
     /// Decides when to teach an App Shortcut phrase.
     @State private var siriTip = SiriTipModel()
     @State private var showingSettings = false
+    /// Owned here rather than left to the system so the sidebar button and the View menu
+    /// drive the same state.
+    @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    #if os(macOS)
+    /// The todo the list is about to delete, and the dialog's source of truth.
+    ///
+    /// Written by the Delete key, the row's context menu and the Todo menu; all three
+    /// confirm here and then run the non-confirming intent.
+    @State private var todoPendingDeletion: TodoAppEntity?
+    @FocusState private var isSearchFieldFocused: Bool
+    #endif
     @Environment(\.scenePhase) private var scenePhase
     @Environment(NavigationModel.self) private var navigationModel
     @Environment(\.modelContext) private var modelContext
@@ -54,7 +65,7 @@ public struct TodoListView: View {
         @Bindable var navigationModel = navigationModel
         // One `NavigationSplitView` covers iPhone, iPad and Mac: at compact width it
         // collapses into push navigation on its own. visionOS has its own view.
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             Group {
                 if filteredTodos.isEmpty {
                     TodoListEmptyView(
@@ -69,7 +80,8 @@ public struct TodoListView: View {
                         // the user's manual order (WWDC 2026 reorderable containers,
                         // 27+; gated inside the sidebar).
                         isReorderable: viewModel.sortOrder == .manual,
-                        onReorder: persistReorder
+                        onReorder: persistReorder,
+                        onRequestDeletion: requestDeletion
                     )
                 }
             }
@@ -105,10 +117,25 @@ public struct TodoListView: View {
                 siriTip.recordInAppAdd()
             }
             #endif
+            #if os(macOS)
+            // The system's own toggle sits at the *trailing* edge of the sidebar's
+            // toolbar section, so it jumps across the window every time the sidebar
+            // collapses. `TodoListToolbar` puts ours next to the window controls, where
+            // it stays in both states.
+            .toolbar(removing: .sidebarToggle)
+            #endif
             .toolbar {
-                TodoListToolbar(viewModel: $viewModel, showingSettings: $showingSettings)
+                TodoListToolbar(
+                    viewModel: $viewModel,
+                    showingSettings: $showingSettings,
+                    columnVisibility: $columnVisibility
+                )
             }
             .searchable(text: $viewModel.searchText, prompt: .copy("Search todos"))
+            #if os(macOS)
+            // Lets the Find command put the caret in the toolbar's search field.
+            .searchFocused($isSearchFieldFocused)
+            #endif
             // The default sidebar width is too narrow for a todo row.
             .navigationSplitViewColumnWidth(min: 260, ideal: 320, max: 480)
             #if os(iOS)
@@ -148,6 +175,28 @@ public struct TodoListView: View {
             applyPendingFilter(newValue)
         }
         .onAppear { applyPendingFilter(navigationModel.pendingFilter) }
+        #if os(macOS)
+        // Confirmed here, not by the intent: `requestConfirmation` has no surface to
+        // present on when the caller is the app itself, so the confirming intent would
+        // fail silently. The non-confirming one runs from the dialog's button.
+        .confirmationDialog(
+            Text(.copy("Delete “\(todoPendingDeletion?.title ?? "")”?")),
+            item: $todoPendingDeletion,
+            titleVisibility: .visible
+        ) { todo in
+            Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: todo)) {
+                Text(.copy("Delete"))
+            }
+        }
+        // Published scene-wide so the menu bar commands act on the current selection
+        // however focus moves between the sidebar, the detail pane and the search field.
+        .focusedSceneValue(\.selectedTodo, navigationModel.selectedTodo)
+        .focusedSceneValue(\.todoDeletionRequest, $todoPendingDeletion)
+        .focusedSceneValue(
+            \.todoSearchFieldFocus,
+            Binding { isSearchFieldFocused } set: { isSearchFieldFocused = $0 }
+        )
+        #endif
         #if os(iOS)
         .monitorLiveActivities(for: todoItems)
         #endif
@@ -177,6 +226,16 @@ public struct TodoListView: View {
         let service = TodoService.swiftDataBacked(container: modelContext.container)
         try? service.reorderTodos(orderedIDs: orderedIDs)
     }
+
+    /// Puts a todo in front of the delete confirmation.
+    ///
+    /// Only the Mac has list-level delete affordances (the Delete key, the row's
+    /// context menu and the Todo menu); elsewhere the swipe action deletes directly.
+    private func requestDeletion(of todo: TodoAppEntity) {
+        #if os(macOS)
+        todoPendingDeletion = todo
+        #endif
+    }
 }
 
 // MARK: - Sidebar
@@ -187,6 +246,9 @@ private struct TodoListSidebar: View {
     let isReorderable: Bool
     /// Receives the new, fully-ordered list of todo ids after a drag.
     let onReorder: ([String]) -> Void
+    /// Asks the list to confirm deleting a todo. Called from the Mac's Delete key and
+    /// row context menu.
+    let onRequestDeletion: (TodoAppEntity) -> Void
 
     var body: some View {
         // No explicit `.animation(value:)`: `@Query` delta detection already animates row
@@ -211,6 +273,15 @@ private struct TodoListSidebar: View {
             EntityIdentifier(for: TodoAppEntity.self, identifier: todo.id)
         }
         .modifier(ReorderContainer(enabled: isReorderable, todos: todos, onReorder: onReorder))
+        #if os(macOS)
+        // ⌫ / ⌦ on the focused list. Routed through the responder chain rather than a
+        // plain-key `keyboardShortcut`, which would swallow backspace in the search
+        // field as well.
+        .onDeleteCommand {
+            guard let selection else { return }
+            onRequestDeletion(selection)
+        }
+        #endif
     }
 
     @ViewBuilder
@@ -220,6 +291,24 @@ private struct TodoListSidebar: View {
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 DeleteButton(todo: todo)
             }
+            #if os(macOS)
+            // There is no swipe on the Mac, so the row's own actions live in a
+            // right-click menu. Same intents the checkbox and the star run.
+            .contextMenu {
+                Button(intent: ToggleTodoCompletionIntent(todo: todo)) {
+                    Text(todo.isCompleted ? .copy("Mark as Not Completed") : .copy("Mark as Completed"))
+                }
+                Button(intent: ToggleFavoriteIntent(todo: todo)) {
+                    Text(todo.isFavorite ? .copy("Remove from Favorites") : .copy("Add to Favorites"))
+                }
+                Divider()
+                Button(role: .destructive) {
+                    onRequestDeletion(todo)
+                } label: {
+                    Text(.copy("Delete"))
+                }
+            }
+            #endif
     }
 }
 
@@ -354,6 +443,7 @@ private struct TodoListEmptyView: View {
 private struct TodoListToolbar: ToolbarContent {
     @Binding var viewModel: TodoListViewModel
     @Binding var showingSettings: Bool
+    @Binding var columnVisibility: NavigationSplitViewVisibility
     @Environment(NavigationModel.self) private var navigationModel
 
     /// `.topBarTrailing` does not exist on macOS.
@@ -366,6 +456,23 @@ private struct TodoListToolbar: ToolbarContent {
     }
 
     var body: some ToolbarContent {
+        #if os(macOS)
+        // First item of the sidebar's toolbar section, so it sits right after the
+        // window controls — the one spot that stays put when the sidebar collapses and
+        // the section reflows to the window's leading edge. (`.navigation` would land
+        // it ahead of the title in the *detail* section, which does move.)
+        ToolbarItem(placement: .automatic) {
+            Button {
+                columnVisibility = columnVisibility == .detailOnly ? .all : .detailOnly
+            } label: {
+                Image(systemName: "sidebar.leading")
+            }
+            .help(.copy("Show or hide the sidebar"))
+            .accessibilityIdentifier("sidebarToggleButton")
+            .accessibilityLabel(.copy("Show or hide the sidebar"))
+        }
+        #endif
+
         #if os(iOS)
         // Entry point for the integration settings. `SettingsView` is not built on macOS
         // (no `ShortcutsLink` there), so the button is iOS-only as well.

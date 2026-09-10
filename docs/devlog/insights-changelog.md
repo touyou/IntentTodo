@@ -2,6 +2,7 @@
 
 `docs/INSIGHTS.md` と `docs/insights/` 配下がどう再編されてきたかの更新履歴。
 
+- 2026-09-10: `07-platform-specific.md` に「macOS の操作導線（ツールバー / キーボード / コンテキストメニュー）」を新設。既定のサイドバートグルがサイドバー側ツールバーの trailing 端に置かれて開閉のたびに動く件と `.toolbar(removing: .sidebarToggle)` + `.automatic` 先頭という置き換え形、メニューバーのアクションを `Button(intent:)` にしつつ対象を `FocusedValues` から取る理由、⌫ を `keyboardShortcut` ではなく `.onDeleteCommand` にする理由と削除 3 経路を 1 つの確認 + `DeleteTodoImmediatelyIntent` に収束させる形を記載。詳細: [2026-09-10-macos-ui-shortcuts.md](2026-09-10-macos-ui-shortcuts.md)
 - 2026-08-28: docs 全体の役割分担を「現在のルール / 経緯 / 残タスク（issue）」の三分割に整理し、`insights/01` の `@_exported import`（現在未使用）と `insights/04` の cold start 場合分け（iOS 27 ベースラインなので不要）を訂正。詳細: [2026-08-28-docs-role-split.md](2026-08-28-docs-role-split.md)
 - 2026-08-26 (3): `05-extensions-and-data-sharing.md` に「`containerURL(...) == nil` は『App Group が使えない』の指標にならない（macOS）」を新設。macOS では entitlement の無いプロセスでもパスが返る（書き込み不可）ため DEBUG フォールバックが働かないことを実測で記録し、entitlement を要する経路を SPM テストで緑にしようとしない方針（`withKnownIssue(isIntermittent:)` / `createInMemoryContainer()`）を記載。
 - 2026-08-26 (2): `03-app-intents-core.md` の「ユーザー入力との突き合わせは `localizedStandardContains(_:)`」を「文字列の突き合わせは**すべて**」に広げ、適用先 4 箇所（2 つの EntityQuery / `SearchEverythingIntent` / `TodoVisualIntelligenceQuery` / UI の検索フィールド）を表で明示（Visual Intelligence のラベルも例外にしない）。
