@@ -206,9 +206,15 @@ cd Packages/UI && swift test
 ./scripts/capture_screenshots.sh iphone       # 一部だけ撮り直す
 ```
 
-XCUITest で撮って `.xcresult` から取り出す。DEBUG 限定の `ScreenshotFixture`（`Domain`）が
-in-memory ストアに ja / en それぞれのサンプルを流し込むので、何度撮っても同じ画面になる。
-出力は `Screenshots/<platform>/<locale>/`（gitignore）。**macOS はまだ撮れない**（[#127](https://github.com/touyou/IntentTodo/issues/127)）。
+DEBUG 限定の `ScreenshotFixture`（`Domain`）が in-memory ストアに ja / en それぞれのサンプルを
+流し込むので、何度撮っても同じ画面になる。出力は `Screenshots/<platform>/<locale>/`（gitignore）。
+
+| プラットフォーム | 撮り方 | 画素数 |
+|:--|:--|:--|
+| iPhone 17 Pro Max / iPad Pro 13" / Apple Watch Ultra | XCUITest が操作して `XCUIScreen.main.screenshot()` を添付 | 1320x2868 / 2064x2752 / 422x514 |
+| Apple Vision Pro | `simctl io screenshot`（部屋ごと撮る）。画面は起動引数 `-uitest-screenshot-screen` で選ぶ | 3840x2160 |
+
+**macOS はまだ撮れない**（[#127](https://github.com/touyou/IntentTodo/issues/127)）。
 
 ## App Shortcuts
 

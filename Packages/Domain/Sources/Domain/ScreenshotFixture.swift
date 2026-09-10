@@ -28,6 +28,35 @@ public enum ScreenshotFixture {
         ProcessInfo.processInfo.arguments.contains(launchArgument)
     }
 
+    /// Identifier of the first todo, fixed so a capture run can open its detail screen
+    /// without having to find the row first.
+    public static let featuredTodoID = stableID(at: 0)
+
+    /// A screen the app can be asked to open straight after launch.
+    ///
+    /// visionOS is captured with `simctl io screenshot` rather than XCUITest, so there is
+    /// nothing to tap with. Deep links are not an alternative: a URL arriving from outside
+    /// the app puts a "Open in …?" confirmation over the screen being captured.
+    public enum Screen: String {
+        case list
+        case detail
+        case add
+    }
+
+    /// Launch argument that selects ``Screen``, e.g. `-uitest-screenshot-screen detail`.
+    public static let screenArgument = "-uitest-screenshot-screen"
+
+    /// The screen this process was asked to open, defaulting to the list.
+    public static var requestedScreen: Screen {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let index = arguments.firstIndex(of: screenArgument),
+              let raw = arguments[safe: index + 1],
+              let screen = Screen(rawValue: raw) else {
+            return .list
+        }
+        return screen
+    }
+
     // MARK: - Seeding
 
     /// Seeds `container` when the process asked for the fixture, otherwise does nothing.
@@ -90,6 +119,7 @@ public enum ScreenshotFixture {
                     .map { calendar.date(byAdding: .day, value: $0, to: now) ?? now }
                     .map { $0.addingTimeInterval(3 * 60 * 60) }
             )
+            todo.id = stableID(at: index)
             todo.tags = item.tags
             todo.sortIndex = index
             // The list sorts newest first by default, so the fixture order only holds if
@@ -108,6 +138,13 @@ public enum ScreenshotFixture {
         }
 
         try context.save()
+    }
+
+    /// A per-position identifier, so a re-seed reuses the same ids as the run before it.
+    ///
+    /// `featuredTodoID` is index 0 of this sequence.
+    private static func stableID(at index: Int) -> UUID {
+        UUID(uuidString: String(format: "5C7EE9A0-0001-4000-8000-00000000A%03d", index + 1)) ?? UUID()
     }
 
     // MARK: - Fixture Content
@@ -214,6 +251,12 @@ public enum ScreenshotFixture {
                 Item(title: "観葉植物に水をやる", isCompleted: true, categoryIndex: 2)
             ]
         )
+    }
+}
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        indices.contains(index) ? self[index] : nil
     }
 }
 #endif

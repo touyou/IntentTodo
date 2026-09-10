@@ -123,6 +123,7 @@ struct IntentTodoApp: App {
                 // the contents of a throwaway store rather than the person's own todos.
                 .task {
                     ScreenshotFixture.seedIfRequested(into: modelContainer)
+                    openRequestedScreenshotScreen()
                 }
                 #endif
                 .task {
@@ -170,7 +171,38 @@ struct IntentTodoApp: App {
 
     // MARK: - Private Methods
 
+    #if DEBUG
+    /// Opens the screen a screenshot run asked for.
+    ///
+    /// visionOS is captured with `simctl`, which cannot tap anything, so the screen is
+    /// selected at launch instead. A deep link would work from inside the app but not from
+    /// `simctl openurl` — that puts an "Open in …?" confirmation over the capture.
+    @MainActor
+    private func openRequestedScreenshotScreen() {
+        switch ScreenshotFixture.requestedScreen {
+        case .list:
+            break
+        case .add:
+            navigationModel.showAddTodo()
+        case .detail:
+            let service = TodoService.swiftDataBacked(container: modelContainer)
+            guard let todo = service.todo(id: ScreenshotFixture.featuredTodoID.uuidString) else {
+                logger.critical("Screenshot fixture's featured todo is missing")
+                return
+            }
+            navigationModel.showDetail(for: todo)
+        }
+    }
+    #endif
+
     private func requestNotificationPermission() async {
+        #if DEBUG
+        // The system alert lands on top of whatever is being captured. visionOS shows it
+        // every run; the simulators elsewhere happen to auto-grant, which is not something
+        // to rely on.
+        guard !ScreenshotFixture.isRequested else { return }
+        #endif
+
         let center = UNUserNotificationCenter.current()
         do {
             let granted = try await center.requestAuthorization(options: [.alert, .sound, .badge])

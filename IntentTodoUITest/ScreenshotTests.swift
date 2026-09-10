@@ -41,15 +41,13 @@ final class ScreenshotTests: XCTestCase {
     // MARK: - Capture
 
     /// Attaches a capture under a name the extraction script can order by.
+    ///
+    /// The screen, not `app.screenshot()`: this is the device's framebuffer at exactly the
+    /// pixel size App Store Connect asks for. visionOS is not captured through this test at
+    /// all — `XCUIScreen.main` returns a 1x1 image there — so the script drives that
+    /// platform with `simctl` instead.
     private func capture(_ name: String) {
-        // `XCUIScreen.main` returns a 1x1 image on visionOS — there is no single framebuffer
-        // to grab — so the app's own window is captured there instead. Everywhere else the
-        // screen is what App Store Connect wants, at exactly the device's pixel size.
-        #if os(visionOS)
-        let screenshot = app.screenshot()
-        #else
         let screenshot = XCUIScreen.main.screenshot()
-        #endif
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name
         // Attachments are discarded on success by default, and every screenshot run
