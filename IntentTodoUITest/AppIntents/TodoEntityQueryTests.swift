@@ -139,7 +139,7 @@ final class TodoEntityQueryTests: AppIntentsTestCase {
         let result = try await intent("SearchEverythingIntent").makeIntent(query: title).run()
         let found: [AnyAppEntity] = try result.value
         XCTAssertTrue(
-            try found.contains { (try? $0.title as String) == title },
+            found.contains { (try? $0.title as String) == title },
             "Cross-entity search should surface the todo"
         )
 
