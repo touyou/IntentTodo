@@ -24,7 +24,8 @@ Assumes the rules in `app-intents-centric-design`.
 | Widget / control / watch button does nothing, no error UI | the dependency it needs is not registered in the process that ran it |
 | `Failed to retrieve dependency of type X.` on stderr | same — and note it *only* fails the run; nothing crashes |
 | Preconfigured App Shortcut never appears | inspect provider placement and `autoShortcuts`; ordinary action discovery uses `actions` instead |
-| Intent exists in the package bundle but not the app bundle | target membership or a missing `includedPackages` |
+| Intent exists in the package bundle but not the app bundle | target membership, or a dynamically linked dependency with no `includedPackages` entry — a *statically* linked one merges with no declaration |
+| An existing shortcut or donation stops resolving after a refactor | the type was renamed. `persistentIdentifier` defaults to the bare type name; a package or module rename does not affect it |
 | Snippet renders empty when resolved from a widget | the ambient entity store was registered in only one process |
 | Widget shows different data than the app | two containers, no App Group |
 | App opens for a silent action, or does not open for a navigation | `supportedModes` |
@@ -118,6 +119,6 @@ Never `#if canImport(X)` alone as an availability test — details and the two m
 |---|---|
 | [execution-modes](references/execution-modes.md) | the four modes, choosing, `continueInForeground()`, `systemContext`, deprecations, control caveat |
 | [dependencies-and-registration](references/dependencies-and-registration.md) | registering synchronously per process, what can and cannot use `@Dependency`, the ambient store for entities, service-as-dependency |
-| [packaging](references/packaging.md) | `AppIntentsPackage` / `includedPackages`, provider placement and the `autoShortcuts: 0` failure, thin extension targets, package graph, App Groups |
+| [packaging](references/packaging.md) | `AppIntentsPackage` / `includedPackages` and why aggregation follows linkage, `persistentIdentifier` and type identity, provider placement and the `autoShortcuts: 0` failure, thin extension targets, package graph, App Groups |
 | [platform-availability](references/platform-availability.md) | availability matrix, `canImport` vs `os()`, watchOS / macOS / visionOS specifics, Liquid Glass placement |
 | [templates](references/templates.md) | app entry point, widget bundle entry point, `AppIntentsPackage` set, `AppShortcutsProvider` |

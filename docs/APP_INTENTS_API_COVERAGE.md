@@ -40,7 +40,8 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `OpensIntent` | 別 Intent を続けて開く | ✅ | `AddTodoIntent` / `ShowTodosIntent` |
 | `CustomAppIntentErrorConvertible` | 自前エラーをシステムのエラー語彙へ | ✅ | `IntentError.notFound` → `entityNotFound` |
 | `CustomLocalizedStringResourceConvertible` | エラー文言のローカライズ | ⏸ | 上記の `CustomAppIntentErrorConvertible` を採用したので不要 |
-| `AppIntentsPackage` | Intent をパッケージに置く | ✅ | `TodoIntentsPackage` + 利用側 4 ターゲットで `includedPackages` 宣言 |
+| `AppIntentsPackage` | Intent をパッケージに置く | ✅ | `TodoIntentsPackage` + 利用側 4 ターゲットで `includedPackages` 宣言。本プロジェクトは全パッケージが静的リンクなのでメタデータのマージ自体は宣言なしでも起きる（宣言が生むのは `extract.packagedata` だけ。`AGENTS.md` 参照先の insights/03） |
+| `PersistentlyIdentifiable.persistentIdentifier` | 型の永続 ID を型名から切り離す | ⏸ | 既定値が素の型名で、パッケージ名やモジュール名の変更では動かない。**型名を変えるときに旧名を固定する**用途なので、まだ必要になっていない |
 | `openAppWhenRun` | 旧・アプリを開くフラグ | ⛔ | `supportedModes` へ移行済み |
 
 ## 2. Intent の種別（プロトコル）

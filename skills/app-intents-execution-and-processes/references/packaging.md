@@ -20,11 +20,67 @@ struct MyAppIntentsPackage: AppIntentsPackage {
 
 The worry this raises is duplicate registration breaking Shortcuts routing. It does not [measured 2026-08-12]:
 
-1. Every bundle's `Metadata.appintents` counts are **identical** with and without the declarations — no duplication, even on a clean build with DerivedData deleted (`actions` 23 = 23 distinct intent types).
+1. Every bundle's `Metadata.appintents` counts are **identical** with and without the declarations.
 2. The full AppIntentsTesting suite is green with them declared — the same infrastructure Siri, Shortcuts and Spotlight use.
 3. The Shortcuts app was checked on device: the action list and parameter display are intact.
 
 **Still unverified: App Shortcut *phrase* routing through Siri.** AppIntentsTesting looks intents up by type name, so it structurally cannot exercise the phrase path; that check is manual by design (`app-intents-testing`). If it ever breaks, deleting the per-target files is the fallback.
+
+### What the declaration actually does — aggregation follows linkage, not declarations
+
+Reason 1 above is identical *because static linking has already merged the metadata*, not because
+"duplicate registration was avoided". Extraction runs per target, and a statically linked
+dependency's extracted metadata lands in the consuming target's `extract.actionsdata` with **no
+declaration anywhere** [measured 2026-09-11, SDK 27 / tools 27A266a]:
+
+| bundle | `AppIntentsPackage` declared | `extract.packagedata` | `actions` / `entities` / `queries` |
+|---|---|---|---|
+| the intents package | yes, no `includedPackages` | `{"includes":[]}` | 24 / 5 / 4 |
+| a UI package depending on it | **no** | **file absent** | 24 / 5 / 4 |
+| the app | yes, with `includedPackages` | `{"includes":["14TodoAppIntents0aC7PackageV"]}` | 24 / 7 / 4 |
+
+So the declaration writes exactly one thing: `extract.packagedata`, holding the **mangled type names**
+of the packages listed in `includedPackages` (`14TodoAppIntents0aC7PackageV` demangles to
+`TodoAppIntents.TodoIntentsPackage`). `extract.actionsdata` is unaffected. The same session says so,
+with a condition the quote above omits:
+
+> "You should use App Intents Package when referencing code not compiled into a static library."
+> [wwdc2025-244 24:00]
+
+That is the case the `includes` list exists for — naming a target across a **dynamic** boundary
+(framework, dynamic library). SwiftPM in Xcode links statically by default, so in a package-based app
+the declarations are inert until some product becomes dynamic.
+
+**Practical consequence: never try to fix "a type is missing from the metadata" by adding or removing
+`includedPackages`.** Check target membership and how the dependency is linked. Keep the per-target
+declarations anyway — they match Apple's documented step, cost nothing, and start carrying weight the
+moment a dependency goes dynamic.
+
+## Type identity is the bare type name (`persistentIdentifier`)
+
+The key that the Shortcuts app and donations persist is `identifier` in `extract.actionsdata`. Its
+default is `PersistentlyIdentifiable.persistentIdentifier`, which is the **bare type name with no
+module prefix** [measured: `AddTodoIntent.persistentIdentifier == "AddTodoIntent"`; entities, queries
+and enums behave the same]. Module names appear only in `fullyQualifiedTypeName`, `mangledTypeName`
+and `defaultQueryIdentifier`, all resolved within a single build.
+
+- Renaming a package or module therefore does **not** move the persisted identity.
+- Renaming the **type** does. That is what the protocol is for: "useful for maintaining the identity of
+  a type, even when its type name is changed."
+
+```swift
+public struct ShowTodoCountIntent: AppIntent {
+    // Keeps the identity of the previous type name for already-saved shortcuts.
+    public static let persistentIdentifier = "ShowTodoCountIntent"
+```
+
+The static extractor honours the override — the dictionary key and `identifier` both become the
+supplied value, and it propagates into a statically linked consumer's merged metadata [measured
+2026-09-11]. Like `title`, it is read at build time, so it must be a constant.
+
+Because `actions` / `entities` / `queries` are dictionaries keyed on the bare identifier, **two
+statically linked modules must not expose two types with the same name** — the later entry replaces
+the earlier one wholesale.
 
 ## `AppShortcutsProvider` must be in the app target
 

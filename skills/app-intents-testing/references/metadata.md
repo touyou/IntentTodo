@@ -23,7 +23,7 @@ print({k:len(v) for k,v in d.items() if isinstance(v,(list,dict))})"
 | **two distinct types** claiming the same schema | inspect duplicate schema adoption; this is separate from a same-named cross-platform type collision |
 | an entity's schema/properties disappeared after adding a platform | compare per-target inputs: a same-named fallback can replace the earlier entry wholesale, leaving only one merged type (`app-intents-entities-and-search`) |
 | `actionSummary.wrapper.otherParameterIdentifiers` shorter than the `@Parameter` list | inspect the full summary, including inline parameters and conditional branches; the trailing-block count alone is not the full allowlist (`app-intents-parameters-and-prompts`) |
-| an action present in the package bundle but missing from the app bundle | target membership or an `includedPackages` problem |
+| an action present in the package bundle but missing from the app bundle | target membership, or the dependency is linked dynamically without an `includedPackages` entry. A statically linked dependency merges with no declaration at all, so adding `includedPackages` is not the fix by itself (`app-intents-execution-and-processes`) |
 | a value type printed as a dotted system entity name (`GeoToolbox.PlaceDescriptorEntity`) | fine on an entity `@Property`; on an App-Shortcut-registered intent's `@Parameter` it breaks SSU training |
 | `com.apple.appintents.entity.Syncable` next to an entity | `SyncableEntity` landed |
 

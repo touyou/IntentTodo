@@ -237,7 +237,7 @@ Apple は `AppShortcutsProvider.appShortcuts` の登録数を **10 件** に制�
 
 ### パッケージ内での定義
 
-Intent / AppEntity / EntityQuery / AppEnum は Swift Package 内に置ける。パッケージ側に `AppIntentsPackage` を1つ宣言するだけで、そこに含まれるこれらの型がアプリ全体で認識される。
+Intent / AppEntity / EntityQuery / AppEnum は Swift Package 内に置ける。パッケージ側に `AppIntentsPackage` を1つ宣言する。
 
 ```swift
 // Packages/TodoAppIntents/Sources/TodoAppIntents/TodoAppIntents.swift
@@ -258,11 +258,72 @@ struct IntentTodoAppIntentsPackage: AppIntentsPackage {
 ```
 
 宣言先は `IntentTodo` / `IntentTodoWidget` / `IntentTodoLiveActivity` / `IntentTodoWatchApp` の 4 ターゲット。
-メタデータの重複が起きないこと・AppIntentsTesting が全緑になることは確認済みで、**未確認なのは
+宣言してもメタデータが二重にならないこと・AppIntentsTesting が全緑になることは確認済みで、**未確認なのは
 App Shortcut の「フレーズ」ルーティング（Siri）だけ**（AppIntentsTesting は型名で引くので構造上通らない。
 追跡は #30）。
 
-経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
+#### メタデータが集約される条件は「リンクの形」で、`AppIntentsPackage` の有無ではない
+
+メタデータ抽出はターゲットごとに走り、**静的リンクした依存先の抽出結果は宣言ゼロで利用側の
+`extract.actionsdata` にマージされる**。SDK 27 / tools `27A266a` のビルド生成物の実測:
+
+| バンドル | `AppIntentsPackage` 宣言 | `extract.packagedata` | `actions` / `entities` / `queries` |
+|---|---|---|---|
+| `TodoAppIntents.appintents` | あり（`includedPackages` 無し） | `{"includes":[]}` | 24 / 5 / 4 |
+| `UI.appintents` | **無い** | **ファイルごと無い** | 24 / 5 / 4 |
+| `WidgetUI.appintents` | 無い | 無い | 24 / 5 / 4 |
+| `IntentTodo.app/Metadata.appintents` | あり（`includedPackages: [TodoIntentsPackage.self]`） | `{"includes":["14TodoAppIntents0aC7PackageV"]}` | 24 / 7 / 4 |
+
+`UI` / `WidgetUI` は `AppIntentsPackage` を 1 つも宣言していないのに `TodoAppIntents` の 24 actions が
+そのまま載る。つまり `AppIntentsPackage` 宣言が生むのは `extract.packagedata` だけで、
+`extract.actionsdata` の中身は宣言に左右されない。`includes` の値は `includedPackages` に並べた型の
+**マングル名**（`14TodoAppIntents0aC7PackageV` = `TodoAppIntents.TodoIntentsPackage`）。
+
+- Xcode の SPM は既定で静的リンクで、`IntentTodo.app` に `Frameworks/` は無い（7 パッケージ全部が静的）
+- 公式の言い方も条件付きになっている:
+  > "You should use App Intents Package when referencing code not compiled into a static library."
+  > （wwdc2025-244 `24:00`）
+
+  動的リンク（framework / dynamic library）を跨いだ先を名指しするのが `includes` の役割で、
+  静的リンクならリンカが object を取り込む時点でマージが済んでいる。
+
+**「メタデータに型が出てこない」を `includedPackages` の足し引きで直そうとしない。** 見るのは
+ターゲットメンバシップとリンク形態のほう。4 ターゲットの宣言は Apple のデモどおりで害が無く、
+どれかのパッケージを動的プロダクトに変えた瞬間に効き始めるので残している。
+
+経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md) /
+[docs/devlog/2026-09-11-appintents-build-metadata.md](../devlog/2026-09-11-appintents-build-metadata.md)
+
+### 型の永続 ID は素の型名（`persistentIdentifier`）
+
+Shortcuts アプリに保存されたアクションや donation が指しているのは `extract.actionsdata` の
+`identifier`。その既定値は `PersistentlyIdentifiable.persistentIdentifier` のデフォルト実装で、
+**モジュール名を含まない素の型名**になる。
+
+- `AddTodoIntent.persistentIdentifier` == `"AddTodoIntent"`（`RunCodeSnippet` で実測。
+  entity / query / enum も同じ）
+- モジュール名が入るのは `fullyQualifiedTypeName` / `mangledTypeName` / `defaultQueryIdentifier` の側で、
+  これらは同一ビルド内で解決されるだけ
+
+したがって**パッケージ名やモジュール名を変えても永続 ID は変わらない**。変わるのは**型名を変えたとき**で、
+Apple のリファレンスもその用途で書いている（"useful for maintaining the identity of a type, even when its
+type name is changed." / `AttributedTypeIdentifier.persistentIdentifier` は "typically corresponds to the
+struct name of the original entity declaration"）。型名を変えるなら旧名を固定して出す:
+
+```swift
+public struct ShowTodoCountIntent: AppIntent {
+    // Keeps the identity of the previous type name for already-saved shortcuts.
+    public static let persistentIdentifier = "ShowTodoCountIntent"
+```
+
+静的抽出がこの上書きを読むことは実測済み（辞書キーと `identifier` の両方が上書き値になり、
+静的リンク先のマージ後メタデータにもその値で載る）。ビルド時抽出なので `title` と同様に**定数**が必須。
+
+`actions` / `entities` / `queries` が素の `identifier` をキーにした辞書である以上、**静的リンクする
+複数モジュールから同名の型を出さない**。同名エントリが 2 つ来ると後の入力が前を丸ごと置き換える
+（実測は下の「reminder 本体スキーマ適合」の `WatchTodoAppEntity` の節）。
+
+経緯: [docs/devlog/2026-09-11-appintents-build-metadata.md](../devlog/2026-09-11-appintents-build-metadata.md)
 
 ### ⚠️ `AppShortcutsProvider` は SPM パッケージに置いてはいけない（アプリターゲット必須）
 
