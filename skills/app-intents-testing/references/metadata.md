@@ -13,6 +13,8 @@ print({k:len(v) for k,v in d.items() if isinstance(v,(list,dict))})"
 
 `actions` describes ordinary intents; `autoShortcuts` describes the preconfigured App Shortcuts supplied by `AppShortcutsProvider`. Zero App Shortcuts is valid if none are declared. Verify the expected type and parameters, not only a nonzero count.
 
+**Read it from a clean build.** An incremental build can leave a package's `*.appintents` unregenerated after its dependency changed, and the app's merged metadata then mixes stale entries with fresh ones — a type rename showed up as *both* identifiers present with `autoShortcuts` naming the old one, which is indistinguishable from a genuine failure. Deleting the output does not force regeneration; build into a fresh `-derivedDataPath`. Check mtimes before trusting a reading.
+
 ## What each anomaly means
 
 | Reading | Means |

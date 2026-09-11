@@ -233,11 +233,50 @@
     > "You must register each target as an App Intents Package to ensure proper indexing and validation."（wwdc2025-244 `23:29`–`24:00`）
   - **一度これを外していた**。「アプリ側にも宣言すると Shortcuts のルーティングが壊れる」と思っていたため
   - 2026-08-12 に再検証して採用に切り替えた根拠 3 点:
-    1. 全バンドルの `Metadata.appintents` の件数が宣言の有無で**完全一致**（DerivedData を消したクリーンビルドでも `actions` 23 = intent 型数 23、重複なし）
+    1. 全バンドルの `Metadata.appintents` の件数が宣言の有無で**完全一致**（DerivedData を消したクリーンビルドでも `actions` 23 = intent 型数 23）
     2. 宣言した状態で **AppIntentsTesting が全グリーン**（Siri / Shortcuts / Spotlight と同じインフラを通る）
     3. **Shortcuts アプリで実機確認**（アクション一覧・パラメータ表示が壊れていない）
   - 残る未確認は **App Shortcut の「フレーズ」ルーティング（Siri）だけ**。AppIntentsTesting は型名で intent を引くのでフレーズ経路を構造上通らない
-- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「パッケージ内での定義」/ [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
+  - **2026-09-11 に根拠 1 の読み方を訂正した**。件数が一致したのは「重複が起きなかった」からではなく、**静的リンクの時点でマージが済んでいて宣言が `extract.actionsdata` に触っていなかった**から
+    - `AppIntentsPackage` 宣言が生むのは `extract.packagedata` の 1 行だけ: `{"includes":["14TodoAppIntents0aC7PackageV"]}`（`includedPackages` に並べた型のマングル名）
+    - 宣言ゼロの `UI` / `WidgetUI` / `LiveActivity` にも `TodoAppIntents` の 24 actions がそのまま載る
+    - 公式の言い方も条件付きだった: > "You should use App Intents Package when referencing code not compiled into a **static library**."（wwdc2025-244 `24:00`）
+    - **話すなら**: 「全ターゲットに書け」は Apple の手順どおりで正しいが、効くのは**動的リンクを跨ぐとき**。静的リンクのパッケージ構成では宣言は保険で、**「メタデータに型が出ない」を `includedPackages` の足し引きで直そうとするのは筋が違う**
+- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「パッケージ内での定義」/ [../devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md) / [../devlog/2026-09-11-appintents-build-metadata.md](../devlog/2026-09-11-appintents-build-metadata.md)
+
+---
+
+### T11b. ⭐ 構成を変えると、保存済みショートカットは迷子になるのか
+
+- **見せるもの**: 「変えるもの → 保存済みショートカットは無事か」の 3 行表と、`extract.actionsdata` の
+  `identifier` / `fullyQualifiedTypeName` / `mangledTypeName` を並べた 1 枚
+- **話の要点**:
+  - 疑問の形: Intent をパッケージへ切り出したり、パッケージ名を変えたりしたら、**Shortcuts アプリに
+    保存済みのショートカットが指す先を失う**のでは？ `persistentIdentifier` で固定できるのでは？
+  - 保存側が握っているのは `extract.actionsdata` の `identifier`。その既定値は
+    **モジュール名を含まない素の型名**（`AddTodoIntent.persistentIdentifier` == `"AddTodoIntent"`。実測）
+
+    | 変えるもの | 保存済みショートカット |
+    |---|---|
+    | 型をアプリターゲットからパッケージへ移す | **無事** |
+    | パッケージ名 / モジュール名を変える | **無事** |
+    | **型名を変える** | **迷子**。旧 `identifier` はメタデータから消える |
+
+  - モジュール名が入るのは `fullyQualifiedTypeName` / `mangledTypeName` / `defaultQueryIdentifier` の側だけで、
+    これらは同一ビルド内で解決される
+  - つまり**直感は当たっていて、トリガが「パッケージ名」ではなく「型名」だった**。切り出すついでに
+    名前を整えたくなるので、体感としては「構成変更で壊れた」になる
+  - 答え合わせ: 型名を変えるなら旧名を `persistentIdentifier` に固定する。クリーンビルドで測ると
+    上書きは **`actions` のキー / `identifier` / 静的リンク先のマージ後メタデータ /
+    `autoShortcuts` の `actionIdentifier`** まで一貫して追従した（App Shortcut が旧名を指したまま
+    孤立することはない）。ビルド時抽出なので `title` と同じく**定数**が必須
+  - **おまけの落とし穴**: これを最初に測ったとき「`autoShortcuts` が旧名のまま・`actions` に旧新
+    両方が居る」という結果が出た。原因は**インクリメンタルビルドでパッケージ側の `*.appintents` が
+    再生成されていなかった**こと（出力を手で消してもビルドシステムは up-to-date と判断する）。
+    **メタデータで確認するときはクリーンビルドで見る**
+  - `AppEntity` にはもう 1 層ある。保存されるのは（型の `persistentIdentifier`,
+    インスタンスの `AppEntity.ID`）の組なので、**ID の作り方を変えても迷子になる**
+- **出典**: [../insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「構成を変えても保存済みショートカットが迷子にならない条件」/ [../devlog/2026-09-11-appintents-build-metadata.md](../devlog/2026-09-11-appintents-build-metadata.md) / `PersistentlyIdentifiable` リファレンス
 
 ---
 

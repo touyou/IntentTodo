@@ -51,7 +51,22 @@ python3 -c "import json;j=json.load(open('.../extract.actionsdata'));print(sorte
 `docs/presentation/02-constraints-and-craft.md` の T11 は根拠 1 の言い方が上記と食い違うが、
 登壇でどう話すかの判断なので手を入れていない。
 
-## 4: 前提が違っていた。効くのは「型名を変えたとき」
+## 4: 趣旨は「構成を変えると保存済みショートカットが迷子になるのをどうするか」だった
+
+最初「パッケージ名が変わると名前が変わりうる」と受け取って前提の誤りとして書いたが、聞きたかったのは
+**Shortcuts アプリが参照していた App Intents がパッケージ構成の変更で迷子になる問題に
+`persistentIdentifier` が使えるのでは**、という話だった。測った結果でそのまま答えられる。
+
+| 変えるもの | 保存済みショートカット |
+|---|---|
+| 型をアプリターゲットからパッケージへ移す | 無事（`identifier` は型名のまま） |
+| パッケージ名 / モジュール名を変える | 無事（`identifier` にモジュール名は入らない） |
+| **型名を変える** | 迷子。旧 `identifier` はメタデータから消える |
+
+直感は当たっていて、**トリガが「パッケージ名」ではなく「型名」**だった、というのが結論。
+パッケージへ切り出すついでに名前を整えると踏むので、体感としては「構成変更で壊れた」になる。
+
+## 前提の測り直し: 効くのは「型名を変えたとき」
 
 `identifier`（Shortcuts / donation が保存している側）の既定値はモジュール名を含まない素の型名だった。
 
@@ -82,6 +97,43 @@ TodoFilterType:  TodoFilterType
 - `mangledTypeName` は変わらない（型の実体の参照は別経路）
 
 ビルド時抽出なので `title` と同じく定数でなければならない。
+
+### App Shortcut がぶら下がったまま孤立しないかを確認（途中で誤診した）
+
+`ShowTodoCountIntent` は `AppShortcutsProvider` に登録してあるので、`autoShortcuts` 側の
+`actionIdentifier` が上書きに追従しないと **App Shortcut が無音で消える**。そこを見にいったら、
+最初はまさにその形に見えた:
+
+- アプリの統合メタデータの `actions` に `ShowTodoCountIntent` と `com.example.probe.ShowTodoCount` の
+  **両方**が居た（24 → 26 件）
+- `autoShortcuts[].actionIdentifier` は旧名の `ShowTodoCountIntent` のまま
+
+原因はインクリメンタルビルドだった。`UI.appintents` / `WidgetUI.appintents` などパッケージ側の
+抽出結果が**依存先を変えても再生成されず**、古い identifier を持ったまま統合メタデータへ merge されていた。
+出力ディレクトリを手で削ってビルドし直しても、ビルドシステムは up-to-date と判断して作り直さない。
+
+別の `-derivedDataPath` でクリーンビルドしたら結果が反転した:
+
+```
+LiveActivity.appintents      total  25  ['com.example.probe.ShowTodoCount']
+TodoAppIntents.appintents    total  25  ['com.example.probe.ShowTodoCount']
+UI.appintents                total  25  ['com.example.probe.ShowTodoCount']
+WidgetUI.appintents          total  25  ['com.example.probe.ShowTodoCount']
+IntentTodo.app               total  25  ['com.example.probe.ShowTodoCount']
+   autoShortcuts actionIdentifiers: [..., 'com.example.probe.ShowTodoCount']
+```
+
+どのバンドルも新 identifier 1 つだけで、`autoShortcuts` も追従していた。**上書きは一貫している**。
+
+教訓として、`AGENTS.md` の「確認はビルドの成否ではなくメタデータで行う」には
+**そのメタデータがインクリメンタルビルドで古いままのことがある**という但し書きが必要だった。
+2026-08-28 に SSU ログで同じ読み違えをしかけている（`2026-08-28-xcode27-beta6-recheck.md`）。
+
+### entity にはもう 1 層ある
+
+`AppEntity` を指すショートカットが保存しているのは（型の `persistentIdentifier`,
+インスタンスの `AppEntity.ID`）の組。型名を固定しても ID の作り方を変えたら同じように迷子になる。
+こちらは今回測っていない。
 
 現在のルール: [docs/insights/03-app-intents-core.md](../insights/03-app-intents-core.md)
 「メタデータが集約される条件は『リンクの形』」「型の永続 ID は素の型名」

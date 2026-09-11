@@ -294,9 +294,9 @@ App Shortcut の「フレーズ」ルーティング（Siri）だけ**（AppInte
 経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md) /
 [docs/devlog/2026-09-11-appintents-build-metadata.md](../devlog/2026-09-11-appintents-build-metadata.md)
 
-### 型の永続 ID は素の型名（`persistentIdentifier`）
+### 構成を変えても保存済みショートカットが迷子にならない条件（`persistentIdentifier`）
 
-Shortcuts アプリに保存されたアクションや donation が指しているのは `extract.actionsdata` の
+Shortcuts アプリに保存されたアクションや donation が握っているのは `extract.actionsdata` の
 `identifier`。その既定値は `PersistentlyIdentifiable.persistentIdentifier` のデフォルト実装で、
 **モジュール名を含まない素の型名**になる。
 
@@ -305,10 +305,14 @@ Shortcuts アプリに保存されたアクションや donation が指してい
 - モジュール名が入るのは `fullyQualifiedTypeName` / `mangledTypeName` / `defaultQueryIdentifier` の側で、
   これらは同一ビルド内で解決されるだけ
 
-したがって**パッケージ名やモジュール名を変えても永続 ID は変わらない**。変わるのは**型名を変えたとき**で、
-Apple のリファレンスもその用途で書いている（"useful for maintaining the identity of a type, even when its
-type name is changed." / `AttributedTypeIdentifier.persistentIdentifier` は "typically corresponds to the
-struct name of the original entity declaration"）。型名を変えるなら旧名を固定して出す:
+| 変えるもの | 保存済みショートカット |
+|---|---|
+| 型をアプリターゲットからパッケージへ移す | **無事**（`identifier` は型名のまま） |
+| パッケージ名 / モジュール名を変える | **無事**（`identifier` にモジュール名は入らない） |
+| **型名を変える** | **迷子**。旧 `identifier` はメタデータから消え、誰も指せなくなる |
+
+つまりリファクタで危ないのは**型名**だけ。ただしパッケージへ切り出すタイミングで名前も整えたくなるので、
+「構成変更で壊れた」という形で現れる。型名を変えるなら旧名を固定して出す:
 
 ```swift
 public struct ShowTodoCountIntent: AppIntent {
@@ -316,12 +320,28 @@ public struct ShowTodoCountIntent: AppIntent {
     public static let persistentIdentifier = "ShowTodoCountIntent"
 ```
 
-静的抽出がこの上書きを読むことは実測済み（辞書キーと `identifier` の両方が上書き値になり、
-静的リンク先のマージ後メタデータにもその値で載る）。ビルド時抽出なので `title` と同様に**定数**が必須。
+Apple のリファレンスもこの用途で書いている（"useful for maintaining the identity of a type, even when its
+type name is changed." / `AttributedTypeIdentifier.persistentIdentifier` は "typically corresponds to the
+struct name of the original entity declaration"）。ビルド時抽出なので `title` と同様に**定数**が必須。
+
+上書きがどこまで追従するかはクリーンビルドで実測した。**`actions` の辞書キー / `identifier` /
+静的リンク先のマージ後メタデータ / `autoShortcuts` の `actionIdentifier` まで一貫して上書き値になる**
+（App Shortcut が旧 identifier を指したまま孤立することはない）。`mangledTypeName` は型の実体の参照なので
+変わらない。
+
+> **メタデータで確認するときはクリーンビルドで見る。** インクリメンタルビルドでは依存先を変えても
+> パッケージ側の `*.appintents` が再生成されないことがあり、アプリの統合メタデータが
+> **旧 identifier と新 identifier の両方を含む**状態（`actions` 24 → 26）に見えた。出力を手で削っても
+> ビルドシステムは up-to-date と判断して作り直さない。別の `-derivedDataPath` でビルドし直したら
+> どのバンドルも新 identifier 1 つだけになった。
 
 `actions` / `entities` / `queries` が素の `identifier` をキーにした辞書である以上、**静的リンクする
 複数モジュールから同名の型を出さない**。同名エントリが 2 つ来ると後の入力が前を丸ごと置き換える
 （実測は下の「reminder 本体スキーマ適合」の `WatchTodoAppEntity` の節）。
+
+`AppEntity` を指すショートカットにはもう 1 層あり、保存されるのは
+（型の `persistentIdentifier`, インスタンスの `AppEntity.ID`）の組。型名を固定しても
+**ID の作り方を変えたら同じように迷子になる**。
 
 経緯: [docs/devlog/2026-09-11-appintents-build-metadata.md](../devlog/2026-09-11-appintents-build-metadata.md)
 

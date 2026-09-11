@@ -56,17 +56,22 @@ the declarations are inert until some product becomes dynamic.
 declarations anyway — they match Apple's documented step, cost nothing, and start carrying weight the
 moment a dependency goes dynamic.
 
-## Type identity is the bare type name (`persistentIdentifier`)
+## Will restructuring orphan already-saved shortcuts? (`persistentIdentifier`)
 
-The key that the Shortcuts app and donations persist is `identifier` in `extract.actionsdata`. Its
-default is `PersistentlyIdentifiable.persistentIdentifier`, which is the **bare type name with no
-module prefix** [measured: `AddTodoIntent.persistentIdentifier == "AddTodoIntent"`; entities, queries
-and enums behave the same]. Module names appear only in `fullyQualifiedTypeName`, `mangledTypeName`
-and `defaultQueryIdentifier`, all resolved within a single build.
+What the Shortcuts app and donations persist is `identifier` in `extract.actionsdata`. Its default is
+`PersistentlyIdentifiable.persistentIdentifier`, which is the **bare type name with no module prefix**
+[measured: `AddTodoIntent.persistentIdentifier == "AddTodoIntent"`; entities, queries and enums behave
+the same]. Module names appear only in `fullyQualifiedTypeName`, `mangledTypeName` and
+`defaultQueryIdentifier`, all resolved within a single build.
 
-- Renaming a package or module therefore does **not** move the persisted identity.
-- Renaming the **type** does. That is what the protocol is for: "useful for maintaining the identity of
-  a type, even when its type name is changed."
+| What you change | Already-saved shortcuts |
+|---|---|
+| move a type from the app target into a package | **fine** — `identifier` is still the type name |
+| rename the package or module | **fine** — no module name in `identifier` |
+| **rename the type** | **orphaned** — the old `identifier` simply stops existing |
+
+So the only dangerous refactor is a **type rename**. It reads as "restructuring broke it" because
+extracting types into a package is when you are most tempted to tidy up their names. Pin the old name:
 
 ```swift
 public struct ShowTodoCountIntent: AppIntent {
@@ -74,13 +79,27 @@ public struct ShowTodoCountIntent: AppIntent {
     public static let persistentIdentifier = "ShowTodoCountIntent"
 ```
 
-The static extractor honours the override — the dictionary key and `identifier` both become the
-supplied value, and it propagates into a statically linked consumer's merged metadata [measured
-2026-09-11]. Like `title`, it is read at build time, so it must be a constant.
+That is what the protocol is for: "useful for maintaining the identity of a type, even when its type
+name is changed." Like `title`, it is read at build time, so it must be a constant.
+
+On a clean build the override is consistent everywhere: the `actions` dictionary key, `identifier`, a
+statically linked consumer's merged metadata, and — importantly — `autoShortcuts[].actionIdentifier`
+for an intent registered in `AppShortcutsProvider`. An App Shortcut is not left pointing at the old
+identifier. `mangledTypeName` does not change [measured 2026-09-11].
+
+> **Read metadata from a clean build.** An incremental build can leave a package's `*.appintents`
+> unregenerated after its dependency changed, and the app's merged metadata then contains *both* the old
+> and new identifiers while `autoShortcuts` still names the old one — which looks exactly like a broken
+> App Shortcut. Deleting the output does not force regeneration; build into a fresh
+> `-derivedDataPath` instead.
 
 Because `actions` / `entities` / `queries` are dictionaries keyed on the bare identifier, **two
 statically linked modules must not expose two types with the same name** — the later entry replaces
 the earlier one wholesale.
+
+An `AppEntity` reference has a second layer: what gets stored is the pair (the type's
+`persistentIdentifier`, the instance's `AppEntity.ID`). Pinning the type name does not help if the ID
+scheme changes.
 
 ## `AppShortcutsProvider` must be in the app target
 
