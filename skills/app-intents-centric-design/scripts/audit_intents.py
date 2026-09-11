@@ -386,7 +386,9 @@ def r_package_registration(files: list[SwiftFile]) -> Iterable[Finding]:
                 f"Target '{target}' links {'/'.join(sorted(base_modules))} but declares no AppIntentsPackage.",
                 "Apple's documented step (wwdc2025-244 23:29): register EACH consuming target as an "
                 "AppIntentsPackage with `includedPackages: [YourPackage.self]` so indexing and "
-                f"validation cover it. See app-intents-execution-and-processes/references/packaging.md",
+                "validation cover it. It is required across a dynamic boundary and inert for a "
+                "statically linked package, so do not read this as the cause of missing metadata. "
+                f"See app-intents-execution-and-processes/references/packaging.md",
             )
 
 

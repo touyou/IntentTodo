@@ -256,7 +256,9 @@ def run_checks(bundles: list[Bundle]) -> list[Check]:
                     "error", b.label,
                     f"App Shortcut references unknown action '{ident}'.",
                     "The intent did not make it into this bundle's metadata — check target membership "
-                    "and the AppIntentsPackage / includedPackages registration.",
+                    "and how the package is linked. A statically linked package merges with no "
+                    "AppIntentsPackage declaration; includedPackages only matters across a dynamic "
+                    "boundary.",
                 ))
         if not (b.is_app or b.is_appex):
             continue
@@ -296,7 +298,8 @@ def run_checks(bundles: list[Bundle]) -> list[Check]:
                 f"{', '.join(missing[:6])}{'…' if len(missing) > 6 else ''}",
                 "Expected when a platform #if excludes them (e.g. a watchOS-unavailable schema); "
                 "otherwise the target is not picking up the package's metadata — check target membership "
-                "and the AppIntentsPackage / includedPackages declaration for that target.",
+                "and how the package is linked. A statically linked package merges with no "
+                "AppIntentsPackage declaration; includedPackages only matters across a dynamic boundary.",
             ))
 
         # Entity / enum schemas, unlike actions, can be *silently dropped* while the type
