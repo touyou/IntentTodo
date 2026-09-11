@@ -17,10 +17,11 @@
 | SKU | `dev.touyou.IntentTodo`（設定済み） |
 | プライマリカテゴリ | 仕事効率化 / Productivity |
 | セカンダリカテゴリ | ユーティリティ / Utilities |
-| 権利（Copyright） | `2026 Yosuke Fujii` |
+| 権利（Copyright） | `2026 touyou`（3 バージョンとも設定済み） |
 | 年齢制限 | 4+（暴力・成人向け要素いずれも「なし」） |
-| 価格 | `要入力`（無料想定） |
+| 価格 | 無料（free price point / 全 175 テリトリー / 新規テリトリーも自動で有効） |
 | App 内課金 | なし |
+| リリース方法 | `AFTER_APPROVAL`（審査通過後に自動公開）。段階的リリースは未設定 |
 
 > `INFOPLIST_KEY_LSApplicationCategoryType` は `public.app-category.utilities`。
 > ASC 側のプライマリカテゴリと**揃える**か、どちらかに寄せる。上表は「仕事効率化を主」に寄せた案。
@@ -111,7 +112,7 @@ The app requests notification permission so widget and Control Center failures c
 reported back to the person; declining it does not restrict any feature.
 ```
 
-連絡先は `要入力`（氏名 / 電話番号 / メール）。
+連絡先（氏名 / 電話番号 / メール）と上の審査メモは 3 バージョンとも ASC に入力済み。
 
 ---
 
@@ -134,8 +135,16 @@ reported back to the person; declining it does not restrict any feature.
 
 ---
 
-## 8. 提出前の確認
+## 8. 提出
 
-残っている確認は [#132](https://github.com/touyou/IntentTodo/issues/132)（ASC の `要入力` /
-`production` ビルドのアップロード / 輸出コンプライアンス / ITMS 警告）。
-プライバシーポリシーは `PRIVACY.md` が公開 URL で読める状態になっている。
+1.0.0 は build 33（Xcode Cloud run #33）で iOS / macOS / visionOS の 3 バージョンとも提出済み。
+提出時に**公開 API から触れず Web UI でしか答えられない項目が 2 つ**あり、どちらも
+「答えるまで提出が通らない」形で出る:
+
+| 項目 | 出方 |
+|---|---|
+| App プライバシー（データ使用）の**公開** | `You must have published answers to your app's data usages` |
+| visionOS の `hasHighMotionLabel`（モーション申告） | `You must provide a value for the attribute 'hasHighMotionLabel'` |
+
+提出の状態は `asc review submissions list --app 6788623037` / `asc status --app 6788623037` で読める。
+経緯: [docs/devlog/2026-09-11-app-store-submission.md](devlog/2026-09-11-app-store-submission.md)
