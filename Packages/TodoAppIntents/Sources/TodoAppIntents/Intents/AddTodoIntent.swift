@@ -6,6 +6,7 @@
 import AppIntents
 import Domain
 import Foundation
+import UniformTypeIdentifiers
 
 /// An intent that creates a new todo item.
 ///
@@ -168,7 +169,7 @@ public struct AddTodoIntent: AppIntent {
         title: "Images",
         description: "Images to attach to the todo",
         default: [],
-        supportedTypeIdentifiers: ["public.png", "public.jpeg", "public.heic", "public.tiff"]
+        supportedContentTypes: [.png, .jpeg, .heic, .tiff]
     )
     public var images: [IntentFile]
 
