@@ -20,6 +20,7 @@
 
 ## 目次
 
+- [2026-09-12-intent-schema-adoption.md](2026-09-12-intent-schema-adoption.md) — Intent 側の App Schema 適合を測り 3 本適合させた経緯（**素の `OpenIntent` 適合では `assistantDefinedSchemas` が空**でマクロと同値ではなかった件 / **スキーマ要求はライブ診断もホストの `swift build` も検証せず、明らかに誤った適合が緑になる**件 / **Intent は entity と違い `#if` をマクロ行だけに掛ければよく型名を分けなくてよい**と統合メタデータで確かめた件 / スキーマ外のパラメータは optional 必須だと分かった件 / `createReminder` / `updateReminder` の要求差分を出して #138 に残した件）
 - [2026-09-11-appintents-build-metadata.md](2026-09-11-appintents-build-metadata.md) — ビルド時メタデータの仕組みを実測で突き合わせた経緯（**静的リンクなら `AppIntentsPackage` 宣言ゼロでもマージされる**と生成物で確かめた件 / `extract.packagedata` の中身が `includedPackages` のマングル名だった件 / 2026-08-12 の「件数が一致したから重複なし」の解釈を訂正 / 保存済みショートカットが迷子になるトリガは「パッケージ名」ではなく**型名**だと測った件 / **インクリメンタルビルドの古い `*.appintents` が混ざって `autoShortcuts` が追従していないように見えた**件）
 - [2026-09-11-app-store-submission.md](2026-09-11-app-store-submission.md) — 1.0 を 3 プラットフォーム提出した経緯（**Xcode 27 の正式版はまだ無く RC で出すしかなかった**と確かめた過程 / `asc validate` が緑でも提出が通らない 2 項目（App プライバシーの公開・visionOS の `hasHighMotionLabel`）はどちらも公開 API の外だった件 / `asc screenshots list` の戻りを `.data[]` で読んでスクショを二重にした件 / 価格スケジュールの開始日が「今日」だと弾かれる件）
 - [2026-09-10-macos-ui-shortcuts.md](2026-09-10-macos-ui-shortcuts.md) — Mac のフィードバック 3 件に答えた経緯（既定のサイドバートグルが**サイドバーの trailing 端**に居て開閉のたびに動いていた件 / `.navigation` が detail 側に載ると分かるまで / ⌫ を `keyboardShortcut` ではなく `onDeleteCommand` にした理由 / メニューの対象を `FocusedValues` に載せた理由）

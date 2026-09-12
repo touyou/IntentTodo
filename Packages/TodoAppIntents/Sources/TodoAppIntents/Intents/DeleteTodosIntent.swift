@@ -16,6 +16,13 @@ import Domain
 /// (the associated `Entity` type is inferred from it). Modeling delete as a
 /// collection is why this is separate from the single-item `DeleteTodoIntent`,
 /// which UI `Button(intent:)` calls drive with one `TodoAppEntity`.
+///
+/// The `.reminders.deleteReminders` schema wants exactly that array, so the protocol shape
+/// already satisfies it and the macro only adds the schema declaration Siri needs. The
+/// `#if` keeps the attribute off watchOS, where no schema domain exists.
+#if !os(watchOS)
+@AppIntent(schema: .reminders.deleteReminders)
+#endif
 public struct DeleteTodosIntent: DeleteIntent, UndoableIntent {
     public static var title: LocalizedStringResource { "Delete Todos" }
 

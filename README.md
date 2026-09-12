@@ -57,7 +57,7 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 | `CompleteTodosIntent` | `LongRunningIntent` + `CancellableIntent` + `EntityCollection` | `.background` | ✅ | バルク完了（進捗 / キャンセル対応） |
 | `DeleteTodoIntent` | `UndoableIntent` + `requestConfirmation` | `.background` | ✅ | 削除（確認あり。Siri / Shortcuts 用） |
 | `DeleteTodoImmediatelyIntent` | `UndoableIntent`（内部用） | `.background` | ✅ | 削除（確認なし。UI は `.confirmationDialog` で確認してから呼ぶ） |
-| `DeleteTodosIntent` | `DeleteIntent` + `UndoableIntent` | `.background` | ✅ | バルク削除 |
+| `DeleteTodosIntent` | `DeleteIntent` + `UndoableIntent` + `@AppIntent(schema: .reminders.deleteReminders)` | `.background` | ✅ | バルク削除 |
 | `ToggleFavoriteIntent` | — | `.background` | ✅ | お気に入り切替 |
 | `SnoozeTodoIntent` | `requestChoice` | `.background` | ✅ | スヌーズ（期間を選ばせる） |
 | `QuickSnoozeTodoIntent` | `LiveActivityIntent`（内部用） | `.background` | ✅ | スヌーズ 30 分即実行（Live Activity のボタン用） |
@@ -69,8 +69,8 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 | `SearchEverythingIntent` | `@UnionValue` | `.background` | — | Todo + Category 横断検索 |
 | `ShowTodoSearchResultsIntent` | `@AppIntent(schema: .system.searchInApp)`（watchOS 除外） | — | — | Siri からアプリ内検索 UI へ |
 | `TodoSemanticContentSearchIntent` | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | — | — | Visual Intelligence の「もっと見る」 |
-| `OpenTodoIntent` | `OpenIntent` + `URLRepresentableIntent` + `UISceneAppIntent` | `.foreground(.immediate)` | — | Todo 詳細を開く（Spotlight / ウィジェットのタップ先） |
-| `OpenCategoryIntent` | `OpenIntent` | `.foreground(.immediate)` | — | カテゴリを開く（Mac の visual search 要件） |
+| `OpenTodoIntent` | `OpenIntent` + `URLRepresentableIntent` + `UISceneAppIntent` + `@AppIntent(schema: .system.open)` | `.foreground(.immediate)` | — | Todo 詳細を開く（Spotlight / ウィジェットのタップ先） |
+| `OpenCategoryIntent` | `OpenIntent` + `@AppIntent(schema: .system.open)` | `.foreground(.immediate)` | — | カテゴリを開く（Mac の visual search 要件） |
 | `LaunchAppIntent` | `TargetContentProvidingIntent`(iOS/visionOS) + `UISceneAppIntent` | `.foreground(.immediate)` | — | 画面指定でアプリ起動 |
 | `TodoFocusFilterIntent` | `SetFocusFilterIntent` | `.background` | — | 集中モード連携 |
 | `TodoSnippetIntent` / `TodoSummarySnippetIntent` | `SnippetIntent`（内部用） | — | — | Siri 応答のインタラクティブ表示 |

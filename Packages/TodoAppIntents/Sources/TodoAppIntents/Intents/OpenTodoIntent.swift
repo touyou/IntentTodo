@@ -25,6 +25,15 @@ import UIKit
 /// `URLRepresentableIntent` comes for free: for an `OpenIntent` whose `Target` is a
 /// `URLRepresentableEntity`, the SDK synthesises `urlRepresentation`
 /// (`intenttodo://todo/<id>`), so a widget `Link` and Siri point at the same destination.
+///
+/// The `.system.open` schema resolves to the same name as the protocol, but conformance
+/// alone leaves `assistantDefinedSchemas` empty: only the macro adds the schema entry and
+/// the `AssistantIntent` marker that make the action executable by Siri. The `#if` keeps
+/// the attribute off watchOS, where no schema domain exists; unlike entities, one type
+/// name serves both slices without the schema being dropped from the shipped metadata.
+#if !os(watchOS)
+@AppIntent(schema: .system.open)
+#endif
 public struct OpenTodoIntent: OpenIntent, URLRepresentableIntent {
     public static let title: LocalizedStringResource = "Open Todo"
     public static let description = IntentDescription("Opens the app to a specific todo")
