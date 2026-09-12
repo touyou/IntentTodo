@@ -614,6 +614,14 @@ public static var title: LocalizedStringResource {
 `title` / `IntentDescription` / `@Parameter(title:/description:)` / `categoryName` /
 `searchKeywords` / entity・enum の `DisplayRepresentation` / `IntentDialog` はどこにも載らない。
 
+自動抽出されるキーは**抽出側が所有している**。パラメータ名を変えると
+`Update ${todo}` → `Update ${target}` のようにキーごと変わり、旧キーは
+`extractionState: "stale"`、新キーは訳の無い状態で現れる（訳を移すのは手作業）。
+このとき**新キーを書き出すのは統合メタデータが新しいときだけ**なので、
+改名直後にキーを手で直すとインクリメンタルビルドが旧キーを書き戻す。
+`Build/` を消してからビルドする。経緯:
+[docs/devlog/2026-09-12-create-update-schema-adoption.md](../devlog/2026-09-12-create-update-schema-adoption.md)
+
 ### だから手動キーで持ち、スクリプトで漏れを見る
 
 各ターゲットの catalog に `extractionState: "manual"` で入れる。コンパイラの後ろ盾が無いので、
