@@ -34,7 +34,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `ParameterSummary` / `Summary` / `When` / `Switch` | Shortcuts エディタでのパラメータ表示 | ✅ | 16 ファイル。条件分岐（`When`）まで使用。**summary は表示の allowlist**なので、Intent が変えられるパラメータは trailing ブロックまで含めて全部載せる（`AGENTS.md` 参照） |
 | `IntentDescription` | 説明・カテゴリ・検索キーワード | ✅ | 24 ファイル |
 | `IntentDescription.resultValueName` | 戻り値のマジック変数名 | ✅ | `TodoEntityQuery` / `CategoryEntityQuery` |
-| `IntentDescription.assistantOnly` | Shortcuts に出さず Apple Intelligence 専用にする | ⏸ | 隠したい Intent は `isDiscoverable = false` で足りている |
+| `isAssistantOnly`（`AssistantSchemaIntent`） | Shortcuts に出さず Apple Intelligence 専用にする | ⏸ | 単に隠すだけなら `isDiscoverable = false` で足りている。**本来の用途は移行**で、公開済み Intent の形がスキーマ要求と合わないときは「別 Intent + `isAssistantOnly = true`」で旧 Intent に保存済みショートカットを担わせる（Apple の指示）。本アプリは 1.0 が公開前だったので `AddTodoIntent` / `UpdateTodoIntent` を直接作り直した（#138 / 経緯は devlog 2026-09-12） |
 | `isDiscoverable = false` | 内部用 Intent を Siri / Shortcuts から隠す | ✅ | 6 本（`QuickSnooze` / `DeleteTodoImmediately` / `SetTodoCompletion` / `Reorder` / snippet 2 本） |
 | `IntentResult` / `.result(value:dialog:)` | 実行結果の返却 | ✅ | 全 Intent |
 | `OpensIntent` | 別 Intent を続けて開く | ✅ | `AddTodoIntent` / `ShowTodosIntent` |

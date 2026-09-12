@@ -102,7 +102,33 @@ system value 型を `@Parameter` に置くと SSU が無音で落ちるバグ（
   `SetTodoCompletionIntent` と 2 本になった。どちらも `TodoService` を通り、
   `completionDate` の同期は 1 か所
 
-## 7. 結果
+## 7. 公開済みなら、この作り直しはやってはいけなかった
+
+「パラメータをリネームしたら `simctl erase` が要る」を書いたあとで、**配布物ではどうなるのか**を
+聞かれて調べた。Apple のドキュメントに直接の指示があった:
+
+> When adding a schema to an intent that has incompatible properties that might break
+> existing shortcuts, create a new intent alongside the existing one. **Removing or
+> changing the older intent breaks any shortcuts that use it.** As a temporary workaround,
+> configure the new intent so that it's only available to Apple Intelligence by setting
+> `isAssistantOnly` to `true`.
+> — *Making actions and content discoverable by Apple Intelligence / Migrate existing intents to schemas*
+
+つまり正しい手順は 2 通りに分かれる:
+
+| 既存 Intent の形 | 手順 |
+|---|---|
+| そのままスキーマ要求を満たす | **マクロ 1 行だけ足す**（`OpenTodoIntent` / `OpenCategoryIntent` / `DeleteTodosIntent` / `CreateSectionIntent` がこれ） |
+| 満たさない | **別 Intent を新設 + `isAssistantOnly = true`**。旧 Intent が保存済みショートカットを担い続け、移行後に `isAssistantOnly` を外して旧 Intent を畳む |
+
+`AddTodoIntent` / `UpdateTodoIntent` は後者に当たる。**直接作り直したのは
+1.0.0 がまだ `WAITING_FOR_REVIEW` で公開前だったから**で（`asc status --app 6788623037` で確認）、
+App Store 経由の利用者がゼロなので壊れる保存済みショートカットが存在しない。
+**公開後に同じことをしてはいけない。**
+
+`simctl erase` の方は開発ループの症状。配布物の更新で利用者側に同じことが要るかは未確認（#30）。
+
+## 8. 結果
 
 出荷メタデータ（クリーンビルド `/tmp/ITFinalDD`）:
 

@@ -909,8 +909,15 @@ Entity 側の適合と要求の出方が違うので、別に書く。
   `Required AppSchemaIntent parameter 'x' must not be optional` /
   `Parameter 'x' does not match required AppSchemaIntent type 'T'`
 - **entity 側の `@ComputedProperty` による別名は使えない**。パラメータは storage なので、
-  スキーマ要求名（`note` / `isFlagged` / `target`）はリネームで満たすしかない。
-  **リネームは保存済みショートカットのそのパラメータを外す**（型名のリネームと同じ射程）
+  スキーマ要求名（`note` / `isFlagged` / `target`）はリネームで満たすしかない
+- **公開済みの Intent は形を変えない**。Apple の指示は明確で、既存プロパティがそのまま
+  スキーマ要求を満たすなら**マクロ 1 行だけ足す**、満たさないなら**別 Intent を新設して
+  `isAssistantOnly = true`** にし、旧 Intent に保存済みショートカットを担わせる
+  （移行が済んだら `isAssistantOnly` を外して旧 Intent を畳む）。
+  "Removing or changing the older intent breaks any shortcuts that use it."
+  [Apple: Making actions and content discoverable by Apple Intelligence — Migrate existing
+  intents to schemas]。**型名を変えると Intent ごと迷子になる**のと別に、
+  **パラメータ名や型を変えるとその値の結び付きが外れる**
 - **スキーマの非 optional コレクションには `default: []` を付ける**。付けないと
   「値が無い」として毎回システムが聞き返し、`AppIntentsTesting` では
   `Unsupported operation: The App Intent requested value for parameter 'tags'` で落ちる。
@@ -926,7 +933,8 @@ Entity 側の適合と要求の出方が違うので、別に書く。
 - **シミュレータの App Intents 登録はアプリを入れ替えても古いまま残ることがある**。
   パラメータをリネームした直後は、クリーンビルドの出荷メタデータが新しくても
   `AppIntentsTesting` が旧パラメータを要求してくる。アンインストールでは戻らず、
-  **`xcrun simctl erase` が要る**（2026-09-12 に 4 テストの偽の失敗で 1 時間使った）
+  **`xcrun simctl erase` が要る**（2026-09-12 に 4 テストの偽の失敗で 1 時間使った）。
+  **これは開発ループの話**で、配布物の更新で利用者に同じ操作が要るかは未確認（#30）
 
 `reminders` ドメインの Intent スキーマ 5 本と `.system.open` の適合状況・要求差分は
 [docs/APP_INTENTS_API_COVERAGE.md](../APP_INTENTS_API_COVERAGE.md#9-app-schema意味ドメイン適合)。
