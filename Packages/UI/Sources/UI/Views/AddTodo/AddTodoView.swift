@@ -52,7 +52,8 @@ public struct AddTodoView: View {
             recurrenceInterval: draft.recurrenceInterval,
             locationTriggerEvent: draft.locationTriggerEvent,
             list: draft.list,
-            section: draft.section
+            section: draft.section,
+            images: draft.attachments
         )
     }
 

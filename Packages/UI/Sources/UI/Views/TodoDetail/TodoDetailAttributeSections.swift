@@ -120,3 +120,33 @@ struct TodoDetailMetadataSection: View {
         todo.locationTriggerEvent.flatMap(TodoLocationTriggerEvent.init(rawValue:))
     }
 }
+
+// MARK: - Attachments
+
+/// Shows the attached images as a row of thumbnails.
+struct TodoDetailAttachmentsSection: View {
+    let attachments: [TodoAttachmentValue]
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 8) {
+                ForEach(attachments) { attachment in
+                    AttachmentPreview(data: attachment.data)
+                        .accessibilityLabel(attachment.filename)
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
+    }
+}
+
+/// A larger preview than the form's row thumbnail, since this is the reading surface.
+private struct AttachmentPreview: View {
+    let data: Data
+
+    private static let side: CGFloat = 96
+
+    var body: some View {
+        AttachmentThumbnail(data: data, side: Self.side)
+    }
+}

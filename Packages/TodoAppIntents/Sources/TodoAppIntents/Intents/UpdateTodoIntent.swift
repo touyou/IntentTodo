@@ -15,6 +15,7 @@
 //
 
 import AppIntents
+import Domain
 import Foundation
 
 /// Updates selected fields of an existing todo, leaving unmentioned fields intact.
@@ -54,6 +55,7 @@ public struct UpdateTodoIntent: AppIntent {
             \.$locationTriggerEvent
             \.$list
             \.$section
+            \.$images
         }
     }
 
@@ -122,6 +124,13 @@ public struct UpdateTodoIntent: AppIntent {
     @Parameter(title: "Section", description: "The section the todo belongs to")
     public var section: TodoSectionAppEntity?
 
+    /// Replaces the attached images. `.set(nil)` (an explicitly empty value) removes them.
+    ///
+    /// `.reminders.updateReminder` does not carry images, so this is one of the app's own
+    /// parameters — which the schema requires to be optional.
+    @Parameter(title: "Images", description: "Replaces the images attached to the todo")
+    public var images: [IntentFile]?
+
     @Dependency
     var todoService: TodoService
 
@@ -154,7 +163,8 @@ public struct UpdateTodoIntent: AppIntent {
         recurrenceInterval: Int,
         locationTriggerEvent: TodoLocationTriggerEvent?,
         list: CategoryAppEntity?,
-        section: TodoSectionAppEntity?
+        section: TodoSectionAppEntity?,
+        images: [TodoAttachmentValue]
     ) {
         self.todo = todo
         self.title = title
@@ -171,6 +181,10 @@ public struct UpdateTodoIntent: AppIntent {
         self.locationTriggerEvent = locationTriggerEvent
         self.list = list
         self.section = section
+        // The form already holds stored attachments as values; re-wrapping them as
+        // `IntentFile` keeps one parameter for both callers, and `applyAttachments`
+        // matches the ids back to the rows it already has.
+        self.images = images.map(TodoAttachments.intentFile(from:))
     }
 
     @MainActor
@@ -201,7 +215,8 @@ public struct UpdateTodoIntent: AppIntent {
             recurrenceInterval: Self.requiredUpdate($recurrenceInterval.valueState),
             locationTriggerEvent: Self.optionalUpdate($locationTriggerEvent.valueState),
             listId: Self.entityUpdate($list.valueState),
-            sectionId: Self.entityUpdate($section.valueState)
+            sectionId: Self.entityUpdate($section.valueState),
+            attachments: Self.attachmentUpdate($images.valueState)
         )
         // A no-op unless the attribute editor is open, mirroring `AddTodoIntent`.
         navigationModel.dismissAttributeEditor()
@@ -231,6 +246,17 @@ public struct UpdateTodoIntent: AppIntent {
         _ state: IntentParameter<T?>.ValueState
     ) -> FieldUpdate<String?> where T.ID == String {
         if case .set(let value) = state { return .set(value?.id) }
+        return .unchanged
+    }
+
+    /// Attachments follow the collection rule (`.set(nil)` means "remove them all"),
+    /// with each file mapped to the value type the service stores.
+    private static func attachmentUpdate(
+        _ state: IntentParameter<[IntentFile]?>.ValueState
+    ) -> FieldUpdate<[TodoAttachmentValue]> {
+        if case .set(let files) = state {
+            return .set((files ?? []).map(TodoAttachments.value(from:)))
+        }
         return .unchanged
     }
 

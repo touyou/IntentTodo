@@ -44,7 +44,8 @@ public enum SharedModelContainer {
         TodoItem.self,
         SubTask.self,
         Category.self,
-        TodoSection.self
+        TodoSection.self,
+        TodoAttachment.self
     ])
 
     /// The database filename for SwiftData storage.

@@ -250,3 +250,124 @@ struct TodoFilingTests {
         #expect(item.category?.id == work.id)
     }
 }
+
+// MARK: - Attachments
+
+@Suite("Todo の添付")
+@MainActor
+struct TodoAttachmentTests {
+    private func makeService() -> (TodoService, MockTodoRepository) {
+        let repo = MockTodoRepository()
+        return (TodoService(repository: repo), repo)
+    }
+
+    private func stored(in repo: MockTodoRepository) throws -> TodoItem {
+        guard let item = try repo.fetchAll().first else {
+            throw IntentError.notFound("no todo stored")
+        }
+        return item
+    }
+
+    private func value(_ name: String, bytes: [UInt8]) -> TodoAttachmentValue {
+        TodoAttachmentValue(filename: name, typeIdentifier: "public.png", data: Data(bytes))
+    }
+
+    private func create(
+        _ service: TodoService,
+        attachments: [TodoAttachmentValue]
+    ) throws -> TodoAppEntity {
+        try service.create(
+            title: "sign the contract",
+            todoDescription: nil,
+            dueDate: nil,
+            isFavorite: false,
+            attachments: attachments
+        )
+    }
+
+    @Test("create が添付を保存する")
+    func createPersistsAttachments() throws {
+        let (service, repo) = makeService()
+        _ = try create(service, attachments: [value("a.png", bytes: [1, 2, 3])])
+
+        let attachments = try stored(in: repo).attachments ?? []
+        #expect(attachments.count == 1)
+        #expect(attachments.first?.filename == "a.png")
+        #expect(attachments.first?.data == Data([1, 2, 3]))
+    }
+
+    @Test("同じ内容で保存し直しても行は作り直されない")
+    func updateKeepsUnchangedAttachments() throws {
+        let (service, repo) = makeService()
+        let entity = try create(service, attachments: [value("a.png", bytes: [1, 2, 3])])
+        let originalID = try stored(in: repo).attachments?.first?.id
+
+        // The form hands back the whole set on every save, with fresh ids — the same shape
+        // `IntentFile` produces, since it carries no identifier.
+        _ = try service.update(
+            todoId: entity.id,
+            attachments: .set([value("a.png", bytes: [1, 2, 3])])
+        )
+
+        let attachments = try stored(in: repo).attachments ?? []
+        #expect(attachments.count == 1)
+        #expect(attachments.first?.id == originalID)
+    }
+
+    @Test("集合から外れた添付は消える")
+    func updateDropsRemovedAttachments() throws {
+        let (service, repo) = makeService()
+        let entity = try create(
+            service,
+            attachments: [value("a.png", bytes: [1, 2, 3]), value("b.png", bytes: [4, 5])]
+        )
+
+        _ = try service.update(
+            todoId: entity.id,
+            attachments: .set([value("b.png", bytes: [4, 5])])
+        )
+
+        let attachments = try stored(in: repo).attachments ?? []
+        #expect(attachments.map(\.filename) == ["b.png"])
+    }
+
+    @Test("同名でも中身が違えば別の添付として足される")
+    func sameNameDifferentBytesIsNewAttachment() throws {
+        let (service, repo) = makeService()
+        let entity = try create(service, attachments: [value("a.png", bytes: [1, 2, 3])])
+
+        _ = try service.update(
+            todoId: entity.id,
+            attachments: .set([value("a.png", bytes: [1, 2, 3]), value("a.png", bytes: [9])])
+        )
+
+        let attachments = try stored(in: repo).attachments ?? []
+        #expect(attachments.count == 2)
+        #expect(attachments.map(\.data.count).sorted() == [1, 3])
+    }
+
+    @Test("添付に触らない更新は添付を保つ")
+    func unrelatedUpdateKeepsAttachments() throws {
+        let (service, repo) = makeService()
+        let entity = try create(service, attachments: [value("a.png", bytes: [1, 2, 3])])
+
+        _ = try service.update(todoId: entity.id, title: .set("sign it"))
+
+        #expect(try stored(in: repo).attachments?.count == 1)
+    }
+
+    @Test("スナップショット復元が添付を同じ id で戻す")
+    func restoreBringsBackAttachments() throws {
+        let (service, repo) = makeService()
+        let entity = try create(service, attachments: [value("a.png", bytes: [1, 2, 3])])
+        let originalID = try stored(in: repo).attachments?.first?.id
+
+        let snapshot = try service.snapshot(todoId: entity.id)
+        try service.delete(todoId: entity.id)
+        _ = try service.restore(snapshot)
+
+        let attachments = try stored(in: repo).attachments ?? []
+        #expect(attachments.first?.id == originalID)
+        #expect(attachments.first?.data == Data([1, 2, 3]))
+    }
+}

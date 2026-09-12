@@ -131,6 +131,10 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
 
     // MARK: - Delete
 
+    /// Nothing to unlink in memory: the mock holds todos, and an attachment is only
+    /// reachable through the one it belongs to.
+    public func deleteAttachments(_ attachments: [TodoAttachment]) throws {}
+
     public func delete(_ todo: TodoItem) throws {
         guard todos.removeValue(forKey: todo.id) != nil else {
             throw RepositoryError.notFound(id: todo.id)

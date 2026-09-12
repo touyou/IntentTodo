@@ -81,6 +81,13 @@ public protocol TodoRepositoryProtocol {
 
     // MARK: - Delete
 
+    /// Deletes attachments that a todo no longer holds.
+    ///
+    /// Replacing a todo's attachment set has to remove the dropped ones explicitly:
+    /// the cascade rule only fires when the *todo* is deleted, so an attachment merely
+    /// unlinked from its todo would stay in the store with nothing pointing at it.
+    func deleteAttachments(_ attachments: [TodoAttachment]) throws
+
     /// Deletes a todo item.
     func delete(_ todo: TodoItem) throws
 

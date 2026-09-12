@@ -10,9 +10,11 @@
 
 import AppIntents
 import Domain
+import PhotosUI
 import SwiftData
 import SwiftUI
 import TodoAppIntents
+import UniformTypeIdentifiers
 
 // MARK: - Tags
 
@@ -259,5 +261,130 @@ struct TodoFilingSection: View {
                 .accessibilityIdentifier("sectionPicker")
             }
         }
+    }
+}
+
+// MARK: - Attachments
+
+/// Lists the attached images and offers a picker to add more.
+///
+/// Holds `TodoAttachmentValue` rather than the stored `TodoAttachment`: the form has to
+/// survive the todo being deleted underneath it, and the intents take values anyway.
+struct TodoAttachmentsSection: View {
+    @Binding var attachments: [TodoAttachmentValue]
+
+    @State private var picked: [PhotosPickerItem] = []
+
+    /// Set while `loadTransferable` is in flight, so the row can't be tapped twice.
+    @State private var isLoading = false
+
+    var body: some View {
+        Section {
+            ForEach(attachments) { attachment in
+                AttachmentRow(attachment: attachment)
+            }
+            .onDelete { offsets in
+                attachments.remove(atOffsets: offsets)
+            }
+
+            PhotosPicker(selection: $picked, matching: .images) {
+                Label {
+                    Text(.copy("Add Image"))
+                } icon: {
+                    Image(systemName: "photo.badge.plus")
+                }
+            }
+            .accessibilityIdentifier("addAttachmentButton")
+            .disabled(isLoading)
+        } header: {
+            Text(.copy("Attachments"))
+        }
+        .onChange(of: picked) { _, items in
+            guard !items.isEmpty else { return }
+            Task { await load(items) }
+        }
+    }
+
+    /// Reads the picked items into memory and clears the selection.
+    ///
+    /// The bytes are loaded here rather than at save time because the picker's items are
+    /// only valid while the picker's scope is alive, and the form can sit open for a while.
+    private func load(_ items: [PhotosPickerItem]) async {
+        isLoading = true
+        defer {
+            isLoading = false
+            picked = []
+        }
+        for item in items {
+            guard let data = try? await item.loadTransferable(type: Data.self) else { continue }
+            let type = item.supportedContentTypes.first
+            attachments.append(
+                TodoAttachmentValue(
+                    filename: Self.filename(for: item, type: type),
+                    typeIdentifier: type?.identifier,
+                    data: data
+                )
+            )
+        }
+    }
+
+    /// `PhotosPickerItem` has no filename, so one is derived from the asset identifier and
+    /// the content type. The name is what the attachment is labelled with, and it is also
+    /// half of how a saved edit recognises an image it already stored.
+    private static func filename(for item: PhotosPickerItem, type: UTType?) -> String {
+        let base = item.itemIdentifier ?? UUID().uuidString
+        guard let ext = type?.preferredFilenameExtension else { return base }
+        return "\(base).\(ext)"
+    }
+}
+
+/// One attachment: its thumbnail and name.
+private struct AttachmentRow: View {
+    let attachment: TodoAttachmentValue
+
+    var body: some View {
+        Label {
+            Text(attachment.filename)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        } icon: {
+            AttachmentThumbnail(data: attachment.data)
+        }
+    }
+}
+
+/// A small preview of the bytes, or a placeholder when they aren't an image.
+struct AttachmentThumbnail: View {
+    let data: Data
+
+    /// The square side to render at. The form's rows want a small icon, the detail view a
+    /// readable preview, and clipping has to happen at the final size.
+    var side: CGFloat = 32
+
+    var body: some View {
+        Group {
+            #if canImport(UIKit)
+            if let image = UIImage(data: data) {
+                Image(uiImage: image).resizable().scaledToFill()
+            } else {
+                placeholder
+            }
+            #elseif canImport(AppKit)
+            if let image = NSImage(data: data) {
+                Image(nsImage: image).resizable().scaledToFill()
+            } else {
+                placeholder
+            }
+            #else
+            placeholder
+            #endif
+        }
+        .frame(width: side, height: side)
+        .clipShape(.rect(cornerRadius: 4))
+    }
+
+    private var placeholder: some View {
+        Image(systemName: "doc")
+            .foregroundStyle(.secondary)
     }
 }

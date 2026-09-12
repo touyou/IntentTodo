@@ -40,6 +40,10 @@ struct TodoFormDraft: Equatable {
     var list: CategoryAppEntity?
     var section: TodoSectionAppEntity?
 
+    /// Images attached to the todo. Values rather than stored models, for the same reason
+    /// as `tags` / `urls`: the form has to outlive the row it started from.
+    var attachments: [TodoAttachmentValue] = []
+
     static let defaultDurationMinutes = 30
 
     /// Duration choices, in minutes.
@@ -55,8 +59,9 @@ struct TodoFormDraft: Equatable {
     ///   - tags: fetched by the caller via id. Passed in because reading a collection
     ///     attribute off the model can trap — see `TodoDetailContent.tags`.
     ///   - urls: same.
+    ///   - attachments: same — fetched by id rather than read off the relationship.
     @MainActor
-    init(todo: TodoItem, tags: [String], urls: [URL]) {
+    init(todo: TodoItem, tags: [String], urls: [URL], attachments: [TodoAttachmentValue] = []) {
         title = todo.title
         todoDescription = todo.todoDescription ?? ""
         hasDueDate = todo.dueDate != nil
@@ -75,6 +80,7 @@ struct TodoFormDraft: Equatable {
         locationTriggerEvent = todo.locationTriggerEvent.flatMap(TodoLocationTriggerEvent.init(rawValue:))
         list = todo.category.map { CategoryAppEntity(from: $0) }
         section = todo.section.map { TodoSectionAppEntity(from: $0) }
+        self.attachments = attachments
     }
 
     // MARK: - Values handed to the intents
@@ -262,6 +268,7 @@ struct TodoFormSections: View {
                 hasLocation: !draft.trimmedLocation.isEmpty
             )
             TodoFilingSection(list: $draft.list, section: $draft.section)
+            TodoAttachmentsSection(attachments: $draft.attachments)
         }
     }
 }

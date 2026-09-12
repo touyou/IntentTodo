@@ -60,6 +60,9 @@ public struct TodoItemSnapshot: Sendable, Equatable {
     /// Sub-tasks are cascade-deleted with the parent, so they have to come back too.
     public let subTasks: [SubTaskSnapshot]
 
+    /// Attachments cascade as well, so the bytes ride along in the snapshot.
+    public let attachments: [TodoAttachmentValue]
+
     // MARK: - Initialization
 
     @MainActor
@@ -86,6 +89,9 @@ public struct TodoItemSnapshot: Sendable, Equatable {
         self.locationTriggerEvent = item.locationTriggerEvent
         self.categoryID = item.category?.id
         self.sectionID = item.section?.id
+        self.attachments = (item.attachments ?? [])
+            .sorted { $0.createdAt < $1.createdAt }
+            .map { TodoAttachmentValue($0) }
         self.subTasks = (item.subTasks ?? [])
             .sorted { $0.orderIndex < $1.orderIndex }
             .map {
@@ -133,6 +139,11 @@ public struct TodoItemSnapshot: Sendable, Equatable {
         item.locationTriggerEvent = locationTriggerEvent
         item.category = category
         item.section = section
+        item.attachments = attachments.map { value in
+            let attachment = value.makeAttachment()
+            attachment.todo = item
+            return attachment
+        }
         item.subTasks = subTasks.map { snapshot in
             let subTask = SubTask(
                 id: snapshot.id,

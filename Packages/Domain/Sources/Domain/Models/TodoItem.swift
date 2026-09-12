@@ -119,6 +119,13 @@ public final class TodoItem {
     /// changing the category clears this, because a section belongs to one category.
     public var section: TodoSection?
 
+    /// Files attached to this todo.
+    ///
+    /// Cascades: an attachment illustrates one todo and is meaningless without it.
+    /// Optional for CloudKit, like every other to-many relationship here.
+    @Relationship(deleteRule: .cascade, inverse: \TodoAttachment.todo)
+    public var attachments: [TodoAttachment]? = []
+
     /// Sub-tasks associated with this todo item.
     ///
     /// Optional because Apple requires to-many relationships to be optional for CloudKit;
@@ -164,6 +171,7 @@ public final class TodoItem {
         self.modifiedAt = Date()
         self.category = nil
         self.section = nil
+        self.attachments = []
         self.subTasks = []
     }
 
@@ -208,6 +216,7 @@ public final class TodoItem {
         self.sortIndex = sortIndex
         self.category = nil
         self.section = nil
+        self.attachments = []
         self.subTasks = []
     }
 }

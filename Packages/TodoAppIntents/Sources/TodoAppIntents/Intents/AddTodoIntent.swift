@@ -4,6 +4,7 @@
 //
 
 import AppIntents
+import Domain
 import Foundation
 
 /// An intent that creates a new todo item.
@@ -54,6 +55,7 @@ public struct AddTodoIntent: AppIntent {
             \.$locationTriggerEvent
             \.$list
             \.$section
+            \.$images
         }
     }
 
@@ -126,6 +128,13 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Section", description: "The section to add the todo to")
     public var section: TodoSectionAppEntity?
 
+    /// Images to attach to the new todo.
+    ///
+    /// Spelled `images` and non-optional because that is the shape
+    /// `.reminders.createReminder` asks for (#138).
+    @Parameter(title: "Images", description: "Images to attach to the todo")
+    public var images: [IntentFile]
+
     // MARK: - Dependencies
 
     @Dependency
@@ -153,7 +162,8 @@ public struct AddTodoIntent: AppIntent {
         recurrenceInterval: Int? = nil,
         locationTriggerEvent: TodoLocationTriggerEvent? = nil,
         list: CategoryAppEntity? = nil,
-        section: TodoSectionAppEntity? = nil
+        section: TodoSectionAppEntity? = nil,
+        images: [TodoAttachmentValue] = []
     ) {
         self.title = title
         self.todoDescription = todoDescription
@@ -169,6 +179,9 @@ public struct AddTodoIntent: AppIntent {
         self.locationTriggerEvent = locationTriggerEvent
         self.list = list
         self.section = section
+        // The form deals in the stored value type; wrapping happens here so the
+        // `IntentFile` bridging stays inside this package.
+        self.images = images.map(TodoAttachments.intentFile(from:))
     }
 
     // MARK: - Perform
@@ -192,7 +205,8 @@ public struct AddTodoIntent: AppIntent {
             recurrenceInterval: recurrenceInterval ?? TodoRecurrence.minimumInterval,
             locationTriggerEvent: locationTriggerEvent,
             listId: list?.id,
-            sectionId: section?.id
+            sectionId: section?.id,
+            attachments: images.map(TodoAttachments.value(from:))
         )
         // A no-op unless the add sheet is open, which ties "sheet closes" to "intent
         // succeeded" instead of to a row count that other devices can also change.

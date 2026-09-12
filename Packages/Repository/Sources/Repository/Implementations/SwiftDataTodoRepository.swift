@@ -124,6 +124,13 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
 
     // MARK: - Delete
 
+    public func deleteAttachments(_ attachments: [TodoAttachment]) throws {
+        for attachment in attachments {
+            modelContext.delete(attachment)
+        }
+        try modelContext.save()
+    }
+
     public func delete(_ todo: TodoItem) throws {
         modelContext.delete(todo)
         try modelContext.save()

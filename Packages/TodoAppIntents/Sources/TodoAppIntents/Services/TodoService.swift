@@ -108,7 +108,8 @@ public final class TodoService {
         recurrenceInterval: Int = TodoRecurrenceFrequency.minimumInterval,
         locationTriggerEvent: TodoLocationTriggerEvent? = nil,
         listId: String? = nil,
-        sectionId: String? = nil
+        sectionId: String? = nil,
+        attachments: [TodoAttachmentValue] = []
     ) throws -> TodoAppEntity {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -135,6 +136,11 @@ public final class TodoService {
         item.recurrenceInterval = max(TodoRecurrence.minimumInterval, recurrenceInterval)
         item.locationTriggerEvent = locationTriggerEvent?.rawValue
         try applyFiling(to: item, listId: .set(listId), sectionId: .set(sectionId))
+        item.attachments = attachments.map { value in
+            let attachment = value.makeAttachment()
+            attachment.todo = item
+            return attachment
+        }
         try repository.create(item)
         let entity = TodoAppEntity(from: item)
         reindexSpotlight(entity)
@@ -312,7 +318,8 @@ public final class TodoService {
         recurrenceInterval: FieldUpdate<Int> = .unchanged,
         locationTriggerEvent: FieldUpdate<TodoLocationTriggerEvent?> = .unchanged,
         listId: FieldUpdate<String?> = .unchanged,
-        sectionId: FieldUpdate<String?> = .unchanged
+        sectionId: FieldUpdate<String?> = .unchanged,
+        attachments: FieldUpdate<[TodoAttachmentValue]> = .unchanged
     ) throws -> TodoAppEntity {
         defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
@@ -332,6 +339,7 @@ public final class TodoService {
         if case .set(let value) = locationName { apply(locationName: value, to: item) }
 
         try applyFiling(to: item, listId: listId, sectionId: sectionId)
+        try applyAttachments(to: item, attachments)
 
         applySchemaAttributes(
             to: item,
@@ -391,6 +399,40 @@ public final class TodoService {
             item.section = nil
         }
         item.category = category
+    }
+
+    /// Replaces a todo's attachments, keeping the rows whose bytes are already stored.
+    ///
+    /// The incoming values are the whole set (same "replace, don't merge" rule as tags and
+    /// urls), so anything missing from it is dropped. `IntentFile` carries no identifier,
+    /// so an image that survived the round trip is recognised by **filename + byte count**
+    /// and left in place. Re-creating it instead would delete and re-upload the same bytes
+    /// through CloudKit every time the form saves a title change.
+    private func applyAttachments(
+        to item: TodoItem,
+        _ update: FieldUpdate<[TodoAttachmentValue]>
+    ) throws {
+        guard case .set(let values) = update else { return }
+        var unmatched = item.attachments ?? []
+        var resolved: [TodoAttachment] = []
+
+        for value in values {
+            let match = unmatched.firstIndex {
+                $0.filename == value.filename && $0.data.count == value.data.count
+            }
+            if let match {
+                resolved.append(unmatched.remove(at: match))
+            } else {
+                let attachment = value.makeAttachment()
+                attachment.todo = item
+                resolved.append(attachment)
+            }
+        }
+
+        item.attachments = resolved
+        if !unmatched.isEmpty {
+            try repository.deleteAttachments(unmatched)
+        }
     }
 
     /// Resolves a category id, treating the synthetic "uncategorized" list as "no list".

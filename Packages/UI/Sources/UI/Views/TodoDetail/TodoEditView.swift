@@ -36,9 +36,10 @@ struct TodoEditView: View {
     ///   - tags: fetched by the caller via id. Passed in because reading a collection
     ///     attribute off the model can trap — see `TodoDetailContent.tags`.
     ///   - urls: same.
-    init(todo: TodoItem, tags: [String], urls: [URL]) {
+    ///   - attachments: same.
+    init(todo: TodoItem, tags: [String], urls: [URL], attachments: [TodoAttachmentValue] = []) {
         self.entity = TodoAppEntity(from: todo)
-        let draft = TodoFormDraft(todo: todo, tags: tags, urls: urls)
+        let draft = TodoFormDraft(todo: todo, tags: tags, urls: urls, attachments: attachments)
         _draft = State(initialValue: draft)
         _openedWith = State(initialValue: draft)
     }
@@ -59,7 +60,8 @@ struct TodoEditView: View {
             recurrenceInterval: draft.recurrenceInterval,
             locationTriggerEvent: draft.locationTriggerEvent,
             list: draft.list,
-            section: draft.section
+            section: draft.section,
+            images: draft.attachments
         )
     }
 

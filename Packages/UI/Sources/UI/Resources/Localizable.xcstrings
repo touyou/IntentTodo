@@ -41,6 +41,16 @@
         }
       }
     },
+    "Add Image" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "画像を追加"
+          }
+        }
+      }
+    },
     "Add Link" : {
       "localizations" : {
         "ja" : {
@@ -157,6 +167,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "担当者（任意）"
+          }
+        }
+      }
+    },
+    "Attachments" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "添付"
           }
         }
       }

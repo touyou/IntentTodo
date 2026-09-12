@@ -106,6 +106,12 @@ private struct TodoDetailContent: View {
     @State private var tags: [String] = []
     @State private var urls: [URL] = []
 
+    /// Attachments, fetched by the todo's id for the same reason: reading the relationship
+    /// off a deleted object is not safe, while a fetch simply comes back empty.
+    @State private var attachments: [TodoAttachmentValue] = []
+
+    @Environment(\.modelContext) private var modelContext
+
     private var entity: TodoAppEntity { TodoAppEntity(from: todo) }
 
     var body: some View {
@@ -146,6 +152,12 @@ private struct TodoDetailContent: View {
                 }
             }
 
+            if !attachments.isEmpty {
+                Section(.copy("Attachments")) {
+                    TodoDetailAttachmentsSection(attachments: attachments)
+                }
+            }
+
             Section(.copy("Info")) {
                 TodoDetailMetadataSection(todo: todo)
             }
@@ -177,7 +189,7 @@ private struct TodoDetailContent: View {
         .sheet(isPresented: $navigationModel.showingAttributeEditor) {
             // Snapshots again, not the model's collections: a todo deleted while the sheet
             // is up would trap the same way. Scalars are safe to read.
-            TodoEditView(todo: todo, tags: tags, urls: urls)
+            TodoEditView(todo: todo, tags: tags, urls: urls, attachments: attachments)
         }
         // Keyed on `modifiedAt`: a scalar, so it stays readable even for a deleted object,
         // and it advances whenever `UpdateTodoIntent` saves.
@@ -194,6 +206,22 @@ private struct TodoDetailContent: View {
         let loadedTags = (try? await entity.tags) ?? []
         tags = loadedTags.sorted { $0.localizedStandardCompare($1) == .orderedAscending }
         urls = (try? await entity.urls) ?? []
+        attachments = fetchAttachments(of: entity.id)
+    }
+
+    /// Fetches the attachments belonging to a todo id.
+    ///
+    /// The entity does not publish attachments — the reminders schema does not ask for
+    /// them and Siri has no use for raw bytes — so this reads the store directly. Keyed on
+    /// the id, so a deleted todo yields an empty list rather than trapping.
+    private func fetchAttachments(of todoId: String) -> [TodoAttachmentValue] {
+        guard let uuid = UUID(uuidString: todoId) else { return [] }
+        let descriptor = FetchDescriptor<TodoAttachment>(
+            predicate: #Predicate { $0.todo?.id == uuid },
+            sortBy: [SortDescriptor(\.createdAt, order: .forward)]
+        )
+        let stored = (try? modelContext.fetch(descriptor)) ?? []
+        return stored.map { TodoAttachmentValue($0) }
     }
 }
 
