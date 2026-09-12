@@ -22,6 +22,12 @@ public protocol TodoRepositoryProtocol {
     /// Creates a new todo item.
     func create(_ todo: TodoItem) throws
 
+    /// Creates a new section inside `category`.
+    ///
+    /// The category is passed separately rather than pre-assigned by the caller so the
+    /// store owns both sides of the relationship in one write.
+    func createSection(_ section: TodoSection, in category: Domain.Category) throws
+
     // MARK: - Read
 
     /// Fetches all todo items, sorted by creation time (descending).
@@ -48,6 +54,18 @@ public protocol TodoRepositoryProtocol {
     /// Needed to re-attach the category relation when a deleted todo is restored
     /// from a `TodoItemSnapshot` (relations can't be carried in a value type).
     func fetchCategory(by id: UUID) throws -> Domain.Category?
+
+    /// Fetches all categories, sorted by name.
+    ///
+    /// Needed so the section query can offer every section in the store together with
+    /// the list each one belongs to.
+    func fetchCategories() throws -> [Domain.Category]
+
+    /// Fetches a section by its ID. Returns `nil` when not found.
+    func fetchSection(by id: UUID) throws -> TodoSection?
+
+    /// Fetches every section, sorted by category name then `sortIndex`.
+    func fetchSections() throws -> [TodoSection]
 
     /// Returns the number of incomplete todo items without materializing them.
     ///

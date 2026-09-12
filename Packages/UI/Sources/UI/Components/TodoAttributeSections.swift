@@ -9,6 +9,8 @@
 //
 
 import AppIntents
+import Domain
+import SwiftData
 import SwiftUI
 import TodoAppIntents
 
@@ -199,6 +201,62 @@ struct TodoLocationTriggerSection: View {
         } footer: {
             if event != nil && !hasLocation {
                 Text(.copy("Add a location for this to take effect."))
+            }
+        }
+    }
+}
+
+// MARK: - Filing
+
+/// Picks the list, and the section within it, the todo is filed under.
+///
+/// The two pickers are coupled: a section belongs to exactly one list, so choosing a
+/// section adopts its list, and moving to another list drops a section that would no
+/// longer be part of it. That is the same rule `TodoService.applyFiling` applies to the
+/// values Siri and Shortcuts send, so the form can't express a filing the intents reject.
+struct TodoFilingSection: View {
+    @Binding var list: CategoryAppEntity?
+    @Binding var section: TodoSectionAppEntity?
+
+    @Query(sort: \Domain.Category.name)
+    private var categories: [Domain.Category]
+
+    @Query(sort: \TodoSection.sortIndex)
+    private var sections: [TodoSection]
+
+    /// Only the chosen list's sections are offerable; with no list there is nothing to
+    /// subdivide, so the picker is hidden rather than shown empty.
+    private var sectionsInList: [TodoSection] {
+        guard let listID = list?.id else { return [] }
+        return sections.filter { $0.category?.id.uuidString == listID }
+    }
+
+    var body: some View {
+        Section {
+            Picker(selection: $list) {
+                Text(.copy("No List")).tag(CategoryAppEntity?.none)
+                ForEach(categories, id: \.id) { category in
+                    Text(category.name).tag(CategoryAppEntity?.some(CategoryAppEntity(from: category)))
+                }
+            } label: {
+                Text(.copy("List"))
+            }
+            .accessibilityIdentifier("listPicker")
+            .onChange(of: list) { _, newList in
+                if section?.list.id != newList?.id { section = nil }
+            }
+
+            if !sectionsInList.isEmpty {
+                Picker(selection: $section) {
+                    Text(.copy("No Section")).tag(TodoSectionAppEntity?.none)
+                    ForEach(sectionsInList, id: \.id) { candidate in
+                        Text(candidate.name)
+                            .tag(TodoSectionAppEntity?.some(TodoSectionAppEntity(from: candidate)))
+                    }
+                } label: {
+                    Text(.copy("Section"))
+                }
+                .accessibilityIdentifier("sectionPicker")
             }
         }
     }

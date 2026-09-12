@@ -50,7 +50,9 @@ public struct AddTodoView: View {
             urls: draft.urls,
             recurrenceFrequency: draft.recurrenceFrequency,
             recurrenceInterval: draft.recurrenceInterval,
-            locationTriggerEvent: draft.locationTriggerEvent
+            locationTriggerEvent: draft.locationTriggerEvent,
+            list: draft.list,
+            section: draft.section
         )
     }
 

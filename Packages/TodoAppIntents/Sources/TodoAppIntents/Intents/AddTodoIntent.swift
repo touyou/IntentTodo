@@ -52,6 +52,8 @@ public struct AddTodoIntent: AppIntent {
             \.$recurrenceFrequency
             \.$recurrenceInterval
             \.$locationTriggerEvent
+            \.$list
+            \.$section
         }
     }
 
@@ -113,6 +115,17 @@ public struct AddTodoIntent: AppIntent {
     @Parameter(title: "Location Trigger Event", description: "Surface the todo on arrival or departure")
     public var locationTriggerEvent: TodoLocationTriggerEvent?
 
+    // MARK: - Filing
+
+    /// The list to file the new todo under. `nil` leaves it uncategorized.
+    @Parameter(title: "List", description: "The list to add the todo to")
+    public var list: CategoryAppEntity?
+
+    /// The section within `list` to file it under. A section carries its own list, so
+    /// naming one both files and categorizes the todo.
+    @Parameter(title: "Section", description: "The section to add the todo to")
+    public var section: TodoSectionAppEntity?
+
     // MARK: - Dependencies
 
     @Dependency
@@ -138,7 +151,9 @@ public struct AddTodoIntent: AppIntent {
         urls: [URL]? = nil,
         recurrenceFrequency: TodoRecurrenceFrequency? = nil,
         recurrenceInterval: Int? = nil,
-        locationTriggerEvent: TodoLocationTriggerEvent? = nil
+        locationTriggerEvent: TodoLocationTriggerEvent? = nil,
+        list: CategoryAppEntity? = nil,
+        section: TodoSectionAppEntity? = nil
     ) {
         self.title = title
         self.todoDescription = todoDescription
@@ -152,6 +167,8 @@ public struct AddTodoIntent: AppIntent {
         self.recurrenceFrequency = recurrenceFrequency
         self.recurrenceInterval = recurrenceInterval
         self.locationTriggerEvent = locationTriggerEvent
+        self.list = list
+        self.section = section
     }
 
     // MARK: - Perform
@@ -173,7 +190,9 @@ public struct AddTodoIntent: AppIntent {
             urls: urls ?? [],
             recurrenceFrequency: recurrenceFrequency,
             recurrenceInterval: recurrenceInterval ?? TodoRecurrence.minimumInterval,
-            locationTriggerEvent: locationTriggerEvent
+            locationTriggerEvent: locationTriggerEvent,
+            listId: list?.id,
+            sectionId: section?.id
         )
         // A no-op unless the add sheet is open, which ties "sheet closes" to "intent
         // succeeded" instead of to a row count that other devices can also change.

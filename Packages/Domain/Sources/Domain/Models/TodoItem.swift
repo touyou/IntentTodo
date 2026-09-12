@@ -113,6 +113,12 @@ public final class TodoItem {
     @Relationship(deleteRule: .nullify, inverse: \Category.todos)
     public var category: Category?
 
+    /// The section within `category` this todo is filed under, if any.
+    ///
+    /// The inverse is declared on `TodoSection.todos`. Always a section of `category`:
+    /// changing the category clears this, because a section belongs to one category.
+    public var section: TodoSection?
+
     /// Sub-tasks associated with this todo item.
     ///
     /// Optional because Apple requires to-many relationships to be optional for CloudKit;
@@ -157,6 +163,7 @@ public final class TodoItem {
         self.createdAt = Date()
         self.modifiedAt = Date()
         self.category = nil
+        self.section = nil
         self.subTasks = []
     }
 
@@ -200,6 +207,7 @@ public final class TodoItem {
         self.modifiedAt = modifiedAt
         self.sortIndex = sortIndex
         self.category = nil
+        self.section = nil
         self.subTasks = []
     }
 }

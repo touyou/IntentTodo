@@ -35,6 +35,11 @@ struct TodoFormDraft: Equatable {
     var recurrenceInterval = TodoRecurrenceFrequency.minimumInterval
     var locationTriggerEvent: TodoLocationTriggerEvent?
 
+    /// The list and section the todo is filed under. Held as entities rather than ids so
+    /// the form can hand them straight to the intents.
+    var list: CategoryAppEntity?
+    var section: TodoSectionAppEntity?
+
     static let defaultDurationMinutes = 30
 
     /// Duration choices, in minutes.
@@ -50,6 +55,7 @@ struct TodoFormDraft: Equatable {
     ///   - tags: fetched by the caller via id. Passed in because reading a collection
     ///     attribute off the model can trap — see `TodoDetailContent.tags`.
     ///   - urls: same.
+    @MainActor
     init(todo: TodoItem, tags: [String], urls: [URL]) {
         title = todo.title
         todoDescription = todo.todoDescription ?? ""
@@ -67,6 +73,8 @@ struct TodoFormDraft: Equatable {
         recurrenceFrequency = todo.recurrenceFrequency.flatMap(TodoRecurrenceFrequency.init(rawValue:))
         recurrenceInterval = max(TodoRecurrenceFrequency.minimumInterval, todo.recurrenceInterval)
         locationTriggerEvent = todo.locationTriggerEvent.flatMap(TodoLocationTriggerEvent.init(rawValue:))
+        list = todo.category.map { CategoryAppEntity(from: $0) }
+        section = todo.section.map { TodoSectionAppEntity(from: $0) }
     }
 
     // MARK: - Values handed to the intents
@@ -253,6 +261,7 @@ struct TodoFormSections: View {
                 event: $draft.locationTriggerEvent,
                 hasLocation: !draft.trimmedLocation.isEmpty
             )
+            TodoFilingSection(list: $draft.list, section: $draft.section)
         }
     }
 }

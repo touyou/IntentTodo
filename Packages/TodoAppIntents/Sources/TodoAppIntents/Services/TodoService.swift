@@ -106,7 +106,9 @@ public final class TodoService {
         urls: [URL] = [],
         recurrenceFrequency: TodoRecurrenceFrequency? = nil,
         recurrenceInterval: Int = TodoRecurrenceFrequency.minimumInterval,
-        locationTriggerEvent: TodoLocationTriggerEvent? = nil
+        locationTriggerEvent: TodoLocationTriggerEvent? = nil,
+        listId: String? = nil,
+        sectionId: String? = nil
     ) throws -> TodoAppEntity {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -132,10 +134,35 @@ public final class TodoService {
         item.recurrenceFrequency = recurrenceFrequency?.rawValue
         item.recurrenceInterval = max(TodoRecurrence.minimumInterval, recurrenceInterval)
         item.locationTriggerEvent = locationTriggerEvent?.rawValue
+        try applyFiling(to: item, listId: .set(listId), sectionId: .set(sectionId))
         try repository.create(item)
         let entity = TodoAppEntity(from: item)
         reindexSpotlight(entity)
         return entity
+    }
+
+    /// Creates a section inside a list.
+    ///
+    /// A section needs a real list: the synthetic "uncategorized" list isn't stored, so it
+    /// has nothing to hang sections off — that is rejected rather than silently creating an
+    /// orphan the `.reminders.section` schema couldn't describe.
+    @discardableResult
+    public func createSection(name: String, listId: String) throws -> TodoSectionAppEntity {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw IntentError.validation("Section name cannot be empty")
+        }
+        guard let category = try resolveCategory(id: listId) else {
+            throw IntentError.validation("A section has to belong to a list")
+        }
+        defer { Self.dataDidChange() }
+        let existing = category.sections ?? []
+        let section = TodoSection(
+            name: trimmed,
+            sortIndex: (existing.map(\.sortIndex).max() ?? -1) + 1
+        )
+        try repository.createSection(section, in: category)
+        return TodoSectionAppEntity(from: section)
     }
 
     public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
@@ -234,7 +261,8 @@ public final class TodoService {
             return TodoAppEntity(from: existing)
         }
         let category = try snapshot.categoryID.flatMap { try repository.fetchCategory(by: $0) }
-        let item = snapshot.makeTodoItem(category: category)
+        let section = try snapshot.sectionID.flatMap { try repository.fetchSection(by: $0) }
+        let item = snapshot.makeTodoItem(category: category, section: section)
         try repository.create(item)
         let entity = TodoAppEntity(from: item)
         reindexSpotlight(entity)
@@ -282,7 +310,9 @@ public final class TodoService {
         urls: FieldUpdate<[URL]> = .unchanged,
         recurrenceFrequency: FieldUpdate<TodoRecurrenceFrequency?> = .unchanged,
         recurrenceInterval: FieldUpdate<Int> = .unchanged,
-        locationTriggerEvent: FieldUpdate<TodoLocationTriggerEvent?> = .unchanged
+        locationTriggerEvent: FieldUpdate<TodoLocationTriggerEvent?> = .unchanged,
+        listId: FieldUpdate<String?> = .unchanged,
+        sectionId: FieldUpdate<String?> = .unchanged
     ) throws -> TodoAppEntity {
         defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
@@ -300,6 +330,8 @@ public final class TodoService {
         if case .set(let value) = estimatedDuration { item.estimatedDuration = value }
         if case .set(let value) = assigneeName { item.assigneeName = value }
         if case .set(let value) = locationName { apply(locationName: value, to: item) }
+
+        try applyFiling(to: item, listId: listId, sectionId: sectionId)
 
         applySchemaAttributes(
             to: item,
@@ -330,6 +362,57 @@ public final class TodoService {
             item.locationLongitude = nil
         }
         item.locationName = newName
+    }
+
+    /// Files a todo under a list and/or a section.
+    ///
+    /// A section belongs to exactly one category, so the two inputs can disagree. The
+    /// section wins and pulls its own category along — that is the filing the person named
+    /// most precisely. Changing the list to a different one drops a section that no longer
+    /// belongs to it, rather than leaving the todo in a section of another list.
+    ///
+    /// An id that resolves to nothing throws: filing is the whole point of the call, so
+    /// silently landing in "no list" would look like the write succeeded.
+    private func applyFiling(
+        to item: TodoItem,
+        listId: FieldUpdate<String?>,
+        sectionId: FieldUpdate<String?>
+    ) throws {
+        if case .set(let raw) = sectionId {
+            item.section = try raw.flatMap { try resolveSection(id: $0) }
+            if let section = item.section {
+                item.category = section.category
+                return
+            }
+        }
+        guard case .set(let raw) = listId else { return }
+        let category = try raw.flatMap { try resolveCategory(id: $0) }
+        if category?.id != item.category?.id {
+            item.section = nil
+        }
+        item.category = category
+    }
+
+    /// Resolves a category id, treating the synthetic "uncategorized" list as "no list".
+    private func resolveCategory(id: String) throws -> Domain.Category? {
+        if id == CategoryAppEntity.uncategorizedID { return nil }
+        guard let uuid = UUID(uuidString: id) else {
+            throw IntentError.validation("Invalid list ID")
+        }
+        guard let category = try repository.fetchCategory(by: uuid) else {
+            throw IntentError.notFound("List not found")
+        }
+        return category
+    }
+
+    private func resolveSection(id: String) throws -> TodoSection? {
+        guard let uuid = UUID(uuidString: id) else {
+            throw IntentError.validation("Invalid section ID")
+        }
+        guard let section = try repository.fetchSection(by: uuid) else {
+            throw IntentError.notFound("Section not found")
+        }
+        return section
     }
 
     /// Partial update of the schema-derived attributes.

@@ -52,6 +52,8 @@ public struct UpdateTodoIntent: AppIntent {
             \.$recurrenceFrequency
             \.$recurrenceInterval
             \.$locationTriggerEvent
+            \.$list
+            \.$section
         }
     }
 
@@ -111,6 +113,15 @@ public struct UpdateTodoIntent: AppIntent {
     @Parameter(title: "Location Trigger Event", description: "Surface the todo on arrival or departure")
     public var locationTriggerEvent: TodoLocationTriggerEvent?
 
+    /// Moves the todo to another list. `.set(nil)` files it as uncategorized, which also
+    /// drops any section (a section belongs to one list).
+    @Parameter(title: "List", description: "The list the todo belongs to")
+    public var list: CategoryAppEntity?
+
+    /// Moves the todo to a section. A section carries its own list, so it wins over `list`.
+    @Parameter(title: "Section", description: "The section the todo belongs to")
+    public var section: TodoSectionAppEntity?
+
     @Dependency
     var todoService: TodoService
 
@@ -141,7 +152,9 @@ public struct UpdateTodoIntent: AppIntent {
         urls: [URL],
         recurrenceFrequency: TodoRecurrenceFrequency?,
         recurrenceInterval: Int,
-        locationTriggerEvent: TodoLocationTriggerEvent?
+        locationTriggerEvent: TodoLocationTriggerEvent?,
+        list: CategoryAppEntity?,
+        section: TodoSectionAppEntity?
     ) {
         self.todo = todo
         self.title = title
@@ -156,6 +169,8 @@ public struct UpdateTodoIntent: AppIntent {
         self.recurrenceFrequency = recurrenceFrequency
         self.recurrenceInterval = recurrenceInterval
         self.locationTriggerEvent = locationTriggerEvent
+        self.list = list
+        self.section = section
     }
 
     @MainActor
@@ -184,7 +199,9 @@ public struct UpdateTodoIntent: AppIntent {
             urls: Self.collectionUpdate($urls.valueState),
             recurrenceFrequency: Self.optionalUpdate($recurrenceFrequency.valueState),
             recurrenceInterval: Self.requiredUpdate($recurrenceInterval.valueState),
-            locationTriggerEvent: Self.optionalUpdate($locationTriggerEvent.valueState)
+            locationTriggerEvent: Self.optionalUpdate($locationTriggerEvent.valueState),
+            listId: Self.entityUpdate($list.valueState),
+            sectionId: Self.entityUpdate($section.valueState)
         )
         // A no-op unless the attribute editor is open, mirroring `AddTodoIntent`.
         navigationModel.dismissAttributeEditor()
@@ -205,6 +222,15 @@ public struct UpdateTodoIntent: AppIntent {
     /// required field can't be cleared).
     private static func requiredUpdate<T>(_ state: IntentParameter<T?>.ValueState) -> FieldUpdate<T> {
         if case .set(let value?) = state { return .set(value) }
+        return .unchanged
+    }
+
+    /// For entity-typed parameters the service takes by id: the three states carry over,
+    /// with `.set(nil)` meaning "unfile".
+    private static func entityUpdate<T: AppEntity>(
+        _ state: IntentParameter<T?>.ValueState
+    ) -> FieldUpdate<String?> where T.ID == String {
+        if case .set(let value) = state { return .set(value?.id) }
         return .unchanged
     }
 
