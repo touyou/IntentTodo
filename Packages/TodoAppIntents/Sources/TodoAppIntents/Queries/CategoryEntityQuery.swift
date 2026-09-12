@@ -19,6 +19,9 @@ public struct CategoryEntityQuery: EntityQuery {
 
     public init() {}
 
+    /// Name this query reports to `QueryCallLog`.
+    static let logName = "CategoryEntityQuery"
+
     @MainActor
     private func fetchAll() throws -> [Domain.Category] {
         let descriptor = FetchDescriptor<Domain.Category>(sortBy: [SortDescriptor(\.name)])
@@ -28,14 +31,23 @@ public struct CategoryEntityQuery: EntityQuery {
     @MainActor
     public func entities(for identifiers: [CategoryAppEntity.ID]) async throws -> [CategoryAppEntity] {
         let ids = Set(identifiers.compactMap { UUID(uuidString: $0) })
-        return try fetchAll()
+        let entities = try fetchAll()
             .filter { ids.contains($0.id) }
             .map { CategoryAppEntity(from: $0) }
+        QueryCallLog.record(
+            query: Self.logName,
+            caller: #function,
+            requested: identifiers.count,
+            returned: entities.count
+        )
+        return entities
     }
 
     @MainActor
     public func suggestedEntities() async throws -> [CategoryAppEntity] {
-        try fetchAll().map { CategoryAppEntity(from: $0) }
+        let entities = try fetchAll().map { CategoryAppEntity(from: $0) }
+        QueryCallLog.record(query: Self.logName, caller: #function, returned: entities.count)
+        return entities
     }
 
     /// Builds representations straight from the model: the name is all they need, so no
@@ -45,13 +57,20 @@ public struct CategoryEntityQuery: EntityQuery {
         for identifiers: [CategoryAppEntity.ID]
     ) async throws -> [CategoryAppEntity.ID: DisplayRepresentation] {
         let ids = Set(identifiers.compactMap { UUID(uuidString: $0) })
-        return try fetchAll()
+        let representations: [CategoryAppEntity.ID: DisplayRepresentation] = try fetchAll()
             .filter { ids.contains($0.id) }
             .reduce(into: [:]) { result, category in
                 result[category.id.uuidString] = CategoryAppEntity.makeDisplayRepresentation(
                     name: category.name
                 )
             }
+        QueryCallLog.record(
+            query: Self.logName,
+            caller: #function,
+            requested: identifiers.count,
+            returned: representations.count
+        )
+        return representations
     }
 }
 
@@ -60,9 +79,11 @@ public struct CategoryEntityQuery: EntityQuery {
 extension CategoryEntityQuery: EntityStringQuery {
     @MainActor
     public func entities(matching string: String) async throws -> [CategoryAppEntity] {
-        try fetchAll()
+        let entities = try fetchAll()
             .filter { $0.name.localizedStandardContains(string) }
             .map { CategoryAppEntity(from: $0) }
+        QueryCallLog.record(query: Self.logName, caller: #function, returned: entities.count)
+        return entities
     }
 }
 
@@ -81,6 +102,8 @@ extension CategoryEntityQuery: EnumerableEntityQuery {
 
     @MainActor
     public func allEntities() async throws -> [CategoryAppEntity] {
-        try fetchAll().map { CategoryAppEntity(from: $0) }
+        let entities = try fetchAll().map { CategoryAppEntity(from: $0) }
+        QueryCallLog.record(query: Self.logName, caller: #function, returned: entities.count)
+        return entities
     }
 }
