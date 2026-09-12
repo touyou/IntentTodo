@@ -20,6 +20,7 @@
 
 ## 目次
 
+- [2026-09-12-release-1.1.0.md](2026-09-12-release-1.1.0.md) — 公開前に 1.0.0 を取り下げて 1.1.0 を出し直した経緯（**iOS / visionOS は「審査待ち」ではなく承認済みで OS 公開待ちだった**件 / in-flight なバージョンがあると次を作れないので取り下げるしかない件 / **新レコードを作らず取り下げたレコードを改名するほうが速い**件 / **`whatsNew` はリリース済みの前バージョンが無いと編集できない**件）
 - [2026-09-12-create-update-schema-adoption.md](2026-09-12-create-update-schema-adoption.md) — 添付を足して `createReminder` / `updateReminder` に適合した経緯（**`IntentFile` は識別子を持たないので同じ画像の往復を filename + byte 数で見分ける**件 / **非 optional コレクションに `default: []` が無いと「やることを追加」だけで値を聞き返される**件 / **アプリを入れ替えても App Shortcuts のシステム側登録が古いまま残り `simctl erase` が要る**件 / `locationTrigger` を @Parameter に置いても FB24548956 は踏まないと測った件）
 - [2026-09-12-sections.md](2026-09-12-sections.md) — カテゴリ配下のセクションを実装して `.reminders.section` / `createSection` に適合した経緯（**`Category` は entity として公開済みなのに todo へ付ける書き込み経路がどこにも無かった**と気づいた件 / list と section が食い違うときの規則を 1 か所に置いて UI もそれに従わせた件 / watch 用に別型名が必要な理由 / `createSection` の要求が初回ビルドで一致した件）
 - [2026-09-12-query-call-log.md](2026-09-12-query-call-log.md) — システムが query を呼んだ記録をアプリ内（DEBUG）に残した経緯（**「呼ばれていない」と「呼ばれて 0 件返した」が既存の観測経路のどれでも区別できなかった**件 / 外部サンプルの形から `requested`/`returned` 分離・`process` 列・上限・ISO 8601 に変えた理由 / **コンテナの plist を直接読む実装を TCC と cfprefsd の遅延フラッシュで 2 回捨てて `defaults export` にした**件 / 同じサンプルから出た残りを #141 / #142 に落とした件）
