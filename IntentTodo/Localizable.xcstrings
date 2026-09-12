@@ -139,6 +139,28 @@
         }
       }
     },
+    "^[%lld pending todo](inflect: true), %lld overdue" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "未処理%1$lld件、期限切れ%2$lld件"
+          }
+        }
+      }
+    },
+    "^[%lld todo](inflect: true) total (%lld done, %lld starred)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "合計%1$lld件（完了%2$lld件、お気に入り%3$lld件）"
+          }
+        }
+      }
+    },
     "1 day" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -168,6 +190,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "30分"
+          }
+        }
+      }
+    },
+    "add" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "追加"
           }
         }
       }
@@ -280,7 +313,29 @@
         }
       }
     },
+    "bulk" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "まとめて"
+          }
+        }
+      }
+    },
     "Categories" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カテゴリ"
+          }
+        }
+      }
+    },
+    "category" : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
@@ -302,6 +357,28 @@
         }
       }
     },
+    "change" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "変更"
+          }
+        }
+      }
+    },
+    "check" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "チェック"
+          }
+        }
+      }
+    },
     "Choose which todos to show while this Focus is on" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -309,6 +386,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "この集中モード中に表示するやることを選びます"
+          }
+        }
+      }
+    },
+    "clear" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "消す"
+          }
+        }
+      }
+    },
+    "complete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了"
           }
         }
       }
@@ -368,17 +467,6 @@
         }
       }
     },
-    "Completed Todos" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "完了済みのやること"
-          }
-        }
-      }
-    },
     "Completed ^[%lld todo](inflect: true)." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -386,6 +474,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "%lld件のやることを完了しました。"
+          }
+        }
+      }
+    },
+    "Completed Todos" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "完了済みのやること"
           }
         }
       }
@@ -408,6 +507,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "やることを読み込めませんでした"
+          }
+        }
+      }
+    },
+    "create" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "作成"
           }
         }
       }
@@ -445,6 +555,50 @@
         }
       }
     },
+    "delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "削除"
+          }
+        }
+      }
+    },
+    "Delete “%@”?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%@」を削除しますか？"
+          }
+        }
+      }
+    },
+    "Delete %lld todos?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld件のやることを削除しますか？"
+          }
+        }
+      }
+    },
+    "Delete ^[%lld Todo](inflect: true)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%lld件のやることを削除"
+          }
+        }
+      }
+    },
     "Delete ${entities}" : {
       "localizations" : {
         "ja" : {
@@ -471,17 +625,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todo}を確認なしで削除"
-          }
-        }
-      }
-    },
-    "Delete %lld todos?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%lld件のやることを削除しますか？"
           }
         }
       }
@@ -514,28 +657,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "やることをまとめて削除"
-          }
-        }
-      }
-    },
-    "Delete ^[%lld Todo](inflect: true)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%lld件のやることを削除"
-          }
-        }
-      }
-    },
-    "Delete “%@”?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "「%@」を削除しますか？"
           }
         }
       }
@@ -584,6 +705,17 @@
         }
       }
     },
+    "done" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "済み"
+          }
+        }
+      }
+    },
     "Due Date" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -602,6 +734,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "期限: %@"
+          }
+        }
+      }
+    },
+    "edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "編集"
           }
         }
       }
@@ -639,6 +782,17 @@
         }
       }
     },
+    "favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入り"
+          }
+        }
+      }
+    },
     "Favorite" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -668,6 +822,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "お気に入り"
+          }
+        }
+      }
+    },
+    "filter" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "絞り込み"
           }
         }
       }
@@ -705,6 +870,17 @@
         }
       }
     },
+    "find" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "探す"
+          }
+        }
+      }
+    },
     "Finds the lists (categories) todos are organized into." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -738,13 +914,13 @@
         }
       }
     },
-    "Get Todo Summary" : {
+    "finish" : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "やることの概要を取得"
+            "value" : "終わらせる"
           }
         }
       }
@@ -754,6 +930,17 @@
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
+            "value" : "やることの概要を取得"
+          }
+        }
+      }
+    },
+    "Get Todo Summary" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
             "value" : "やることの概要を取得"
           }
         }
@@ -847,6 +1034,17 @@
         }
       }
     },
+    "important" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重要"
+          }
+        }
+      }
+    },
     "Incomplete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -913,6 +1111,17 @@
         }
       }
     },
+    "list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リスト"
+          }
+        }
+      }
+    },
     "List" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -968,6 +1177,28 @@
         }
       }
     },
+    "lookup" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "調べる"
+          }
+        }
+      }
+    },
+    "Mark as Favorite" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "お気に入り"
+          }
+        }
+      }
+    },
     "Mark Complete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -997,17 +1228,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "やることを未完了にする"
-          }
-        }
-      }
-    },
-    "Mark as Favorite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "お気に入り"
           }
         }
       }
@@ -1056,6 +1276,17 @@
         }
       }
     },
+    "modify" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "修正"
+          }
+        }
+      }
+    },
     "Monthly" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1074,6 +1305,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "名前"
+          }
+        }
+      }
+    },
+    "new" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新規"
           }
         }
       }
@@ -1209,17 +1451,6 @@
         }
       }
     },
-    "Opens the Todo app to a specific screen" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "指定した画面でアプリを開きます"
-          }
-        }
-      }
-    },
     "Opens the app for a specific category" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1238,6 +1469,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "指定したやることでアプリを開きます"
+          }
+        }
+      }
+    },
+    "Opens the Todo app to a specific screen" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "指定した画面でアプリを開きます"
           }
         }
       }
@@ -1330,6 +1572,17 @@
         }
       }
     },
+    "priority" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "優先"
+          }
+        }
+      }
+    },
     "Pushes back the due date by a duration you choose" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1385,6 +1638,17 @@
         }
       }
     },
+    "remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "削除"
+          }
+        }
+      }
+    },
     "Remove Favorite" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1414,6 +1678,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "やることを並べ替え"
+          }
+        }
+      }
+    },
+    "repeat" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "繰り返し"
           }
         }
       }
@@ -1462,13 +1737,13 @@
         }
       }
     },
-    "Search Todos and Categories" : {
+    "search" : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "やることとカテゴリを検索"
+            "value" : "検索"
           }
         }
       }
@@ -1479,6 +1754,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${query}を検索"
+          }
+        }
+      }
+    },
+    "Search Todos and Categories" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることとカテゴリを検索"
           }
         }
       }
@@ -1568,6 +1854,17 @@
         }
       }
     },
+    "Snooze “%@” for how long?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "「%@」をどのくらいスヌーズしますか？"
+          }
+        }
+      }
+    },
     "Snooze ${todo}" : {
       "localizations" : {
         "ja" : {
@@ -1598,17 +1895,6 @@
         }
       }
     },
-    "Snooze “%@” for how long?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "「%@」をどのくらいスヌーズしますか？"
-          }
-        }
-      }
-    },
     "Snoozed “%@” by %@." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1627,6 +1913,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "標準"
+          }
+        }
+      }
+    },
+    "star" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "スター"
           }
         }
       }
@@ -1665,6 +1962,17 @@
         }
       }
     },
+    "tag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タグ"
+          }
+        }
+      }
+    },
     "Tags" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1694,6 +2002,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "移動先"
+          }
+        }
+      }
+    },
+    "task" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タスク"
           }
         }
       }
@@ -1874,6 +2193,17 @@
         }
       }
     },
+    "todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やること"
+          }
+        }
+      }
+    },
     "Todo" : {
       "comment" : "Todo item type name",
       "extractionState" : "manual",
@@ -1919,6 +2249,17 @@
         }
       }
     },
+    "Todo not found" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることが見つかりません"
+          }
+        }
+      }
+    },
     "Todo Snippet" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1941,13 +2282,13 @@
         }
       }
     },
-    "Todo not found" : {
+    "todos" : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "やることが見つかりません"
+            "value" : "やること"
           }
         }
       }
@@ -1963,6 +2304,17 @@
         }
       }
     },
+    "toggle" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "切り替え"
+          }
+        }
+      }
+    },
     "Toggle Completion" : {
       "localizations" : {
         "ja" : {
@@ -1973,12 +2325,32 @@
         }
       }
     },
+    "Toggle completion of ${todo}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${todo}の完了を切り替え"
+          }
+        }
+      }
+    },
     "Toggle Favorite" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "お気に入りを切り替え"
+          }
+        }
+      }
+    },
+    "Toggle favorite of ${todo}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${todo}のお気に入りを切り替え"
           }
         }
       }
@@ -2000,26 +2372,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "急ぎのやることの完了を切り替え"
-          }
-        }
-      }
-    },
-    "Toggle completion of ${todo}" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "${todo}の完了を切り替え"
-          }
-        }
-      }
-    },
-    "Toggle favorite of ${todo}" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "${todo}のお気に入りを切り替え"
           }
         }
       }
@@ -2046,13 +2398,13 @@
         }
       }
     },
-    "URLs" : {
+    "trash" : {
       "extractionState" : "manual",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "URL"
+            "value" : "捨てる"
           }
         }
       }
@@ -2068,12 +2420,23 @@
         }
       }
     },
-    "Update ${todo}" : {
+    "update" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "更新"
+          }
+        }
+      }
+    },
+    "Update ${target}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "${todo}を更新"
+            "value" : "${target}を更新"
           }
         }
       }
@@ -2129,6 +2492,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "急ぎのみ"
+          }
+        }
+      }
+    },
+    "URLs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "URL"
           }
         }
       }
@@ -2228,380 +2602,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "やることはすべて完了しています。"
-          }
-        }
-      }
-    },
-    "^[%lld pending todo](inflect: true), %lld overdue" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "未処理%1$lld件、期限切れ%2$lld件"
-          }
-        }
-      }
-    },
-    "^[%lld todo](inflect: true) total (%lld done, %lld starred)" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "合計%1$lld件（完了%2$lld件、お気に入り%3$lld件）"
-          }
-        }
-      }
-    },
-    "add" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "追加"
-          }
-        }
-      }
-    },
-    "bulk" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "まとめて"
-          }
-        }
-      }
-    },
-    "category" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "カテゴリ"
-          }
-        }
-      }
-    },
-    "change" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "変更"
-          }
-        }
-      }
-    },
-    "check" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "チェック"
-          }
-        }
-      }
-    },
-    "clear" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "消す"
-          }
-        }
-      }
-    },
-    "complete" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "完了"
-          }
-        }
-      }
-    },
-    "create" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "作成"
-          }
-        }
-      }
-    },
-    "delete" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "削除"
-          }
-        }
-      }
-    },
-    "done" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "済み"
-          }
-        }
-      }
-    },
-    "edit" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "編集"
-          }
-        }
-      }
-    },
-    "favorite" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "お気に入り"
-          }
-        }
-      }
-    },
-    "filter" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "絞り込み"
-          }
-        }
-      }
-    },
-    "find" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "探す"
-          }
-        }
-      }
-    },
-    "finish" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "終わらせる"
-          }
-        }
-      }
-    },
-    "important" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "重要"
-          }
-        }
-      }
-    },
-    "list" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "リスト"
-          }
-        }
-      }
-    },
-    "lookup" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "調べる"
-          }
-        }
-      }
-    },
-    "modify" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "修正"
-          }
-        }
-      }
-    },
-    "new" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "新規"
-          }
-        }
-      }
-    },
-    "priority" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "優先"
-          }
-        }
-      }
-    },
-    "remove" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "削除"
-          }
-        }
-      }
-    },
-    "repeat" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "繰り返し"
-          }
-        }
-      }
-    },
-    "search" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "検索"
-          }
-        }
-      }
-    },
-    "star" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "スター"
-          }
-        }
-      }
-    },
-    "tag" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "タグ"
-          }
-        }
-      }
-    },
-    "task" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "タスク"
-          }
-        }
-      }
-    },
-    "todo" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "やること"
-          }
-        }
-      }
-    },
-    "todos" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "やること"
-          }
-        }
-      }
-    },
-    "toggle" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "切り替え"
-          }
-        }
-      }
-    },
-    "trash" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "捨てる"
-          }
-        }
-      }
-    },
-    "update" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "更新"
           }
         }
       }

@@ -151,3 +151,30 @@ TodoLocationTriggerAppEntity reminders.LocationTriggerEntity
 AppIntents 3 スイート 23、すべて green。
 
 `reminders` ドメインで残っているのは `createList` と `reminders.group`（#139）。
+
+## 9. 同日: `todo` → `target` 改名の残骸が警告として残っていた
+
+`parameterSummary` のキーは `appshortcutstringsprocessor` が catalog に書くので、
+`$todo` → `$target` の改名でキーごと変わっていた。旧キー `Update ${todo}` が 7 つの catalog に
+残り、watch アプリの catalog だけ `extractionState: "stale"` が付いて警告になっていた。
+
+**手で `Update ${target}` に書き換えたら、次のビルドが巻き戻した。** 原因は統合メタデータで、
+`extract.actionsdata` を見ると混ざっていた:
+
+| bundle | キー |
+|---|---|
+| `TodoAppIntents.appintents`（当日再生成） | `Update ${target}` |
+| `UI` / `WidgetUI` / `LiveActivity.appintents` | `Update ${todo}`（前日のまま） |
+| `IntentTodo.app`（統合後） | `Update ${todo}` |
+
+パッケージ側のソースを touch して 1 つだけ再抽出させても、**アプリ側の統合タスクは再実行されない**
+（`UI.appintents` は `${target}` に変わったのに `IntentTodo.app` は `${todo}` のまま）。
+DerivedData の `Build/` を消してビルドし直したら全バンドルが `${target}` になり、
+Xcode の抽出も 7 catalog すべてに `Update ${target}` を追加して旧キーを stale にした。
+残りは stale の旧キーを消して ja 訳（`${target}を更新`）を移すだけだった。
+
+`check_intent_copy_localization.py` はこのキーを見ない（`parameterSummary` は
+「抽出されるので欠けない」前提で除外している）。改名のときだけ素通りする穴がある。
+
+併せて `AddTodoIntent.images` の `supportedTypeIdentifiers:`（iOS 18 で非推奨）を
+`supportedContentTypes: [UTType]` に直した。

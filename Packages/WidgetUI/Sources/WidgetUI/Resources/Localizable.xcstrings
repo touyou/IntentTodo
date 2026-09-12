@@ -221,12 +221,12 @@
         }
       }
     },
-    "Update ${todo}" : {
+    "Update ${target}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "${todo}を更新"
+            "value" : "${target}を更新"
           }
         }
       }
