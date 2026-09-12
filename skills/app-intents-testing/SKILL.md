@@ -49,7 +49,10 @@ python3 scripts/inspect_appintents_metadata.py --find MyProject               # 
 | Parameter picker blank | rung 1 — `suggestedEntities()` |
 | Content missing from search only | rung 1 — `spotlightQuery(_:)`, polled |
 | Button in the app does nothing, Siri works | **UI test** — AppIntentsTesting cannot see this |
+| **Empty picker / no results / an entity that will not resolve, on a real surface** | the [query call log](references/query-call-log.md) — separate "never called" from "returned nothing" before anything else |
 | A test is green but the feature is broken | [tests-that-lie](references/tests-that-lie.md) |
+
+**Before debugging why a query returned the wrong thing, establish that it was called.** Those two failures look identical from every surface and have opposite fixes. Recording each call in the app (DEBUG only, `UserDefaults` + `#function`) settles it in one read, including when the caller was an extension process — which the metadata cannot tell you and the donation stream does not cover, since it records intent execution rather than query calls.
 
 ## What stays manual
 
@@ -81,12 +84,15 @@ And when a measurement comes back empty, check whether the thing you are reading
 | Script | Answers |
 |---|---|
 | `scripts/inspect_appintents_metadata.py` | what the build actually told the system: counts, schema conformances, entity properties, parameter summaries, App Shortcut phrases, per-target aggregation |
+| `scripts/dump_query_call_log.py` | which query methods the system actually called, from which process, and how many values came back. Needs the app to record them ([query-call-log](references/query-call-log.md)) |
 | `scripts/inspect_donation_stream.py` | whether a run was recorded as a donation. **Simulator, verification only** — it reads a private path that can vanish on any OS update. Never ship code that depends on it |
 | `../app-intents-centric-design/scripts/audit_intents.py` | 24 static rules, and surface coverage |
 
 ```bash
 python3 scripts/inspect_appintents_metadata.py --find MyProject
 python3 scripts/inspect_appintents_metadata.py path/to/MyApp.app -v
+
+python3 scripts/dump_query_call_log.py --group group.com.example.App --empty-only
 
 python3 scripts/inspect_donation_stream.py --snapshot
 # … perform exactly one action …
@@ -100,6 +106,7 @@ python3 scripts/inspect_donation_stream.py --diff --bundle ""
 | File | Covers |
 |---|---|
 | [metadata](references/metadata.md) | rung 0 in full: what to read, what each anomaly means, doing it without the script |
+| [query-call-log](references/query-call-log.md) | recording the system's calls into your queries, so "never called" and "returned nothing" stop looking alike |
 | [appintents-testing](references/appintents-testing.md) | setup, the string-keyed API, every measured pitfall, what to cover, getting to a known state, platform limits |
 | [tests-that-lie](references/tests-that-lie.md) | conditional assertions, fixed sleeps, localised labels, missing scheme entries, parallelisation |
 | [templates](references/templates.md) | an AppIntentsTesting base class and a representative case |

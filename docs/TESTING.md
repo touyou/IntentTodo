@@ -99,3 +99,18 @@ python3 skills/app-intents-localization/scripts/check_intent_copy_localization.p
 
 **判定は必ずクリーンビルドで行う**。`Metadata.appintents` が変わらないと SSU タスクは再実行されず、
 インクリメンタルのログは前回の出力を並べる（これで「直った」と読み違えたことがある）。
+
+## query が呼ばれたかどうかを見る
+
+「システムが呼んでいない」と「呼ばれて 0 件返した」は、どの面から見ても同じ（ピッカーが空 /
+検索に出ない / entity が解決しない）なのに、直し方が逆になる。`QueryCallLog` が DEBUG ビルドで
+`EntityQuery` / `IntentValueQuery` の各メソッドの呼び出しを App Group の `UserDefaults` に残すので、
+これを読んで切り分ける。`requested > 0` なのに `returned == 0` の行がアプリ側の取りこぼし。
+
+- アプリ内: 設定 → Debug → **Query Calls**（DEBUG のみ。ローカライズしない）
+- 外から: `python3 skills/app-intents-testing/scripts/dump_query_call_log.py --group group.com.touyou.IntentTodo`
+  （Mac は `--mac`、差分実験は `--snapshot` / `--diff`）
+
+**行が出れば「呼ばれた」証拠になるが、行が無いことは証拠にならない**（DEBUG 限定・上限 200 件で
+古い方から消える・同時書き込みは取りこぼす）。仕組み自体は
+[skills/app-intents-testing/references/query-call-log.md](../skills/app-intents-testing/references/query-call-log.md)。

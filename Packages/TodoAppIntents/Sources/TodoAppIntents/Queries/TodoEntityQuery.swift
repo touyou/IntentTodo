@@ -24,6 +24,9 @@ public struct TodoEntityQuery: EntityQuery {
 
     public init() {}
 
+    /// Name this query reports to `QueryCallLog`.
+    static let logName = "TodoEntityQuery"
+
     @MainActor
     private func repository() -> any TodoRepositoryProtocol {
         SwiftDataTodoRepository(modelContext: modelContainer.mainContext)
@@ -32,7 +35,7 @@ public struct TodoEntityQuery: EntityQuery {
     @MainActor
     public func entities(for identifiers: [TodoAppEntity.ID]) async throws -> [TodoAppEntity] {
         let repo = repository()
-        return try identifiers.compactMap { identifier in
+        let entities = try identifiers.compactMap { identifier -> TodoAppEntity? in
             guard let uuid = UUID(uuidString: identifier) else {
                 // A malformed UUID means the caller is wrong; a missing todo does not.
                 // Logged separately so the two are distinguishable.
@@ -44,6 +47,13 @@ public struct TodoEntityQuery: EntityQuery {
             }
             return TodoAppEntity(from: todoItem)
         }
+        QueryCallLog.record(
+            query: Self.logName,
+            caller: #function,
+            requested: identifiers.count,
+            returned: entities.count
+        )
+        return entities
     }
 
     /// The most recent incomplete todos, capped at `suggestedEntityLimit`.
@@ -55,9 +65,11 @@ public struct TodoEntityQuery: EntityQuery {
     /// cases that genuinely need every row.
     @MainActor
     public func suggestedEntities() async throws -> [TodoAppEntity] {
-        try repository().fetchIncomplete()
+        let entities = try repository().fetchIncomplete()
             .prefix(Self.suggestedEntityLimit)
             .map { TodoAppEntity(from: $0) }
+        QueryCallLog.record(query: Self.logName, caller: #function, returned: entities.count)
+        return entities
     }
 
     /// Matches the HIG guidance of "not more than ten" suggestions.
@@ -87,6 +99,12 @@ public struct TodoEntityQuery: EntityQuery {
                 dueDate: item.dueDate
             )
         }
+        QueryCallLog.record(
+            query: Self.logName,
+            caller: #function,
+            requested: identifiers.count,
+            returned: representations.count
+        )
         return representations
     }
 }
@@ -99,9 +117,11 @@ extension TodoEntityQuery: EntityStringQuery {
     /// as different characters.
     @MainActor
     public func entities(matching string: String) async throws -> [TodoAppEntity] {
-        try repository().fetchAll()
+        let entities = try repository().fetchAll()
             .filter { $0.title.localizedStandardContains(string) }
             .map { TodoAppEntity(from: $0) }
+        QueryCallLog.record(query: Self.logName, caller: #function, returned: entities.count)
+        return entities
     }
 }
 
@@ -121,7 +141,9 @@ extension TodoEntityQuery: EnumerableEntityQuery {
 
     @MainActor
     public func allEntities() async throws -> [TodoAppEntity] {
-        try repository().fetchAll().map { TodoAppEntity(from: $0) }
+        let entities = try repository().fetchAll().map { TodoAppEntity(from: $0) }
+        QueryCallLog.record(query: Self.logName, caller: #function, returned: entities.count)
+        return entities
     }
 }
 
@@ -159,12 +181,19 @@ extension TodoEntityQuery: IndexedEntityQuery {
             )
         }
         logger.info("reindexEntities indexed=\(entities.count) deleted=\(missing.count)")
+        QueryCallLog.record(
+            query: Self.logName,
+            caller: #function,
+            requested: identifiers.count,
+            returned: entities.count
+        )
     }
 
     public func reindexAllEntities(indexDescription: CSSearchableIndexDescription) async throws {
         let entities = try await allEntities()
         try await TodoSpotlightIndex.index().indexAppEntities(entities)
         logger.info("reindexAllEntities count=\(entities.count)")
+        QueryCallLog.record(query: Self.logName, caller: #function, returned: entities.count)
     }
 }
 #endif
