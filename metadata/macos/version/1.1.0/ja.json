@@ -3,6 +3,5 @@
   "keywords": "todo,タスク,やること,リマインダー,siri,ショートカット,ウィジェット,音声,習慣,メモ,予定,効率化",
   "marketingUrl": "https://github.com/touyou/IntentTodo",
   "promotionalText": "話しかけるだけで、やることが増えたり片づいたりします。ウィジェット、コントロールセンター、ロック画面、Apple Watch、Spotlight — アプリを開かずに済む場所ならどこでも同じ操作ができます。",
-  "supportUrl": "https://github.com/touyou/IntentTodo/issues",
-  "whatsNew": "Siri が「リマインダー」として Intento を理解するようになりました。\n\n・やることの作成・更新・削除・表示を Siri が直接実行できます（App Schema 適合）\n・リストの中を「セクション」で分けられるようになりました。Siri からセクションを作ることもできます\n・やることに画像を添付できるようになりました。Siri やショートカットから渡した画像もそのまま保存されます\n・やることをリストやセクションに入れる操作を、追加画面と編集画面から行えるようになりました"
+  "supportUrl": "https://github.com/touyou/IntentTodo/issues"
 }

@@ -3,6 +3,5 @@
   "keywords": "todo,task,reminder,siri,shortcuts,widget,voice,checklist,productivity,list,planner,focus",
   "marketingUrl": "https://github.com/touyou/IntentTodo",
   "promotionalText": "Say it and it's on the list. Add, complete and snooze from Siri, widgets, Control Center, the Lock Screen, Apple Watch and Spotlight — the app itself is optional.",
-  "supportUrl": "https://github.com/touyou/IntentTodo/issues",
-  "whatsNew": "Siri now understands Intento as a reminders app.\n\n· Siri can create, update, delete and show todos directly (App Schema adoption)\n· Lists can be divided into sections, and Siri can create them too\n· Todos can carry image attachments — including images handed over by Siri or Shortcuts\n· Filing a todo into a list or a section is now available from the add and edit screens"
+  "supportUrl": "https://github.com/touyou/IntentTodo/issues"
 }
