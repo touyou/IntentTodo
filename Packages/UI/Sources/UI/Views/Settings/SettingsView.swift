@@ -35,6 +35,22 @@ public struct SettingsView: View {
             } footer: {
                 Text(.copy("Browse every action this app adds to Shortcuts, then combine them into your own automations."))
             }
+
+            #if DEBUG
+            // Verification only, so the copy stays unlocalised (see `QueryCallLogView`).
+            Section {
+                NavigationLink {
+                    QueryCallLogView()
+                } label: {
+                    Text(verbatim: "Query Calls")
+                }
+                .accessibilityIdentifier("queryCallLogLink")
+            } header: {
+                Text(verbatim: "Debug")
+            } footer: {
+                Text(verbatim: "Which entity query methods the system called, and what they returned.")
+            }
+            #endif
         }
         .navigationTitle(.copy("Settings"))
         .toolbar {

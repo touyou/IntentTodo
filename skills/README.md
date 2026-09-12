@@ -61,8 +61,10 @@ skills/
 │                   schema-domains, entity-shapes-and-scale, templates}.md
 ├── app-intents-testing/
 │   ├── scripts/inspect_appintents_metadata.py   # ビルド成果物のメタデータ検査
+│   ├── scripts/dump_query_call_log.py           # システムが query を呼んだ記録を読む
 │   ├── scripts/inspect_donation_stream.py       # donation 観測（検証専用・非公開パス）
-│   └── references/{metadata, appintents-testing, tests-that-lie, templates}.md
+│   └── references/{metadata, query-call-log, appintents-testing,
+│                   tests-that-lie, templates}.md
 └── app-intents-localization/
     ├── scripts/check_intent_copy_localization.py  # Intent コピーの訳漏れ検出
     └── references/{intent-copy, package-ui-copy, siri-phrases, verifying}.md
@@ -93,6 +95,9 @@ python3 app-intents-testing/scripts/inspect_appintents_metadata.py path/to/MyApp
 
 # Intent コピーが catalog から漏れていないか（ビルド後）
 python3 app-intents-localization/scripts/check_intent_copy_localization.py
+
+# システムが query を呼んだ記録（アプリ側に QueryCallLog 相当を入れてから。DEBUG 限定）
+python3 app-intents-testing/scripts/dump_query_call_log.py --group group.com.example.App --empty-only
 
 # donation の観測（シミュレータ限定・検証専用。出荷コードで依存しない）
 python3 app-intents-testing/scripts/inspect_donation_stream.py --snapshot

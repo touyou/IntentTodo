@@ -38,7 +38,10 @@ public struct TodoVisualIntelligenceQuery: IntentValueQuery {
         // are matched against may be in any language, so locale-aware equivalence (kana
         // forms, diacritics, full-width characters) has to stay in play.
         let labels = input.labels
-        guard !labels.isEmpty else { return [] }
+        guard !labels.isEmpty else {
+            QueryCallLog.record(query: "TodoVisualIntelligenceQuery", caller: #function, returned: 0)
+            return []
+        }
 
         // TodoService is MainActor-isolated; hop to fetch the snapshot, then filter
         // off-actor on the Sendable entity values.
@@ -58,7 +61,14 @@ public struct TodoVisualIntelligenceQuery: IntentValueQuery {
             .filter { matches($0.name) && seenCategoryIDs.insert($0.id).inserted }
             .map { TodoOrCategory.category($0) }
 
-        return matchedTodos + matchedCategories
+        let values = matchedTodos + matchedCategories
+        QueryCallLog.record(
+            query: "TodoVisualIntelligenceQuery",
+            caller: #function,
+            requested: labels.count,
+            returned: values.count
+        )
+        return values
     }
 }
 #endif
