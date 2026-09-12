@@ -309,6 +309,7 @@ public final class TodoService {
         todoDescription: FieldUpdate<String?> = .unchanged,
         dueDate: FieldUpdate<Date?> = .unchanged,
         isFavorite: FieldUpdate<Bool> = .unchanged,
+        isCompleted: FieldUpdate<Bool> = .unchanged,
         estimatedDuration: FieldUpdate<TimeInterval?> = .unchanged,
         assigneeName: FieldUpdate<String?> = .unchanged,
         locationName: FieldUpdate<String?> = .unchanged,
@@ -334,6 +335,12 @@ public final class TodoService {
         if case .set(let value) = todoDescription { item.todoDescription = value }
         if case .set(let value) = dueDate { item.dueDate = value }
         if case .set(let value) = isFavorite { item.isFavorite = value }
+        // Completion carries a date, so it goes through the same sync every other
+        // completion path uses rather than writing the flag alone.
+        if case .set(let value) = isCompleted, item.isCompleted != value {
+            item.isCompleted = value
+            syncCompletionDate(item)
+        }
         if case .set(let value) = estimatedDuration { item.estimatedDuration = value }
         if case .set(let value) = assigneeName { item.assigneeName = value }
         if case .set(let value) = locationName { apply(locationName: value, to: item) }

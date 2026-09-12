@@ -50,8 +50,8 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 | Intent | プロトコル / 特徴 | Mode | 本体固定 | 用途 |
 |:--|:--|:--|:--:|:--|
-| `AddTodoIntent` | `OpensIntent` | `.background` | ✅ | Todo 追加 |
-| `UpdateTodoIntent` | `IntentParameter.valueState` | `.background` | ✅ | 部分更新（新値 / 明示クリア / 据え置き） |
+| `AddTodoIntent` | `OpensIntent` + `@AppIntent(schema: .reminders.createReminder)` | `.background` | ✅ | Todo 追加 |
+| `UpdateTodoIntent` | `IntentParameter.valueState` + `@AppIntent(schema: .reminders.updateReminder)` | `.background` | ✅ | 部分更新（新値 / 明示クリア / 据え置き） |
 | `ToggleTodoCompletionIntent` | `UndoableIntent` + `LiveActivityIntent`(iOS) | `.background` | ✅ | 完了切替（完了時に Live Activity を終了） |
 | `SetTodoCompletionIntent` | `SetValueIntent`（内部用） | `.background` | ✅ | 完了状態の絶対値セット（Control のトグル用） |
 | `CompleteTodosIntent` | `LongRunningIntent` + `CancellableIntent` + `EntityCollection` | `.background` | ✅ | バルク完了（進捗 / キャンセル対応） |
@@ -85,6 +85,7 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 | `SubTaskAppEntity` | `AppEntity` | — |
 | `TodoListSummaryEntity` | `TransientAppEntity` | `GetTodoSummaryIntent` の戻り値 |
 | `TodoSectionAppEntity` | `@AppEntity(schema: .reminders.section)` | カテゴリ配下のセクション（watch は `WatchTodoSectionAppEntity`） |
+| `TodoAttachment` | `@Model`（`.externalStorage`） | todo に付けた画像。`IntentFile` とは `TodoAttachments` で往復 |
 | `TodoOrCategory` | `@UnionValue` | 横断検索 / Visual Intelligence の結果型 |
 | `TodoEntityQuery` | `EntityQuery` + `EntityStringQuery` + `EnumerableEntityQuery` + `IndexedEntityQuery` | Shortcuts の Find は `EnumerableEntityQuery` で自動生成される |
 | `CategoryEntityQuery` / `SubTaskEntityQuery` | `EntityQuery` + `EntityStringQuery` | — |
