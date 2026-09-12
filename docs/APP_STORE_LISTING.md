@@ -40,26 +40,28 @@ watchOS は iOS アプリに埋め込み、macOS と visionOS はネイティブ
 
 ```
 metadata/
-  ios/       app-info/{en-US,ja}.json  version/1.0.0/{en-US,ja}.json
+  ios/       app-info/{en-US,ja}.json  version/1.1.0/{en-US,ja}.json
   macos/     同じ
   visionos/  同じ
 ```
 
-**1.0.0 のバージョンレコードは iOS / macOS / visionOS で別々**なので、3 つとも入れる必要がある。
+**バージョンレコードは iOS / macOS / visionOS で別々**なので、3 つとも入れる必要がある。
+`version/<version>/` は出しているバージョンごとに 1 つ。`whatsNew` はここに置く（1.0.0 には無い
+— 初回リリースなので不要だった）。
 `app-info/`（名前・サブタイトル・プライバシーポリシー URL）はアプリ単位なので中身は 3 つとも同じ。
 
 ### 反映のしかた
 
 ```bash
 # 1. 今 ASC に入っているものを取り込む（手で編集した分を拾う）
-asc metadata pull --app 6788623037 --version 1.0.0 --platform IOS --dir metadata/ios
+asc metadata pull --app 6788623037 --version 1.1.0 --platform IOS --dir metadata/ios
 
 # 2. 差分を見る（書き込みなし）
-asc metadata plan --app 6788623037 --version 1.0.0 --platform IOS --dir metadata/ios
+asc metadata plan --app 6788623037 --version 1.1.0 --platform IOS --dir metadata/ios
 
 # 3. 承認して反映
 asc metadata approve --review-dir .asc/metadata/review --all
-asc metadata apply --app 6788623037 --version 1.0.0 --platform IOS --dir metadata/ios \
+asc metadata apply --app 6788623037 --version 1.1.0 --platform IOS --dir metadata/ios \
   --review-dir .asc/metadata/review --confirm
 ```
 
@@ -137,9 +139,14 @@ reported back to the person; declining it does not restrict any feature.
 
 ## 8. 提出
 
-1.0.0 は build 33（Xcode Cloud run #33）で iOS / macOS / visionOS の 3 バージョンとも提出済み。
-提出時に**公開 API から触れず Web UI でしか答えられない項目が 2 つ**あり、どちらも
-「答えるまで提出が通らない」形で出る:
+**公開されたのは 1.1.0 から**。1.0.0 は 3 プラットフォームとも提出まで行ったが
+（build 33 / Xcode Cloud run #33）、公開前に App Schema 適合（#138 / #139）を入れたかったので
+**1.1.0 に差し替えた**。1.0.0 時点の state は iOS / visionOS が `PENDING_APPLE_RELEASE`
+（承認済み・OS 公開待ち）、macOS が `WAITING_FOR_REVIEW`。
+経緯: [docs/devlog/2026-09-12-release-1.1.0.md](devlog/2026-09-12-release-1.1.0.md)
+
+提出時に**公開 API から触れず Web UI でしか答えられない項目が 2 つ**あるのは 1.0.0 と同じで、
+どちらも「答えるまで提出が通らない」形で出る:
 
 | 項目 | 出方 |
 |---|---|
