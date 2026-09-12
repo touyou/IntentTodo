@@ -182,9 +182,18 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `@AppEntity(schema: .reminders.locationTrigger)` | 場所トリガー | ✅ | `TodoLocationTriggerAppEntity`（`place: PlaceDescriptor` + `event`） |
 | `@AppEnum(schema: .reminders.locationTriggerEvent)` | arrive / depart | ✅ | `TodoLocationTriggerEvent` |
 | `@AppIntent(schema: .system.searchInApp)` | アプリ内検索 | ✅ | `ShowTodoSearchResultsIntent` |
-| `@AppIntent(schema: .system.open)` | 「開く」の適合 | ⏸ | 素の `OpenIntent` で成立している |
+| `@AppIntent(schema: .system.open)` | 「開く」の適合 | ✅ | `OpenTodoIntent` / `OpenCategoryIntent`。`OpenIntent` の形がそのまま要求を満たすのでマクロ 1 行（`#if !os(watchOS)`）。**素のプロトコル適合では `assistantDefinedSchemas` が空**で Siri 実行の宣言が付かないので、適合は上乗せではなく必須 |
+| `@AppIntent(schema: .reminders.deleteReminders)` | 削除の適合 | ✅ | `DeleteTodosIntent`（`entities: [TodoAppEntity]` が要求と一致。マクロ 1 行） |
+| `@AppIntent(schema: .reminders.createReminder)` | 作成の適合 | ⬜ | `AddTodoIntent` に対する差分を実測（#138）: 要追加 `note` / `isFlagged` / `images` / `list` / `recurrence` / `locationTrigger` / `section`、型変更 `dueDate: DateComponents` / `tags: Set<String>`(非opt) / `urls`(非opt)、`isFavorite` は optional 化が必要 |
+| `@AppIntent(schema: .reminders.updateReminder)` | 更新の適合 | ⬜ | `UpdateTodoIntent` に対する差分（#138）: `todo` → `target` リネーム、要追加 `note` / `isFlagged` / `isCompleted` / `list` / `recurrence` / `locationTrigger`、型変更 `dueDate` / `tags` |
+| `@AppIntent(schema: .reminders.createList)` | リスト作成 | ⬜ | カテゴリ作成の Intent がまだ無い（#139） |
+| `@AppIntent(schema: .reminders.createSection)` | セクション作成 | ⬜ | アプリにセクションの概念が無い。`.reminders.section` entity の新設が前提（#139） |
+| `@AppEntity(schema: .reminders.section)` / `.reminders.group` | セクション / グループ | ⬜ | 同上。`createReminder` の `section` パラメータ要求と連動（#139） |
 | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | Visual Intelligence の「もっと見る」 | ✅ | `TodoSemanticContentSearchIntent` |
 | `.system.search`（旧名） | — | ⛔ | `.system.searchInApp` にリネーム |
+
+Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断・`swift build` は形を検証しない）。
+測り方と要求一覧: [docs/insights/03-app-intents-core.md](insights/03-app-intents-core.md#intent-スキーマ適合appintentschema)
 
 ## 10. Onscreen / 通知 / 他フレームワーク統合
 

@@ -22,6 +22,12 @@ import AppIntents
 /// root. Conforming to `OpenIntent` is the important part — it declares the
 /// category as an openable entity so Siri / Spotlight / Visual Intelligence can
 /// route to it. A category-scoped list screen can refine `perform()` later.
+///
+/// The `.system.open` schema takes any `AppEntity` target, so the category side gets the
+/// same Siri-executable declaration as `OpenTodoIntent`.
+#if !os(watchOS)
+@AppIntent(schema: .system.open)
+#endif
 public struct OpenCategoryIntent: OpenIntent {
     public static let title: LocalizedStringResource = "Open Category"
     public static let description = IntentDescription("Opens the app for a specific category")

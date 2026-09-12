@@ -862,8 +862,20 @@ let choice = try await requestChoice(
 ### system intents（`OpenIntent` / `DeleteIntent`）
 
 App Intents は「開く」「削除する」等の共通アクションに **system intent プロトコル**を用意している（#344）。
-適合すると、システムがそのアクションを意味的に理解する（Spotlight 結果タップ → 開く 等）。スキーママクロ
-（`@AppIntent(schema: .system.open)` など）を使わず、**プロトコルに直接適合**するだけでよい。
+適合すると、システムがそのアクションを意味的に理解する（Spotlight 結果タップ → 開く 等）。
+
+**プロトコル適合とスキーマ適合は別物**で、出荷メタデータに出るものが違う。プロトコルだけだと
+`systemProtocols` に `OpenEntity` / `DeleteEntity` が入るが `assistantDefinedSchemas` は空のままで、
+Siri が実行できる宣言（`AssistantIntent` マーカー + schema エントリ）は付かない。両方必要:
+
+| 宣言 | `systemProtocols` | `assistantDefinedSchemas` |
+|---|---|---|
+| `OpenIntent` だけ | `OpenEntity` | `[]` |
+| `+ @AppIntent(schema: .system.open)` | `OpenEntity` + **`AssistantIntent`** | `{system, OpenIntent}` |
+
+本プロジェクトは `OpenTodoIntent` / `OpenCategoryIntent` を `.system.open`、`DeleteTodosIntent` を
+`.reminders.deleteReminders` に適合させている。いずれも**プロトコルの形がスキーマ要求と一致するので
+マクロ 1 行だけ**で済んだ（要求の形は下記「Intent スキーマ適合」節）。
 
 - **`OpenIntent`**: `var target: Target`（`Target: AppEntity`、関連型は `target` から推論）を要求。
   `OpenTodoIntent` は `@Parameter var target: TodoAppEntity` を持ち、perform() で `NavigationModel.showDetail`
@@ -874,6 +886,34 @@ App Intents は「開く」「削除する」等の共通アクションに **sy
   分離して `DeleteTodosIntent`（バルク削除）を新設した。requestConfirmation で一括確認 → 各 todo 削除 +
   donation 削除。
 - いずれも **AppShortcuts には未登録**（10 件枠の温存。system intent は AppShortcut 無しでも意味解釈される）。
+
+### Intent スキーマ適合（`@AppIntent(schema:)`）
+
+Entity 側の適合と要求の出方が違うので、別に書く。
+
+- **アクションが Siri で実行可能になるのはスキーマ適合した分だけ**。素の App Intent は Shortcuts /
+  Spotlight / ウィジェットには出るが、Siri の自然言語実行には載らない（wwdc2026-240 `9:41`–`15:10`
+  "actions use schemas to become executable by Siri"）。`.reminders.*` / `.system.*` の
+  supported experiences も *Siri / Shortcuts* の 2 つ
+- **要求はビルドでしか出ない**。ライブ診断（`XcodeRefreshCodeIssuesInFile`）とホストの `swift build` は
+  スキーマ名の解決だけを見て**形の検証をしない**。存在しないスキーマ名は即エラーになるのに、
+  明らかに形の合わない適合が診断ゼロで通る。**要求の洗い出しは Xcode ビルドで行う**
+- **`#if` はアトリビュートだけに掛ければよい**。`#if !os(watchOS)` をマクロ行だけに置いて
+  `struct` 宣言は 1 本のままにできる。**entity と違い型名を分ける必要はない**
+  （iOS クリーンビルドの統合メタデータで watch スライス（`WatchTodoAppEntity`）と同居しつつ
+  `OpenTodoIntent` の schema が残ることを実測。2026-09-12）
+- **スキーマ外のパラメータは持てるが optional 必須**。`Intent parameters must be optional when not
+  defined by the AppSchemaIntent`。アプリ固有の追加パラメータ（`estimatedDuration` / `assignee` など）は
+  残せるが、非 optional のものは optional にするしかない
+- 要求の形は 3 種類のエラーで出る: `Missing required parameter 'x' from AppSchemaIntent '...'` /
+  `Required AppSchemaIntent parameter 'x' must not be optional` /
+  `Parameter 'x' does not match required AppSchemaIntent type 'T'`
+- **entity 側の `@ComputedProperty` による別名は使えない**。パラメータは storage なので、
+  スキーマ要求名（`note` / `isFlagged` / `target`）はリネームで満たすしかない
+
+`reminders` ドメインの Intent スキーマ 5 本と `.system.open` の適合状況・要求差分は
+[docs/APP_INTENTS_API_COVERAGE.md](../APP_INTENTS_API_COVERAGE.md#9-app-schema意味ドメイン適合)。
+測り方と実測ログ: [docs/devlog/2026-09-12-intent-schema-adoption.md](../devlog/2026-09-12-intent-schema-adoption.md)
 
 ### 会話ダイアログ（`IntentDialog(full:supporting:)`）
 
