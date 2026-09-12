@@ -45,6 +45,8 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
 6. **`requestConfirmation` / `requestChoice` を含む Intent をアプリ内 `Button(intent:)` から呼ばない**
    （応答する面が無く、エラー表示も出ずに何も起きない。UI 側で確認して確認なし版を呼ぶ）
 7. **`parameterSummary` は Shortcuts 編集画面の allowlist**。載せ忘れたパラメータは編集できない
+   （**公開済み Intent のパラメータ名 / 型は変えない**。保存済みショートカットの結び付きが外れる。
+   スキーマ要求と合わないときは別 Intent + `isAssistantOnly = true` で移行する）
 8. **App Shortcut に登録した Intent の `@Parameter` に system value 型を置かない**
    （`PlaceDescriptor` / `LinkMetadata` / `AudioSearch` / `PHAsset`。SDK バグ FB24548956 で
    音声理解の学習アセットが丸ごと消え、ローカルは `BUILD SUCCEEDED` のまま）
