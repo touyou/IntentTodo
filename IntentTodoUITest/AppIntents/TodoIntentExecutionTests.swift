@@ -57,6 +57,11 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         try await deleteTodos(matching: title)
     }
 
+    /// The fields `TodoDueDate` publishes, so a value passed in comes back unchanged.
+    private static func components(of date: Date) -> DateComponents {
+        Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+    }
+
     // MARK: - Snooze
 
     /// The fixed-interval variant used by Live Activity buttons.
@@ -66,8 +71,10 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         let title = uniqueTitle("AITest Snooze")
         let dueDate = Date().addingTimeInterval(60 * 60)
 
+        // `AddTodoIntent.dueDate` is the schema's `DateComponents` (`.reminders.createReminder`),
+        // so the date has to be projected before it is passed.
         let created = try await intent("AddTodoIntent")
-            .makeIntent(title: title, dueDate: dueDate)
+            .makeIntent(title: title, dueDate: Self.components(of: dueDate))
             .run()
         let entity: AnyAppEntity = try created.value
 
@@ -97,14 +104,18 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
         let title = uniqueTitle("AITest Update Keep")
         let dueDate = Date().addingTimeInterval(3600)
         let created = try await intent("AddTodoIntent")
-            .makeIntent(title: title, todoDescription: "keep me", dueDate: dueDate)
+            .makeIntent(
+                title: title,
+                note: AttributedString("keep me"),
+                dueDate: Self.components(of: dueDate)
+            )
             .run()
         let entity: AnyAppEntity = try created.value
 
         // Only the title is passed, so the other fields must survive.
         let newTitle = uniqueTitle("AITest Update Keep New")
         let updated = try await intent("UpdateTodoIntent")
-            .makeIntent(todo: entity, title: newTitle)
+            .makeIntent(target: entity, title: newTitle)
             .run()
 
         XCTAssertEqual(try updated.value.title as String, newTitle)
@@ -123,17 +134,17 @@ final class TodoIntentExecutionTests: AppIntentsTestCase {
     func testUpdateClearsExplicitlyNilledParameter() async throws {
         let title = uniqueTitle("AITest Update Clear")
         let created = try await intent("AddTodoIntent")
-            .makeIntent(title: title, todoDescription: "clear me")
+            .makeIntent(title: title, note: AttributedString("clear me"))
             .run()
         let entity: AnyAppEntity = try created.value
         XCTAssertEqual(try created.value.todoDescription as String, "clear me")
 
-        // `makeIntent(todoDescription: nil)` means "argument not passed", i.e. `.unset`.
+        // `makeIntent(note: nil)` means "argument not passed", i.e. `.unset`.
         // An explicit null needs a *typed* nil, which works because `Optional` itself
         // conforms to `IntentValueExpressing`.
-        let explicitNull: any IntentValueExpressing = String?.none
+        let explicitNull: any IntentValueExpressing = AttributedString?.none
         let cleared = try await intent("UpdateTodoIntent")
-            .makeIntent(todo: entity, todoDescription: explicitNull)
+            .makeIntent(target: entity, note: explicitNull)
             .run()
 
         let remaining: String? = try? cleared.value.todoDescription

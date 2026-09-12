@@ -106,7 +106,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 
 | API | 一言 | 状態 | このアプリでの扱い |
 |---|---|:--:|---|
-| `AppEntity` | 名詞モデル | ✅ | `TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` |
+| `AppEntity` | 名詞モデル | ✅ | `TodoAppEntity` / `CategoryAppEntity` / `SubTaskAppEntity` / `TodoSectionAppEntity` |
 | `TransientAppEntity` | クエリ不要の一時 Entity | ✅ | `TodoListSummaryEntity`（`GetTodoSummaryIntent` の戻り値） |
 | `AppEnum` | パラメータ用の列挙 | ✅ | `TodoFilterType` / `AppScreenTarget` / `TodoListType` |
 | `@UnionValue` | 複数 Entity 型を 1 つの値に | ✅ | `TodoOrCategory`（検索 / Visual Intelligence） |
@@ -184,13 +184,15 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `@AppIntent(schema: .system.searchInApp)` | アプリ内検索 | ✅ | `ShowTodoSearchResultsIntent` |
 | `@AppIntent(schema: .system.open)` | 「開く」の適合 | ✅ | `OpenTodoIntent` / `OpenCategoryIntent`。`OpenIntent` の形がそのまま要求を満たすのでマクロ 1 行（`#if !os(watchOS)`）。**素のプロトコル適合では `assistantDefinedSchemas` が空**で Siri 実行の宣言が付かないので、適合は上乗せではなく必須 |
 | `@AppIntent(schema: .reminders.deleteReminders)` | 削除の適合 | ✅ | `DeleteTodosIntent`（`entities: [TodoAppEntity]` が要求と一致。マクロ 1 行） |
-| `@AppIntent(schema: .reminders.createReminder)` | 作成の適合 | ⬜ | `AddTodoIntent` に対する差分を実測（#138）: 要追加 `note` / `isFlagged` / `images` / `list` / `recurrence` / `locationTrigger` / `section`、型変更 `dueDate: DateComponents` / `tags: Set<String>`(非opt) / `urls`(非opt)、`isFavorite` は optional 化が必要 |
-| `@AppIntent(schema: .reminders.updateReminder)` | 更新の適合 | ⬜ | `UpdateTodoIntent` に対する差分（#138）: `todo` → `target` リネーム、要追加 `note` / `isFlagged` / `isCompleted` / `list` / `recurrence` / `locationTrigger`、型変更 `dueDate` / `tags` |
+| `@AppIntent(schema: .reminders.createReminder)` | 作成の適合 | ✅ | `AddTodoIntent`（#138）。`todoDescription` → `note: AttributedString?` / `isFavorite` → `isFlagged: Bool?` / `dueDate: DateComponents?` / `tags: Set<String>` / `urls: [URL]` / 頻度+間隔 → `recurrence: Calendar.RecurrenceRule?` / `locationTrigger` entity。**非 optional コレクションには `default: []` が必須**（無いと値を聞かれて「やることを追加」だけで動かなくなる）。`images` は `public.image` の**サブタイプ**を `supportedTypeIdentifiers` に列挙する |
+| `@AppIntent(schema: .reminders.updateReminder)` | 更新の適合 | ✅ | `UpdateTodoIntent`（#138）。`todo` → `target` リネーム + 上と同じ型変更 + `isCompleted` 追加。アプリ固有のパラメータ（`estimatedDuration` / `assigneeName` / `locationName` / `locationTriggerEvent` / `section` / `images`）は optional のまま残せる |
 | `@AppIntent(schema: .reminders.createList)` | リスト作成 | ⬜ | カテゴリ作成の Intent がまだ無い（#139） |
-| `@AppIntent(schema: .reminders.createSection)` | セクション作成 | ⬜ | アプリにセクションの概念が無い。`.reminders.section` entity の新設が前提（#139） |
-| `@AppEntity(schema: .reminders.section)` / `.reminders.group` | セクション / グループ | ⬜ | 同上。`createReminder` の `section` パラメータ要求と連動（#139） |
+| `@AppIntent(schema: .reminders.createSection)` | セクション作成 | ✅ | `CreateSectionIntent`。要求は `name` + `list` → `SectionEntity` を返す形で、初回ビルドで一致した |
+| `@AppEntity(schema: .reminders.section)` | セクション | ✅ | `TodoSectionAppEntity`（watch 用は `WatchTodoSectionAppEntity`）。`TodoSection` をモデルに足してカテゴリ配下のセクションを実装した |
+| `@AppEntity(schema: .reminders.group)` | リストのグループ | ⬜ | カテゴリをまとめる概念がまだ無い（#139） |
 | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | Visual Intelligence の「もっと見る」 | ✅ | `TodoSemanticContentSearchIntent` |
 | `.system.search`（旧名） | — | ⛔ | `.system.searchInApp` にリネーム |
+| `@AppIntent(schema: .camera.openInCaptureMode)` + `@AppEnum(schema: .camera.captureMode)` | カメラを撮影モード付きで開く | 🚫 | 題材にカメラが無い。なお**外部で「Siri から呼ぶと動かない」報告**がある（[FB23562640](https://github.com/kntkymt/ios-app-intents-sample/tree/main/broken-open-camera-intent)。Siri が "something wrong" を返す）ので、採用を検討する日が来たら先に再現を確認する |
 
 Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断・`swift build` は形を検証しない）。
 測り方と要求一覧: [docs/insights/03-app-intents-core.md](insights/03-app-intents-core.md#intent-スキーマ適合appintentschema)

@@ -119,4 +119,22 @@ public struct TodoLocationTriggerEntityQuery: EntityQuery {
     }
 }
 
+// MARK: - EntityStringQuery
+
+/// Resolving a trigger by name is what `.reminders.createReminder` requires of the type it
+/// takes for `locationTrigger`: a plain `EntityQuery` can only answer by id, which a person
+/// saying "remind me when I get to City Hall" never provides.
+extension TodoLocationTriggerEntityQuery: EntityStringQuery {
+    @MainActor
+    public func entities(matching string: String) async throws -> [TodoLocationTriggerAppEntity] {
+        let descriptor = FetchDescriptor<TodoItem>()
+        return try modelContainer.mainContext.fetch(descriptor)
+            .compactMap { TodoLocationTriggerAppEntity.make(from: $0) }
+            .filter { trigger in
+                let name = trigger.place.commonName ?? trigger.place.address
+                return name?.localizedStandardContains(string) ?? false
+            }
+    }
+}
+
 #endif

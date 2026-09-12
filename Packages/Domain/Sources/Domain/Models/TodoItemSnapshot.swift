@@ -53,8 +53,15 @@ public struct TodoItemSnapshot: Sendable, Equatable {
     /// Relationships cannot be carried by value, so the category is re-resolved on restore.
     public let categoryID: UUID?
 
+    /// Same for the section. Re-resolved independently of the category: a section can
+    /// outlive the todo, and restoring the filing is what makes undo lossless.
+    public let sectionID: UUID?
+
     /// Sub-tasks are cascade-deleted with the parent, so they have to come back too.
     public let subTasks: [SubTaskSnapshot]
+
+    /// Attachments cascade as well, so the bytes ride along in the snapshot.
+    public let attachments: [TodoAttachmentValue]
 
     // MARK: - Initialization
 
@@ -81,6 +88,10 @@ public struct TodoItemSnapshot: Sendable, Equatable {
         self.urls = item.urls
         self.locationTriggerEvent = item.locationTriggerEvent
         self.categoryID = item.category?.id
+        self.sectionID = item.section?.id
+        self.attachments = (item.attachments ?? [])
+            .sorted { $0.createdAt < $1.createdAt }
+            .map { TodoAttachmentValue($0) }
         self.subTasks = (item.subTasks ?? [])
             .sorted { $0.orderIndex < $1.orderIndex }
             .map {
@@ -97,11 +108,13 @@ public struct TodoItemSnapshot: Sendable, Equatable {
 
     /// Rebuilds the todo (and its sub-tasks) under the original identifiers.
     ///
-    /// - Parameter category: The category resolved from `categoryID`, or `nil` when
-    ///   the category itself is gone. The relation is simply dropped in that case —
-    ///   a missing category shouldn't block bringing the todo back.
+    /// - Parameters:
+    ///   - category: The category resolved from `categoryID`, or `nil` when the category
+    ///     itself is gone. The relation is simply dropped in that case — a missing
+    ///     category shouldn't block bringing the todo back.
+    ///   - section: The section resolved from `sectionID`, on the same terms.
     @MainActor
-    public func makeTodoItem(category: Category?) -> TodoItem {
+    public func makeTodoItem(category: Category?, section: TodoSection? = nil) -> TodoItem {
         let item = TodoItem(
             id: id,
             title: title,
@@ -125,6 +138,12 @@ public struct TodoItemSnapshot: Sendable, Equatable {
         item.urls = urls
         item.locationTriggerEvent = locationTriggerEvent
         item.category = category
+        item.section = section
+        item.attachments = attachments.map { value in
+            let attachment = value.makeAttachment()
+            attachment.todo = item
+            return attachment
+        }
         item.subTasks = subTasks.map { snapshot in
             let subTask = SubTask(
                 id: snapshot.id,

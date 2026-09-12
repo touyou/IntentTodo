@@ -31,6 +31,13 @@ public final class Category {
     /// Optional for CloudKit; readers use `todos ?? []`.
     public var todos: [TodoItem]? = []
 
+    /// Named subdivisions of this category.
+    ///
+    /// Cascades: a section has no meaning outside its category, and the
+    /// `.reminders.section` schema requires a non-optional list.
+    @Relationship(deleteRule: .cascade, inverse: \TodoSection.category)
+    public var sections: [TodoSection]? = []
+
     // swiftlint:enable redundant_type_annotation
 
     // MARK: - Initialization
@@ -44,5 +51,6 @@ public final class Category {
         self.name = name
         self.colorHex = colorHex
         self.todos = []
+        self.sections = []
     }
 }

@@ -32,6 +32,12 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         try modelContext.save()
     }
 
+    public func createSection(_ section: TodoSection, in category: Domain.Category) throws {
+        modelContext.insert(section)
+        section.category = category
+        try modelContext.save()
+    }
+
     // MARK: - Read
 
     public func fetchAll() throws -> [TodoItem] {
@@ -67,6 +73,34 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         return try modelContext.fetch(descriptor).first
     }
 
+    public func fetchCategories() throws -> [Domain.Category] {
+        let descriptor = FetchDescriptor<Domain.Category>(
+            sortBy: [SortDescriptor(\.name, order: .forward)]
+        )
+        return try modelContext.fetch(descriptor)
+    }
+
+    public func fetchSection(by id: UUID) throws -> TodoSection? {
+        let predicate = #Predicate<TodoSection> { section in
+            section.id == id
+        }
+        var descriptor = FetchDescriptor<TodoSection>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try modelContext.fetch(descriptor).first
+    }
+
+    public func fetchSections() throws -> [TodoSection] {
+        // Sorting by the related category's name inside the fetch would need a
+        // to-one key path through an optional relationship, which SwiftData rejects
+        // in a SortDescriptor — so the store sorts by position and the grouping is
+        // applied in memory.
+        let descriptor = FetchDescriptor<TodoSection>(
+            sortBy: [SortDescriptor(\.sortIndex, order: .forward)]
+        )
+        return try modelContext.fetch(descriptor)
+            .sorted { ($0.category?.name ?? "", $0.sortIndex) < ($1.category?.name ?? "", $1.sortIndex) }
+    }
+
     public func incompleteCount() throws -> Int {
         // fetchCount counts at the store level without materializing TodoItem
         // instances into memory (Apple: "without the overhead of fetching the
@@ -89,6 +123,13 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
     }
 
     // MARK: - Delete
+
+    public func deleteAttachments(_ attachments: [TodoAttachment]) throws {
+        for attachment in attachments {
+            modelContext.delete(attachment)
+        }
+        try modelContext.save()
+    }
 
     public func delete(_ todo: TodoItem) throws {
         modelContext.delete(todo)

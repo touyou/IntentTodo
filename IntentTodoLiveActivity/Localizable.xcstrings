@@ -837,6 +837,28 @@
         }
       }
     },
+    "Images" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "画像"
+          }
+        }
+      }
+    },
+    "Images to attach to the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo に付ける画像"
+          }
+        }
+      }
+    },
     "Incomplete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1419,6 +1441,17 @@
         }
       }
     },
+    "Replaces the images attached to the todo" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo に付いている画像を置き換える"
+          }
+        }
+      }
+    },
     "Replaces the links attached to the todo" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1458,6 +1491,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${query}を検索"
+          }
+        }
+      }
+    },
+    "Section" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "セクション"
           }
         }
       }
@@ -1697,6 +1741,50 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "開くカテゴリ"
+          }
+        }
+      }
+    },
+    "The list the todo belongs to" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo が属するリスト"
+          }
+        }
+      }
+    },
+    "The list to add the todo to" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo を追加するリスト"
+          }
+        }
+      }
+    },
+    "The section the todo belongs to" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo が属するセクション"
+          }
+        }
+      }
+    },
+    "The section to add the todo to" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Todo を追加するセクション"
           }
         }
       }

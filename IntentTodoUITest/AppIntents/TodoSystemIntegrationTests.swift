@@ -100,7 +100,7 @@ final class TodoSystemIntegrationTests: AppIntentsTestCase {
         let entity = try await addTodo(title: title)
 
         try await intent("UpdateTodoIntent")
-            .makeIntent(todo: entity, assigneeName: "Ada Lovelace")
+            .makeIntent(target: entity, assigneeName: "Ada Lovelace")
             .run()
 
         let refreshed = try await todoEntity.entities(identifiers: [identifier(of: entity)])

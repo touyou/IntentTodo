@@ -20,6 +20,9 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
     /// stored todos reference, plus anything a test registers explicitly.
     private var categories: [UUID: Domain.Category] = [:]
 
+    /// Sections reachable by `fetchSection(by:)` / `fetchSections()`.
+    private var sections: [UUID: TodoSection] = [:]
+
     // MARK: - Initialization
 
     public init() {}
@@ -30,6 +33,7 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
         todos = Dictionary(uniqueKeysWithValues: initialTodos.map { ($0.id, $0) })
         for todo in initialTodos {
             register(todo.category)
+            register(todo.section)
         }
     }
 
@@ -39,11 +43,26 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
         categories[category.id] = category
     }
 
+    /// Makes a section resolvable by `fetchSection(by:)` without going through a todo.
+    public func register(_ section: TodoSection?) {
+        guard let section else { return }
+        sections[section.id] = section
+        register(section.category)
+    }
+
     // MARK: - Create
 
     public func create(_ todo: TodoItem) throws {
         todos[todo.id] = todo
         register(todo.category)
+        register(todo.section)
+    }
+
+    public func createSection(_ section: TodoSection, in category: Domain.Category) throws {
+        section.category = category
+        category.sections = (category.sections ?? []) + [section]
+        register(category)
+        register(section)
     }
 
     // MARK: - Read
@@ -84,6 +103,19 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
         categories[id]
     }
 
+    public func fetchCategories() throws -> [Domain.Category] {
+        categories.values.sorted { $0.name < $1.name }
+    }
+
+    public func fetchSection(by id: UUID) throws -> TodoSection? {
+        sections[id]
+    }
+
+    public func fetchSections() throws -> [TodoSection] {
+        sections.values
+            .sorted { ($0.category?.name ?? "", $0.sortIndex) < ($1.category?.name ?? "", $1.sortIndex) }
+    }
+
     public func incompleteCount() throws -> Int {
         todos.values.lazy.filter { !$0.isCompleted }.count
     }
@@ -98,6 +130,10 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
     }
 
     // MARK: - Delete
+
+    /// Nothing to unlink in memory: the mock holds todos, and an attachment is only
+    /// reachable through the one it belongs to.
+    public func deleteAttachments(_ attachments: [TodoAttachment]) throws {}
 
     public func delete(_ todo: TodoItem) throws {
         guard todos.removeValue(forKey: todo.id) != nil else {

@@ -43,7 +43,9 @@ public enum SharedModelContainer {
     public static let schema = Schema([
         TodoItem.self,
         SubTask.self,
-        Category.self
+        Category.self,
+        TodoSection.self,
+        TodoAttachment.self
     ])
 
     /// The database filename for SwiftData storage.

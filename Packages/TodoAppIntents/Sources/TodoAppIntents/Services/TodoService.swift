@@ -106,7 +106,10 @@ public final class TodoService {
         urls: [URL] = [],
         recurrenceFrequency: TodoRecurrenceFrequency? = nil,
         recurrenceInterval: Int = TodoRecurrenceFrequency.minimumInterval,
-        locationTriggerEvent: TodoLocationTriggerEvent? = nil
+        locationTriggerEvent: TodoLocationTriggerEvent? = nil,
+        listId: String? = nil,
+        sectionId: String? = nil,
+        attachments: [TodoAttachmentValue] = []
     ) throws -> TodoAppEntity {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -132,10 +135,40 @@ public final class TodoService {
         item.recurrenceFrequency = recurrenceFrequency?.rawValue
         item.recurrenceInterval = max(TodoRecurrence.minimumInterval, recurrenceInterval)
         item.locationTriggerEvent = locationTriggerEvent?.rawValue
+        try applyFiling(to: item, listId: .set(listId), sectionId: .set(sectionId))
+        item.attachments = attachments.map { value in
+            let attachment = value.makeAttachment()
+            attachment.todo = item
+            return attachment
+        }
         try repository.create(item)
         let entity = TodoAppEntity(from: item)
         reindexSpotlight(entity)
         return entity
+    }
+
+    /// Creates a section inside a list.
+    ///
+    /// A section needs a real list: the synthetic "uncategorized" list isn't stored, so it
+    /// has nothing to hang sections off — that is rejected rather than silently creating an
+    /// orphan the `.reminders.section` schema couldn't describe.
+    @discardableResult
+    public func createSection(name: String, listId: String) throws -> TodoSectionAppEntity {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            throw IntentError.validation("Section name cannot be empty")
+        }
+        guard let category = try resolveCategory(id: listId) else {
+            throw IntentError.validation("A section has to belong to a list")
+        }
+        defer { Self.dataDidChange() }
+        let existing = category.sections ?? []
+        let section = TodoSection(
+            name: trimmed,
+            sortIndex: (existing.map(\.sortIndex).max() ?? -1) + 1
+        )
+        try repository.createSection(section, in: category)
+        return TodoSectionAppEntity(from: section)
     }
 
     public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
@@ -234,7 +267,8 @@ public final class TodoService {
             return TodoAppEntity(from: existing)
         }
         let category = try snapshot.categoryID.flatMap { try repository.fetchCategory(by: $0) }
-        let item = snapshot.makeTodoItem(category: category)
+        let section = try snapshot.sectionID.flatMap { try repository.fetchSection(by: $0) }
+        let item = snapshot.makeTodoItem(category: category, section: section)
         try repository.create(item)
         let entity = TodoAppEntity(from: item)
         reindexSpotlight(entity)
@@ -275,6 +309,7 @@ public final class TodoService {
         todoDescription: FieldUpdate<String?> = .unchanged,
         dueDate: FieldUpdate<Date?> = .unchanged,
         isFavorite: FieldUpdate<Bool> = .unchanged,
+        isCompleted: FieldUpdate<Bool> = .unchanged,
         estimatedDuration: FieldUpdate<TimeInterval?> = .unchanged,
         assigneeName: FieldUpdate<String?> = .unchanged,
         locationName: FieldUpdate<String?> = .unchanged,
@@ -282,7 +317,10 @@ public final class TodoService {
         urls: FieldUpdate<[URL]> = .unchanged,
         recurrenceFrequency: FieldUpdate<TodoRecurrenceFrequency?> = .unchanged,
         recurrenceInterval: FieldUpdate<Int> = .unchanged,
-        locationTriggerEvent: FieldUpdate<TodoLocationTriggerEvent?> = .unchanged
+        locationTriggerEvent: FieldUpdate<TodoLocationTriggerEvent?> = .unchanged,
+        listId: FieldUpdate<String?> = .unchanged,
+        sectionId: FieldUpdate<String?> = .unchanged,
+        attachments: FieldUpdate<[TodoAttachmentValue]> = .unchanged
     ) throws -> TodoAppEntity {
         defer { Self.dataDidChange() }
         let item = try resolve(todoId: todoId)
@@ -297,9 +335,18 @@ public final class TodoService {
         if case .set(let value) = todoDescription { item.todoDescription = value }
         if case .set(let value) = dueDate { item.dueDate = value }
         if case .set(let value) = isFavorite { item.isFavorite = value }
+        // Completion carries a date, so it goes through the same sync every other
+        // completion path uses rather than writing the flag alone.
+        if case .set(let value) = isCompleted, item.isCompleted != value {
+            item.isCompleted = value
+            syncCompletionDate(item)
+        }
         if case .set(let value) = estimatedDuration { item.estimatedDuration = value }
         if case .set(let value) = assigneeName { item.assigneeName = value }
         if case .set(let value) = locationName { apply(locationName: value, to: item) }
+
+        try applyFiling(to: item, listId: listId, sectionId: sectionId)
+        try applyAttachments(to: item, attachments)
 
         applySchemaAttributes(
             to: item,
@@ -330,6 +377,91 @@ public final class TodoService {
             item.locationLongitude = nil
         }
         item.locationName = newName
+    }
+
+    /// Files a todo under a list and/or a section.
+    ///
+    /// A section belongs to exactly one category, so the two inputs can disagree. The
+    /// section wins and pulls its own category along — that is the filing the person named
+    /// most precisely. Changing the list to a different one drops a section that no longer
+    /// belongs to it, rather than leaving the todo in a section of another list.
+    ///
+    /// An id that resolves to nothing throws: filing is the whole point of the call, so
+    /// silently landing in "no list" would look like the write succeeded.
+    private func applyFiling(
+        to item: TodoItem,
+        listId: FieldUpdate<String?>,
+        sectionId: FieldUpdate<String?>
+    ) throws {
+        if case .set(let raw) = sectionId {
+            item.section = try raw.flatMap { try resolveSection(id: $0) }
+            if let section = item.section {
+                item.category = section.category
+                return
+            }
+        }
+        guard case .set(let raw) = listId else { return }
+        let category = try raw.flatMap { try resolveCategory(id: $0) }
+        if category?.id != item.category?.id {
+            item.section = nil
+        }
+        item.category = category
+    }
+
+    /// Replaces a todo's attachments, keeping the rows whose bytes are already stored.
+    ///
+    /// The incoming values are the whole set (same "replace, don't merge" rule as tags and
+    /// urls), so anything missing from it is dropped. `IntentFile` carries no identifier,
+    /// so an image that survived the round trip is recognised by **filename + byte count**
+    /// and left in place. Re-creating it instead would delete and re-upload the same bytes
+    /// through CloudKit every time the form saves a title change.
+    private func applyAttachments(
+        to item: TodoItem,
+        _ update: FieldUpdate<[TodoAttachmentValue]>
+    ) throws {
+        guard case .set(let values) = update else { return }
+        var unmatched = item.attachments ?? []
+        var resolved: [TodoAttachment] = []
+
+        for value in values {
+            let match = unmatched.firstIndex {
+                $0.filename == value.filename && $0.data.count == value.data.count
+            }
+            if let match {
+                resolved.append(unmatched.remove(at: match))
+            } else {
+                let attachment = value.makeAttachment()
+                attachment.todo = item
+                resolved.append(attachment)
+            }
+        }
+
+        item.attachments = resolved
+        if !unmatched.isEmpty {
+            try repository.deleteAttachments(unmatched)
+        }
+    }
+
+    /// Resolves a category id, treating the synthetic "uncategorized" list as "no list".
+    private func resolveCategory(id: String) throws -> Domain.Category? {
+        if id == CategoryAppEntity.uncategorizedID { return nil }
+        guard let uuid = UUID(uuidString: id) else {
+            throw IntentError.validation("Invalid list ID")
+        }
+        guard let category = try repository.fetchCategory(by: uuid) else {
+            throw IntentError.notFound("List not found")
+        }
+        return category
+    }
+
+    private func resolveSection(id: String) throws -> TodoSection? {
+        guard let uuid = UUID(uuidString: id) else {
+            throw IntentError.validation("Invalid section ID")
+        }
+        guard let section = try repository.fetchSection(by: uuid) else {
+            throw IntentError.notFound("Section not found")
+        }
+        return section
     }
 
     /// Partial update of the schema-derived attributes.

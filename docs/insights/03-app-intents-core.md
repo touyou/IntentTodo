@@ -909,7 +909,24 @@ Entity 側の適合と要求の出方が違うので、別に書く。
   `Required AppSchemaIntent parameter 'x' must not be optional` /
   `Parameter 'x' does not match required AppSchemaIntent type 'T'`
 - **entity 側の `@ComputedProperty` による別名は使えない**。パラメータは storage なので、
-  スキーマ要求名（`note` / `isFlagged` / `target`）はリネームで満たすしかない
+  スキーマ要求名（`note` / `isFlagged` / `target`）はリネームで満たすしかない。
+  **リネームは保存済みショートカットのそのパラメータを外す**（型名のリネームと同じ射程）
+- **スキーマの非 optional コレクションには `default: []` を付ける**。付けないと
+  「値が無い」として毎回システムが聞き返し、`AppIntentsTesting` では
+  `Unsupported operation: The App Intent requested value for parameter 'tags'` で落ちる。
+  `.reminders.createReminder` の `tags` / `urls` / `images` が該当
+- **`images` のような file パラメータは `supportedTypeIdentifiers` に具体型が要る**。
+  `The 'supportedTypeIdentifiers' argument of parameter 'images' must specify at least one
+  UTType subtype of the following supertypes: 'public.image'` —`public.image` 自体は
+  supertype なので不可（`public.png` / `public.jpeg` / `public.heic` …）
+- **entity 型のパラメータは id 以外で解決できる必要がある**。素の `EntityQuery` だと
+  `requires 'X' to conform to 'IndexedEntity', 'UniqueAppEntity', 'TransientAppEntity',
+  provide a default 'EntityStringQuery', or provide an 'IntentValueQuery'` で落ちる
+  （`locationTrigger` に `EntityStringQuery` を足した）
+- **シミュレータの App Intents 登録はアプリを入れ替えても古いまま残ることがある**。
+  パラメータをリネームした直後は、クリーンビルドの出荷メタデータが新しくても
+  `AppIntentsTesting` が旧パラメータを要求してくる。アンインストールでは戻らず、
+  **`xcrun simctl erase` が要る**（2026-09-12 に 4 テストの偽の失敗で 1 時間使った）
 
 `reminders` ドメインの Intent スキーマ 5 本と `.system.open` の適合状況・要求差分は
 [docs/APP_INTENTS_API_COVERAGE.md](../APP_INTENTS_API_COVERAGE.md#9-app-schema意味ドメイン適合)。

@@ -72,4 +72,34 @@ enum TodoRecurrence {
             interval: max(minimumInterval, interval)
         )
     }
+
+    /// Splits a rule back into the primitives the model stores.
+    ///
+    /// `.reminders.createReminder` / `.updateReminder` hand a whole
+    /// `Calendar.RecurrenceRule` in, so this is the write-path counterpart of
+    /// `rule(frequency:interval:)`.
+    ///
+    /// A frequency the app has no case for (minutely / hourly) comes back as `nil`:
+    /// storing it would claim a repeat the app cannot express or show.
+    static func decompose(
+        _ rule: Calendar.RecurrenceRule?
+    ) -> (frequency: TodoRecurrenceFrequency?, interval: Int) {
+        guard let rule, let frequency = TodoRecurrenceFrequency(rule.frequency) else {
+            return (nil, minimumInterval)
+        }
+        return (frequency, max(minimumInterval, rule.interval))
+    }
+}
+
+extension TodoRecurrenceFrequency {
+    /// The inverse of `calendarFrequency`, for the frequencies the app models.
+    init?(_ frequency: Calendar.RecurrenceRule.Frequency) {
+        switch frequency {
+        case .daily: self = .daily
+        case .weekly: self = .weekly
+        case .monthly: self = .monthly
+        case .yearly: self = .yearly
+        default: return nil
+        }
+    }
 }

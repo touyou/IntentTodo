@@ -22,6 +22,12 @@ public protocol TodoRepositoryProtocol {
     /// Creates a new todo item.
     func create(_ todo: TodoItem) throws
 
+    /// Creates a new section inside `category`.
+    ///
+    /// The category is passed separately rather than pre-assigned by the caller so the
+    /// store owns both sides of the relationship in one write.
+    func createSection(_ section: TodoSection, in category: Domain.Category) throws
+
     // MARK: - Read
 
     /// Fetches all todo items, sorted by creation time (descending).
@@ -49,6 +55,18 @@ public protocol TodoRepositoryProtocol {
     /// from a `TodoItemSnapshot` (relations can't be carried in a value type).
     func fetchCategory(by id: UUID) throws -> Domain.Category?
 
+    /// Fetches all categories, sorted by name.
+    ///
+    /// Needed so the section query can offer every section in the store together with
+    /// the list each one belongs to.
+    func fetchCategories() throws -> [Domain.Category]
+
+    /// Fetches a section by its ID. Returns `nil` when not found.
+    func fetchSection(by id: UUID) throws -> TodoSection?
+
+    /// Fetches every section, sorted by category name then `sortIndex`.
+    func fetchSections() throws -> [TodoSection]
+
     /// Returns the number of incomplete todo items without materializing them.
     ///
     /// Implementations should count at the store level (e.g.
@@ -62,6 +80,13 @@ public protocol TodoRepositoryProtocol {
     func update(_ todo: TodoItem) throws
 
     // MARK: - Delete
+
+    /// Deletes attachments that a todo no longer holds.
+    ///
+    /// Replacing a todo's attachment set has to remove the dropped ones explicitly:
+    /// the cascade rule only fires when the *todo* is deleted, so an attachment merely
+    /// unlinked from its todo would stay in the store with nothing pointing at it.
+    func deleteAttachments(_ attachments: [TodoAttachment]) throws
 
     /// Deletes a todo item.
     func delete(_ todo: TodoItem) throws
