@@ -184,10 +184,11 @@ capture_vision() {
     failed+=("vision/$locale")
     return
   fi
-  app=$(xcodebuild -project IntentTodo.xcodeproj -scheme IntentTodo \
+  # Both values come from the same settings dump so a product rename cannot desync them.
+  settings=$(xcodebuild -project IntentTodo.xcodeproj -scheme IntentTodo \
         -destination "platform=visionOS Simulator,name=Apple Vision Pro,OS=27.0" \
-        -showBuildSettings 2>/dev/null \
-        | awk -F' = ' '/ BUILT_PRODUCTS_DIR = /{print $2; exit}')/IntentTodo.app
+        -showBuildSettings 2>/dev/null)
+  app=$(echo "$settings" | awk -F' = ' '/ BUILT_PRODUCTS_DIR = /{print $2; exit}')/$(echo "$settings" | awk -F' = ' '/ FULL_PRODUCT_NAME = /{print $2; exit}')
 
   # Erased once per script run. `simctl io screenshot` captures the whole simulated room,
   # so anything the previous run left floating there — a stray system alert, a window that

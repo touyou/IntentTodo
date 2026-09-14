@@ -95,7 +95,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		46AFBC392F2BA68C00444306 /* IntentTodo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = IntentTodo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		46AFBC392F2BA68C00444306 /* Intento.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Intento.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		46AFBE932F2C241700444306 /* AGENTS.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = AGENTS.md; sourceTree = "<group>"; };
 		46AFBE942F2C241700444306 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
 		46AFBEAF2F2C241700444306 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
@@ -282,7 +282,7 @@
 		46AFBC3A2F2BA68C00444306 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				46AFBC392F2BA68C00444306 /* IntentTodo.app */,
+				46AFBC392F2BA68C00444306 /* Intento.app */,
 				46AFBEBE2F2CFEA400444306 /* IntentTodoWidgetExtension.appex */,
 				46AFBEDF2F2D6D9C00444306 /* IntentTodoLiveActivityExtension.appex */,
 				46AFBEFD2F2D6E5A00444306 /* IntentTodoWatchApp.app */,
@@ -331,7 +331,7 @@
 				46F00C00000000000000FAC1 /* LiveActivity */,
 			);
 			productName = IntentTodo;
-			productReference = 46AFBC392F2BA68C00444306 /* IntentTodo.app */;
+			productReference = 46AFBC392F2BA68C00444306 /* Intento.app */;
 			productType = "com.apple.product-type.application";
 		};
 		46AFBEBD2F2CFEA400444306 /* IntentTodoWidgetExtension */ = {
@@ -666,7 +666,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Intento;
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;
@@ -718,7 +718,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 27.0;
 				MARKETING_VERSION = 1.1.1;
 				PRODUCT_BUNDLE_IDENTIFIER = dev.touyou.IntentTodo;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Intento;
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = NO;

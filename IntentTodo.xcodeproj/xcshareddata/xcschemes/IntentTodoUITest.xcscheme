@@ -42,7 +42,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "46AFBC382F2BA68C00444306"
-            BuildableName = "IntentTodo.app"
+            BuildableName = "Intento.app"
             BlueprintName = "IntentTodo"
             ReferencedContainer = "container:IntentTodo.xcodeproj">
          </BuildableReference>
@@ -58,7 +58,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "46AFBC382F2BA68C00444306"
-            BuildableName = "IntentTodo.app"
+            BuildableName = "Intento.app"
             BlueprintName = "IntentTodo"
             ReferencedContainer = "container:IntentTodo.xcodeproj">
          </BuildableReference>
