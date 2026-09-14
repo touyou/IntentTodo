@@ -26,13 +26,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "IntentTodo"
+            "value" : "Intento"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "IntentTodo"
+            "value" : "Intento"
           }
         }
       }

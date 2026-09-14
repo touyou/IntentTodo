@@ -93,14 +93,15 @@ struct IntentTodoApp: App {
             await todoService.indexAllForSpotlight()
         }
 
-        // Parameterised App Shortcut phrases do not work until the system has fetched
-        // suggestions at least once, so the handler is registered and invoked here.
-        // Later invalidations come from `TodoService`. [Apple: wwdc2023-10102 9:52]
+        // Only the handler is wired up here. The first refresh happens from the scene,
+        // because during `init()` the process is not yet connected to linkd and the call
+        // fails with "Failed to refresh AppShortcut parameters" — which leaves every
+        // parameterised phrase without values. Later invalidations come from
+        // `TodoService`. [Apple: wwdc2023-10102 9:52]
         MainActor.assumeIsolated {
             AppShortcutParameterUpdater.register {
                 TodoAppShortcuts.updateAppShortcutParameters()
             }
-            AppShortcutParameterUpdater.notifyEntitiesChanged()
         }
 
         // Same NavigationModel instance is stored in @State AND registered with
@@ -142,6 +143,13 @@ struct IntentTodoApp: App {
                 )
                 #endif
                 #endif
+                // Parameterised App Shortcut phrases have no values until the system has
+                // fetched suggestions once, and the fetch only succeeds after the process
+                // is registered with linkd — so the first refresh runs from the scene
+                // rather than from `init()`.
+                .task {
+                    AppShortcutParameterUpdater.notifyEntitiesChanged()
+                }
                 .task {
                     await requestNotificationPermission()
                 }
