@@ -3,8 +3,6 @@
 //  IntentTodo
 //
 
-import AppIntents
-
 @_exported import Repository
 
 /// AppIntents module containing Intent definitions and business logic.
@@ -23,6 +21,8 @@ import AppIntents
 ///   - `TodoEntityQuery`: Query for finding todos
 /// - **Shortcuts**:
 ///   - `TodoAppShortcuts`: App Shortcuts provider
-public struct TodoIntentsPackage: AppIntentsPackage {
-    public init() {}
-}
+///
+/// No `AppIntentsPackage` is declared here. Every target links this package statically, so
+/// the extractor already merges its intents into each aggregated `Metadata.appintents`; the
+/// declaration only added an `extract.packagedata` indirection that the system resolves by
+/// mangled type name at install time.

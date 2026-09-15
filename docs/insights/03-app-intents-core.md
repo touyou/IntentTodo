@@ -237,30 +237,20 @@ Apple は `AppShortcutsProvider.appShortcuts` の登録数を **10 件** に制�
 
 ### パッケージ内での定義
 
-Intent / AppEntity / EntityQuery / AppEnum は Swift Package 内に置ける。パッケージ側に `AppIntentsPackage` を1つ宣言する。
+Intent / AppEntity / EntityQuery / AppEnum は Swift Package 内に置ける。
 
-```swift
-// Packages/TodoAppIntents/Sources/TodoAppIntents/TodoAppIntents.swift
-public struct TodoIntentsPackage: AppIntentsPackage {
-    public init() {}
-}
-```
+**本プロジェクトは `AppIntentsPackage` を宣言しない。** パッケージは全部静的リンクなので、宣言が
+無くても抽出結果は利用側の `extract.actionsdata` にマージされる（下表）。宣言が足すのは
+`extract.packagedata` という**マングル名での実行時参照**だけで、これが App Store / TestFlight 配布時に
+**バンドルごと App Intents が読み込まれない**症状の原因だった。
 
-さらに、**そのパッケージを使う各ターゲットでも `includedPackages` 付きで宣言する**（Apple 公式手順。wwdc2025-244 23:29–24:00 "You must register each target as an App Intents Package to ensure proper indexing and validation."）。
+Apple 公式手順（wwdc2025-244 23:29–24:00 "You must register each target as an App Intents Package to
+ensure proper indexing and validation."）は**動的リンクを前提にした話**として読む。同セッション
+24:00 の但し書きが条件を明示している:
 
-```swift
-// IntentTodo / IntentTodoWidget / IntentTodoLiveActivity / IntentTodoWatchApp に 1 つずつ
-struct IntentTodoAppIntentsPackage: AppIntentsPackage {
-    static var includedPackages: [any AppIntentsPackage.Type] {
-        [TodoIntentsPackage.self]
-    }
-}
-```
+> "You should use App Intents Package when referencing code not compiled into a static library."
 
-宣言先は `IntentTodo` / `IntentTodoWidget` / `IntentTodoLiveActivity` / `IntentTodoWatchApp` の 4 ターゲット。
-宣言してもメタデータが二重にならないこと・AppIntentsTesting が全緑になることは確認済みで、**未確認なのは
-App Shortcut の「フレーズ」ルーティング（Siri）だけ**（AppIntentsTesting は型名で引くので構造上通らない。
-追跡は #30）。
+経緯: [docs/devlog/2026-09-15-appintentspackage-breaks-distribution.md](../devlog/2026-09-15-appintentspackage-breaks-distribution.md)
 
 #### メタデータが集約される条件は「リンクの形」で、`AppIntentsPackage` の有無ではない
 
