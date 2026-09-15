@@ -96,5 +96,15 @@ iOS Release ビルドで差分を確認:
 - `actions` 26 / `entities` 9 / `queries` 6 / `enums` 8 / `autoShortcuts` 8 は**据え置き**
 - `ja/en.lproj/nlu.appintents` も据え置き
 
-失うものは無い。**TestFlight で読み込まれるかどうかの確認はこれから**（未確定なのは
-「`c4f20ef` が原因」であって、ビルド 14〜28 の残り 4 commit は潰しきれていない）。
+失うものは無い。
+
+## 8. 確定した
+
+宣言を外した build 37 を TestFlight で確認して、**ショートカット / Spotlight / Siri がすべて復帰した**。
+`c4f20ef`（`includedPackages` 付き `AppIntentsPackage` の宣言）が原因で確定。ビルド 14〜28 に
+入った残り 4 commit（`e1cf256` / `38e3338` / `04e85e5` / `d37efe2`）は無関係だった。
+
+1.1.1 / build 37 として 3 プラットフォームとも審査に提出した。
+
+現在のルール: [AGENTS.md](../../AGENTS.md) 13 / 14、
+[docs/insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「パッケージ内での定義」
