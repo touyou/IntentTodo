@@ -108,3 +108,5 @@ iOS Release ビルドで差分を確認:
 
 現在のルール: [AGENTS.md](../../AGENTS.md) 13 / 14、
 [docs/insights/03-app-intents-core.md](../insights/03-app-intents-core.md)「パッケージ内での定義」
+
+Apple への報告: [docs/feedback/2026-09-16-appintentspackage-breaks-distribution.md](../feedback/2026-09-16-appintentspackage-breaks-distribution.md)（下書き）
