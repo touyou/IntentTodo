@@ -252,3 +252,86 @@ Xcode は `en.lproj` を作らない。結果、英語では `.copy("…")` が*
 - **シミュレータのテストは環境要因で一度落ちた**。`CoreSimulator.framework was changed while
   the process was running`（Xcode 更新中にプロセスが生きていた）で、コードとは無関係。
   実行先を My Mac に変えて走らせた
+
+---
+
+# 追記（同日、1.1.2 を提出）
+
+39（1.1.2）で問題なしの確認が取れたので、3 プラットフォームとも App Store に提出した。
+
+## 1.1.1 は公開済みだったので `versions create` が通った
+
+1.1.0 のときは **in-flight なバージョンがあると次を作れない**ため取り下げ → 改名という手順を
+取った（[2026-09-12-release-1.1.0.md](2026-09-12-release-1.1.0.md)）。今回は 1.1.1 が
+3 プラットフォームとも `READY_FOR_DISTRIBUTION`（= in-flight ではない）だったので、普通に作れた。
+
+```bash
+asc versions create --app 6788623037 --version 1.1.2 --platform IOS \
+  --copy-metadata-from 1.1.1 --exclude-fields whatsNew
+```
+
+`--copy-metadata-from` で説明文・キーワード・URL が 2 ロケール分コピーされ（`copiedFieldUpdates: 10`）、
+**スクリーンショットも引き継がれた**（3 表示タイプ × 2 ロケールがそのまま付いていた）。
+`whatsNew` だけ除外して `metadata/*/version/1.1.2/` から入れる形になる。
+
+## `asc localizations upload` は使えない
+
+`metadata/` の JSON は `asc metadata` 系のためのもので、`localizations upload` は
+**`.strings` ファイルを期待する**（`Error: no .strings files found`）。既存手順どおり
+plan → approve → apply を 3 回まわす。
+
+**`plan` は `.asc/metadata/review/plan.json` を毎回上書きする**ので、プラットフォームごとに
+plan → approve → apply を通しで回す必要がある（3 つ plan してからまとめて apply はできない）。
+
+## 提出
+
+| | version id | build | state |
+|---|---|---|---|
+| iOS | `af525f68…` | 39 | `WAITING_FOR_REVIEW` |
+| macOS | `87c3cd97…` | 39 | `WAITING_FOR_REVIEW` |
+| visionOS | `13e57821…` | 39 | `WAITING_FOR_REVIEW` |
+
+`asc validate` は 3 つとも **errors 0 / blocking 0**。warning 2 件は 1.1.1 から続く既知のもの
+（en-US の subtitle 未設定 / キーワードにアプリ名の語が含まれる）で、info 1 件は App プライバシーの
+公開状態が API から確認できないという注記。
+
+## 残っているもの
+
+- **スクリーンショットは 1.1.1 のものを引き継いでいる**。詳細画面のバッジとツールバーが変わり、
+  リスト / タグの画面は 1 枚も無いので、次の機会に `scripts/capture_screenshots.sh` で撮り直す → #158
+
+---
+
+# 追記 2（同日、1.1.3）
+
+1.1.2 を提出した直後に、**検索理由のチップが「完了」バッジと同じ崩れ方をしている**と指摘された。
+
+## 同じ欠陥を新しい場所で作っていた
+
+`StatusBadge` は `TightLabelStyle` で直したのに、`TodoSearchReason` のチップは素の `Label`
+のままだった。**直し方をローカルな修正として書いたので、次に同じ形を作ったときに再発した。**
+
+`TightLabelStyle` をファイルごと切り出し、`.labelStyle(.tight)` / `.tightProminent` として
+使えるようにした。素の `Label` が正しい場所（リストの行、メニュー項目、コンテキストメニュー、
+`ContentUnavailableView`、ツールバー）と、詰めるべき場所（カプセル / キャプションの中の
+インラインラベル）を型の名前で区別する。
+
+指摘された箇所以外も見直して、`TodoDetailTimeRemainingLabel`（期限の下のキャプション）も
+同じ種類だったので直した。3 分岐で重複していた `.font(.caption)` も外側に出した。
+
+見た目は `#Preview("Search reasons")` を足して `RenderPreview` で確認した（**シミュレータが
+死んでいる状態でも My Mac 宛なら描画できる**）。
+
+## リリースは 1.1.3 として出した
+
+1.1.2 は提出済みで、**macOS だけ先に審査を通って配信済み**だった。ビルドを差し替えるには
+提出の取り下げが要り、macOS はもう配信されている。番号を上げるほうが安いので 1.1.3 にした。
+
+| platform | 1.1.2 の状態 | 1.1.3 の扱い |
+|---|---|---|
+| macOS | `READY_FOR_DISTRIBUTION`（配信済み） | in-flight ではないので新レコードを作れる |
+| iOS | `WAITING_FOR_REVIEW` | **in-flight なので 1.1.3 を作れない**。1.1.2 の審査が終わるのを待つ |
+| visionOS | `WAITING_FOR_REVIEW` | 同上 |
+
+取り下げれば今すぐ 1.1.3 にできるが、審査の順番を失う。iOS / visionOS は 1.1.2 を通してから
+1.1.3 を出す（利用者が一度だけ間延びしたチップを見るが、取り下げの代償より安い）。
