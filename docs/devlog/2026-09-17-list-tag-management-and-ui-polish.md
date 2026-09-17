@@ -252,3 +252,50 @@ Xcode は `en.lproj` を作らない。結果、英語では `.copy("…")` が*
 - **シミュレータのテストは環境要因で一度落ちた**。`CoreSimulator.framework was changed while
   the process was running`（Xcode 更新中にプロセスが生きていた）で、コードとは無関係。
   実行先を My Mac に変えて走らせた
+
+---
+
+# 追記（同日、1.1.2 を提出）
+
+39（1.1.2）で問題なしの確認が取れたので、3 プラットフォームとも App Store に提出した。
+
+## 1.1.1 は公開済みだったので `versions create` が通った
+
+1.1.0 のときは **in-flight なバージョンがあると次を作れない**ため取り下げ → 改名という手順を
+取った（[2026-09-12-release-1.1.0.md](2026-09-12-release-1.1.0.md)）。今回は 1.1.1 が
+3 プラットフォームとも `READY_FOR_DISTRIBUTION`（= in-flight ではない）だったので、普通に作れた。
+
+```bash
+asc versions create --app 6788623037 --version 1.1.2 --platform IOS \
+  --copy-metadata-from 1.1.1 --exclude-fields whatsNew
+```
+
+`--copy-metadata-from` で説明文・キーワード・URL が 2 ロケール分コピーされ（`copiedFieldUpdates: 10`）、
+**スクリーンショットも引き継がれた**（3 表示タイプ × 2 ロケールがそのまま付いていた）。
+`whatsNew` だけ除外して `metadata/*/version/1.1.2/` から入れる形になる。
+
+## `asc localizations upload` は使えない
+
+`metadata/` の JSON は `asc metadata` 系のためのもので、`localizations upload` は
+**`.strings` ファイルを期待する**（`Error: no .strings files found`）。既存手順どおり
+plan → approve → apply を 3 回まわす。
+
+**`plan` は `.asc/metadata/review/plan.json` を毎回上書きする**ので、プラットフォームごとに
+plan → approve → apply を通しで回す必要がある（3 つ plan してからまとめて apply はできない）。
+
+## 提出
+
+| | version id | build | state |
+|---|---|---|---|
+| iOS | `af525f68…` | 39 | `WAITING_FOR_REVIEW` |
+| macOS | `87c3cd97…` | 39 | `WAITING_FOR_REVIEW` |
+| visionOS | `13e57821…` | 39 | `WAITING_FOR_REVIEW` |
+
+`asc validate` は 3 つとも **errors 0 / blocking 0**。warning 2 件は 1.1.1 から続く既知のもの
+（en-US の subtitle 未設定 / キーワードにアプリ名の語が含まれる）で、info 1 件は App プライバシーの
+公開状態が API から確認できないという注記。
+
+## 残っているもの
+
+- **スクリーンショットは 1.1.1 のものを引き継いでいる**。詳細画面のバッジとツールバーが変わり、
+  リスト / タグの画面は 1 枚も無いので、次の機会に `scripts/capture_screenshots.sh` で撮り直す → #158
