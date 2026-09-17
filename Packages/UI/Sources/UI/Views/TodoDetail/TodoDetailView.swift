@@ -331,21 +331,22 @@ private struct TodoDetailTimeRemainingLabel: View {
                     .copy("Overdue by \(Self.format(-interval))"),
                     systemImage: "exclamationmark.triangle.fill"
                 )
-                .font(.caption)
                 .foregroundStyle(.red)
             } else if interval <= DueDateStatus.dueSoonThreshold {
                 Label(
                     .copy("Due in \(Self.format(interval))"),
                     systemImage: "clock.badge.exclamationmark.fill"
                 )
-                .font(.caption)
                 .foregroundStyle(.orange)
             } else {
                 Label(.copy("Due in \(Self.format(interval))"), systemImage: "clock")
-                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
+        // An inline caption, not a list row, so it takes the tight gap too — the styling
+        // the three branches share sits here rather than being repeated in each.
+        .labelStyle(.tight)
+        .font(.caption)
     }
 
     /// Shared because `DateComponentsFormatter` is expensive to construct.
