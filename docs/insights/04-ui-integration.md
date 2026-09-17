@@ -299,48 +299,46 @@ TextField(.copy("Title"), text: $title)
 
 ---
 
-## App Shortcut をアプリ内で知らせる 2 つの面（`SiriTipView` / `ShortcutsLink`）
+## App Shortcut をアプリ内で知らせる面は `ShortcutsLink` だけにする
 
 App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、**ユーザーが「言えること」を
-知らない**限り使われない。アプリ内の導線は 2 つあり、**役割が違うので置き場も違う**。
+知らない**限り使われない。SDK 27 でこの教育に使える API は 2 つ。
 
-| API | 役割 | 置き場 | 可用性（SDK 27 実測） |
+| API | 役割 | 本アプリ | 可用性（SDK 27 実測） |
 |---|---|---|---|
-| `SiriTipView` | **今やった操作**のフレーズを教える | iOS / iPadOS の一覧上端（`SiriTipBanner`）。文脈のある瞬間だけ | iOS / tvOS / watchOS / visionOS。**macOS unavailable**（macCatalyst も） |
-| `ShortcutsLink` | App Shortcut を**一覧して探索**させる | iOS / visionOS の設定「Siri & Shortcuts」（`SettingsView`） | iOS / visionOS。**macOS / watchOS は SDK に型が無い**（`#if` が必要、`@available` では足りない） |
-
-> API として使えるプラットフォームと、**このアプリが実際に出しているプラットフォームは違う**。
-> Tip は iOS / iPadOS だけ（visionOS の一覧は `VisionOSTodoListView` で別実装、watchOS は
-> `WatchUI`。どちらも教育を差し込む余白が無い）。macOS は Tip もリンクも出ない。
+| `ShortcutsLink` | App Shortcut を**一覧して探索**させる | ✅ 設定「Siri & Shortcuts」（`SettingsView`） | iOS / visionOS。**macOS / watchOS は SDK に型が無い**（`#if` が必要、`@available` では足りない） |
+| `SiriTipView` | **今やった操作**のフレーズを教える | ⏸ 意図的不使用 | iOS / tvOS / watchOS / visionOS。**macOS unavailable**（macCatalyst も） |
 
 どちらも SDK 27 で deprecated ではない。ただし **Apple が最後にこの 2 つに触れたのは
 wwdc2022-10169 / 10170 と wwdc2023-10102** で、2024 以降のセッションには一度も出てこない
 （WWDC26 の公式 App Intents サンプル 4 本も両方 0 件使用）。discoverability の主題は Spotlight
-インデックスと schema 側に移っている。**「使うなら置き場を間違えないこと」**が現在のルール。
+インデックスと schema 側に移っている。
 
-### `SiriTipView` は常設しない
+### `SiriTipView` は ⏸ 意図的不使用
 
-公式の設計ガイダンスが場所ではなく**タイミング**を指定している。
+公式ガイダンスは場所ではなく**タイミング**を指定している。
 
 > "It's important that you **carefully select moments** within your app to surface these tips, at a
 > time when people are likely to benefit from the education, such as **immediately before or after
 > completing an action that they may want to repeat** in the future." — wwdc2022-10169 `18:58`
 
-> "Siri Tips are **best placed contextually** so that they are relevant to the content onscreen."
-> — wwdc2023-10102 `11:14`
+このガイダンスどおりに置いた（アプリの追加シートで 3 回目の追加をした直後、通算 2 回まで）が、
+**出方そのものが作り物に見える**という判断で降ろした。理由は 3 つで、どれもタイミング調整では
+解決しない:
 
-本アプリの「文脈のある瞬間」は **アプリの追加シートで Todo を追加した直後**。ポリシーは
-`SiriTipModel` に閉じてある（何回目で出すか / 何回まで出すか / 閉じたら以後出さない）。
+- バナーが**一覧の上端に割り込んで高さを変える**。`FocusFilterBanner` /
+  `MissedFeedbackBanner` と違い「今そういう状態だから出ている」わけではないので、レイアウトが
+  動く理由がユーザーから見て存在しない
+- 出る条件が**確率的に見える**。3 回目の追加という内部カウンタは外から推測できないので、
+  同じ操作をしたのに出る / 出ないが説明できない
+- 教育したい相手（フレーズを知らない人）と、出る相手（アプリ UI で追加を繰り返す人）は
+  **ほぼ同じ人**で、その人はすでにアプリ内で目的を達している
 
-- **数えるのはアプリ UI 起点の追加だけ**。`NavigationModel.dismissAddTodo()` は
-  `AddTodoIntent.perform()` の成功時にしか呼ばれず、そこで**シートが開いていたか**を見れば
-  UI 起点かどうかが分かる（Cancel は `@Environment(\.dismiss)` を通るのでここに来ない）。
-  Siri / Shortcuts / ウィジェット経由の追加は数に入らない = **既にフレーズを使えている人には
-  出さない**（UI タップ起点に限る、という donation の判断と同じ理屈）
-- **`List` の行にしない**。行にすると `.appEntityIdentifier(forSelectionType:)` の対象コンテナと
-  `.reorderable()` の兄弟に Todo でない行が混ざる。一覧上端（`safeAreaInset`）なら
-  `FocusFilterBanner` / `MissedFeedbackBanner` と同じ「今だけ出ている」枠に収まり、一覧が空で
-  `ContentUnavailableView` に切り替わっても消えない
+`ShortcutsLink` の側は残っている。**探しに来た人に一覧を見せる**のは、割り込まないぶん
+コストが無い。
+
+経緯: [docs/devlog/2026-09-17-list-tag-management-and-ui-polish.md](../devlog/2026-09-17-list-tag-management-and-ui-polish.md)
+（降ろした判断）/ [docs/devlog/04-ui-integration.md](../devlog/04-ui-integration.md)（置いていた頃）
 
 ### `ShortcutsLink` は設定に置く
 
@@ -348,15 +346,93 @@ wwdc2022-10169 / 10170 と wwdc2023-10102** で、2024 以降のセッション�
 > This new element is **great if your app has a lot of App Shortcuts and you want to let users
 > explore all of them**." — wwdc2022-10170 `20:19`
 
-探索の導線であって主要動線ではないので、一覧の一等地ではなく設定（連携）画面に置く。macOS には
-型自体が無いため、**ボタンごと `#if os(iOS)` にしてある**（空の設定画面を Mac に出さない）。
+探索の導線であって主要動線ではないので、一覧の一等地ではなく設定画面に置く。macOS には型自体が
+無いため、**そのセクションだけ `#if os(iOS) || os(visionOS)`**（設定画面自体は Mac にもある）。
 Mac の導線は Shortcuts アプリ側の一覧。
 
 置き場を動かしても**アプリ内では何も壊れて見えない**経路なので、到達可能性は UI テストで押さえる
 （`IntentTodoUITest.testSettingsShowsShortcutsLink`）。
 
-> `SiriTipView` を UI テストで押さえるのは難しい（3 回の追加が前提）。表示ポリシーは
-> `SiriTipModelTests` で押さえ、UI テストは `ShortcutsLink` 側だけにしている。
+---
+
+## 設定画面が持つもの（整理 / 連携 / 情報 / 診断）
+
+`SettingsView` は 4 セクション。順番は「使う頻度が高いものから」。
+
+| セクション | 中身 | なぜ設定にあるか |
+|---|---|---|
+| Organize | リスト / タグの管理画面への `NavigationLink` | 一覧画面の 1 カラムは Todo 自身なので、2 つ目の階層を差し込むとナビゲーション設計ごと変わる |
+| Siri & Shortcuts | `ShortcutsLink` | 上記のとおり探索の導線 |
+| About | バージョン (ビルド) | 「動かない」の切り分けが、配布経路を通ったビルドかどうかで変わる |
+| Diagnostics | Query Calls / 各種再読み込み / App Group パス | 下記のとおり debug と TestFlight だけ |
+
+**macOS も同じ画面を使う。** `Settings` シーンとして宣言するので ⌘, で開く。シーンは
+`WindowGroup` の environment を継承しないので、**`.modelContainer(modelContainer)` を明示的に
+付け直す**（付け忘れると管理画面の `@Query` に store が無く、リストが 0 件に見える）。
+
+### 診断は debug と TestFlight で出す（App Store 版では出さない）
+
+`DiagnosticsAvailability.isEnabled` が 1 か所で決めている。`#if DEBUG` だけにしていたときの
+問題は単純で、**ここで見たい壊れ方は App Store Connect を通った後にしか起きない**
+（App Intents のメタデータが配布で読まれない、システムがどのクエリを呼んだか）。debug ビルド
+でしか存在しない診断は、そのために書いた失敗を見られない。
+
+TestFlight の判定はレシートのファイル名（`sandboxReceipt`）。結果として `QueryCallLogView` は
+release にもコンパイルされる。文言は `Text(verbatim:)` のまま（読者は開発者で、App Store 版から
+は到達できない）。`QueryCallLog.record` も同じフラグで黙る。
+
+---
+
+## ツールバーは文字ではなく記号（ただし HIG が名指しした例外がある）
+
+> "Prefer simple, recognizable symbols for items instead of text, **except for actions like *edit*
+> that aren't well-represented by symbols**." — Apple: HIG, Toolbars
+
+> "Use the standard Back and Close buttons. … Prefer the standard symbols for each, and **don't use
+> a text label that says *Back* or *Close***." — 同
+
+適用した結果:
+
+| 場所 | 変更後 | 根拠 |
+|---|---|---|
+| 追加 / 編集シートの Cancel | `xmark` | Close は標準記号にする、と HIG が名指し |
+| 追加シートの Add / 編集シートの Save / リスト詳細の Save | `checkmark` | 確定操作は記号で伝わる |
+| 設定シートの Done | `xmark` | 同（モーダルを閉じる） |
+| 詳細画面の Edit | **文字のまま** | HIG が *edit* を例外として名指ししている |
+
+**macOS だけ文字を残す。** `ToolbarActionLabel` が `#if os(macOS)` で分けており、Mac ではこれらが
+ウィンドウのツールバーに並ぶ（フォームの上のダイアログという扱いで、タイトル付きプッシュボタンが
+期待される面）。分岐を 1 つの型に閉じてあるので、追加シートと編集シートが別々に変わることはない。
+
+一覧画面のツールバーは元から全部アイコン。絞り込みが効いている間だけ
+`line.3.horizontal.decrease.circle` を `.fill` に差し替えて、**メニューを開かなくても絞り込み中と
+分かる**ようにしてある。
+
+---
+
+## リスト / タグで絞り込む: タグは必ず fetch 越しに読む
+
+一覧の絞り込みは 2 軸ある（`TodoFilter` は状態、`TodoListFilter` はリスト）。リストは
+`TodoAppEntity.category` に載っているので同期的に読めるが、**タグは載っていない**
+（`@DeferredProperty`。`TodoItem.tags` を直接読むと削除済みオブジェクトで trap するため）。
+
+そこで `TodoOrganizeSnapshot` を **`fetchAll()` 越しに 1 回作る**。fetch は削除済みを返さないので、
+ここでだけ `item.tags` を触ってよい。`@Query` の結果は**変更検知の合図としてだけ**使う
+（`TodoStoreDigest.make(todos:categories:)` — スカラーしか読まないので、削除済みが 1 フレーム
+混ざっても安全）。
+
+```swift
+.task(id: TodoStoreDigest.make(todos: todoItems, categories: categories)) {
+    organize = (try? service.organizeSnapshot()) ?? .empty
+}
+```
+
+- digest は **件数 + 最新 `modifiedAt` + リスト名と色**。リスト名の変更は Todo を 1 件も触らない
+  ので、名前を入れておかないと管理画面が更新されない
+- スナップショットが `nil`（初回読み込み前）のときは**タグ絞り込みを無効にする**。全件を隠すと
+  「そのタグの Todo が無い」と見分けが付かない
+- 検索もこのスナップショットを使い、タイトル / 説明 / リスト名 / タグを見る。タイトルだけだと
+  「リスト名で検索したのに 0 件」が起きて、検索が壊れているように見える
 
 ---
 

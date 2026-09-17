@@ -58,8 +58,9 @@ public struct QueryCallLogEntry: Codable, Sendable, Identifiable {
 /// which also makes it readable from outside the app (see
 /// `skills/app-intents-testing/scripts/dump_query_call_log.py`).
 ///
-/// DEBUG only: ``record(query:caller:requested:returned:defaults:)`` does nothing in a
-/// release build, so call sites need no `#if` of their own.
+/// Diagnostics-gated: ``record(query:caller:requested:returned:defaults:)`` does nothing
+/// unless ``DiagnosticsAvailability/isEnabled`` — debug and TestFlight builds — so call
+/// sites need no condition of their own, and an App Store build writes nothing at all.
 public enum QueryCallLog {
     static let sharedDefaultsKey = "queryCallLog"
 
@@ -81,7 +82,9 @@ public enum QueryCallLog {
         returned: Int,
         defaults: UserDefaults? = nil
     ) {
-        #if DEBUG
+        // A test passes its own `defaults`, and has to be able to record regardless of how
+        // the build it happens to run in is configured.
+        guard defaults != nil || DiagnosticsAvailability.isEnabled else { return }
         guard let defaults = defaults ?? sharedDefaults() else { return }
         let entry = QueryCallLogEntry(
             query: query,
@@ -103,7 +106,6 @@ public enum QueryCallLog {
         }
         guard let data = try? encoder.encode(stored) else { return }
         defaults.set(data, forKey: sharedDefaultsKey)
-        #endif
     }
 
     /// Recorded calls, oldest first.

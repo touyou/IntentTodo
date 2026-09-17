@@ -94,13 +94,10 @@ private struct VisionOSHeaderSection: View {
                     .foregroundStyle(item.isCompleted ? .secondary : .primary)
             }
 
-            HStack(spacing: 12) {
-                if item.isCompleted {
-                    StatusBadge(title: .copy("Completed"), systemImage: "checkmark.circle.fill", color: .green, size: .prominent)
-                }
-                if item.isFavorite {
-                    StatusBadge(title: .copy("Favorite"), systemImage: "star.fill", color: .yellow, size: .prominent)
-                }
+            // No "Completed" badge, for the same reason as the iOS header: the checkbox is
+            // already filled and the title struck through.
+            if item.isFavorite {
+                StatusBadge(title: .copy("Favorite"), systemImage: "star.fill", color: .yellow, size: .prominent)
             }
         }
         .padding(24)

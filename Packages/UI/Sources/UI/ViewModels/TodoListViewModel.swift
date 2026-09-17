@@ -30,6 +30,27 @@ public final class TodoListViewModel {
     /// Search text for filtering todos.
     public var searchText = ""
 
+    /// Which list the todos have to belong to.
+    public var listFilter: TodoListFilter = .all
+
+    /// Which tag the todos have to carry, or `nil` for any.
+    ///
+    /// Held as the tag's stored spelling, which is what `TodoOrganizeSnapshot` keys by.
+    public var tagFilter: String?
+
+    /// Whether a list or tag filter is narrowing the list.
+    ///
+    /// Read by the empty state, which otherwise reports "All Done!" for a list that merely
+    /// has nothing in it.
+    public var isNarrowedByListOrTag: Bool {
+        listFilter != .all || tagFilter != nil
+    }
+
+    /// Whether anything at all is narrowing the list, filter and search included.
+    public var isNarrowed: Bool {
+        filter != .all || isNarrowedByListOrTag || !searchText.isEmpty
+    }
+
     // MARK: - Initialization
 
     public init() {}
@@ -43,10 +64,16 @@ public final class TodoListViewModel {
     ///   - todos: The source todos to filter and sort.
     ///   - focusFilter: applied before the person's own filter, since a system constraint
     ///     must not be wideable from the UI. Defaults to `.inactive`.
+    ///   - organize: list and tag memberships, for the tag filter and for matching a
+    ///     search term against tags. Tags are not carried on `TodoAppEntity` (they are a
+    ///     `@DeferredProperty`, because reading the model's array can trap), so the
+    ///     membership has to come from a snapshot that was *fetched*. `nil` drops the tag
+    ///     filter rather than silently filtering everything out.
     /// - Returns: Filtered and sorted todos.
     public func filteredTodos(
         from todos: [TodoAppEntity],
-        focusFilter: TodoFocusFilter = .inactive
+        focusFilter: TodoFocusFilter = .inactive,
+        organize: TodoOrganizeSnapshot? = nil
     ) -> [TodoAppEntity] {
         var result = focusFilter.apply(to: todos)
 
@@ -62,16 +89,47 @@ public final class TodoListViewModel {
             result = result.filter { $0.isFavorite }
         }
 
+        switch listFilter {
+        case .all:
+            break
+        case .uncategorized:
+            result = result.filter { $0.category == nil }
+        case .list(let id):
+            result = result.filter { $0.category?.id == id }
+        }
+
+        if let tagFilter, let organize {
+            let tagged = organize.todoIDs(withTag: tagFilter)
+            result = result.filter { tagged.contains($0.id) }
+        }
+
         // Apply search
         // `localizedStandardContains(_:)`, as in the entity queries: `lowercased()` plus
         // `contains` is locale-independent and treats kana forms and diacritics as
         // different characters.
         if !searchText.isEmpty {
-            result = result.filter { $0.title.localizedStandardContains(searchText) }
+            // A term is matched against everything a person can see on a todo, not just the
+            // title: typing a list or tag name and getting nothing back reads as "search is
+            // broken" rather than "search only looks at titles".
+            let taggedMatches = organize.map { taggedIDs(matching: searchText, in: $0) } ?? []
+            result = result.filter { todo in
+                todo.title.localizedStandardContains(searchText)
+                    || todo.todoDescription?.localizedStandardContains(searchText) == true
+                    || todo.category?.name.localizedStandardContains(searchText) == true
+                    || taggedMatches.contains(todo.id)
+            }
         }
 
         // Apply sort
         return sortTodos(result, by: sortOrder)
+    }
+
+    /// Ids of the todos whose tags match `term`.
+    private func taggedIDs(matching term: String, in organize: TodoOrganizeSnapshot) -> Set<String> {
+        organize.todoIDsByTag.reduce(into: Set<String>()) { result, entry in
+            guard entry.key.localizedStandardContains(term) else { return }
+            result.formUnion(entry.value)
+        }
     }
 
     // MARK: - Statistics
@@ -130,6 +188,18 @@ public final class TodoListViewModel {
 }
 
 // MARK: - Supporting Types
+
+/// Which list the todo list is narrowed to.
+///
+/// A separate axis from ``TodoFilter``, which is about state (completed, favourite): the two
+/// combine, so "incomplete todos in Work" is expressible.
+public enum TodoListFilter: Hashable, Sendable {
+    case all
+    /// Todos with no list at all — what `CategoryAppEntity.uncategorized` stands for.
+    case uncategorized
+    /// A stored list, by `CategoryAppEntity.id`.
+    case list(id: String)
+}
 
 /// Filter options for the todo list.
 public enum TodoFilter: String, CaseIterable, Identifiable, Sendable {

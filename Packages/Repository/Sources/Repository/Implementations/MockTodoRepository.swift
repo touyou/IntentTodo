@@ -65,6 +65,10 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
         register(section)
     }
 
+    public func create(_ category: Domain.Category) throws {
+        register(category)
+    }
+
     // MARK: - Read
 
     public func fetchAll() throws -> [TodoItem] {
@@ -129,6 +133,13 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
         todos[todo.id] = todo
     }
 
+    public func update(_ category: Domain.Category) throws {
+        guard categories[category.id] != nil else {
+            throw RepositoryError.notFound(id: category.id)
+        }
+        categories[category.id] = category
+    }
+
     // MARK: - Delete
 
     /// Nothing to unlink in memory: the mock holds todos, and an attachment is only
@@ -138,6 +149,22 @@ public final class MockTodoRepository: TodoRepositoryProtocol {
     public func delete(_ todo: TodoItem) throws {
         guard todos.removeValue(forKey: todo.id) != nil else {
             throw RepositoryError.notFound(id: todo.id)
+        }
+    }
+
+    /// Mirrors the store's rules by hand: SwiftData nullifies `TodoItem.category` and
+    /// cascades the sections, so the mock unfiles the todos and drops the sections too.
+    /// Without that, a test would see filing that the real store has already cleared.
+    public func delete(_ category: Domain.Category) throws {
+        guard categories.removeValue(forKey: category.id) != nil else {
+            throw RepositoryError.notFound(id: category.id)
+        }
+        for section in sections.values where section.category?.id == category.id {
+            sections.removeValue(forKey: section.id)
+        }
+        for todo in todos.values where todo.category?.id == category.id {
+            todo.category = nil
+            todo.section = nil
         }
     }
 

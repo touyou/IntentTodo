@@ -80,14 +80,17 @@ struct TodoEditView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(.copy("Cancel")) {
+                    Button {
                         if hasChanges {
                             isConfirmingDiscard = true
                         } else {
                             dismiss()
                         }
+                    } label: {
+                        ToolbarActionLabel(text: .copy("Cancel"), systemImage: "xmark")
                     }
                     .accessibilityIdentifier("cancelAttributesButton")
+                    .accessibilityLabel(.copy("Cancel"))
                 }
 
                 ToolbarItem(placement: .confirmationAction) {
@@ -95,9 +98,10 @@ struct TodoEditView: View {
                     // as well would also close it when the intent fails, which reads as
                     // "saved".
                     Button(intent: updateIntent) {
-                        Text(.copy("Save"))
+                        ToolbarActionLabel(text: .copy("Save"), systemImage: "checkmark")
                     }
                     .accessibilityIdentifier("saveAttributesButton")
+                    .accessibilityLabel(.copy("Save"))
                     .disabled(!draft.isValid)
                 }
             }

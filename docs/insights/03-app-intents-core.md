@@ -415,11 +415,11 @@ type will be created.**" パラメータ入りフレーズを入れるなら、`
 
 守り方: `AppShortcutParameterUpdaterTests`（create / toggle / delete で通知が飛ぶことを数える）。通知を外すと落ちることを確認済み。
 
-### アプリ内の導線: `SiriTipView` / `ShortcutsLink`
+### アプリ内の導線: `ShortcutsLink`
 
-App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、ユーザーが「言えること」を知らなければ使われない。アプリ内の導線は 2 つあり、**役割が違うので置き場も違う**（`SiriTipView` はその場のフレーズを教えるので文脈のある瞬間に、`ShortcutsLink` は一覧を探索させるので設定画面に）。
+App Shortcut は Spotlight / Siri / Shortcuts から自動で見つかるが、ユーザーが「言えること」を知らなければ使われない。本アプリの導線は `ShortcutsLink`（設定画面）だけで、`SiriTipView` は ⏸ 意図的不使用。
 
-置き場の判断根拠・プラットフォーム可用性・実装は UI 側の話なので **`docs/insights/04-ui-integration.md`「App Shortcut をアプリ内で知らせる 2 つの面」に一元化**した。
+判断根拠・プラットフォーム可用性・実装は UI 側の話なので **`docs/insights/04-ui-integration.md`「App Shortcut をアプリ内で知らせる面は `ShortcutsLink` だけにする」に一元化**した。
 
 ---
 

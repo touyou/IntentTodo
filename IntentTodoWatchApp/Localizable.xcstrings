@@ -430,6 +430,50 @@
         }
       }
     },
+    "color" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カラー"
+          }
+        }
+      }
+    },
+    "Color" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カラー"
+          }
+        }
+      }
+    },
+    "colour" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カラー"
+          }
+        }
+      }
+    },
+    "combine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "まとめる"
+          }
+        }
+      }
+    },
     "complete" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -568,6 +612,38 @@
         }
       }
     },
+    "Create a list named ${name}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${name}という名前のリストを作成"
+          }
+        }
+      }
+    },
+    "Create List" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストを作成"
+          }
+        }
+      }
+    },
+    "Creates a list to file todos under" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることを分類するリストを作成します"
+          }
+        }
+      }
+    },
     "Creates a new todo item" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -655,6 +731,16 @@
         }
       }
     },
+    "Delete ${list}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${list}を削除"
+          }
+        }
+      }
+    },
     "Delete ${todo}" : {
       "localizations" : {
         "ja" : {
@@ -671,6 +757,38 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todo}を確認なしで削除"
+          }
+        }
+      }
+    },
+    "Delete List" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストを削除"
+          }
+        }
+      }
+    },
+    "Delete Tag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タグを削除"
+          }
+        }
+      }
+    },
+    "Delete the tag ${tag}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグ${tag}を削除"
           }
         }
       }
@@ -704,6 +822,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "やることをまとめて削除"
+          }
+        }
+      }
+    },
+    "Deletes a list. Todos filed under it are kept and become uncategorized." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストを削除します。そのリストのやることは残り、未分類になります。"
           }
         }
       }
@@ -752,6 +881,17 @@
         }
       }
     },
+    "Destination" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "移動先"
+          }
+        }
+      }
+    },
     "done" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -791,6 +931,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "期限: %@"
+          }
+        }
+      }
+    },
+    "duplicate" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "重複"
           }
         }
       }
@@ -980,6 +1131,17 @@
         }
       }
     },
+    "folder" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "フォルダ"
+          }
+        }
+      }
+    },
     "Get todo summary" : {
       "localizations" : {
         "ja" : {
@@ -1030,6 +1192,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "%@はこちらです。"
+          }
+        }
+      }
+    },
+    "Hex colour for the list, e.g. #FF5733" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストのカラー（16進数）。例: #FF5733"
           }
         }
       }
@@ -1198,6 +1371,17 @@
         }
       }
     },
+    "Lists" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リスト"
+          }
+        }
+      }
+    },
     "Location" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1330,6 +1514,38 @@
         }
       }
     },
+    "merge" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "統合"
+          }
+        }
+      }
+    },
+    "Merge ${lists} into ${destination}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${lists}を${destination}に統合"
+          }
+        }
+      }
+    },
+    "Merge Lists" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストを統合"
+          }
+        }
+      }
+    },
     "modify" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1352,6 +1568,17 @@
         }
       }
     },
+    "Moves the todos from one or more lists into another list, then deletes the emptied lists." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "1つ以上のリストのやることを別のリストに移動し、空になったリストを削除します。"
+          }
+        }
+      }
+    },
     "Name" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1370,6 +1597,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "新規"
+          }
+        }
+      }
+    },
+    "New Name" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新しい名前"
           }
         }
       }
@@ -1730,6 +1968,71 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "お気に入りから削除"
+          }
+        }
+      }
+    },
+    "Removes a tag from every todo that carries it. The todos themselves are kept." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "そのタグが付いたすべてのやることからタグを外します。やること自体は残ります。"
+          }
+        }
+      }
+    },
+    "rename" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "名称変更"
+          }
+        }
+      }
+    },
+    "Rename Tag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タグの名称変更"
+          }
+        }
+      }
+    },
+    "Rename the tag ${tag} to ${newName}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグ${tag}の名前を${newName}に変更"
+          }
+        }
+      }
+    },
+    "Renames a list or changes its colour. Fields you leave blank are kept as-is." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストの名前やカラーを変更します。空欄のままにした項目はそのまま保たれます。"
+          }
+        }
+      }
+    },
+    "Renames a tag across every todo that carries it. Renaming onto an existing tag merges them." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "そのタグが付いたすべてのやることでタグの名前を変更します。すでにあるタグと同じ名前にすると、2つのタグは統合されます。"
           }
         }
       }
@@ -2102,6 +2405,17 @@
         }
       }
     },
+    "Tag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タグ"
+          }
+        }
+      }
+    },
     "Tags" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2168,6 +2482,17 @@
         }
       }
     },
+    "The kind of list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストの種類"
+          }
+        }
+      }
+    },
     "The list the todo belongs to" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2179,6 +2504,17 @@
         }
       }
     },
+    "The list the todos are moved into" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの移動先のリスト"
+          }
+        }
+      }
+    },
     "The list to add the todo to" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2186,6 +2522,72 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Todo を追加するリスト"
+          }
+        }
+      }
+    },
+    "The list to delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "削除するリスト"
+          }
+        }
+      }
+    },
+    "The list to update" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "更新するリスト"
+          }
+        }
+      }
+    },
+    "The lists to empty and delete" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "空にして削除するリスト"
+          }
+        }
+      }
+    },
+    "The name of the new list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "新しいリストの名前"
+          }
+        }
+      }
+    },
+    "The name to give the tag" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "タグに付ける新しい名前"
+          }
+        }
+      }
+    },
+    "The new name for the list" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストの新しい名前"
           }
         }
       }
@@ -2208,6 +2610,28 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Todo を追加するセクション"
+          }
+        }
+      }
+    },
+    "The tag to remove" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "外すタグ"
+          }
+        }
+      }
+    },
+    "The tag to rename" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "名前を変更するタグ"
           }
         }
       }
@@ -2307,6 +2731,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "削除するやること"
+          }
+        }
+      }
+    },
+    "tidy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "整理"
           }
         }
       }
@@ -2588,12 +3023,33 @@
         }
       }
     },
+    "Update ${list}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${list}を更新"
+          }
+        }
+      }
+    },
     "Update ${target}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${target}を更新"
+          }
+        }
+      }
+    },
+    "Update List" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リストを更新"
           }
         }
       }

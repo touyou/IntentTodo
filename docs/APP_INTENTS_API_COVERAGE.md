@@ -169,7 +169,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `AppShortcutsProvider.shortcutTileColor` | Shortcuts タイルの色 | ✅ | 設定済み |
 | `AppShortcuts.xcstrings` | フレーズのローカライズ | ✅ | ja 対応（#70）の最終工程として実施。8 キーすべて String Set で、訳ではなく発話バリエーションを並べる（全値に `${applicationName}` 必須）。schema 適合した Intent はフレーズも訓練も Apple 側が持つので対象外（wwdc2026-8011 `59:03`）。詳細: [docs/insights/04-ui-integration.md](insights/04-ui-integration.md#ja-を入れて分かった-catalog-の配置) |
 | negative phrases API | 特定フレーズに反応させない | ⏸ | 誤爆の報告がないので未着手 |
-| `SiriTipView` | アプリ内でフレーズを見せる | ✅ | `SiriTipBanner`。一覧上端に**アプリ内で 3 回目の追加をした直後だけ**出す（常設しない。macOS は SDK で unavailable） |
+| `SiriTipView` | アプリ内でフレーズを見せる | ⏸ | ガイダンスどおり文脈のある瞬間（3 回目の追加直後）に出していたが、**一覧に割り込んで高さを変える / 出る条件が外から推測できない**ため降ろした。理由は [docs/insights/04-ui-integration.md](insights/04-ui-integration.md#siritipview-は--意図的不使用) |
 | `ShortcutsLink` | Shortcuts アプリへの導線 | ✅ | `SettingsView` の「Siri & Shortcuts」（探索の導線なので一覧の一等地には置かない。macOS / watchOS は SDK に型が無い） |
 
 ## 9. App Schema（意味ドメイン適合）
@@ -186,7 +186,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `@AppIntent(schema: .reminders.deleteReminders)` | 削除の適合 | ✅ | `DeleteTodosIntent`（`entities: [TodoAppEntity]` が要求と一致。マクロ 1 行） |
 | `@AppIntent(schema: .reminders.createReminder)` | 作成の適合 | ✅ | `AddTodoIntent`（#138）。`todoDescription` → `note: AttributedString?` / `isFavorite` → `isFlagged: Bool?` / `dueDate: DateComponents?` / `tags: Set<String>` / `urls: [URL]` / 頻度+間隔 → `recurrence: Calendar.RecurrenceRule?` / `locationTrigger` entity。**非 optional コレクションには `default: []` が必須**（無いと値を聞かれて「やることを追加」だけで動かなくなる）。`images` は `public.image` の**サブタイプ**を `supportedTypeIdentifiers` に列挙する |
 | `@AppIntent(schema: .reminders.updateReminder)` | 更新の適合 | ✅ | `UpdateTodoIntent`（#138）。`todo` → `target` リネーム + 上と同じ型変更 + `isCompleted` 追加。アプリ固有のパラメータ（`estimatedDuration` / `assigneeName` / `locationName` / `locationTriggerEvent` / `section` / `images`）は optional のまま残せる |
-| `@AppIntent(schema: .reminders.createList)` | リスト作成 | ⬜ | カテゴリ作成の Intent がまだ無い（#139） |
+| `@AppIntent(schema: .reminders.createList)` | リスト作成 | ✅ | `CreateListIntent`。要求は `name` + `type` → `ListEntity` で、`type` は唯一のケースなので `default: .standard` を付けて聞かれないようにしている。**同名を渡すと既存のリストを返す**（リストは名前でしか識別されない面が多いので、2 本目を作ると Todo が静かに分かれる） |
 | `@AppIntent(schema: .reminders.createSection)` | セクション作成 | ✅ | `CreateSectionIntent`。要求は `name` + `list` → `SectionEntity` を返す形で、初回ビルドで一致した |
 | `@AppEntity(schema: .reminders.section)` | セクション | ✅ | `TodoSectionAppEntity`（watch 用は `WatchTodoSectionAppEntity`）。`TodoSection` をモデルに足してカテゴリ配下のセクションを実装した |
 | `@AppEntity(schema: .reminders.group)` | リストのグループ | ⬜ | カテゴリをまとめる概念がまだ無い（#139） |
