@@ -111,6 +111,7 @@ struct TodoSearchReason: View {
                 }
                 if match.matchesDescription {
                     Label(.copy("in notes"), systemImage: "text.alignleft")
+                        .labelStyle(.tight)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
@@ -124,10 +125,37 @@ struct TodoSearchReason: View {
         } icon: {
             Image(systemName: systemImage)
         }
+        // See `TightLabelStyle`. Without it the symbol and the tag name sit as far apart
+        // inside the capsule as they would in a list row — the same way the old
+        // "Completed" badge came apart.
+        .labelStyle(.tight)
         .font(.caption2)
         .foregroundStyle(.secondary)
         .padding(.horizontal, 6)
         .padding(.vertical, 2)
         .background(.quaternary, in: Capsule())
+    }
+}
+
+// MARK: - Preview
+
+/// The gap between each symbol and its text is what this layout is *for*, so it gets a
+/// preview: it is the only way to look at the spacing without a running app.
+#Preview("Search reasons") {
+    List {
+        ForEach(0..<3, id: \.self) { index in
+            VStack(alignment: .leading, spacing: 4) {
+                Text(AttributedString.highlighting("work", in: "review the work plan"))
+                TodoSearchReason(
+                    match: TodoSearchMatch(
+                        term: "work",
+                        tags: index == 0 ? ["work"] : (index == 1 ? ["work", "workshop", "homework"] : []),
+                        matchesDescription: index == 2,
+                        matchesList: index == 2
+                    ),
+                    listName: "Work"
+                )
+            }
+        }
     }
 }
