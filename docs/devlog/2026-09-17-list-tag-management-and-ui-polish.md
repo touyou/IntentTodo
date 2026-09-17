@@ -173,3 +173,82 @@ Diagnostics を `#if DEBUG` のままにしなかったのは、**ここで見�
 - 配布ビルドで Diagnostics が実際に出るか（`sandboxReceipt` 判定）は TestFlight まで通さないと
   分からない → #30
 - Shortcuts アプリ上で新しい 6 本のタイトル / 説明が ja になっているか → #30
+
+---
+
+# 追記（同日、TestFlight 1.1.2 (38) のフィードバック）
+
+配信した 38 を英語設定の iPhone で触ったフィードバック 3 件。
+
+## 7. `^[0 todo](inflect: true)` が生で表示されていた
+
+リストの一覧にマークアップがそのまま出た。原因は**パッケージのバンドルに `en.lproj` が無い**こと。
+
+```
+$ ls Intento.app/UI_UI.bundle
+Info.plist  _CodeSignature  ja.lproj        ← en.lproj が無い
+$ ls Intento.app            # アプリターゲット側
+en.lproj  ja.lproj
+```
+
+カタログの `sourceLanguage` は `en` だが、`en` の localization を持つキーが 1 つも無いので
+Xcode は `en.lproj` を作らない。結果、英語では `.copy("…")` が**キーそのもの**に落ちる。
+素のコピーならキー = 英語なので無害で、これまで誰も気づかなかった。マークアップを入れた瞬間に
+可視化した。
+
+アプリターゲット側の `en.lproj/Localizable.strings` は
+`"Completed ^[%lld todo](inflect: true)." => "Completed ^[%lld todo](inflect: true)."`
+とマークアップを**展開せずに**持っている。つまり展開は実行時で、ルックアップが成功する限り
+動く。パッケージだけが踏む罠だった。
+
+**ウィジェットの「残り n 件 / ほか n 件」も同じ状態で出荷済みだった**（`WidgetUI_WidgetUI.bundle`
+も `ja.lproj` のみ）。日本語で使っていたので露出していなかった。
+
+直し方はマークアップを捨ててカタログに複数形を持たせる形:
+
+- キーを素の `%lld todos` / `%lld sections` / `%lld lists` に変更
+- `en` に `plural.zero` / `plural.one` / `plural.other` を入れる →
+  `UI_UI.bundle/en.lproj/Localizable.stringsdict` が生成されるのをビルド生成物で確認
+- `%lld remaining` / `%lld more` は単複で形が変わらないので `en` を足す必要すら無い
+- 古い `^[…]` キーは `extractionState: stale` になるので削除（[[xcstrings-keys-are-owned-by-extraction]] の順序どおり）
+
+守りは `PackageCopyKeyTests`。4 パッケージのカタログにマークアップ入りキーが無いことを見る。
+
+## 8. 検索でタグが当たったことが分からない
+
+検索対象をタイトル / 説明 / リスト名 / タグに広げた結果、**タグで当たった行が何も当たっていない
+行と見分けが付かなくなっていた**（タイトルで当たった場合も同様）。
+
+- タイトルは一致部分を `inlinePresentationIntent = .stronglyEmphasized` で強調。背景色にしなかった
+  のは、行がすでに色（期限 / お気に入り）を持っていて選択状態とも競合するため
+- タイトル以外で当たったときだけ `TodoSearchReason` をキャプションに出す（タグはチップ 2 つ + `+N`、
+  リストはフォルダ記号、説明は「説明に一致」）
+- 判定は絞り込みと同じ `localizedStandardContains(_:)`。**行がフィルタの使っていない理由を
+  主張しない**ようにしている
+
+## 9. リストは「閲覧」と「管理」を別画面にした
+
+> リストはリスト画面を純正リマインダーみたいに作ってもいいかもなー / 設定画面はあくまで管理で、
+> 一覧は別というのがわかりやすいかも
+
+`TodoListsBrowseView` を新設し、一覧のツールバー（`folder`、leading）から push する。
+
+- 「すべてのやること」「未分類」＋マイリスト。件数と選択中のチェックマーク付き
+- 選ぶと `dismiss()` で一覧に戻り、**ナビゲーションタイトルがそのリスト名になる**
+- **フィルタメニューからリストの絞り込みを外した**。フィルタ（状態）とタグは「同じものをどれだけ
+  絞るか」だが、リストは「何を見ているか」を変える軸で、タイトルが変わるものをメニューの 1 行に
+  畳むと変化の理由が見えない
+- 設定側は「管理」セクションに改名し、フッターで「リストごとに見るには一覧のフォルダボタン」と
+  やらないことを明示（両方が "Lists" という同じ語を使うため）
+
+純正リマインダーのようにリストをルートにする案は採らなかった。このアプリのルートはやること一覧
+そのもの（デモの中心）で、ルートを差し替えるとナビゲーション設計ごと変わる。閲覧の入口を 1 つ
+足すだけで「一覧は別」は満たせている。
+
+## 検証（追記分）
+
+- 4 プラットフォームビルド緑 / SwiftLint エラー 0
+- `PackageCopyKeyTests` 4 件 + 既存 45 件、計 49 件緑
+- **シミュレータのテストは環境要因で一度落ちた**。`CoreSimulator.framework was changed while
+  the process was running`（Xcode 更新中にプロセスが生きていた）で、コードとは無関係。
+  実行先を My Mac に変えて走らせた

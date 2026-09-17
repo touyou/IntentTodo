@@ -16,12 +16,25 @@ public struct TodoRowView: View {
 
     private let todo: TodoAppEntity
 
+    /// What this row matched, while a search is running. `.none` the rest of the time.
+    private let searchMatch: TodoSearchMatch
+
     // MARK: - Initialization
+
+    /// Creates a row view for the given todo.
+    /// - Parameters:
+    ///   - todo: The todo entity to display.
+    ///   - searchMatch: why the row is in the results. Defaults to "no search", which is
+    ///     what every caller outside the searchable list wants.
+    init(todo: TodoAppEntity, searchMatch: TodoSearchMatch) {
+        self.todo = todo
+        self.searchMatch = searchMatch
+    }
 
     /// Creates a row view for the given todo.
     /// - Parameter todo: The todo entity to display.
     public init(todo: TodoAppEntity) {
-        self.todo = todo
+        self.init(todo: todo, searchMatch: .none)
     }
 
     // MARK: - Body
@@ -33,10 +46,14 @@ public struct TodoRowView: View {
 
             // Content
             VStack(alignment: .leading, spacing: 4) {
-                Text(todo.title)
+                // The matching words are emphasised in place, so a title hit needs no
+                // caption to explain it.
+                Text(AttributedString.highlighting(searchMatch.term, in: todo.title))
                     .font(.body)
                     .strikethrough(todo.isCompleted)
                     .foregroundStyle(todo.isCompleted ? .secondary : .primary)
+
+                TodoSearchReason(match: searchMatch, listName: todo.category?.name)
 
                 if let dueDate = todo.dueDateValue {
                     DueDateLabel(date: dueDate, isCompleted: todo.isCompleted)
