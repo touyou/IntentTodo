@@ -81,21 +81,25 @@ public struct AddTodoView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(.copy("Cancel")) {
+                Button {
                     if hasChanges {
                         isConfirmingDiscard = true
                     } else {
                         dismiss()
                     }
+                } label: {
+                    ToolbarActionLabel(text: .copy("Cancel"), systemImage: "xmark")
                 }
                 .accessibilityIdentifier("cancelButton")
+                .accessibilityLabel(.copy("Cancel"))
             }
 
             ToolbarItem(placement: .confirmationAction) {
                 Button(intent: addTodoIntent) {
-                    Text(.copy("Add"))
+                    ToolbarActionLabel(text: .copy("Add"), systemImage: "checkmark")
                 }
                 .accessibilityIdentifier("addButton")
+                .accessibilityLabel(.copy("Add"))
                 .disabled(!draft.isValid)
             }
         }

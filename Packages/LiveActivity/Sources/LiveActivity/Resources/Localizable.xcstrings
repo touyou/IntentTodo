@@ -21,12 +21,32 @@
         }
       }
     },
+    "Create a list named ${name}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${name}という名前のリストを作成"
+          }
+        }
+      }
+    },
     "Delete ${entities}" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${entities}を削除"
+          }
+        }
+      }
+    },
+    "Delete ${list}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${list}を削除"
           }
         }
       }
@@ -47,6 +67,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todo}を確認なしで削除"
+          }
+        }
+      }
+    },
+    "Delete the tag ${tag}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグ${tag}を削除"
           }
         }
       }
@@ -81,6 +111,16 @@
         }
       }
     },
+    "Merge ${lists} into ${destination}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${lists}を${destination}に統合"
+          }
+        }
+      }
+    },
     "Open ${target}" : {
       "localizations" : {
         "ja" : {
@@ -107,6 +147,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "残り時間"
+          }
+        }
+      }
+    },
+    "Rename the tag ${tag} to ${newName}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグ${tag}の名前を${newName}に変更"
           }
         }
       }
@@ -177,6 +227,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "${todo}のお気に入りを切り替え"
+          }
+        }
+      }
+    },
+    "Update ${list}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${list}を更新"
           }
         }
       }

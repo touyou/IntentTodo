@@ -139,6 +139,29 @@ struct TodoFormDraft: Equatable {
     }
 }
 
+// MARK: - Toolbar labels
+
+/// Label for a sheet's cancel / confirm toolbar button.
+///
+/// A symbol on iOS, iPadOS and visionOS: "prefer simple, recognizable symbols for items
+/// instead of text" [Apple: HIG, Toolbars], and Close in particular has to be the standard
+/// one. macOS keeps the words — these items land in the window's own toolbar above a form,
+/// where the platform expects titled push buttons.
+///
+/// Shared by the add and edit sheets so the two can't drift apart.
+struct ToolbarActionLabel: View {
+    let text: LocalizedStringResource
+    let systemImage: String
+
+    var body: some View {
+        #if os(macOS)
+        Text(text)
+        #else
+        Image(systemName: systemImage)
+        #endif
+    }
+}
+
 // MARK: - Discard confirmation
 
 extension View {

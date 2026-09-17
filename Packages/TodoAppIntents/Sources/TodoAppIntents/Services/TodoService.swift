@@ -443,7 +443,10 @@ public final class TodoService {
     }
 
     /// Resolves a category id, treating the synthetic "uncategorized" list as "no list".
-    private func resolveCategory(id: String) throws -> Domain.Category? {
+    ///
+    /// Internal rather than private because the list-management operations in
+    /// `TodoService+Organize.swift` resolve the same way.
+    func resolveCategory(id: String) throws -> Domain.Category? {
         if id == CategoryAppEntity.uncategorizedID { return nil }
         guard let uuid = UUID(uuidString: id) else {
             throw IntentError.validation("Invalid list ID")
@@ -573,7 +576,10 @@ public final class TodoService {
     /// 2. Asks the system to refetch App Shortcut parameter suggestions. Parameterised
     ///    phrases stop matching when the suggestions are stale, so this fires on every
     ///    entity add, remove or rename. [Apple: wwdc2023-10102 9:24]
-    private static func dataDidChange() {
+    ///
+    /// Internal rather than private so the list and tag operations in
+    /// `TodoService+Organize.swift` reach the same single exit point.
+    static func dataDidChange() {
         WidgetReloader.reloadAllWidgets()
         AppShortcutParameterUpdater.notifyEntitiesChanged()
     }

@@ -38,6 +38,11 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         try modelContext.save()
     }
 
+    public func create(_ category: Domain.Category) throws {
+        modelContext.insert(category)
+        try modelContext.save()
+    }
+
     // MARK: - Read
 
     public func fetchAll() throws -> [TodoItem] {
@@ -122,6 +127,13 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
         try modelContext.save()
     }
 
+    public func update(_ category: Domain.Category) throws {
+        guard modelContext.model(for: category.persistentModelID) is Domain.Category else {
+            throw RepositoryError.notFound(id: category.id)
+        }
+        try modelContext.save()
+    }
+
     // MARK: - Delete
 
     public func deleteAttachments(_ attachments: [TodoAttachment]) throws {
@@ -133,6 +145,11 @@ public final class SwiftDataTodoRepository: TodoRepositoryProtocol {
 
     public func delete(_ todo: TodoItem) throws {
         modelContext.delete(todo)
+        try modelContext.save()
+    }
+
+    public func delete(_ category: Domain.Category) throws {
+        modelContext.delete(category)
         try modelContext.save()
     }
 

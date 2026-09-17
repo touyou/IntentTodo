@@ -5,7 +5,6 @@
 //  Debug screen for the calls the system made into the app's queries.
 //
 
-#if DEBUG
 #if os(iOS) || os(visionOS) || os(macOS)
 import SwiftUI
 import TodoAppIntents
@@ -17,8 +16,13 @@ import TodoAppIntents
 /// the system asked and the app answered with nothing, which every surface renders
 /// identically to never having been asked.
 ///
-/// DEBUG only, hence `Text(verbatim:)` throughout: this screen never ships, so putting its
-/// copy through the 12 string catalogs would be work with no reader.
+/// Reachable only from the diagnostics section, which `DiagnosticsAvailability` limits to
+/// debug and TestFlight builds — hence `Text(verbatim:)` throughout. Nobody on the App Store
+/// version can get here, so putting this copy through the string catalogs would be work with
+/// no reader.
+///
+/// It *is* compiled into release builds, unlike before: the failures worth inspecting here
+/// only appear once the app has been through App Store Connect.
 struct QueryCallLogView: View {
     @State private var entries: [QueryCallLogEntry] = []
 
@@ -108,5 +112,4 @@ private struct QueryCallLogRow: View {
         QueryCallLogView()
     }
 }
-#endif
 #endif

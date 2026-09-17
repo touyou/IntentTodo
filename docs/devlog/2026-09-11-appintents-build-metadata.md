@@ -42,6 +42,10 @@ python3 -c "import json;j=json.load(open('.../extract.actionsdata'));print(sorte
 
 ### 2026-08-12 の判断の解釈を訂正
 
+> **2026-09-15 追記**: ここで「害が無い」とした判断は誤りだった。宣言が生む `extract.packagedata` が、
+> TestFlight / App Store 配布時に App Intents をバンドルごと読み込ませなくしていた。宣言は全廃した。
+> 経緯: [2026-09-15-appintentspackage-breaks-distribution.md](2026-09-15-appintentspackage-breaks-distribution.md)
+
 当時「宣言の有無で `Metadata.appintents` の件数が完全一致 → 重複は起きていない」を採用根拠の 1 つに
 していた。件数が一致した理由は「重複が起きなかった」ではなく**静的リンクの時点でマージが済んでいて、
 宣言は `extract.actionsdata` に触っていなかった**ため。採用の結論自体は変えない（Apple のデモどおりで

@@ -5,7 +5,8 @@
 //  The debug record of what the system asked the queries for. Broken, a query that was
 //  never called is indistinguishable from one that returned nothing.
 //
-//  `record` is a no-op outside DEBUG, which is also the only configuration these run in.
+//  `record` is a no-op when diagnostics are off for the build, except when the caller hands
+//  in its own `defaults` — which every test here does.
 //
 
 import Foundation

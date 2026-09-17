@@ -28,6 +28,9 @@ public protocol TodoRepositoryProtocol {
     /// store owns both sides of the relationship in one write.
     func createSection(_ section: TodoSection, in category: Domain.Category) throws
 
+    /// Creates a new list (category).
+    func create(_ category: Domain.Category) throws
+
     // MARK: - Read
 
     /// Fetches all todo items, sorted by creation time (descending).
@@ -79,6 +82,9 @@ public protocol TodoRepositoryProtocol {
     /// Updates an existing todo item.
     func update(_ todo: TodoItem) throws
 
+    /// Updates an existing list (category).
+    func update(_ category: Domain.Category) throws
+
     // MARK: - Delete
 
     /// Deletes attachments that a todo no longer holds.
@@ -90,6 +96,12 @@ public protocol TodoRepositoryProtocol {
 
     /// Deletes a todo item.
     func delete(_ todo: TodoItem) throws
+
+    /// Deletes a list (category).
+    ///
+    /// The todos filed under it survive: `TodoItem.category` nullifies, so deleting a
+    /// list unfiles its todos rather than taking them with it.
+    func delete(_ category: Domain.Category) throws
 
     /// Deletes a todo item by its ID.
     func delete(by id: UUID) throws
