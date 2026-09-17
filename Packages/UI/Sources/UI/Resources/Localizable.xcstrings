@@ -1,8 +1,32 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "^[%lld list](inflect: true)" : {
+    "%lld lists" : {
       "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld list"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld lists"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "No lists"
+                }
+              }
+            }
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -11,8 +35,32 @@
         }
       }
     },
-    "^[%lld section](inflect: true)" : {
+    "%lld sections" : {
       "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld section"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld sections"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "No sections"
+                }
+              }
+            }
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -21,12 +69,46 @@
         }
       }
     },
-    "^[%lld todo](inflect: true)" : {
+    "%lld todos" : {
       "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld todo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld todos"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "No todos"
+                }
+              }
+            }
+          }
+        },
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やること%lld件"
+          }
+        }
+      }
+    },
+    "+%lld" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "+%lld"
           }
         }
       }
@@ -201,6 +283,16 @@
         }
       }
     },
+    "All Todos" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "すべてのやること"
+          }
+        }
+      }
+    },
     "Apply" : {
       "localizations" : {
         "ja" : {
@@ -337,6 +429,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "作成"
+          }
+        }
+      }
+    },
+    "Create a list in Settings, then file todos under it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "設定でリストを作成すると、やることをそこに入れられます。"
           }
         }
       }
@@ -801,6 +903,16 @@
         }
       }
     },
+    "in notes" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "説明に一致"
+          }
+        }
+      }
+    },
     "Incomplete" : {
       "localizations" : {
         "ja" : {
@@ -921,6 +1033,16 @@
         }
       }
     },
+    "Manage" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "管理"
+          }
+        }
+      }
+    },
     "Manual" : {
       "localizations" : {
         "ja" : {
@@ -1017,6 +1139,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "変更日時"
+          }
+        }
+      }
+    },
+    "My Lists" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "マイリスト"
           }
         }
       }
@@ -1231,16 +1363,6 @@
         }
       }
     },
-    "Organize" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "整理"
-          }
-        }
-      }
-    },
     "Overdue" : {
       "localizations" : {
         "ja" : {
@@ -1341,12 +1463,12 @@
         }
       }
     },
-    "Rename, merge and delete the lists and tags your todos are filed under." : {
+    "Rename, merge and delete lists and tags. To browse by list, use the folder button in your todo list." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "やることの分類に使っているリストとタグの名称変更、統合、削除ができます。"
+            "value" : "リストとタグの名称変更、統合、削除ができます。リストごとに見るには、やること一覧のフォルダボタンを使います。"
           }
         }
       }

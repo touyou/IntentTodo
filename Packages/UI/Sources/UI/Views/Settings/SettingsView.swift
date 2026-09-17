@@ -16,9 +16,11 @@ import TodoAppIntents
 ///
 /// Four things, in the order they are likely to be wanted:
 ///
-/// 1. **Organize** — the lists and tags a todo can be filed under. They are edited here
-///    rather than on the list screen because that screen's one column is the todos
-///    themselves; a second hierarchy in it would need a navigation redesign.
+/// 1. **Manage** — the lists and tags a todo can be filed under. Editing them lives here
+///    and *browsing* them lives in the todo list (`TodoListsBrowseView`): renaming a list is
+///    a rare, settings-shaped job, while switching to a list is part of reading your todos.
+///    Putting both on one screen left the destructive actions in the path of ordinary
+///    browsing.
 /// 2. **Siri & Shortcuts** — `ShortcutsLink` is for *exploring* the App Shortcuts, "great
 ///    if your app has a lot of App Shortcuts and you want to let users explore all of them"
 ///    [Apple: wwdc2022-10170 20:19], which is a settings-shaped job.
@@ -77,9 +79,12 @@ private struct SettingsForm: View {
                 }
                 .accessibilityIdentifier("manageTagsLink")
             } header: {
-                Text(.copy("Organize"))
+                Text(.copy("Manage"))
             } footer: {
-                Text(.copy("Rename, merge and delete the lists and tags your todos are filed under."))
+                // Says what this screen is *not*, because the two screens share the word
+                // "Lists": here you change what exists, in the todo list you choose what to
+                // look at.
+                Text(.copy("Rename, merge and delete lists and tags. To browse by list, use the folder button in your todo list."))
             }
 
             #if os(iOS) || os(visionOS)

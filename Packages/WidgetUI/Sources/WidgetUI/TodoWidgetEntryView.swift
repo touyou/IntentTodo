@@ -206,7 +206,7 @@ struct ExtraLargePortraitTodoWidgetView: View {
                 Text(.copy("Todos"))
                     .font(.headline)
                 Spacer()
-                Text(.copy("^[\(incompleteCount) remaining todo](inflect: true)"))
+                Text(.copy("\(incompleteCount) remaining"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -222,7 +222,7 @@ struct ExtraLargePortraitTodoWidgetView: View {
                     TodoWidgetRow(todo: todo, compact: false)
                 }
                 if todos.count > Self.rowLimit {
-                    Text(.copy("^[\(todos.count - Self.rowLimit) more todo](inflect: true)"))
+                    Text(.copy("\(todos.count - Self.rowLimit) more"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

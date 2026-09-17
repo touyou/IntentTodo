@@ -60,6 +60,26 @@ public struct TodoListView: View {
         )
     }
 
+    /// The title for the list currently being browsed.
+    ///
+    /// A `Text` rather than a `LocalizedStringResource`: a list's name is the person's own
+    /// words and must stay verbatim, while the two fixed cases are UI copy.
+    private var listTitle: Text {
+        switch viewModel.listFilter {
+        case .all:
+            return Text(.copy("Todos"))
+        case .uncategorized:
+            return Text(.copy("Uncategorized"))
+        case .list(let id):
+            // Falls back to the generic title until the snapshot has loaded, rather than
+            // flashing an empty navigation bar.
+            guard let name = organize?.lists.first(where: { $0.id == id })?.name else {
+                return Text(.copy("Todos"))
+            }
+            return Text(name)
+        }
+    }
+
     // MARK: - Initialization
 
     public init() {}
@@ -86,12 +106,17 @@ public struct TodoListView: View {
                         // the user's manual order (WWDC 2026 reorderable containers,
                         // 27+; gated inside the sidebar).
                         isReorderable: viewModel.sortOrder == .manual,
+                        searchTerm: viewModel.searchText,
+                        organize: organize,
                         onReorder: persistReorder,
                         onRequestDeletion: requestDeletion
                     )
                 }
             }
-            .navigationTitle(.copy("Todos"))
+            // The list being browsed, not a fixed "Todos": the list filter is the one bit of
+            // narrowing that changes *what* you are looking at rather than how much of it,
+            // so it belongs in the title the way Reminders puts the list name there.
+            .navigationTitle(listTitle)
             // Outside the list, not in it: the banners have to stay visible when the list
             // is empty — which is exactly when a Focus filter is the explanation.
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -241,6 +266,10 @@ private struct TodoListSidebar: View {
     let todos: [TodoAppEntity]
     @Binding var selection: TodoAppEntity?
     let isReorderable: Bool
+    /// The live search term, so each row can say what it matched on.
+    let searchTerm: String
+    /// Supplies the tag memberships a match reason is derived from.
+    let organize: TodoOrganizeSnapshot?
     /// Receives the new, fully-ordered list of todo ids after a drag.
     let onReorder: ([String]) -> Void
     /// Asks the list to confirm deleting a todo. Called from the Mac's Delete key and
@@ -283,7 +312,10 @@ private struct TodoListSidebar: View {
 
     @ViewBuilder
     private func row(_ todo: TodoAppEntity) -> some View {
-        TodoRowView(todo: todo)
+        TodoRowView(
+            todo: todo,
+            searchMatch: TodoSearchMatch.make(for: todo, term: searchTerm, organize: organize)
+        )
             .tag(todo)
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 DeleteButton(todo: todo)
@@ -465,6 +497,15 @@ private struct TodoListToolbar: ToolbarContent {
         #endif
     }
 
+    /// The lists button sits at the leading edge, where "go up a level" is read.
+    private var listsPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+        .automatic
+        #else
+        .topBarLeading
+        #endif
+    }
+
     var body: some ToolbarContent {
         #if os(macOS)
         // First item of the sidebar's toolbar section, so it sits right after the
@@ -497,6 +538,19 @@ private struct TodoListToolbar: ToolbarContent {
         }
         #endif
 
+        // Browsing by list is its own screen, not another row in the filter menu: picking a
+        // list changes *what* you are looking at, and the title changes with it. Editing the
+        // lists themselves stays in Settings.
+        ToolbarItem(placement: listsPlacement) {
+            NavigationLink {
+                TodoListsBrowseView(selection: $viewModel.listFilter)
+            } label: {
+                Image(systemName: "folder")
+            }
+            .accessibilityIdentifier("browseListsButton")
+            .accessibilityLabel(.copy("Lists"))
+        }
+
         ToolbarItem(placement: .primaryAction) {
             Button {
                 navigationModel.showAddTodo()
@@ -510,11 +564,6 @@ private struct TodoListToolbar: ToolbarContent {
         ToolbarItem(placement: filterSortPlacement) {
             Menu {
                 FilterPicker(selection: $viewModel.filter)
-                if let organize, !organize.lists.isEmpty {
-                    Menu(.copy("List")) {
-                        ListFilterPicker(selection: $viewModel.listFilter, lists: organize.lists)
-                    }
-                }
                 if let organize, !organize.tags.isEmpty {
                     Menu(.copy("Tag")) {
                         TagFilterPicker(selection: $viewModel.tagFilter, tags: organize.tags)

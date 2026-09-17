@@ -159,7 +159,7 @@ private struct ListManagementContent: View {
 
             Section {
                 LabeledContent(.copy("Uncategorized")) {
-                    Text(.copy("^[\(snapshot?.todoCount(inList: CategoryAppEntity.uncategorizedID) ?? 0) todo](inflect: true)"))
+                    Text(.copy("\(snapshot?.todoCount(inList: CategoryAppEntity.uncategorizedID) ?? 0) todos"))
                 }
                 .foregroundStyle(.secondary)
             }
@@ -196,10 +196,15 @@ private struct ListRow: View {
     /// Each part is localised on its own and joined with `.list`, not concatenated: both the
     /// separator and the order are locale-dependent, and a `+` chain leaves a sentence no
     /// translator can reach.
+    ///
+    /// The counts are plain keys (`%lld todos`) with the singular / plural forms carried by
+    /// the catalog's **`en` localization**, not `^[…](inflect: true)`. A package bundle only
+    /// ships the locales the catalog actually lists, so English is served by the key itself —
+    /// and a key with inflection markup in it reaches the screen verbatim.
     private var summary: String {
-        var parts = [String(localized: .copy("^[\(todoCount) todo](inflect: true)"))]
+        var parts = [String(localized: .copy("\(todoCount) todos"))]
         if sectionCount > 0 {
-            parts.append(String(localized: .copy("^[\(sectionCount) section](inflect: true)")))
+            parts.append(String(localized: .copy("\(sectionCount) sections")))
         }
         return parts.formatted(.list(type: .and, width: .narrow))
     }
@@ -264,7 +269,7 @@ private struct DuplicateGroupRow: View {
 
     var body: some View {
         LabeledContent {
-            Text(.copy("^[\(group.count) list](inflect: true)"))
+            Text(.copy("\(group.count) lists"))
         } label: {
             Text(verbatim: name)
         }
@@ -317,10 +322,10 @@ private struct ListDetailView: View {
 
             Section {
                 LabeledContent(.copy("Todos")) {
-                    Text(.copy("^[\(snapshot?.todoCount(inList: list.id) ?? 0) todo](inflect: true)"))
+                    Text(.copy("\(snapshot?.todoCount(inList: list.id) ?? 0) todos"))
                 }
                 LabeledContent(.copy("Sections")) {
-                    Text(.copy("^[\(snapshot?.sectionCount(inList: list.id) ?? 0) section](inflect: true)"))
+                    Text(.copy("\(snapshot?.sectionCount(inList: list.id) ?? 0) sections"))
                 }
             } footer: {
                 Text(.copy("Sections are added from Shortcuts, or by asking Siri to add one to this list."))
