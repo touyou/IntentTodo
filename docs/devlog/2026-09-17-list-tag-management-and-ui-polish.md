@@ -359,3 +359,21 @@ age rating declaration`）。代わりに `asc review submit --dry-run` で `wou
 | macOS | `WAITING_FOR_REVIEW` | 40 |
 | iOS | 1.1.2 の審査待ちのため未作成 | — |
 | visionOS | 同上 | — |
+
+## 翌日: iOS / visionOS の 1.1.3 を提出して 3 プラットフォームとも揃った
+
+1.1.2 が iOS / visionOS とも `READY_FOR_SALE` になったので、in-flight が外れて
+`versions create` が通った。macOS の 1.1.3 は先に承認・公開済みだった。
+
+**app info の id は submission が終わると入れ替わる。** 前日 `--app-info` に渡した
+`db49654b…` は既に存在せず、`asc apps info list` で引き直す必要があった
+（`9f0372e6…`[READY_FOR_SALE] / `7f6ccc05…`[PREPARE_FOR_SUBMISSION]）。**id をメモして
+使い回さない。**
+
+最終状態:
+
+| platform | 公開中 | 審査中 |
+|---|---|---|
+| macOS | 1.1.3 | — |
+| iOS | 1.1.2 | 1.1.3（build 40） |
+| visionOS | 1.1.2 | 1.1.3（build 40） |
