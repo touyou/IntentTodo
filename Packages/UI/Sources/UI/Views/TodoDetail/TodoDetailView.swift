@@ -178,6 +178,9 @@ private struct TodoDetailContent: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
+                // Stays a word while the sheet's own buttons became symbols: the HIG asks
+                // toolbars to prefer symbols "except for actions like *edit* that aren't
+                // well-represented by symbols" [Apple: HIG, Toolbars].
                 Button(.copy("Edit")) {
                     navigationModel.showAttributeEditor()
                 }
@@ -231,6 +234,22 @@ private struct TodoDetailHeaderSection: View {
     let todo: TodoItem
     let entity: TodoAppEntity
 
+    /// The urgency worth a chip, or `nil`. A completed todo has no urgency left.
+    private var dueStatus: DueDateStatus? {
+        guard let dueDate = todo.dueDate, !todo.isCompleted else { return nil }
+        let status = DueDateStatus.evaluate(date: dueDate, isCompleted: false)
+        return status == .normal ? nil : status
+    }
+
+    /// Whether there is a second row at all.
+    ///
+    /// **Completion is deliberately not a badge.** The checkbox next to the title is already
+    /// filled and the title is already struck through, so a "Completed" chip immediately
+    /// below said the same thing a third time within one cell.
+    private var hasBadges: Bool {
+        todo.isFavorite || dueStatus != nil
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 12) {
@@ -242,20 +261,20 @@ private struct TodoDetailHeaderSection: View {
                     .foregroundStyle(todo.isCompleted ? .secondary : .primary)
             }
 
-            HStack(spacing: 8) {
-                if todo.isCompleted {
-                    StatusBadge(title: .copy("Completed"), systemImage: "checkmark.circle.fill", color: .green)
-                }
-                if todo.isFavorite {
-                    StatusBadge(title: .copy("Favorite"), systemImage: "star.fill", color: .yellow)
-                }
-                if let dueDate = todo.dueDate, !todo.isCompleted {
-                    switch DueDateStatus.evaluate(date: dueDate, isCompleted: false) {
+            // Built conditionally rather than left to render empty: an empty `HStack` still
+            // takes the `VStack`'s 12pt spacing, which is the extra space that used to sit
+            // under the title and made the cell look bottom-heavy.
+            if hasBadges {
+                HStack(spacing: 8) {
+                    if todo.isFavorite {
+                        StatusBadge(title: .copy("Favorite"), systemImage: "star.fill", color: .yellow)
+                    }
+                    switch dueStatus {
                     case .overdue:
                         StatusBadge(title: .copy("Overdue"), systemImage: "exclamationmark.circle.fill", color: .red)
                     case .dueSoon:
                         StatusBadge(title: .copy("Due Soon"), systemImage: "clock.fill", color: .orange)
-                    case .normal:
+                    case .normal, nil:
                         EmptyView()
                     }
                 }

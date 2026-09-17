@@ -55,14 +55,6 @@ public final class NavigationModel {
     /// than just opening the app.
     public var pendingFilter: TodoFilterType?
 
-    /// How many times `AddTodoIntent` has succeeded *while the add sheet was open*, for
-    /// this launch only.
-    ///
-    /// Counts people adding todos by hand in the app. Additions from Siri, Shortcuts,
-    /// widgets or controls do not count, so App Shortcut education is never shown to
-    /// someone already using the phrases. The display policy lives in `SiriTipModel`.
-    public private(set) var inAppAddCount = 0
-
     // MARK: - Initialization
 
     public init() {}
@@ -116,12 +108,9 @@ public final class NavigationModel {
     /// Dismisses the add todo sheet.
     ///
     /// Only called when `AddTodoIntent.perform()` succeeds — Cancel goes through
-    /// `@Environment(\.dismiss)` instead. If the sheet was open the addition came from the
-    /// app's UI, which is what ``inAppAddCount`` counts.
+    /// `@Environment(\.dismiss)` instead. A no-op when the sheet isn't open, which is the
+    /// normal case for Siri / Shortcuts / widget callers.
     public func dismissAddTodo() {
-        if showingAddTodo {
-            inAppAddCount += 1
-        }
         showingAddTodo = false
     }
 

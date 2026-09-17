@@ -176,6 +176,23 @@ struct IntentTodoApp: App {
             TodoCommands(navigationModel: navigationModel)
         }
         #endif
+
+        // The standard Settings scene, so ⌘, reaches the list and tag management the other
+        // platforms get from the sheet. Declared as a scene of its own rather than inside
+        // the `#if` above: that condition covers a modifier chain, and a second scene
+        // cannot be spliced into one.
+        //
+        // A `Settings` scene does not inherit the window group's environment, so the
+        // container is attached again here — without it the management screens' `@Query`s
+        // would have no store.
+        #if os(macOS)
+        Settings {
+            NavigationStack {
+                SettingsView()
+            }
+            .modelContainer(modelContainer)
+        }
+        #endif
     }
 
     // MARK: - URL Handling

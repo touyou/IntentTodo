@@ -21,13 +21,17 @@ public struct TodoListView: View {
     // MARK: - Properties
 
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
+    /// Only for the list and tag filters: the names and colours the menu offers, and the
+    /// change signal that keeps ``organize`` fresh.
+    @Query(sort: \Domain.Category.name) private var categories: [Domain.Category]
     @State private var viewModel = TodoListViewModel()
+    /// List and tag memberships, for the two filters the menu adds. Fetched rather than read
+    /// off `todoItems` — see `OrganizeSnapshotReader`.
+    @State private var organize: TodoOrganizeSnapshot?
     /// Focus filtering. `TodoFocusFilterIntent` writes it, which re-evaluates the body.
     @State private var focusFilterStore = TodoFocusFilterStore.shared
     /// Feedback that could not be delivered because a channel is disabled in Settings.
     @State private var missedFeedback = MissedFeedbackModel()
-    /// Decides when to teach an App Shortcut phrase.
-    @State private var siriTip = SiriTipModel()
     @State private var showingSettings = false
     /// Owned here rather than left to the system so the sidebar button and the View menu
     /// drive the same state.
@@ -51,7 +55,8 @@ public struct TodoListView: View {
         // types, so changing a field in place would not fire an `onChange`-based cache.
         viewModel.filteredTodos(
             from: todoItems.map { TodoAppEntity(from: $0) },
-            focusFilter: focusFilterStore.effectiveFilter
+            focusFilter: focusFilterStore.effectiveFilter,
+            organize: organize
         )
     }
 
@@ -70,7 +75,8 @@ public struct TodoListView: View {
                 if filteredTodos.isEmpty {
                     TodoListEmptyView(
                         filter: viewModel.filter,
-                        searchText: viewModel.searchText
+                        searchText: viewModel.searchText,
+                        isNarrowed: viewModel.isNarrowedByListOrTag
                     )
                 } else {
                     TodoListSidebar(
@@ -94,29 +100,19 @@ public struct TodoListView: View {
                     // The writer can be an extension process, so there is nothing to
                     // subscribe to: re-read on appear and on foregrounding.
                     MissedFeedbackBanner(model: missedFeedback)
-                    SiriTipBanner(model: siriTip)
                 }
             }
             .onAppear { missedFeedback.refresh() }
             .onChange(of: scenePhase) { _, phase in
-                guard phase == .active else {
-                    // Leaving the foreground hides the tip without counting as dismissal.
-                    siriTip.hide()
-                    return
-                }
+                guard phase == .active else { return }
                 missedFeedback.refresh()
             }
-            // Adding a todo from the app's own sheet is the moment a phrase would have
-            // saved work — and the counter does not move for Siri, Shortcuts or widget
-            // additions, so people already using phrases never see the tip.
-            //
-            // Not even counted on macOS, where `SiriTipView` is unavailable: otherwise the
-            // two-time budget would be spent on a platform that can never show it.
-            #if !os(macOS)
-            .onChange(of: navigationModel.inAppAddCount) { _, _ in
-                siriTip.recordInAppAdd()
+            // Keeps the list and tag filters in step with the store. The read is a fetch, so
+            // the `@Query` results are only the change signal.
+            .task(id: TodoStoreDigest.make(todos: todoItems, categories: categories)) {
+                let service = TodoService.swiftDataBacked(container: modelContext.container)
+                organize = (try? service.organizeSnapshot()) ?? .empty
             }
-            #endif
             #if os(macOS)
             // The system's own toggle sits at the *trailing* edge of the sidebar's
             // toolbar section, so it jumps across the window every time the sidebar
@@ -128,7 +124,8 @@ public struct TodoListView: View {
                 TodoListToolbar(
                     viewModel: $viewModel,
                     showingSettings: $showingSettings,
-                    columnVisibility: $columnVisibility
+                    columnVisibility: $columnVisibility,
+                    organize: organize
                 )
             }
             .searchable(text: $viewModel.searchText, prompt: .copy("Search todos"))
@@ -385,6 +382,9 @@ private struct TodoListEmptyView: View {
 
     let filter: TodoFilter
     let searchText: String
+    /// Whether a list or tag filter is also narrowing the list. Without it, "All Done!"
+    /// would claim every todo is finished when in fact one list is simply empty.
+    let isNarrowed: Bool
     @Environment(NavigationModel.self) private var navigationModel
 
     var body: some View {
@@ -394,7 +394,7 @@ private struct TodoListEmptyView: View {
         } description: {
             Text(content.description)
         } actions: {
-            if filter == .all && searchText.isEmpty {
+            if filter == .all && searchText.isEmpty && !isNarrowed {
                 Button(.copy("Add Todo")) { navigationModel.showAddTodo() }
                     .buttonStyle(.borderedProminent)
             }
@@ -407,6 +407,13 @@ private struct TodoListEmptyView: View {
                 title: .copy("No Results"),
                 icon: "magnifyingglass",
                 description: .copy("No todos match your search.")
+            )
+        }
+        if isNarrowed {
+            return EmptyContent(
+                title: .copy("Nothing Here"),
+                icon: "line.3.horizontal.decrease.circle",
+                description: .copy("No todos match the list or tag you picked.")
             )
         }
         switch filter {
@@ -444,6 +451,9 @@ private struct TodoListToolbar: ToolbarContent {
     @Binding var viewModel: TodoListViewModel
     @Binding var showingSettings: Bool
     @Binding var columnVisibility: NavigationSplitViewVisibility
+    /// Supplies the list and tag choices. `nil` before the first read, which hides those
+    /// submenus rather than showing empty ones.
+    let organize: TodoOrganizeSnapshot?
     @Environment(NavigationModel.self) private var navigationModel
 
     /// `.topBarTrailing` does not exist on macOS.
@@ -500,13 +510,30 @@ private struct TodoListToolbar: ToolbarContent {
         ToolbarItem(placement: filterSortPlacement) {
             Menu {
                 FilterPicker(selection: $viewModel.filter)
+                if let organize, !organize.lists.isEmpty {
+                    Menu(.copy("List")) {
+                        ListFilterPicker(selection: $viewModel.listFilter, lists: organize.lists)
+                    }
+                }
+                if let organize, !organize.tags.isEmpty {
+                    Menu(.copy("Tag")) {
+                        TagFilterPicker(selection: $viewModel.tagFilter, tags: organize.tags)
+                    }
+                }
                 Divider()
                 Menu(.copy("Sort")) {
                     SortPicker(selection: $viewModel.sortOrder)
                 }
             } label: {
-                Label(.copy("Filter"), systemImage: "line.3.horizontal.decrease.circle")
-                    .labelStyle(.iconOnly)
+                // Filled while something is narrowing the list, so an accidental filter is
+                // visible from the toolbar rather than only from inside the menu.
+                Label(
+                    .copy("Filter"),
+                    systemImage: viewModel.isNarrowed
+                        ? "line.3.horizontal.decrease.circle.fill"
+                        : "line.3.horizontal.decrease.circle"
+                )
+                .labelStyle(.iconOnly)
             }
             .accessibilityIdentifier("filterSortMenu")
             .accessibilityLabel(.copy("Filter and sort"))

@@ -1,12 +1,52 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "^[%lld list](inflect: true)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "リスト%lld件"
+          }
+        }
+      }
+    },
+    "^[%lld section](inflect: true)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "セクション%lld件"
+          }
+        }
+      }
+    },
+    "^[%lld todo](inflect: true)" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やること%lld件"
+          }
+        }
+      }
+    },
     "× %lld" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "× %lld"
+          }
+        }
+      }
+    },
+    "About" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "このアプリについて"
           }
         }
       }
@@ -141,6 +181,26 @@
         }
       }
     },
+    "All Lists" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "すべてのリスト"
+          }
+        }
+      }
+    },
+    "All Tags" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "すべてのタグ"
+          }
+        }
+      }
+    },
     "Apply" : {
       "localizations" : {
         "ja" : {
@@ -221,6 +281,16 @@
         }
       }
     },
+    "Color" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "カラー"
+          }
+        }
+      }
+    },
     "Complete ${todos}" : {
       "localizations" : {
         "ja" : {
@@ -257,6 +327,36 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "完了済み"
+          }
+        }
+      }
+    },
+    "Create" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "作成"
+          }
+        }
+      }
+    },
+    "Create a list named ${name}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${name}という名前のリストを作成"
+          }
+        }
+      }
+    },
+    "Create List" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "リストを作成"
           }
         }
       }
@@ -311,6 +411,16 @@
         }
       }
     },
+    "Delete ${list}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${list}を削除"
+          }
+        }
+      }
+    },
     "Delete ${todo}" : {
       "localizations" : {
         "ja" : {
@@ -331,6 +441,46 @@
         }
       }
     },
+    "Delete List" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "リストを削除"
+          }
+        }
+      }
+    },
+    "Delete Tag" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグを削除"
+          }
+        }
+      }
+    },
+    "Delete the tag “%@”?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグ“%@”を削除してもよろしいですか?"
+          }
+        }
+      }
+    },
+    "Delete the tag ${tag}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグ${tag}を削除"
+          }
+        }
+      }
+    },
     "Delete todo" : {
       "localizations" : {
         "ja" : {
@@ -347,6 +497,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることを削除"
+          }
+        }
+      }
+    },
+    "Deleting a list keeps its todos — they become uncategorized." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "リストを削除しても、中のやることは残り、未分類になります。"
           }
         }
       }
@@ -531,6 +691,16 @@
         }
       }
     },
+    "Everything this app can do is an App Intent, so Siri, Shortcuts, widgets, controls and Spotlight all reach the same actions." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "このアプリでできることはすべてApp Intentとして定義されています。そのため、Siri、ショートカット、ウィジェット、コントロール、Spotlightのどこからでも同じ操作に届きます。"
+          }
+        }
+      }
+    },
     "favorite" : {
       "localizations" : {
         "ja" : {
@@ -651,6 +821,26 @@
         }
       }
     },
+    "Its todos move to the list you pick, and the emptied list is deleted." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "中のやることは選んだリストに移動し、空になったリストは削除されます。"
+          }
+        }
+      }
+    },
+    "Keep which list?" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "どのリストを残しますか?"
+          }
+        }
+      }
+    },
     "Links" : {
       "localizations" : {
         "ja" : {
@@ -667,6 +857,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "リスト"
+          }
+        }
+      }
+    },
+    "Lists" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "リスト"
+          }
+        }
+      }
+    },
+    "Lists group todos together. Create one, then pick it while adding a todo." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "リストはやることをまとめるためのものです。作成すると、やることを追加するときに選べるようになります。"
           }
         }
       }
@@ -771,6 +981,36 @@
         }
       }
     },
+    "Merge “%@” into…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "“%@”をどのリストに統合しますか?"
+          }
+        }
+      }
+    },
+    "Merge ${lists} into ${destination}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${lists}を${destination}に統合"
+          }
+        }
+      }
+    },
+    "Merge Into…" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "統合先を選択…"
+          }
+        }
+      }
+    },
     "Modified" : {
       "localizations" : {
         "ja" : {
@@ -781,12 +1021,32 @@
         }
       }
     },
+    "Name" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "名前"
+          }
+        }
+      }
+    },
     "Never" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "しない"
+          }
+        }
+      }
+    },
+    "New List" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "新規リスト"
           }
         }
       }
@@ -807,6 +1067,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "新しい順"
+          }
+        }
+      }
+    },
+    "No Color" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "カラーなし"
           }
         }
       }
@@ -841,6 +1111,16 @@
         }
       }
     },
+    "No Lists" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "リストがありません"
+          }
+        }
+      }
+    },
     "No Results" : {
       "localizations" : {
         "ja" : {
@@ -861,6 +1141,16 @@
         }
       }
     },
+    "No Tags" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグがありません"
+          }
+        }
+      }
+    },
     "No Todos" : {
       "localizations" : {
         "ja" : {
@@ -871,12 +1161,32 @@
         }
       }
     },
+    "No todos match the list or tag you picked." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "選んだリストまたはタグに一致するやることはありません。"
+          }
+        }
+      }
+    },
     "No todos match your search." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "検索に一致するやることはありません。"
+          }
+        }
+      }
+    },
+    "Nothing Here" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "該当なし"
           }
         }
       }
@@ -921,6 +1231,16 @@
         }
       }
     },
+    "Organize" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "整理"
+          }
+        }
+      }
+    },
     "Overdue" : {
       "localizations" : {
         "ja" : {
@@ -951,6 +1271,16 @@
         }
       }
     },
+    "Possible Duplicates" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "重複の可能性"
+          }
+        }
+      }
+    },
     "Remove from favorites" : {
       "localizations" : {
         "ja" : {
@@ -967,6 +1297,66 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "お気に入りから削除"
+          }
+        }
+      }
+    },
+    "Rename" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "名称変更"
+          }
+        }
+      }
+    },
+    "Rename “%@”" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "“%@”の名称変更"
+          }
+        }
+      }
+    },
+    "Rename Tag" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグの名称変更"
+          }
+        }
+      }
+    },
+    "Rename the tag ${tag} to ${newName}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグ${tag}の名前を${newName}に変更"
+          }
+        }
+      }
+    },
+    "Rename, merge and delete the lists and tags your todos are filed under." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることの分類に使っているリストとタグの名称変更、統合、削除ができます。"
+          }
+        }
+      }
+    },
+    "Renaming onto a tag that already exists merges the two." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "すでにあるタグと同じ名前にすると、2つのタグは1つに統合されます。"
           }
         }
       }
@@ -1027,6 +1417,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "セクション"
+          }
+        }
+      }
+    },
+    "Sections" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "セクション"
+          }
+        }
+      }
+    },
+    "Sections are added from Shortcuts, or by asking Siri to add one to this list." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "セクションは“ショートカット”から、またはSiriにこのリストへ追加するよう頼んで作成します。"
           }
         }
       }
@@ -1161,12 +1571,32 @@
         }
       }
     },
+    "Tag" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグ"
+          }
+        }
+      }
+    },
     "Tags" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "タグ"
+          }
+        }
+      }
+    },
+    "Tags come from the Tags field on a todo. Add one there and it shows up here." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグはやることの“タグ”欄で追加します。追加するとここに表示されます。"
           }
         }
       }
@@ -1193,12 +1623,62 @@
         }
       }
     },
+    "Tap a tag to rename it everywhere. To see the todos carrying one, filter the list by tag." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "タグをタップすると、すべてのやることで名前を変更できます。そのタグが付いたやることを見るには、一覧をタグで絞り込みます。"
+          }
+        }
+      }
+    },
     "Tap the + button to add your first todo." : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "最初のやることを追加するには、+ボタンをタップします。"
+          }
+        }
+      }
+    },
+    "The todos are kept — only the tag is removed from them." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やること自体は残り、タグだけが外れます。"
+          }
+        }
+      }
+    },
+    "The todos from the others move into the list you keep." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ほかのリストのやることは、残すリストに移動します。"
+          }
+        }
+      }
+    },
+    "The todos in it are kept and become uncategorized." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "中のやることは残り、未分類になります。"
+          }
+        }
+      }
+    },
+    "These names differ only in capitalisation or accents. Tap one to merge them into a single list." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "これらの名前は大文字小文字またはアクセントだけが違います。タップすると1つのリストに統合できます。"
           }
         }
       }
@@ -1313,6 +1793,46 @@
         }
       }
     },
+    "Total" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "合計"
+          }
+        }
+      }
+    },
+    "Two lists can’t share a name — typing one that already exists just reuses it." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "同じ名前のリストは2つ作れません。すでにある名前を入力した場合は、そのリストがそのまま使われます。"
+          }
+        }
+      }
+    },
+    "Uncategorized" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "未分類"
+          }
+        }
+      }
+    },
+    "Update ${list}" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "${list}を更新"
+          }
+        }
+      }
+    },
     "Update ${target}" : {
       "localizations" : {
         "ja" : {
@@ -1329,6 +1849,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "急ぎのみ"
+          }
+        }
+      }
+    },
+    "Version" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "バージョン"
           }
         }
       }
@@ -1359,6 +1889,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "変更はまだ保存されていません。"
+          }
+        }
+      }
+    },
+    "Your Todos" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "やることの状況"
           }
         }
       }

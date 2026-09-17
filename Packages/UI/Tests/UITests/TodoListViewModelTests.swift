@@ -16,20 +16,34 @@ struct TodoListViewModelTests {
     private func makeTodo(
         id: String = UUID().uuidString,
         title: String = "Test Todo",
+        todoDescription: String? = nil,
         isCompleted: Bool = false,
         isFavorite: Bool = false,
         dueDate: Date? = nil,
         createdAt: Date = Date(),
-        sortIndex: Int = 0
+        sortIndex: Int = 0,
+        category: CategoryAppEntity? = nil
     ) -> TodoAppEntity {
         TodoAppEntity(
             id: id,
             title: title,
+            todoDescription: todoDescription,
             isCompleted: isCompleted,
             isFavorite: isFavorite,
             dueDate: dueDate,
             createdAt: createdAt,
-            sortIndex: sortIndex
+            sortIndex: sortIndex,
+            category: category
+        )
+    }
+
+    /// A snapshot carrying only the tag memberships a test cares about.
+    private func snapshot(todoIDsByTag: [String: Set<String>]) -> TodoOrganizeSnapshot {
+        TodoOrganizeSnapshot(
+            lists: [],
+            todoIDsByListID: [:],
+            todoIDsByTag: todoIDsByTag,
+            sectionCountByListID: [:]
         )
     }
 
@@ -105,7 +119,105 @@ struct TodoListViewModelTests {
         #expect(filtered.first?.title == "Favorite")
     }
 
+    // MARK: - List & Tag Filter Tests
+
+    @Test("List filter keeps only the chosen list")
+    func listFilterNarrowsToOneList() {
+        let work = CategoryAppEntity(id: "work-id", name: "Work")
+        let viewModel = TodoListViewModel()
+        viewModel.listFilter = .list(id: work.id)
+
+        let todos = [
+            makeTodo(title: "write the deck", category: work),
+            makeTodo(title: "buy milk")
+        ]
+
+        let filtered = viewModel.filteredTodos(from: todos)
+        #expect(filtered.map(\.title) == ["write the deck"])
+    }
+
+    @Test("Uncategorized keeps only the todos with no list")
+    func listFilterFindsUnfiledTodos() {
+        let work = CategoryAppEntity(id: "work-id", name: "Work")
+        let viewModel = TodoListViewModel()
+        viewModel.listFilter = .uncategorized
+
+        let todos = [
+            makeTodo(title: "write the deck", category: work),
+            makeTodo(title: "buy milk")
+        ]
+
+        #expect(viewModel.filteredTodos(from: todos).map(\.title) == ["buy milk"])
+    }
+
+    /// Tags live in the snapshot, not on the entity, so a tag filter with nothing to read
+    /// has to leave the list alone. Filtering everything out would look like "the tag
+    /// matches no todos" when in fact the snapshot simply hadn't loaded yet.
+    @Test("A tag filter without a snapshot does not hide anything")
+    func tagFilterWithoutSnapshotIsIgnored() {
+        let viewModel = TodoListViewModel()
+        viewModel.tagFilter = "urgent"
+
+        let todos = [makeTodo(title: "a"), makeTodo(title: "b")]
+
+        #expect(viewModel.filteredTodos(from: todos).count == 2)
+    }
+
+    @Test("A tag filter keeps the todos the snapshot says carry it")
+    func tagFilterUsesSnapshot() {
+        let tagged = makeTodo(title: "write the deck")
+        let other = makeTodo(title: "buy milk")
+        let viewModel = TodoListViewModel()
+        viewModel.tagFilter = "urgent"
+
+        let filtered = viewModel.filteredTodos(
+            from: [tagged, other],
+            organize: snapshot(todoIDsByTag: ["urgent": [tagged.id]])
+        )
+
+        #expect(filtered.map(\.title) == ["write the deck"])
+    }
+
+    @Test("isNarrowedByListOrTag reports only the list and tag axes")
+    func narrowingFlags() {
+        let viewModel = TodoListViewModel()
+        #expect(!viewModel.isNarrowedByListOrTag)
+        #expect(!viewModel.isNarrowed)
+
+        viewModel.filter = .completed
+        #expect(!viewModel.isNarrowedByListOrTag)
+        #expect(viewModel.isNarrowed)
+
+        viewModel.tagFilter = "urgent"
+        #expect(viewModel.isNarrowedByListOrTag)
+    }
+
     // MARK: - Search Tests
+
+    @Test("Search also matches the description, the list name and the tags")
+    func searchSpansEverythingOnTheTodo() {
+        let work = CategoryAppEntity(id: "work-id", name: "Work")
+        let byDescription = makeTodo(title: "a", todoDescription: "about the keynote")
+        let byList = makeTodo(title: "b", category: work)
+        let byTag = makeTodo(title: "c")
+        let noMatch = makeTodo(title: "d")
+        let viewModel = TodoListViewModel()
+
+        viewModel.searchText = "keynote"
+        #expect(
+            viewModel.filteredTodos(from: [byDescription, noMatch]).map(\.title) == ["a"]
+        )
+
+        viewModel.searchText = "work"
+        #expect(viewModel.filteredTodos(from: [byList, noMatch]).map(\.title) == ["b"])
+
+        viewModel.searchText = "urgent"
+        let filtered = viewModel.filteredTodos(
+            from: [byTag, noMatch],
+            organize: snapshot(todoIDsByTag: ["urgent": [byTag.id]])
+        )
+        #expect(filtered.map(\.title) == ["c"])
+    }
 
     @Test("Search filters todos by title")
     func searchByTitle() {

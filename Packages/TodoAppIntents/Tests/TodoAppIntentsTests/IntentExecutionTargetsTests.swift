@@ -25,7 +25,11 @@ struct MutatingIntentCase: Sendable, CustomStringConvertible {
 struct IntentExecutionTargetsTests {
     /// Every intent that calls a mutating `TodoService` method. New ones belong here;
     /// `everyMutatingIntentIsListed` catches omissions.
-    private static let mutatingIntents: [MutatingIntentCase] = [
+    ///
+    /// Assembled rather than written as one literal: `#if` cannot appear inside an array
+    /// literal, and the list-management intents do not exist on watchOS.
+    private static let mutatingIntents: [MutatingIntentCase] = {
+        var cases: [MutatingIntentCase] = [
         .init(name: "AddTodoIntent", targets: AddTodoIntent.allowedExecutionTargets),
         .init(name: "UpdateTodoIntent", targets: UpdateTodoIntent.allowedExecutionTargets),
         .init(name: "DeleteTodoIntent", targets: DeleteTodoIntent.allowedExecutionTargets),
@@ -39,7 +43,21 @@ struct IntentExecutionTargetsTests {
         .init(name: "SnoozeTodoIntent", targets: SnoozeTodoIntent.allowedExecutionTargets),
         .init(name: "QuickSnoozeTodoIntent", targets: QuickSnoozeTodoIntent.allowedExecutionTargets),
         .init(name: "ReorderTodosIntent", targets: ReorderTodosIntent.allowedExecutionTargets)
-    ]
+        ]
+        // List and tag management. Excluded on watchOS along with the intents themselves.
+        #if !os(watchOS)
+        cases += [
+            .init(name: "CreateSectionIntent", targets: CreateSectionIntent.allowedExecutionTargets),
+            .init(name: "CreateListIntent", targets: CreateListIntent.allowedExecutionTargets),
+            .init(name: "UpdateListIntent", targets: UpdateListIntent.allowedExecutionTargets),
+            .init(name: "DeleteListIntent", targets: DeleteListIntent.allowedExecutionTargets),
+            .init(name: "MergeListsIntent", targets: MergeListsIntent.allowedExecutionTargets),
+            .init(name: "RenameTagIntent", targets: RenameTagIntent.allowedExecutionTargets),
+            .init(name: "DeleteTagIntent", targets: DeleteTagIntent.allowedExecutionTargets)
+        ]
+        #endif
+        return cases
+    }()
 
     @Test("書き込み系 Intent はアプリ本体プロセスに固定されている", arguments: mutatingIntents)
     func mutatingIntentPinsExecutionToMainApp(intentCase: MutatingIntentCase) {
@@ -79,7 +97,14 @@ struct IntentExecutionTargetsTests {
             "todoService.toggleFavorite(",
             "todoService.toggleMostUrgentTodo(",
             "todoService.snooze(",
-            "todoService.reorderTodos("
+            "todoService.reorderTodos(",
+            "todoService.createSection(",
+            "todoService.createList(",
+            "todoService.updateList(",
+            "todoService.deleteList(",
+            "todoService.mergeLists(",
+            "todoService.renameTag(",
+            "todoService.deleteTag("
         ]
 
         let intentsDirectory = URL(filePath: #filePath)
