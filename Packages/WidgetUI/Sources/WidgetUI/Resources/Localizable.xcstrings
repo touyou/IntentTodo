@@ -1,17 +1,7 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%lld remaining" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "残り%lld件"
-          }
-        }
-      }
-    },
-    "^[%lld more todo](inflect: true)" : {
+    "%lld more" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -21,7 +11,7 @@
         }
       }
     },
-    "^[%lld remaining todo](inflect: true)" : {
+    "%lld remaining" : {
       "localizations" : {
         "ja" : {
           "stringUnit" : {

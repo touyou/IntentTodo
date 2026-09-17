@@ -92,7 +92,7 @@ private struct TagManagementContent: View {
                         startRenaming(tag)
                     } label: {
                         LabeledContent {
-                            Text(.copy("^[\(snapshot?.todoCount(withTag: tag) ?? 0) todo](inflect: true)"))
+                            Text(.copy("\(snapshot?.todoCount(withTag: tag) ?? 0) todos"))
                         } label: {
                             Label(tag, systemImage: "number")
                         }
