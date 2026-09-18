@@ -395,9 +395,11 @@ Mac の導線は Shortcuts アプリ側の一覧。
 （App Intents のメタデータが配布で読まれない、システムがどのクエリを呼んだか）。debug ビルド
 でしか存在しない診断は、そのために書いた失敗を見られない。
 
-TestFlight の判定はレシートのファイル名（`sandboxReceipt`）。結果として `QueryCallLogView` は
-release にもコンパイルされる。文言は `Text(verbatim:)` のまま（読者は開発者で、App Store 版から
-は到達できない）。`QueryCallLog.record` も同じフラグで黙る。
+TestFlight の判定はレシートのファイル名（`sandboxReceipt`）で、**TestFlight 配布で実際に出ることを
+確認済み**（1.1.2 / 2026-09-18）。ローカルビルドでは検証できない類なので、ここは推論ではなく実測。
+
+結果として `QueryCallLogView` は release にもコンパイルされる。文言は `Text(verbatim:)` のまま
+（読者は開発者で、App Store 版からは到達できない）。`QueryCallLog.record` も同じフラグで黙る。
 
 ---
 

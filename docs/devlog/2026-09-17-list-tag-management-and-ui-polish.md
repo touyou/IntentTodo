@@ -170,8 +170,9 @@ Diagnostics を `#if DEBUG` のままにしなかったのは、**ここで見�
 
 ## 未確認
 
-- 配布ビルドで Diagnostics が実際に出るか（`sandboxReceipt` 判定）は TestFlight まで通さないと
-  分からない → #30
+- ~~配布ビルドで Diagnostics が実際に出るか（`sandboxReceipt` 判定）~~ →
+  **2026-09-18 に TestFlight で確認済み**。`Bundle.main.appStoreReceiptURL?.lastPathComponent
+  == "sandboxReceipt"` は配布ビルドで期待どおり true になる
 - Shortcuts アプリ上で新しい 6 本のタイトル / 説明が ja になっているか → #30
 
 ---
