@@ -35,7 +35,15 @@ public struct TodoListView: View {
     @State private var showingSettings = false
     /// Owned here rather than left to the system so the sidebar button and the View menu
     /// drive the same state.
+    ///
+    /// `.all` on iOS rather than `.automatic`: at the widths an iPad in portrait and a
+    /// folding iPhone report, the system resolves `.automatic` to `.detailOnly`, which
+    /// hides the list column — and with it every toolbar item the list owns.
+    #if os(iOS)
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+    #else
     @State private var columnVisibility: NavigationSplitViewVisibility = .automatic
+    #endif
     #if os(macOS)
     /// The todo the list is about to delete, and the dialog's source of truth.
     ///
@@ -44,11 +52,26 @@ public struct TodoListView: View {
     @State private var todoPendingDeletion: TodoAppEntity?
     @FocusState private var isSearchFieldFocused: Bool
     #endif
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
     @Environment(\.scenePhase) private var scenePhase
     @Environment(NavigationModel.self) private var navigationModel
     @Environment(\.modelContext) private var modelContext
 
     // MARK: - Computed Properties
+
+    #if os(iOS)
+    /// Whether the create action is a prominent button over the detail column.
+    ///
+    /// Two columns means a list column whose bar is too narrow to hold another item and
+    /// which the person can close outright. The detail column is on screen either way,
+    /// and a button of its own reads as the primary action rather than as one more icon
+    /// beside Edit.
+    private var addsTodoFromDetail: Bool {
+        horizontalSizeClass == .regular
+    }
+    #endif
 
     private var filteredTodos: [TodoAppEntity] {
         // Mapped on every body evaluation rather than cached: `@Query` returns reference
@@ -150,7 +173,14 @@ public struct TodoListView: View {
                     viewModel: $viewModel,
                     showingSettings: $showingSettings,
                     columnVisibility: $columnVisibility,
-                    organize: organize
+                    organize: organize,
+                    includesAddTodo: {
+                        #if os(iOS)
+                        !addsTodoFromDetail
+                        #else
+                        true
+                        #endif
+                    }()
                 )
             }
             .searchable(text: $viewModel.searchText, prompt: .copy("Search todos"))
@@ -166,15 +196,26 @@ public struct TodoListView: View {
             .modifier(NavigationBarMinimizeOnScroll())
             #endif
         } detail: {
-            if let selected = navigationModel.selectedTodo {
-                TodoDetailView(todo: selected)
-            } else {
-                ContentUnavailableView(
-                    .copy("Select a Todo"),
-                    systemImage: "checklist",
-                    description: Text(.copy("Pick a todo from the sidebar to view details."))
-                )
+            Group {
+                if let selected = navigationModel.selectedTodo {
+                    TodoDetailView(todo: selected)
+                } else {
+                    ContentUnavailableView(
+                        .copy("Select a Todo"),
+                        systemImage: "checklist",
+                        description: Text(.copy("Pick a todo from the sidebar to view details."))
+                    )
+                }
             }
+            #if os(iOS)
+            // Over the detail column, which stays on screen when the list column is
+            // closed — the one state where nothing the list owns is reachable.
+            .safeAreaInset(edge: .bottom) {
+                if addsTodoFromDetail {
+                    ProminentAddTodoButton()
+                }
+            }
+            #endif
         }
         .sheet(isPresented: $navigationModel.showingAddTodo) {
             AddTodoSheet()
@@ -486,10 +527,12 @@ private struct TodoListToolbar: ToolbarContent {
     /// Supplies the list and tag choices. `nil` before the first read, which hides those
     /// submenus rather than showing empty ones.
     let organize: TodoOrganizeSnapshot?
+    /// `false` when the detail column is showing the create action instead.
+    let includesAddTodo: Bool
     @Environment(NavigationModel.self) private var navigationModel
 
     /// `.topBarTrailing` does not exist on macOS.
-    private var filterSortPlacement: ToolbarItemPlacement {
+    private var optionsPlacement: ToolbarItemPlacement {
         #if os(macOS)
         .automatic
         #else
@@ -524,44 +567,31 @@ private struct TodoListToolbar: ToolbarContent {
         }
         #endif
 
-        #if os(iOS)
-        // Entry point for the integration settings. `SettingsView` is not built on macOS
-        // (no `ShortcutsLink` there), so the button is iOS-only as well.
-        ToolbarItem(placement: .topBarLeading) {
-            Button {
-                showingSettings = true
-            } label: {
-                Image(systemName: "gearshape")
-            }
-            .accessibilityIdentifier("settingsButton")
-            .accessibilityLabel(.copy("Settings"))
-        }
-        #endif
-
-        // Browsing by list is its own screen, not another row in the filter menu: picking a
+        // Browsing by list is its own screen, not another row in the menu: picking a
         // list changes *what* you are looking at, and the title changes with it. Editing the
         // lists themselves stays in Settings.
         ToolbarItem(placement: listsPlacement) {
             NavigationLink {
                 TodoListsBrowseView(selection: $viewModel.listFilter)
             } label: {
-                Image(systemName: "folder")
+                Label(.copy("Lists"), systemImage: "folder")
+                    .labelStyle(.iconOnly)
             }
             .accessibilityIdentifier("browseListsButton")
-            .accessibilityLabel(.copy("Lists"))
         }
 
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                navigationModel.showAddTodo()
-            } label: {
-                Image(systemName: "plus")
+        // At regular width the detail column carries a prominent button instead — see
+        // `TodoListView.addsTodoFromDetail`.
+        if includesAddTodo {
+            ToolbarItem(placement: .primaryAction) {
+                AddTodoButton()
             }
-            .accessibilityIdentifier("addTodoButton")
-            .accessibilityLabel(.copy("Add todo"))
         }
 
-        ToolbarItem(placement: filterSortPlacement) {
+        // One menu for everything that is not creating a todo or changing lists. Four
+        // separate controls did not fit the list column's bar: the system moved them
+        // into its own overflow menu and squeezed out the title.
+        ToolbarItem(placement: optionsPlacement) {
             Menu {
                 FilterPicker(selection: $viewModel.filter)
                 if let organize, !organize.tags.isEmpty {
@@ -573,20 +603,76 @@ private struct TodoListToolbar: ToolbarContent {
                 Menu(.copy("Sort")) {
                     SortPicker(selection: $viewModel.sortOrder)
                 }
+                #if os(iOS)
+                Divider()
+                // `SettingsView` is not built on macOS (no `ShortcutsLink` there), so
+                // this row is iOS-only; the Mac has it in the app menu.
+                Button {
+                    showingSettings = true
+                } label: {
+                    Label(.copy("Settings"), systemImage: "gearshape")
+                }
+                .accessibilityIdentifier("settingsButton")
+                #endif
             } label: {
                 // Filled while something is narrowing the list, so an accidental filter is
                 // visible from the toolbar rather than only from inside the menu.
                 Label(
-                    .copy("Filter"),
+                    .copy("More"),
                     systemImage: viewModel.isNarrowed
-                        ? "line.3.horizontal.decrease.circle.fill"
-                        : "line.3.horizontal.decrease.circle"
+                        ? "ellipsis.circle.fill"
+                        : "ellipsis.circle"
                 )
                 .labelStyle(.iconOnly)
             }
             .accessibilityIdentifier("filterSortMenu")
-            .accessibilityLabel(.copy("Filter and sort"))
         }
+    }
+
+}
+
+#if os(iOS)
+/// The create action as a prominent button in the detail column's trailing bottom
+/// corner, the way Reminders presents "New Reminder". Used where the list column's bar
+/// has no room for another item and the column itself can be closed.
+private struct ProminentAddTodoButton: View {
+    @Environment(NavigationModel.self) private var navigationModel
+
+    var body: some View {
+        Button {
+            navigationModel.showAddTodo()
+        } label: {
+            // Icon only: the button floats over the detail content, and `+` needs no
+            // gloss next to a list of todos. The label is still there for VoiceOver.
+            Label(.copy("Add Todo"), systemImage: "plus")
+                .labelStyle(.iconOnly)
+        }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.circle)
+        .controlSize(.extraLarge)
+        .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 12)
+        .accessibilityIdentifier("addTodoButton")
+    }
+}
+#endif
+
+/// The create action as a bar button, for widths where the bar has room for it.
+private struct AddTodoButton: View {
+    @Environment(NavigationModel.self) private var navigationModel
+
+    var body: some View {
+        Button {
+            navigationModel.showAddTodo()
+        } label: {
+            // `Label`, not a bare `Image`: an item the overflow menu cannot title is
+            // dropped from it, so an icon-only button vanishes outright once the bar
+            // runs short rather than moving into the menu.
+            Label(.copy("Add todo"), systemImage: "plus")
+                .labelStyle(.iconOnly)
+        }
+        .accessibilityIdentifier("addTodoButton")
     }
 }
 

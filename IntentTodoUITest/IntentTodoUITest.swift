@@ -444,8 +444,14 @@ final class IntentTodoUITest: XCTestCase {
     /// app — only its reachability can be checked.
     @MainActor
     func testSettingsShowsShortcutsLink() throws {
+        // Settings is a row of the list's options menu, not a bar button: the list
+        // column's bar is too narrow for a separate control.
+        let optionsMenu = app.buttons["filterSortMenu"]
+        XCTAssertTrue(optionsMenu.waitForExistence(timeout: 5), "Options menu should exist")
+        optionsMenu.tap()
+
         let settingsButton = app.buttons["settingsButton"]
-        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5), "Settings button should exist")
+        XCTAssertTrue(settingsButton.waitForExistence(timeout: 5), "Settings row should exist")
         settingsButton.tap()
 
         let shortcutsLink = app.descendants(matching: .any)["shortcutsLink"]
