@@ -111,6 +111,6 @@ But catalogs written by a *script* are usually in codepoint order already, so a 
 
 ## Adding a language
 
-Adding to `knownRegions` and attaching catalogs to targets both modify `project.pbxproj`. **Do not hand-edit it** — Xcode can crash if the file changes underneath an open project, and a `git checkout` of it counts as a hand edit too. Use a tool that owns the project file (in Xcode, the localisation planner via `xcode-integration:translation-coordinator`).
+Adding to `knownRegions` and attaching catalogs to targets both modify the project file (`project.pbxproj`, or `project.xcproj` in the Xcode 27.2+ format). **Do not hand-edit it** — Xcode can crash if the file changes underneath an open project, and a `git checkout` of it counts as a hand edit too. Use a tool that owns the project file (in Xcode, the localisation planner via `xcode-integration:translation-coordinator`).
 
 Note also that **an extension's catalog may not live in its own folder.** Xcode's planner sometimes attaches one catalog to several targets via `membershipExceptions`, so a widget's strings can live in the watch app's file. Follow the target membership, not the directory name.

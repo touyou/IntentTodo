@@ -170,8 +170,9 @@ Diagnostics を `#if DEBUG` のままにしなかったのは、**ここで見�
 
 ## 未確認
 
-- 配布ビルドで Diagnostics が実際に出るか（`sandboxReceipt` 判定）は TestFlight まで通さないと
-  分からない → #30
+- ~~配布ビルドで Diagnostics が実際に出るか（`sandboxReceipt` 判定）~~ →
+  **2026-09-18 に TestFlight で確認済み**。`Bundle.main.appStoreReceiptURL?.lastPathComponent
+  == "sandboxReceipt"` は配布ビルドで期待どおり true になる
 - Shortcuts アプリ上で新しい 6 本のタイトル / 説明が ja になっているか → #30
 
 ---
@@ -335,3 +336,45 @@ plan → approve → apply を通しで回す必要がある（3 つ plan して
 
 取り下げれば今すぐ 1.1.3 にできるが、審査の順番を失う。iOS / visionOS は 1.1.2 を通してから
 1.1.3 を出す（利用者が一度だけ間延びしたチップを見るが、取り下げの代償より安い）。
+
+## 1.1.3 の提出で分かった 2 つ
+
+**`asc metadata plan` / `apply` は `--app-info` が要る**（審査中のものがあるとき）。提出中の
+submission が app info をもう 1 つ作るので、`multiple app infos found` で止まる。
+`READY_FOR_DISTRIBUTION` 側（= 公開中の app info）を渡す。
+
+```
+Error: multiple app infos found for app "6788623037"
+  (1322b3ab…[state=WAITING_FOR_REVIEW], db49654b…[state=READY_FOR_DISTRIBUTION])
+```
+
+**`asc validate` は `--app-info` を受け取らない**ので、この状態では走らない（`failed to fetch
+age rating declaration`）。代わりに `asc review submit --dry-run` で `wouldSubmit: true` を見る。
+
+もう 1 つ踏んだのは自分のミス: `plan` の出力を `/dev/null` に捨てたまま `approve` したので、
+**前のプラットフォームの plan を承認していた**（`planHash` が visionOS のものだった）。
+`approve` は plan の中身を見ないので黙って通る。**plan の出力は毎回読む。**
+
+| platform | 1.1.3 | build |
+|---|---|---|
+| macOS | `WAITING_FOR_REVIEW` | 40 |
+| iOS | 1.1.2 の審査待ちのため未作成 | — |
+| visionOS | 同上 | — |
+
+## 翌日: iOS / visionOS の 1.1.3 を提出して 3 プラットフォームとも揃った
+
+1.1.2 が iOS / visionOS とも `READY_FOR_SALE` になったので、in-flight が外れて
+`versions create` が通った。macOS の 1.1.3 は先に承認・公開済みだった。
+
+**app info の id は submission が終わると入れ替わる。** 前日 `--app-info` に渡した
+`db49654b…` は既に存在せず、`asc apps info list` で引き直す必要があった
+（`9f0372e6…`[READY_FOR_SALE] / `7f6ccc05…`[PREPARE_FOR_SUBMISSION]）。**id をメモして
+使い回さない。**
+
+最終状態:
+
+| platform | 公開中 | 審査中 |
+|---|---|---|
+| macOS | 1.1.3 | — |
+| iOS | 1.1.2 | 1.1.3（build 40） |
+| visionOS | 1.1.2 | 1.1.3（build 40） |

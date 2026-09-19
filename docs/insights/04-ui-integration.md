@@ -395,9 +395,11 @@ Mac の導線は Shortcuts アプリ側の一覧。
 （App Intents のメタデータが配布で読まれない、システムがどのクエリを呼んだか）。debug ビルド
 でしか存在しない診断は、そのために書いた失敗を見られない。
 
-TestFlight の判定はレシートのファイル名（`sandboxReceipt`）。結果として `QueryCallLogView` は
-release にもコンパイルされる。文言は `Text(verbatim:)` のまま（読者は開発者で、App Store 版から
-は到達できない）。`QueryCallLog.record` も同じフラグで黙る。
+TestFlight の判定はレシートのファイル名（`sandboxReceipt`）で、**TestFlight 配布で実際に出ることを
+確認済み**（1.1.2 / 2026-09-18）。ローカルビルドでは検証できない類なので、ここは推論ではなく実測。
+
+結果として `QueryCallLogView` は release にもコンパイルされる。文言は `Text(verbatim:)` のまま
+（読者は開発者で、App Store 版からは到達できない）。`QueryCallLog.record` も同じフラグで黙る。
 
 ---
 
@@ -677,10 +679,10 @@ en の `Snooze` / `Delay` / `Star` / `Favorite` のように、**元は別語彙
 どちらも「やることを表示」なのは意図的（パラメータ無しのフレーズを 1 つ残して Siri が
 聞き返せるようにする）。
 
-### pbxproj に触る操作は Localization Planner に任せる
+### プロジェクトファイルに触る操作は Localization Planner に任せる
 
 `knownRegions` への言語追加とアプリ / Extension ターゲットへの catalog 追加は
-`project.pbxproj` の変更を伴う。**Xcode を開いたまま pbxproj を書き換えるとクラッシュしうる**
+プロジェクトファイル（`project.xcproj`）の変更を伴う。**Xcode を開いたままプロジェクトファイルを書き換えるとクラッシュしうる**
 ので、`xcode-integration:translation-coordinator` スキル経由の `LocalizationPlanner` に
 やらせる（`git checkout` で戻すのも直接編集に当たる）。
 
