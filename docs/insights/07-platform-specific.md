@@ -130,7 +130,7 @@ struct IntentTodoApp: App {
 ```
 
 - `UNUserNotificationCenterDelegate` は iOS / macOS / visionOS / watchOS すべてで同じシグネチャのため、本体の 1 クラス化は堅い選択。
-- 埋め込み Extension (`IntentTodoWatchApp.app` / `IntentTodoLiveActivityExtension.appex`) を macOS ビルドから除外するには、`project.pbxproj` の PBXBuildFile に `platformFilter = ios;` を追加する。
+- 埋め込み Extension (`IntentTodoWatchApp.app` / `IntentTodoLiveActivityExtension.appex`) を macOS ビルドから除外するには、埋め込みの Copy Files フェーズで Platforms を iOS に絞る（`project.xcproj` では該当 product の `target-membership` に `"platforms": [ "ios" ]` が付く）。
 - SceneDelegate は UIKit 専用なので `#if os(iOS) || os(visionOS)` で切る（macOS native で `UIScene` は存在しない）。
 
 ---

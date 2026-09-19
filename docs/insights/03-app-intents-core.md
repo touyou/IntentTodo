@@ -1238,7 +1238,7 @@ the Shortcuts app" と手動を明示しており、`AppIntentsTesting` の公�
 `XCUIApplication` の MainActor 隔離で Swift 6 エラーになる。
 
 > 以前ここには「synchronized folder ではないのでファイルを置くだけでは target に入らない」と
-> 書いていたが、現在の `project.pbxproj` では synchronized になっている（2026-08-12 に確認）。
+> 書いていたが、現在のプロジェクトファイルでは synchronized になっている（2026-08-12 に確認）。
 
 ## Phase 7: WWDC 2026 追加検証（#43–#48）
 
@@ -1496,7 +1496,7 @@ Shortcuts ユーザーは「If Get Todo Summary → Overdue Todos > 0 → 通知
 WWDC26 の App Intents 系サンプルを取り込んで、本プロジェクトの書き方と 1 項目ずつ突き合わせた結果。
 サンプルは `~/Developer/Private/wwdc26-app-intents-samples/`（リポジトリ外）に展開してある。
 **`docs/references/` の下に置いてはいけない**: Xcode の同期グループがサンプルの `.xcodeproj` を
-拾い、追跡下の `project.pbxproj` に project reference として書き込んでしまう（gitignore は効かない）。
+拾い、追跡下のプロジェクトファイルに project reference として書き込んでしまう（gitignore は効かない）。
 取得元:
 
 | サンプル | アプリ名 | ドキュメント |
