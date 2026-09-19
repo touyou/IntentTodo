@@ -843,16 +843,6 @@
         }
       }
     },
-    "Filter and sort" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "フィルタと並び順"
-          }
-        }
-      }
-    },
     "Filtered by Focus" : {
       "localizations" : {
         "ja" : {
@@ -1139,6 +1129,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "変更日時"
+          }
+        }
+      }
+    },
+    "More" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "その他"
           }
         }
       }
