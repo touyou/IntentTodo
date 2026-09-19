@@ -679,10 +679,10 @@ en の `Snooze` / `Delay` / `Star` / `Favorite` のように、**元は別語彙
 どちらも「やることを表示」なのは意図的（パラメータ無しのフレーズを 1 つ残して Siri が
 聞き返せるようにする）。
 
-### pbxproj に触る操作は Localization Planner に任せる
+### プロジェクトファイルに触る操作は Localization Planner に任せる
 
 `knownRegions` への言語追加とアプリ / Extension ターゲットへの catalog 追加は
-`project.pbxproj` の変更を伴う。**Xcode を開いたまま pbxproj を書き換えるとクラッシュしうる**
+プロジェクトファイル（`project.xcproj`）の変更を伴う。**Xcode を開いたままプロジェクトファイルを書き換えるとクラッシュしうる**
 ので、`xcode-integration:translation-coordinator` スキル経由の `LocalizationPlanner` に
 やらせる（`git checkout` で戻すのも直接編集に当たる）。
 

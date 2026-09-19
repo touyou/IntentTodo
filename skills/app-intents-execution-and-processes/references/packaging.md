@@ -188,4 +188,4 @@ Migration ownership matters here too: give the `SchemaMigrationPlan` only to the
 
 ## Keeping iOS-only extensions out of a Mac build
 
-Add `platformFilter = ios;` to the relevant `PBXBuildFile` entries. If a tool or skill is available that edits the project file for you, prefer it — hand-editing `project.pbxproj` while Xcode has the project open can corrupt it.
+Restrict the embed build phase entry to iOS: `platformFilter = ios;` on the `PBXBuildFile` in `project.pbxproj`, or `"platforms": [ "ios" ]` on the product's `target-membership` in the Xcode 27.2+ `project.xcproj` format. If a tool or skill is available that edits the project file for you, prefer it — hand-editing the project file while Xcode has the project open can corrupt it.

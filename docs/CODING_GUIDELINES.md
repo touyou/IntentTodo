@@ -50,7 +50,7 @@ verbatim 初期化子を選ぶため、リテラルが String Catalog に**抽�
   ターゲットの main bundle から引かれるので `.copy(_:)` を使わない
 - **文言を足したら 12 catalog 全部を埋める**（ソース言語 en / 訳 ja）。共有 Intent コピーは
   6 catalog に重複して現れるので、1 箇所だけ直すと呼出元によって言い回しが変わる形で壊れる
-- `project.pbxproj` を直接編集しない。言語追加や catalog のターゲット追加は
+- プロジェクトファイル（`project.xcproj`）を直接編集しない。言語追加や catalog のターゲット追加は
   `xcode-integration:translation-coordinator` スキル経由の `LocalizationPlanner` にやらせる
 
 抽出のされ方 / されなさ、Intent コピーの手動キー運用、検査スクリプト:

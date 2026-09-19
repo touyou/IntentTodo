@@ -55,7 +55,7 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
    **Intent は `#if !os(watchOS)` をマクロ行だけに掛ければよい**（型名は 1 つで上書きされない）
 10. **UI コピーは `LocalizedStringResource`**。パッケージでは `.copy(_:)` を通す。
     文言を足したら 12 catalog 全部を埋める
-11. **`project.pbxproj` を直接編集しない**（`git checkout` での復元も含む）。
+11. **プロジェクトファイル（`IntentTodo.xcodeproj/project.xcproj`）を直接編集しない**（`git checkout` での復元も含む）。
     言語追加や catalog のターゲット追加は `LocalizationPlanner` に任せる
 12. **確認はビルドの成否ではなくメタデータで行う**。「どの面が何を提示するか」は
     **呼出元だけ変えて同じ Intent を走らせて**確定させる（肯定リストから推論しない）。
@@ -142,4 +142,4 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
   エージェント別のインストールと公開手順は [skills/INSTALL.md](skills/INSTALL.md)
 - `docs/references/` — 最新の技術参照（gitignore 対象。WWDC 書き起こしは `references/wwdc/`）
 - `~/Developer/Private/wwdc26-app-intents-samples/` — WWDC26 公式サンプル 4 本（**リポジトリ外に置く**。
-  `docs/` 配下だと Xcode がサンプルの `.xcodeproj` を `project.pbxproj` へ書き込む）
+  `docs/` 配下だと Xcode がサンプルの `.xcodeproj` をプロジェクトファイルへ書き込む）
