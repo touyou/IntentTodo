@@ -628,6 +628,11 @@ Widget は自前の catalog を持たず watch アプリのものを共有して
 同居するため、シンボル生成が衝突する。4 ターゲットとも
 `STRING_CATALOG_GENERATE_SYMBOLS = NO`（生成シンボルはどこからも使っていない）。
 
+**手動キーが実際にシステムから引かれることは実機で確認済み**（2026-09-25 / ja の実機）。
+Shortcuts アプリでアクション名・説明・パラメータ名・entity / enum の型名がいずれも ja で出た。
+それまでは「同じ形の `shortTitle` / `parameterSummary` が ja で出ている」ことからの推論だった。
+**Siri の読み上げ側（`IntentDialog`）はまだ推論**で、#30 に残してある。
+
 ### `IntentDialog` の中で英語の屈折を Swift で組み立てない
 
 ```swift
