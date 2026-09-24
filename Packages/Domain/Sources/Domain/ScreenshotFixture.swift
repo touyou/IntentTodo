@@ -138,7 +138,10 @@ public enum ScreenshotFixture {
                 SubTask(title: title, isCompleted: offset == 0, orderIndex: offset)
             }
             if item.isCompleted {
-                todo.completionDate = now
+                // Yesterday, not `now`: the list keeps a *just*-completed todo on screen
+                // for a few seconds, so stamping the current time would leave the fixture
+                // showing one row for the first screenshot and not the next.
+                todo.completionDate = calendar.date(byAdding: .day, value: -1, to: now) ?? now
             }
             context.insert(todo)
         }
