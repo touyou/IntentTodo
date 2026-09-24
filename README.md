@@ -23,12 +23,17 @@ App Intents 中心設計に基づいたマルチプラットフォーム Todo �
 
 ### プラットフォーム別
 
+**5 プラットフォームとも出荷済み**（1.1.4）で、各面を一通り触っている。
+下の「検証状況」は**画面とアクションが実機で動いていること**を指す。
+Siri の音声経路 / Spotlight の実 UI での見え方 / 通知の cold start など、
+**出荷しただけでは分からないものは [#30](https://github.com/touyou/IntentTodo/issues/30) に残っている**。
+
 | プラットフォーム | 実行パターン | AppIntent活用 | 検証状況 |
 |:--|:--|:--|:--|
-| **iOS / iPadOS** | `Button(intent:)` | ✅ 全アクション | ✅ 検証済み |
-| **macOS**（ネイティブ、Catalyst ではない） | `Button(intent:)`（メニューバー / コンテキストメニュー含む） | ✅ 全アクション | 🔶 主要アクション + CloudKit 同期は確認済み、残りは [#30](https://github.com/touyou/IntentTodo/issues/30) |
-| **watchOS** | `Button(intent:)` | ✅ 全アクション | 🔲 実機確認は [#30](https://github.com/touyou/IntentTodo/issues/30) |
-| **visionOS** | `Button(intent:)` + Spatial UI | ✅ 全アクション | 🔲 実機確認は [#30](https://github.com/touyou/IntentTodo/issues/30) |
+| **iOS / iPadOS** | `Button(intent:)` | ✅ 全アクション | ✅ リリース済み |
+| **macOS**（ネイティブ、Catalyst ではない） | `Button(intent:)`（メニューバー / コンテキストメニュー含む） | ✅ 全アクション | ✅ リリース済み（メニュー / キーボードは 2026-09-10 に個別確認） |
+| **watchOS** | `Button(intent:)` | ✅ 全アクション | ✅ リリース済み |
+| **visionOS** | `Button(intent:)` + Spatial UI | ✅ 全アクション | ✅ リリース済み |
 
 ### Extension別
 
