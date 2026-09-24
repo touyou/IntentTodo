@@ -28,7 +28,9 @@ Claude Code / Codex / Gemini CLI / GitHub Copilot / Cursor で同じファイル
 ある**。同じ情報を 2 箇所に書かない、という [docs/devlog/README.md](../docs/devlog/README.md) の
 方針をそのまま適用している。
 
-検証ベースは **iOS 27 / Xcode 27 beta 6（27A5252f）**。記述には根拠ラベル
+検証ベースは **iOS 27 / Xcode 27 RC（27A266a）で実行して測ったもの**。
+宣言（`[Apple SDK]`）については **Xcode 27.2 beta（27B5019j）の swiftinterface まで再確認済み**で、
+27.2 で増えた 3 件は該当箇所に注記してある。記述には根拠ラベル
 （`[Apple]` / `[Apple SDK]` / `[measured]` / `[inferred]`）が付いているので、SDK が上がったら `[measured]` を
 優先的に再確認すればよい。
 
