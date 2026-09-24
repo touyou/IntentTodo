@@ -41,6 +41,8 @@ let title: String = try result.value.title      // dynamic member lookup
 
 Because the app target is never imported, **most mistakes surface at runtime, not compile time**. Design tests to create with a unique title, act, then delete — self-cleaning.
 
+Every read form here — the typed subscript, `as(_:)` — is **synchronous**, so a property the app resolves asynchronously has no obvious way through. A 27.2 SDK adds one that could be it: `DynamicPropertyPath.get(as:) async throws -> T`, identical to `as(_:)` except for the `await`. It is absent from the 27.1 documentation set, so its semantics are `[inferred]`; if you have a `@DeferredProperty` you cannot read today, that is the thing to try.
+
 ## Pitfalls, all measured
 
 | Symptom | Cause / fix |

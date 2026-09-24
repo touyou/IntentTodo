@@ -75,12 +75,12 @@ That is the trailing block, verbatim. Diff it against the intent's `@Parameter` 
 | Reference to an app object | `AppEntity` | embeddable in a phrase; re-resolved by id before `perform()` |
 | Many objects | `EntityCollection<T>` | skips per-id resolution (`app-intents-entities-and-search`) |
 | Free text | `String` | **not** embeddable in a phrase [Apple: wwdc2022-10170 14:40–15:15] |
-| Either of two entity types | `@UnionValue` enum | usable in `@Parameter`, `ReturnsValue`, `When` / `Switch` |
+| Either of two entity types | `@UnionValue` enum | usable in `@Parameter`, `ReturnsValue`, `When` / `Switch`; `default:` and collection `size:` need a 27.2 SDK (`app-intents-entities-and-search`) |
 | A tri-state update | any type, read via `$param.valueState` | [asking-and-updating](asking-and-updating.md) |
 
 A **non-optional `AppEnum`** auto-disambiguates — the system asks the person to pick instead of failing. Prefer that over an optional with a silent default.
 
-**`AppEnum` raw values are persisted by string** in every shortcut someone has built. Cases can be added; renaming or reordering silently breaks their automations [Apple]. Every case also needs a `caseDisplayRepresentations` entry — a missing one is a runtime `fatalError`, not a compile error [Apple].
+**`AppEnum` raw values are persisted by string** in every shortcut someone has built. Cases can be added; renaming or reordering silently breaks their automations [Apple]. Every case also needs a `caseDisplayRepresentations` entry — a missing one is a runtime `fatalError`, not a compile error [Apple]. (A 27.2 SDK defaults the whole property for `AssistantSchemaEnum` only, at `@available(anyAppleOS 27.2, *)`; `app-intents-entities-and-search` has the caveats.)
 
 If the same enum is a stored model value as well, the raw string is a contract twice over. Say so in a comment where it is declared.
 

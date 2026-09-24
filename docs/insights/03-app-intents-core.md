@@ -1046,6 +1046,10 @@ public enum TodoOrCategory: Sendable {   // ← public enum は Sendable 自動�
   「Type '...' does not conform to the 'Sendable' protocol」（生成ソース内）でビルド失敗する。
 - 各ケースの associated value は単一の値型（AppEntity 等）にする。`SearchEverythingIntent` は
   `ReturnsValue<[TodoOrCategory]>` で todo とカテゴリの混在結果を返す。
+- **`@Parameter` 側は 27.2 SDK で広がった**。union を受ける `IntentParameter` に `default:` 付き
+  イニシャライザと、コレクション（`[TodoOrCategory]`）用の `size:`（`IntentCollectionSize` /
+  `IntentWidgetFamily` 別）が `@available(anyAppleOS 27.2, *)` で追加された。本アプリの deployment target は
+  27.0 なのでまだ書けない。戻り値としての利用は影響を受けない。
 
 ## Phase 5: Visual Intelligence（#297）
 

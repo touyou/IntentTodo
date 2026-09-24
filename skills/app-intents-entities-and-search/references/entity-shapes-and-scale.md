@@ -57,6 +57,7 @@ public enum TodoOrCategory: Sendable {     // ← Sendable must be explicit
 - Each case carries exactly one value type.
 - Usable in `@Parameter`, `ReturnsValue`, and `ParameterSummary`'s `Switch` / `When`.
 - If it is a Visual Intelligence result type, **every** case's entity needs an `OpenIntent` (`app-intents-system-surfaces`).
+- **A union `@Parameter` had no `default:` before the 27.2 SDK**, and a union-valued *collection* parameter had no `size:` (`IntentCollectionSize`, or per-`IntentWidgetFamily`) form. Both arrived as `@available(anyAppleOS 27.2, *)` overloads, so a target deploying below 27.2 still cannot write them — the return-value side is unaffected.
 
 ## `Transferable` + `ValueRepresentation`
 

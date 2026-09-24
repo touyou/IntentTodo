@@ -66,7 +66,7 @@ For closed sets (filters, sort orders, screen targets), use `AppEnum`: cheaper t
 Two hard rules:
 
 - **Raw values are persisted by string.** A shortcut a user built keeps the old string; renaming or renumbering a case silently breaks their automation. [Apple]
-- **Every case needs a `caseDisplayRepresentations` entry** — a missing one is a runtime `fatalError`, not a compile error. [Apple]
+- **Every case needs a `caseDisplayRepresentations` entry** — a missing one is a runtime `fatalError`, not a compile error. [Apple] A 27.2 SDK adds a default for the *whole* property on `AssistantSchemaEnum`, gated `@available(anyAppleOS 27.2, *)`: it does nothing for a plain `AppEnum`, nothing below that deployment target, and what wording it produces is unverified. Keep declaring the dictionary.
 
 ```swift
 public enum TodoFilterType: String, AppEnum {
