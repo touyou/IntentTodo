@@ -135,7 +135,7 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
 - [docs/feedback/](docs/feedback/) — Apple へ提出した Feedback の内容
 - **GitHub issues** — これからやること（#30 実機検証の残り / #57 SDK 棚卸し / #68 未採用 API /
   #77 ja 翻訳の state レビュー / **#167 Siri で一覧すると 0 件で返る** /
-  #169–171 一覧の手触りの残り）
+  一覧の手触りの残り #169 / #170 / #171）
 - `scripts/capture_screenshots.sh` — 提出用スクショを 1 コマンドで撮り直す（使い方は
   [README.md](README.md#提出用スクリーンショット)）
 - [docs/presentation/](docs/presentation/README.md) — 登壇用のスライド骨子とスクリプト

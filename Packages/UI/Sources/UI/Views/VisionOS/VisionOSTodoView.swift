@@ -54,7 +54,9 @@ public struct VisionOSTodoListView: View {
                     try? await Task.sleep(for: .seconds(remaining))
                     guard !Task.isCancelled else { return }
                 }
-                graceNow = Date()
+                // Clamped to the deadline for the same reason as in `TodoListView`: the
+                // sleep is continuous-clock and this is wall-clock.
+                graceNow = max(Date(), graceExpiry)
             }
         } detail: {
             VisionOSDetailPane(selectedTodo: navigationModel.selectedTodo)

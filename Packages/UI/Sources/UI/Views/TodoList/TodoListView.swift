@@ -177,7 +177,12 @@ public struct TodoListView: View {
                     try? await Task.sleep(for: .seconds(remaining))
                     guard !Task.isCancelled else { return }
                 }
-                graceNow = Date()
+                // Not a bare `Date()`: the sleep is measured on the continuous clock while
+                // this is the wall clock, so an adjustment during the wait can leave the
+                // new stamp short of the deadline. The row would then still be inside its
+                // grace period, `graceExpiry` would be unchanged, and the task would not
+                // run again — leaving the row until the next store change.
+                graceNow = max(Date(), graceExpiry)
             }
             // Keeps the list and tag filters in step with the store. The read is a fetch, so
             // the `@Query` results are only the change signal.
