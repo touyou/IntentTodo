@@ -22,7 +22,8 @@ struct TodoListViewModelTests {
         dueDate: Date? = nil,
         createdAt: Date = Date(),
         sortIndex: Int = 0,
-        category: CategoryAppEntity? = nil
+        category: CategoryAppEntity? = nil,
+        completionDate: Date? = nil
     ) -> TodoAppEntity {
         TodoAppEntity(
             id: id,
@@ -33,7 +34,8 @@ struct TodoListViewModelTests {
             dueDate: dueDate,
             createdAt: createdAt,
             sortIndex: sortIndex,
-            category: category
+            category: category,
+            completionDate: completionDate
         )
     }
 
@@ -53,9 +55,19 @@ struct TodoListViewModelTests {
     func initialState() {
         let viewModel = TodoListViewModel()
 
-        #expect(viewModel.filter == .all)
+        #expect(viewModel.filter == .incomplete)
         #expect(viewModel.sortOrder == .createdAtDescending)
         #expect(viewModel.searchText.isEmpty)
+    }
+
+    @Test("The filter a list opens with does not read as narrowed")
+    func defaultFilterIsNotNarrowed() {
+        let viewModel = TodoListViewModel()
+
+        #expect(viewModel.isNarrowed == false)
+
+        viewModel.filter = .completed
+        #expect(viewModel.isNarrowed)
     }
 
     // MARK: - Filter Tests
@@ -117,6 +129,123 @@ struct TodoListViewModelTests {
         let filtered = viewModel.filteredTodos(from: todos)
         #expect(filtered.count == 1)
         #expect(filtered.first?.title == "Favorite")
+    }
+
+    // MARK: - Completion Grace Period Tests
+
+    @Test("A just-completed todo stays in the incomplete list for its grace period")
+    func justCompletedTodoLingers() {
+        let viewModel = TodoListViewModel()
+        let now = Date()
+        let todos = [
+            makeTodo(title: "Open", isCompleted: false),
+            makeTodo(
+                title: "Just ticked off",
+                isCompleted: true,
+                completionDate: now.addingTimeInterval(-1)
+            ),
+        ]
+
+        let titles = viewModel.filteredTodos(from: todos, now: now).map(\.title)
+        #expect(titles.contains("Just ticked off"))
+    }
+
+    @Test("A todo completed before the grace period drops out")
+    func oldCompletedTodoIsHidden() {
+        let viewModel = TodoListViewModel()
+        let now = Date()
+        let expired = now.addingTimeInterval(-TodoListViewModel.completionGracePeriod - 1)
+        let todos = [
+            makeTodo(title: "Open", isCompleted: false),
+            makeTodo(title: "Done earlier", isCompleted: true, completionDate: expired),
+        ]
+
+        let filtered = viewModel.filteredTodos(from: todos, now: now)
+        #expect(filtered.map(\.title) == ["Open"])
+    }
+
+    @Test("A completed todo with no completion date counts as long done")
+    func completedWithoutDateIsHidden() {
+        let viewModel = TodoListViewModel()
+        let todos = [makeTodo(title: "Done", isCompleted: true, completionDate: nil)]
+
+        #expect(viewModel.filteredTodos(from: todos).isEmpty)
+    }
+
+    @Test("The grace period expires at the earliest deadline still pending")
+    func graceExpiryIsTheEarliestDeadline() {
+        let viewModel = TodoListViewModel()
+        let now = Date()
+        let first = now.addingTimeInterval(-2)
+        let todos = [
+            makeTodo(title: "Older", isCompleted: true, completionDate: first),
+            makeTodo(title: "Newer", isCompleted: true, completionDate: now),
+        ]
+
+        let expiry = viewModel.nextCompletionGraceExpiry(
+            in: viewModel.filteredTodos(from: todos, now: now),
+            now: now
+        )
+        #expect(expiry == first.addingTimeInterval(TodoListViewModel.completionGracePeriod))
+    }
+
+    @Test("Nothing is scheduled when no todo is inside a grace period")
+    func graceExpiryIsNilWithoutPendingRows() {
+        let viewModel = TodoListViewModel()
+        let todos = [makeTodo(title: "Open", isCompleted: false)]
+
+        #expect(viewModel.nextCompletionGraceExpiry(in: todos) == nil)
+    }
+
+    @Test("The completed filter does not schedule a grace-period wake-up")
+    func graceExpiryIsNilOutsideTheIncompleteFilter() {
+        let viewModel = TodoListViewModel()
+        viewModel.filter = .completed
+        let todos = [makeTodo(title: "Done", isCompleted: true, completionDate: Date())]
+
+        #expect(viewModel.nextCompletionGraceExpiry(in: todos) == nil)
+    }
+
+    // MARK: - Manual Order Tests
+
+    @Test("A drag in a narrowed list leaves the hidden todos where they were")
+    func manualOrderKeepsHiddenTodosInPlace() {
+        let viewModel = TodoListViewModel()
+        let all = [
+            makeTodo(id: "a", sortIndex: 0),
+            makeTodo(id: "hidden", sortIndex: 1),
+            makeTodo(id: "b", sortIndex: 2),
+            makeTodo(id: "c", sortIndex: 3),
+        ]
+
+        // The list was showing a, b, c; the person dragged c to the front.
+        let order = viewModel.manualOrder(applying: ["c", "a", "b"], to: all)
+
+        // "hidden" keeps slot 1; the visible slots take the dragged order.
+        #expect(order == ["c", "hidden", "a", "b"])
+    }
+
+    @Test("A drag over the whole list is persisted as-is")
+    func manualOrderPassesAFullDragThrough() {
+        let viewModel = TodoListViewModel()
+        let all = [
+            makeTodo(id: "a", sortIndex: 0),
+            makeTodo(id: "b", sortIndex: 1),
+            makeTodo(id: "c", sortIndex: 2),
+        ]
+
+        #expect(viewModel.manualOrder(applying: ["c", "b", "a"], to: all) == ["c", "b", "a"])
+    }
+
+    @Test("Manual order covers every todo in the store")
+    func manualOrderIsTotal() {
+        let viewModel = TodoListViewModel()
+        let all = (0..<5).map { makeTodo(id: "id-\($0)", sortIndex: $0) }
+
+        let order = viewModel.manualOrder(applying: ["id-3", "id-1"], to: all)
+
+        #expect(Set(order) == Set(all.map(\.id)))
+        #expect(order.count == all.count)
     }
 
     // MARK: - List & Tag Filter Tests

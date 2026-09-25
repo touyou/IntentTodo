@@ -20,26 +20,44 @@ public struct VisionOSTodoListView: View {
     @Query(sort: \TodoItem.createdAt, order: .reverse) private var todoItems: [TodoItem]
     @State private var viewModel = TodoListViewModel()
     @State private var showingSettings = false
+    /// The clock the post-completion grace period is measured against — see
+    /// `TodoListView.graceNow`.
+    @State private var graceNow = Date()
     @Environment(NavigationModel.self) private var navigationModel
 
     private var filteredTodos: [TodoAppEntity] {
         // Mapped on every body evaluation rather than cached: `@Query` returns reference
         // types, so changing a field in place would not fire an `onChange`-based cache.
-        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) })
+        viewModel.filteredTodos(from: todoItems.map { TodoAppEntity(from: $0) }, now: graceNow)
     }
 
     public init() {}
 
     public var body: some View {
         @Bindable var navigationModel = navigationModel
-        NavigationSplitView {
+        let visibleTodos = filteredTodos
+        let graceExpiry = viewModel.nextCompletionGraceExpiry(in: visibleTodos, now: graceNow)
+        return NavigationSplitView {
             VisionOSSidebar(
-                todos: filteredTodos,
+                todos: visibleTodos,
                 viewModel: $viewModel,
                 selectedTodo: $navigationModel.selectedTodo,
                 showingSettings: $showingSettings
             )
             .navigationTitle(.copy("Todos"))
+            // Takes a just-completed row off the list once its grace period is up; see
+            // the same task in `TodoListView`.
+            .task(id: graceExpiry) {
+                guard let graceExpiry else { return }
+                let remaining = graceExpiry.timeIntervalSinceNow
+                if remaining > 0 {
+                    try? await Task.sleep(for: .seconds(remaining))
+                    guard !Task.isCancelled else { return }
+                }
+                // Clamped to the deadline for the same reason as in `TodoListView`: the
+                // sleep is continuous-clock and this is wall-clock.
+                graceNow = max(Date(), graceExpiry)
+            }
         } detail: {
             VisionOSDetailPane(selectedTodo: navigationModel.selectedTodo)
         }

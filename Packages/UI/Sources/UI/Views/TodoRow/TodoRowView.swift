@@ -50,6 +50,11 @@ public struct TodoRowView: View {
                 // caption to explain it.
                 Text(AttributedString.highlighting(searchMatch.term, in: todo.title))
                     .font(.body)
+                    // A title is whatever the person pasted in, so an unbounded row lets
+                    // one of them fill the screen and push the rest of the list out of
+                    // reach. Three lines is enough to tell two long titles apart; the
+                    // whole of it is on the detail screen the row taps through to.
+                    .lineLimit(3)
                     .strikethrough(todo.isCompleted)
                     .foregroundStyle(todo.isCompleted ? .secondary : .primary)
 

@@ -19,10 +19,28 @@ import TodoAppIntents
 @MainActor
 @Observable
 public final class TodoListViewModel {
+    // MARK: - Defaults
+
+    /// The filter a list opens with.
+    ///
+    /// Incomplete rather than `.all`: a completed todo has no action left on it, so a list
+    /// that keeps every one of them forever ends up mostly history. `.all` and `.completed`
+    /// stay in the options menu, and a todo that was just ticked off lingers for
+    /// ``completionGracePeriod`` so the tap still has somewhere to land.
+    public static let defaultFilter: TodoFilter = .incomplete
+
+    /// How long a just-completed todo stays on screen while the list is hiding completed
+    /// todos.
+    ///
+    /// Filling the checkbox and striking the title through is the only feedback the tap
+    /// gives, so the row must not leave on the same frame — long enough to read, short
+    /// enough that "completed todos are put away" stays true.
+    public static let completionGracePeriod: TimeInterval = 3
+
     // MARK: - UI State
 
     /// Current filter for the todo list.
-    public var filter: TodoFilter = .all
+    public var filter: TodoFilter = TodoListViewModel.defaultFilter
 
     /// Current sort order for the todo list.
     public var sortOrder: TodoSortOrder = .createdAtDescending
@@ -46,9 +64,13 @@ public final class TodoListViewModel {
         listFilter != .all || tagFilter != nil
     }
 
-    /// Whether anything at all is narrowing the list, filter and search included.
+    /// Whether the list is showing anything other than its default view.
+    ///
+    /// Compared against ``defaultFilter``, not `.all`: the filter the list opens with is
+    /// not a choice the person made, and marking it as active would leave the options
+    /// button looking filled on every launch.
     public var isNarrowed: Bool {
-        filter != .all || isNarrowedByListOrTag || !searchText.isEmpty
+        filter != Self.defaultFilter || isNarrowedByListOrTag || !searchText.isEmpty
     }
 
     // MARK: - Initialization
@@ -69,11 +91,15 @@ public final class TodoListViewModel {
     ///     `@DeferredProperty`, because reading the model's array can trap), so the
     ///     membership has to come from a snapshot that was *fetched*. `nil` drops the tag
     ///     filter rather than silently filtering everything out.
+    ///   - now: the clock the post-completion grace period is measured against. Passed in
+    ///     so the list can re-evaluate a grace period that has run out, and so tests do
+    ///     not depend on the wall clock.
     /// - Returns: Filtered and sorted todos.
     public func filteredTodos(
         from todos: [TodoAppEntity],
         focusFilter: TodoFocusFilter = .inactive,
-        organize: TodoOrganizeSnapshot? = nil
+        organize: TodoOrganizeSnapshot? = nil,
+        now: Date = Date()
     ) -> [TodoAppEntity] {
         var result = focusFilter.apply(to: todos)
 
@@ -82,7 +108,7 @@ public final class TodoListViewModel {
         case .all:
             break
         case .incomplete:
-            result = result.filter { !$0.isCompleted }
+            result = result.filter { !$0.isCompleted || isWithinCompletionGrace($0, now: now) }
         case .completed:
             result = result.filter { $0.isCompleted }
         case .favorites:
@@ -122,6 +148,64 @@ public final class TodoListViewModel {
 
         // Apply sort
         return sortTodos(result, by: sortOrder)
+    }
+
+    // MARK: - Completion Grace Period
+
+    /// When the earliest grace period still in effect runs out, or `nil` when no todo is
+    /// inside one.
+    ///
+    /// Nothing in the store changes at that moment, so the row would sit there until the
+    /// next edit; the list schedules a wake-up on this instead.
+    ///
+    /// - Parameter todos: the todos currently on screen, which already include the ones
+    ///   the grace period is keeping there.
+    public func nextCompletionGraceExpiry(
+        in todos: [TodoAppEntity],
+        now: Date = Date()
+    ) -> Date? {
+        guard filter == .incomplete else { return nil }
+        return todos
+            .filter { $0.isCompleted && isWithinCompletionGrace($0, now: now) }
+            .compactMap { $0.completionDate?.addingTimeInterval(Self.completionGracePeriod) }
+            .min()
+    }
+
+    /// Whether `todo` was completed recently enough for the incomplete filter to keep
+    /// showing it.
+    ///
+    /// A completed todo with no completion date counts as long done: every path that
+    /// writes `isCompleted` stamps the date alongside it, so a missing one means the row
+    /// predates that or came back from a restored snapshot.
+    private func isWithinCompletionGrace(_ todo: TodoAppEntity, now: Date) -> Bool {
+        guard let completionDate = todo.completionDate else { return false }
+        return now.timeIntervalSince(completionDate) < Self.completionGracePeriod
+    }
+
+    // MARK: - Manual Order
+
+    /// Splices a drag that happened in a *narrowed* list back into the full manual order.
+    ///
+    /// The person can only drag what they can see, so the todos a filter is hiding keep
+    /// the slots they already hold: only the visible positions are rewritten, in the order
+    /// the drag produced. Handing the visible ids straight to
+    /// `TodoService.reorderTodos(orderedIDs:)` would instead number them 0..n across the
+    /// whole store and collide with every hidden todo's index.
+    ///
+    /// - Parameters:
+    ///   - orderedVisibleIDs: the dragged list's ids, in their new order.
+    ///   - todos: every todo in the store.
+    /// - Returns: every id, in the order to persist.
+    public func manualOrder(
+        applying orderedVisibleIDs: [String],
+        to todos: [TodoAppEntity]
+    ) -> [String] {
+        let visible = Set(orderedVisibleIDs)
+        var dragged = orderedVisibleIDs.makeIterator()
+        return sortTodos(todos, by: .manual).map { todo in
+            guard visible.contains(todo.id), let next = dragged.next() else { return todo.id }
+            return next
+        }
     }
 
     /// Ids of the todos whose tags match `term`.
