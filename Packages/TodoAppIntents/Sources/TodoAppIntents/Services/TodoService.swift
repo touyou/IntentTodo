@@ -529,18 +529,22 @@ public final class TodoService {
     // MARK: - Read (no widget reload)
 
     public func listTodos(filter: TodoFilterType) throws -> [TodoAppEntity] {
-        let items: [TodoItem]
+        try Self.items(matching: filter, in: repository).map { TodoAppEntity(from: $0) }
+    }
+
+    /// The filter-to-fetch mapping, shared with `ShowTodosSnippetIntent`, which reads the
+    /// store without a `TodoService` so the snippet and the intent's value cannot disagree.
+    static func items(matching filter: TodoFilterType, in repository: any TodoRepositoryProtocol) throws -> [TodoItem] {
         switch filter {
         case .all:
-            items = try repository.fetchAll()
+            try repository.fetchAll()
         case .completed:
-            items = try repository.fetchCompleted()
+            try repository.fetchCompleted()
         case .incomplete:
-            items = try repository.fetchIncomplete()
+            try repository.fetchIncomplete()
         case .favorites:
-            items = try repository.fetchFavorites()
+            try repository.fetchFavorites()
         }
-        return items.map { TodoAppEntity(from: $0) }
     }
 
     /// Looks up a single todo by id, returning `nil` when it is gone.

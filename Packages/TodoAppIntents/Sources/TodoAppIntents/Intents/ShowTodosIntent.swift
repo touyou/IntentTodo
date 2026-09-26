@@ -41,7 +41,7 @@ public struct ShowTodosIntent: AppIntent {
     }
 
     @MainActor
-    public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog {
+    public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog & ShowsSnippetIntent {
         let entities = try todoService.listTodos(filter: filter)
 
         // `OpensIntent` cannot be used here: it is part of the result type, so it would
@@ -57,7 +57,11 @@ public struct ShowTodosIntent: AppIntent {
             }
         }
 
-        return .result(value: entities, dialog: dialog(for: entities))
+        return .result(
+            value: entities,
+            dialog: dialog(for: entities),
+            snippetIntent: ShowTodosSnippetIntent(filter: filter)
+        )
     }
 
     /// Pure function so it is testable: `perform()` needs system dispatch to resolve

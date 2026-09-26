@@ -92,6 +92,17 @@
         }
       }
     },
+    "%lld more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ほか %lld 件"
+          }
+        }
+      }
+    },
     "%lld overdue · %lld completed · %lld total" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1677,6 +1688,17 @@
         }
       }
     },
+    "Nothing here" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "表示するやることはありません"
+          }
+        }
+      }
+    },
     "Number of frequency units between occurrences" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1716,6 +1738,17 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "カテゴリを開く"
+          }
+        }
+      }
+    },
+    "Open in App" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "アプリで開く"
           }
         }
       }
@@ -2815,6 +2848,17 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることリスト"
+          }
+        }
+      }
+    },
+    "Todo List Snippet" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "やることの一覧スニペット"
           }
         }
       }
