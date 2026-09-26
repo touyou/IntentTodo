@@ -208,3 +208,22 @@ App Shortcut のフレーズから `Open \(.applicationName)` を外した（残
 1.1.5 の 3 プラットフォームを再び取り下げ、#182 を載せた build 47（run #47）に付け替えて再提出した
 （`asc validate` は前回と同じ errors 0 / warnings 2）。whatsNew の「ショートカットの『やることを表示』を
 アプリを開かずに実行できる」はこの変更後もそのまま正しいので据え置いた。
+
+## 追記: build 47 で Siri が失敗したのは `[.main]` を外したせいだった
+
+build 47 で "Show todos in Intento" と話しかけると something went wrong になった。本人に取ってもらった
+ログでは、アプリが起動していなかったので `linkd` が `Failed to find process state for application
+bundle; will use extension if available` と判断して `ShowTodosIntent` をウィジェット拡張に回し、拡張が
+`Couldn't find AppShortcutsProvider.`（`LNActionForAutoShortcutPhraseFetchError` Code=1）を返していた。
+`linkd` はこれを 0.5 秒おきに繰り返した。`AppShortcutsProvider` はアプリターゲットにしか無い（ルール 5）
+ので、**登録フレーズから呼ばれる Intent は拡張では解決できない**。build 46 で動いたのは、たまたま
+`NavigationModel` のために `[.main]` を付けていたから。
+
+#182 で「`NavigationModel` への依存が無くなったから `[.main]` も外す」とした判断が誤りだった。
+「開かない」（`supportedModes`）と「どこで走るか」（`allowedExecutionTargets`）を 1 本の変更で動かし、
+実機で確かめる前に審査中のビルドを差し替えていたので、失敗したときにどちらが原因か分からなかった。
+
+`ShowTodosIntent` と、同じく App Shortcut に登録している読み取り系の `ShowTodoCountIntent` を `[.main]` に
+した。`IntentExecutionTargetsTests` に「`TodoAppShortcuts.swift` に登録された Intent はすべて `[.main]`」を
+足し、固定を外すと落ちることを確かめた。AGENTS.md のルール 3 と insights 03、skills の
+execution-and-processes も同じ内容に直した。

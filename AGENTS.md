@@ -36,8 +36,9 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
    手で `perform()` を呼ばない（`@Dependency` はシステム dispatch 経由でしか注入されない）
 2. **ビジネスロジックは `TodoService`**、Intent は宣言と接続点。データ変更の後処理は
    `TodoService.dataDidChange()` の 1 か所に集約する（Intent 側に書かない）
-3. **SwiftData を書き換える Intent は `allowedExecutionTargets = [.main]`**。
-   読み取り系は固定しない（`IntentExecutionTargetsTests` が宣言漏れを検出）
+3. **SwiftData を書き換える Intent と、App Shortcut に登録した Intent は `allowedExecutionTargets = [.main]`**。
+   それ以外の読み取り系は固定しない（`IntentExecutionTargetsTests` が宣言漏れを検出）。登録フレーズは
+   アプリにしかない `AppShortcutsProvider` で引くので、固定しないとアプリ未起動時に拡張へ回って Siri が失敗する
 4. **`@Dependency` は使うプロセスごとに登録が必要**（`App.init()` / `WidgetBundle.init()` /
    watch アプリ）。登録漏れはクラッシュせず「何も起きない」になる
 5. **`AppShortcutsProvider` はアプリターゲット直下**（パッケージに置くと `autoShortcuts: 0` になり、
