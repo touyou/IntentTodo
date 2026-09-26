@@ -204,3 +204,7 @@ App Shortcut のフレーズから `Open \(.applicationName)` を外した（残
 
 クリーンビルドの統合メタデータで `supportedModes: 1` / `openAppWhenRun: false` / フレーズ 5 本 /
 `autoShortcuts` 8 件を確認。1.1.5 をもう一度差し替える。
+
+1.1.5 の 3 プラットフォームを再び取り下げ、#182 を載せた build 47（run #47）に付け替えて再提出した
+（`asc validate` は前回と同じ errors 0 / warnings 2）。whatsNew の「ショートカットの『やることを表示』を
+アプリを開かずに実行できる」はこの変更後もそのまま正しいので据え置いた。
