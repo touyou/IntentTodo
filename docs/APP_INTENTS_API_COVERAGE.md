@@ -58,7 +58,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `DeleteIntent` | 「削除する」の system intent | ✅ | `DeleteTodosIntent`（バルク） |
 | `SetValueIntent` | 絶対値セット（トグル UI 用） | ✅ | `SetTodoCompletionIntent` |
 | `ShowInAppSearchResultsIntent` | アプリ内検索へ橋渡し | ✅ | `ShowTodoSearchResultsIntent`（`#if !os(watchOS)`） |
-| `SnippetIntent` | Siri 応答に SwiftUI を埋める | ✅ | `TodoSnippetIntent` / `TodoSummarySnippetIntent` |
+| `SnippetIntent` | Siri 応答に SwiftUI を埋める | ✅ | `TodoSnippetIntent` / `TodoSummarySnippetIntent` / `ShowTodosSnippetIntent` |
 | `SnippetIntent.reload()` | snippet を外から更新 | ⬜ | データが外から変わったときに Siri の表示を追随させられる |
 | `LiveActivityIntent` | Live Activity の状態を触れる | ✅ | `ToggleTodoCompletionIntent` / `QuickSnoozeTodoIntent`（`#if os(iOS)`） |
 | `UndoableIntent` | 取り消し可能な操作 | ✅ | 削除 3 本 + 完了トグル。登録は `TodoUndoRegistrar` に集約 |
