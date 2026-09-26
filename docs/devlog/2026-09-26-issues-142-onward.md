@@ -112,3 +112,40 @@ Mac では対照を取らなかった。`/Applications` の App Store 版と DEB
 ストアファイルを共有するので、DEBUG ビルドを共有ストアで起動すると、本番のストアを開発用の
 CloudKit 環境で開くことになる。影響を受けたのは DEBUG ビルド（開発用 CloudKit 環境）の同期先で、
 TestFlight / App Store 版（本番環境）には届いていないはず。すでに混ざったフィクスチャは本人に消してもらう。
+
+## 追記: 1.1.5 を出した
+
+#172 / #169 / #174 を 1.1.5 として 3 プラットフォームに提出した（Xcode Cloud run #43、build 43）。
+
+- `production` へ main をマージして push し、Xcode Cloud に作らせた（5 分で完了）
+- `asc versions create --copy-metadata-from 1.1.4` で作り、whatsNew だけ `asc metadata apply` で差し替えた。
+  コピーされた 1.1.4 のスクショは 10 セットとも `--replace --confirm` で上げ直した
+- **`screenshots upload` は 10 セット中 4 セットが途中の枚数で止まった**（出力も JSON として読めなかった）。
+  同じコマンドを流し直すと通ったので一時的な失敗。上げたあとで `screenshots list` の
+  `sourceFileChecksum` をローカルの md5 と突き合わせて 10 セットとも一致を確かめた
+- `asc validate` は 3 つとも errors 0。warnings 2 件（サブタイトル未設定 / キーワードがアプリ名の語を含む）は
+  1.1.4 から変えていない掲載情報についてのもので、そのまま提出した
+- 1.1.4 のときの消せないドラフト `40b194d5` は今回も「stale なのでスキップ」で迂回された
+
+## 追記: #167 は `ShowTodosIntent` が `.foreground` 専用だったことが効いていた
+
+1.1.5 の TestFlight で本人が確かめた結果:
+
+- Siri で一覧すると「something went wrong」。Query Calls には `TodoEntityQuery.entities(for:)` が
+  1 件頼まれて 1 件返した行だけ（登録 todo は 2 件）
+- Shortcuts で Show Todos を「実行時に開く」オフで走らせると `not allowed`
+
+後者で原因が確定した。`ShowTodosIntent` だけが `supportedModes = .foreground` で、アプリを前面に
+出せない実行経路では丸ごと拒否される。8/27（#55）に「`OpensIntent` との Intent 合成を保つ」ために
+`.foreground(.dynamic)` を差し戻していたが、その結果、値を返すだけの経路が無くなっていた。
+
+本人の判断で、3 案（`[.background, .foreground]` + `OpensIntent` を残す / バックグラウンド専用 /
+`.foreground(.dynamic)`）のうち `.foreground(.dynamic)` から試す。`OpensIntent` は返り値の型に出るので
+dynamic と両立せず、`NavigationModel.showList(filter:)` を直接呼ぶ形にした。`NavigationModel` は
+Widget Extension に登録していないので、読み取り系だが `allowedExecutionTargets = [.main]` にした。
+
+クリーンビルドの統合メタデータで `supportedModes: 9`（`.background` 1 + `.foreground(.dynamic)` 8）、
+`openAppWhenRun: false` を確認。iOS シミュレータの `testAddThenShowChain` は緑。Mac で同じテストを
+流すと Widget Extension が `0xdead10cc`（App Group の SQLite ロックを持ったまま停止して RunningBoard に
+落とされる）で落ちて失敗した。スタックにアプリのコードは無く、この変更で Widget Extension は
+`ShowTodosIntent` を走らせなくなっている。実機の Siri / Shortcuts での確認は TestFlight に回した。
