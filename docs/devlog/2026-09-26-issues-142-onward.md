@@ -180,3 +180,11 @@ Transcript +2 で、Donation ストリームは対照を含めて +0（このシ
 
 `Binding(get:set:)` は SDK 27 で `@isolated(any) @Sendable` のクロージャを取るので、非 Sendable な
 Binding をキャプチャすると警告になる。拡張とクロージャを `@MainActor` にして消した。
+
+## 追記: 1.1.5 を build 46 に差し替えて出し直した
+
+審査待ちだった 1.1.5（build 43）の 3 プラットフォームを `asc submit cancel --version-id … --confirm` で
+取り下げ（state は `DEVELOPER_REJECTED`）、#177 / #178 / #179 を載せた build 46（run #46）を
+`asc versions attach-build` で付け直して再提出した。whatsNew にはショートカットの一覧表示の 1 行を
+足した（#180）。スクショは前回上げ直したものをそのまま使った。`asc validate` は errors 0 / warnings 2
+（サブタイトル未設定 / キーワードがアプリ名の語を含む。1.1.4 から変えていない項目）。
