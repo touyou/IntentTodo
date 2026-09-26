@@ -89,8 +89,7 @@
               "Show ${filter} todos in ${applicationName}",
               "Show my todos in ${applicationName}",
               "List todos in ${applicationName}",
-              "What are my todos in ${applicationName}",
-              "Open ${applicationName}"
+              "What are my todos in ${applicationName}"
             ]
           }
         },
@@ -102,8 +101,7 @@
               "${applicationName}の${filter}のやることを見せて",
               "${applicationName}のやることを表示",
               "${applicationName}のやることを教えて",
-              "${applicationName}のやることは何",
-              "${applicationName}を開く"
+              "${applicationName}のやることは何"
             ]
           }
         }
