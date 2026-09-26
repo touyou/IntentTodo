@@ -15,6 +15,11 @@ public struct ShowTodosIntent: AppIntent {
     // off), and taken every time from Siri, where it always can.
     public static var supportedModes: IntentModes { .background }
 
+    // An App Shortcut phrase is resolved against `AppShortcutsProvider`, which only the app
+    // target has. Left unpinned, a phrase spoken while the app is not running goes to the
+    // widget extension and fails there.
+    public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
+
     public static var parameterSummary: some ParameterSummary {
         Summary("Show \(\.$filter) todos")
     }

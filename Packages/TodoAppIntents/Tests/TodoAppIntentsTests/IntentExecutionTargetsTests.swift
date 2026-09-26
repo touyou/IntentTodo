@@ -71,14 +71,52 @@ struct IntentExecutionTargetsTests {
         )
     }
 
-    /// Read-only intents stay `.default`: answering from an extension without waking the app
-    /// is faster, and there is nothing to protect.
-    @Test("読み取り専用 Intent は実行先を固定しない")
+    /// Read-only intents outside App Shortcuts stay `.default`: answering from an extension
+    /// without waking the app is faster. Registered ones are covered by the next test.
+    @Test("App Shortcut に登録していない読み取り専用 Intent は実行先を固定しない")
     func readOnlyIntentsStayUnpinned() {
         #expect(GetTodoSummaryIntent.allowedExecutionTargets == .default)
-        #expect(ShowTodoCountIntent.allowedExecutionTargets == .default)
         #expect(SearchEverythingIntent.allowedExecutionTargets == .default)
-        #expect(ShowTodosIntent.allowedExecutionTargets == .default)
+    }
+
+    /// An App Shortcut phrase is looked up in `AppShortcutsProvider`, which lives in the app
+    /// target only. Unpinned, a phrase spoken while the app is not running is sent to the
+    /// widget extension, which answers "Couldn't find AppShortcutsProvider" and Siri says
+    /// "something went wrong".
+    ///
+    /// Reads `IntentTodo/TodoAppShortcuts.swift` for the registered intents, since the
+    /// provider is outside this package.
+    @Test("App Shortcut に登録した Intent はアプリ本体に固定されている")
+    func appShortcutIntentsPinExecutionToMainApp() throws {
+        let repositoryRoot = URL(filePath: #filePath)
+            .deletingLastPathComponent()   // TodoAppIntentsTests
+            .deletingLastPathComponent()   // Tests
+            .deletingLastPathComponent()   // TodoAppIntents
+            .deletingLastPathComponent()   // Packages
+            .deletingLastPathComponent()
+        let provider = try String(
+            contentsOf: repositoryRoot.appending(path: "IntentTodo/TodoAppShortcuts.swift"),
+            encoding: .utf8
+        )
+        let registered = provider
+            .matches(of: /intent:\s*(\w+)\(/)
+            .map { String($0.output.1) }
+        #expect(!registered.isEmpty, "TodoAppShortcuts.swift から登録 Intent を読めていない")
+
+        let targets: [String: IntentExecutionTargets] = [
+            "AddTodoIntent": AddTodoIntent.allowedExecutionTargets,
+            "ShowTodosIntent": ShowTodosIntent.allowedExecutionTargets,
+            "ToggleTodoCompletionIntent": ToggleTodoCompletionIntent.allowedExecutionTargets,
+            "ToggleFavoriteIntent": ToggleFavoriteIntent.allowedExecutionTargets,
+            "DeleteTodoIntent": DeleteTodoIntent.allowedExecutionTargets,
+            "SnoozeTodoIntent": SnoozeTodoIntent.allowedExecutionTargets,
+            "ToggleUrgentTodoIntent": ToggleUrgentTodoIntent.allowedExecutionTargets,
+            "ShowTodoCountIntent": ShowTodoCountIntent.allowedExecutionTargets
+        ]
+        for name in registered {
+            let pinned = try #require(targets[name], "\(name) を targets に足すこと")
+            #expect(pinned == [.main], "\(name) は App Shortcut に登録されているので [.main] にすること")
+        }
     }
 
     /// Catches intents missing from the list above.
