@@ -80,6 +80,13 @@ struct IntentExecutionTargetsTests {
         #expect(SearchEverythingIntent.allowedExecutionTargets == .default)
     }
 
+    /// A read-only intent that navigates needs `NavigationModel`, which only the app
+    /// registers. Run from the widget extension, its `@Dependency` would fail silently.
+    @Test("画面遷移する読み取り系 Intent はアプリ本体に固定されている")
+    func navigatingIntentsPinExecutionToMainApp() {
+        #expect(ShowTodosIntent.allowedExecutionTargets == [.main])
+    }
+
     /// Catches intents missing from the list above.
     ///
     /// Reads the sources under `Intents/` and checks that any file calling a mutating
