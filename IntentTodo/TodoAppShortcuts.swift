@@ -43,6 +43,9 @@ struct TodoAppShortcuts: AppShortcutsProvider {
 
         // One shortcut rather than several, to stay well inside the ten-shortcut limit: the
         // filter is an `AppEnum`, so its values can be embedded in the phrases.
+        //
+        // No "Open <app>" phrase: this intent shows the list without opening the app, and
+        // Siri opens an app by name on its own.
         AppShortcut(
             intent: ShowTodosIntent(),
             phrases: [
@@ -50,8 +53,7 @@ struct TodoAppShortcuts: AppShortcutsProvider {
                 "Show \(\.$filter) todos in \(.applicationName)",
                 "Show my todos in \(.applicationName)",
                 "List todos in \(.applicationName)",
-                "What are my todos in \(.applicationName)",
-                "Open \(.applicationName)"
+                "What are my todos in \(.applicationName)"
             ],
             shortTitle: LocalizedStringResource("Show Todos"),
             systemImageName: "list.bullet"
@@ -129,7 +131,7 @@ struct TodoAppShortcuts: AppShortcutsProvider {
         )
 
         // Note: `LaunchAppIntent` is used by widgets / control widgets for navigation.
-        // Not registered as an App Shortcut because Apple limits AppShortcuts to 10
-        // and "Open X" phrases are already covered by `ShowTodosIntent`.
+        // Not registered as an App Shortcut because Apple limits AppShortcuts to 10, and
+        // Siri already opens the app by name.
     }
 }

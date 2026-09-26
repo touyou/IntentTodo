@@ -731,43 +731,32 @@ public enum TodoFilterType: String, AppEnum {
 - **Entity は `@Dependency` を使えない**。Apple 公式: 「dependency injection は main app から *intent* へデータを渡すためだけに使える」。`EntityQuery` では使えるが `AppEntity` では `Unknown attribute 'Dependency'` になる。→ 共有 `ModelContainer` を App 起動時に `TodoEntityStore`（`@MainActor enum` の static）へ登録し、deferred getter から参照する（Apple サンプルの ambient `modelData` パターン相当）。
 - **プロパティマクロは非 `Hashable` な `EntityProperty` backing を生成する**ため `Hashable` / `Equatable` の自動合成が壊れる。→ `==` / `hash(into:)` を明示実装（id ベースの hash + スナップショット比較の等価）。
 
-### Intent Modes: 値を返す Intent は `.foreground` だけにしない
+### Intent Modes: 値を返す Intent は `.background` 専用にし、開くのは別の Intent に任せる
 
-**`.foreground` だけの Intent は、アプリを前面に出せない実行経路で丸ごと拒否される**。
-Shortcuts で「実行時に開く」をオフにすると `not allowed`、Siri でも実行に失敗する
-（`ShowTodosIntent` を TestFlight 実機で確認）。値や読み上げ文を返す Intent はバックグラウンドで
-完結できるようにし、画面を開くのは「開ける場面では開く」に留める。
+**「返す」と「開く」を 1 つの Intent に兼ねさせない。** 値や読み上げ文を返す Intent（`ShowTodosIntent` /
+`ShowTodoCountIntent` / `GetTodoSummaryIntent`）は `.background` 専用で、アプリの画面を開くのは
+`LaunchAppIntent` / `OpenTodoIntent`（`.foreground(.immediate)`）の役割。一覧はスニペットで見せ、
+「アプリで開く」はスニペットの `Button(intent: LaunchAppIntent(...))` にする。
 
-`ShowTodosIntent` はこの形にしている:
+兼ねさせる形はどれも、呼出元によって振る舞いが変わる（TestFlight 実機で `ShowTodosIntent` を順に試した）:
 
-```swift
-public static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
+| 形 | 起きたこと |
+|---|---|
+| `.foreground` だけ + `OpensIntent` | アプリを前面に出せない経路（Shortcuts の「実行時に開く」オフ）で `not allowed`。Siri でも失敗 |
+| `[.background, .foreground(.dynamic)]` + `canContinueInForeground` なら前面化 | Shortcuts では開かず、**Siri からは毎回アプリが開く**（Siri 起点では `canContinueInForeground` が常に真） |
+| `.background` + `snippetIntent:` | どこから呼んでも一覧を返してスニペットを出し、アプリは開かない |
 
-func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog {
-    let entities = try todoService.listTodos(filter: filter)
-    if systemContext.currentMode.canContinueInForeground {
-        do {
-            try await continueInForeground(alwaysConfirm: false)
-            navigationModel.showList(filter: ...)
-        } catch {
-            // Declined; the dialog still answers.
-        }
-    }
-    return .result(value: entities, dialog: dialog(for: entities))
-}
-```
-
-- **`OpensIntent` とは両立しない**。`OpensIntent` は返り値の型に現れるので「条件によっては開かない」を
-  表現できず、バックグラウンド実行でもアプリを開こうとする。dynamic を使うなら Intent 合成
-  （`→ LaunchAppIntent`）を外して `NavigationModel` を直接呼ぶ
-- `NavigationModel` を `@Dependency` で持つので、読み取り系でも `allowedExecutionTargets = [.main]` にする
-  （Widget Extension には `NavigationModel` を登録していない。下記「`allowedExecutionTargets`」）
+- **`OpensIntent` は返り値の型に出る**ので「条件によっては開かない」を表現できず、バックグラウンド実行でも開こうとする
+- **`perform()` から呼出元は分からない**（`systemContext.currentMode` は前面化できるかどうかだけ）。
+  「Siri からは開かない、ショートカットの『実行時に開く』オンなら開く」は書けない
+- **`Open \(.applicationName)` のような「開く」フレーズを返すだけの Intent に登録しない**。そのフレーズでアプリが
+  開かなくなる。アプリ名での「開く」は Siri が OS の機能として受け付ける
 - 出荷メタデータの `supportedModes` はビット和で出る（`.background` = 1、`.foreground(.immediate)` = 2、
-  `.foreground(.dynamic)` = 8。`ShowTodosIntent` は 9）。`.foreground` を含まない限り `openAppWhenRun` は false
+  `.foreground(.dynamic)` = 8）。`.foreground` を含まない限り `openAppWhenRun` は false
 
 | やりたいこと | 使っている手段 |
 |------------|--------------|
-| アプリの該当画面へ送る | `LaunchAppIntent` / `OpenTodoIntent`（`.foreground(.immediate)`、開くこと自体が目的の Intent） / `.foreground(.dynamic)` + `continueInForeground`（開けないときも値を返したい Intent） |
+| アプリの該当画面へ送る | `LaunchAppIntent` / `OpenTodoIntent`（`.foreground(.immediate)`、開くこと自体が目的の Intent）。値を返す Intent からは、スニペットのボタンでこれを呼ぶ |
 | 実行中に選ばせる / 確認を取る | `requestChoice`（`SnoozeTodoIntent`）/ `requestConfirmation`（`DeleteTodoIntent`） |
 | 結果を読ませる / 見せる | `IntentDialog(full:supporting:)` + `snippetIntent:` |
 | 時間のかかる一括処理 | `LongRunningIntent` + `CancellableIntent`（`CompleteTodosIntent`） |
@@ -1012,7 +1001,6 @@ Equatable`（Xcode 27 beta 5 の swiftinterface で確認）なのでテスト�
 経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
 **方針: SwiftData を書き換える Intent はすべて `[.main]`、読み取り系は未指定（`.default`）。**
-ただし画面遷移のために `NavigationModel` を持つ読み取り系（`ShowTodosIntent`）は `[.main]`。
 
 セッションが挙げる動機がこのアプリの構成そのものだった（wwdc2026-345 16:30 "My widget shares the data
 model with the app — but having two processes write to the same data store can cause conflicts. So I

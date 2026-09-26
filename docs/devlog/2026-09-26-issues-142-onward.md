@@ -188,3 +188,19 @@ Binding をキャプチャすると警告になる。拡張とクロージャを
 `asc versions attach-build` で付け直して再提出した。whatsNew にはショートカットの一覧表示の 1 行を
 足した（#180）。スクショは前回上げ直したものをそのまま使った。`asc validate` は errors 0 / warnings 2
 （サブタイトル未設定 / キーワードがアプリ名の語を含む。1.1.4 から変えていない項目）。
+
+## 追記: `ShowTodosIntent` を `.background` 専用に戻し、開くのをスニペットのボタンに分けた
+
+build 46 を試した本人から「Siri から Show を呼べたときに勝手にアプリが開く」と指摘があった。
+`[.background, .foreground(.dynamic)]` + 「`canContinueInForeground` なら前面化」は、Siri 起点では
+`canContinueInForeground` が常に真なので、Siri から呼ぶたびにアプリを開いていた。`perform()` から
+呼出元は分からないので、「Siri からは開かない」を条件で書く手段は無い。
+
+本人と「返す」と「開く」は Intent の役割として分けるのが正しいと合意し、`ShowTodosIntent` を
+`.background` 専用にした（`NavigationModel` への依存と `allowedExecutionTargets = [.main]` も外れた）。
+アプリを開くのはスニペットの「アプリで開く」（`Button(intent: LaunchAppIntent(...))`）。
+App Shortcut のフレーズから `Open \(.applicationName)` を外した（残すとそのフレーズでアプリが
+開かなくなる。アプリ名での「開く」は Siri が OS の機能として受け付ける）。
+
+クリーンビルドの統合メタデータで `supportedModes: 1` / `openAppWhenRun: false` / フレーズ 5 本 /
+`autoShortcuts` 8 件を確認。1.1.5 をもう一度差し替える。
