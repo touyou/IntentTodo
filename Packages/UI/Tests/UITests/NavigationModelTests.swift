@@ -122,7 +122,7 @@ struct NavigationModelTests {
         #expect(model.path.isEmpty)
     }
 
-    // MARK: - showAddTodo / dismissAddTodo Tests
+    // MARK: - showAddTodo / didAddTodo Tests
 
     @Test("showAddTodo sets flag to true")
     func showAddTodo() {
@@ -133,32 +133,32 @@ struct NavigationModelTests {
         #expect(model.showingAddTodo)
     }
 
-    @Test("dismissAddTodo sets flag to false")
-    func dismissAddTodo() {
+    @Test("didAddTodo sets flag to false")
+    func didAddTodo() {
         let model = NavigationModel()
         model.showAddTodo()
         #expect(model.showingAddTodo)
 
-        model.dismissAddTodo()
+        model.didAddTodo()
 
         #expect(!model.showingAddTodo)
     }
 
-    @Test("dismissAddTodo on already dismissed state is safe")
-    func dismissAddTodoWhenAlreadyDismissed() {
+    @Test("didAddTodo on already dismissed state is safe")
+    func didAddTodoWhenAlreadyDismissed() {
         let model = NavigationModel()
 
-        model.dismissAddTodo()
+        model.didAddTodo()
 
         #expect(!model.showingAddTodo)
     }
 
-    @Test("Dismissing when the sheet was never open is a no-op")
-    func dismissAddTodoIgnoresBackgroundAdds() {
+    @Test("An add when the sheet was never open is a no-op")
+    func didAddTodoIgnoresBackgroundAdds() {
         let model = NavigationModel()
 
         // Siri, Shortcuts and widgets: the sheet was never open.
-        model.dismissAddTodo()
+        model.didAddTodo()
 
         #expect(!model.showingAddTodo)
     }

@@ -264,7 +264,7 @@ public struct AddTodoIntent: AppIntent {
         )
         // A no-op unless the add sheet is open, which ties "sheet closes" to "intent
         // succeeded" instead of to a row count that other devices can also change.
-        navigationModel.dismissAddTodo()
+        navigationModel.didAddTodo()
 
         // Deliberately no `donate()` here. Apple: "Restrict your donations to direct
         // interactions with your app's interface, and not to interactions started by Siri

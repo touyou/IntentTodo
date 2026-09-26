@@ -243,6 +243,16 @@
         }
       }
     },
+    "After adding, the form clears for the next todo." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "追加すると入力欄が空になり、次のやることをそのまま入力できます。"
+          }
+        }
+      }
+    },
     "All" : {
       "localizations" : {
         "ja" : {
@@ -929,6 +939,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "中のやることは選んだリストに移動し、空になったリストは削除されます。"
+          }
+        }
+      }
+    },
+    "Keep Adding" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "続けて追加"
           }
         }
       }

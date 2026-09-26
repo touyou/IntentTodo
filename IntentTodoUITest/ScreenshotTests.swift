@@ -120,6 +120,16 @@ final class ScreenshotTests: XCTestCase {
         )
         capture("04-settings")
         app.buttons["settingsDoneButton"].tap()
+
+        // 5. Browsing by list, the screen lists and tags were added for.
+        let browseListsButton = app.buttons["browseListsButton"]
+        XCTAssertTrue(browseListsButton.waitForExistence(timeout: 10), "List screen should offer list browsing")
+        browseListsButton.tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any)["listsBrowseView"].waitForExistence(timeout: 10),
+            "Browsing by list should open the lists screen"
+        )
+        capture("05-lists")
         #endif
     }
 

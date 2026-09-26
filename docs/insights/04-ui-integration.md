@@ -760,6 +760,56 @@ Python から ICU 照合は再現できないので、並べ替えが必要な�
 
 ---
 
+## 完了済みは既定で隠し、チェック直後だけ猶予で残す
+
+一覧の既定フィルタは `TodoListViewModel.defaultFilter`（`.incomplete`）。完了済みを `.all` で
+出しっぱなしにすると、もう手を出す用事の無い行が積もって一覧が履歴になる。
+
+ただし**チェックした行をその場で消してはいけない**。チェックの手応えはチェックボックスが
+埋まって取り消し線が入ることだけなので、同じフレームで行が居なくなると「何が起きたか」が
+残らない。`TodoListViewModel.completionGracePeriod`（3 秒）だけ残す。
+
+- 判定に使うのは `TodoItem.completionDate`。`.reminders.reminder` スキーマ用に既に保存していて、
+  完了を書く全経路が `TodoService` の中で更新している
+- **完了済みなのに `completionDate` が無いものは「ずっと前に完了した」扱い**（スナップショット
+  復元で戻ってきた行など）。逆にすると復元のたびに古い行が湧く
+- **猶予切れはストアの変化ではない**ので、放っておくと次の編集まで行が残る。最も早い期限に
+  `.task(id:)` で起床して `graceNow`（`@State`）を打ち直し、それが再評価を起こす。待っている
+  行が無ければ id は `nil` で何もスケジュールしない。`graceNow` が古い方向にズレても行が
+  1 フレーム長く残るだけで、過ぎた期限はその場で補正される
+
+既定を `.incomplete` にすると 2 箇所が連動する:
+
+- `isNarrowed` は `.all` ではなく `defaultFilter` と比べる。でないと起動するたびオプション
+  ボタンが `ellipsis.circle.fill`（絞り込み中）の見た目になる
+- 空の一覧は**フィルタより先に「ストアが空か」で分岐**する。でないと新規インストールが
+  「All Done!」で迎える
+
+## 絞り込み中のドラッグは全体の順序に差し込む
+
+`TodoService.reorderTodos(orderedIDs:)` は**渡された配列を 0 から振り直す**。ドラッグは
+見えている行しか報告しないので、その結果をそのまま渡すとフィルタが隠していた todo の
+`sortIndex` と衝突する（「Work だけ表示して並び替え → 絞り込みを外すと順序が混ざる」が
+単一端末で再現する）。
+
+`TodoListViewModel.manualOrder(applying:to:)` で、**隠れていた行は今のスロットに固定したまま**
+見えていたスロットだけをドラッグ結果で埋め直してから渡す。
+
+## 行の長押しは 1 つの意味しか持てない
+
+行のコンテキストメニューは macOS では常に出す（右クリックなので競合しない）。**iOS では
+手動ソート中だけ出さない** — その状態の長押しは `.reorderable()` のドラッグであり、同じ
+ジェスチャに 2 つの意味を持たせられない。`contextMenu` は中身が空でも空のメニューを開くので、
+出し分けは modifier を当てるかどうかで決める（`RowMenu`）。
+
+## 一覧行のタイトルは 3 行で止める
+
+タイトルは貼り付けられた文字列そのものなので、`lineLimit` を付けないと長文 1 件で行が
+数画面ぶんに伸び、後続の行が届かなくなる。全文は行がタップして開く詳細画面にある。
+watch（2）/ ウィジェット（1）/ ライブアクティビティ（2）にも同じ理由で入っている。
+
+---
+
 ## WWDC 2026 / SDK 27 の SwiftUI 新 API
 
 > **現在の deployment target は全ターゲット 27.0**（`.reminders` 系 assistant schema が 27+ 限定のため）。
@@ -783,6 +833,8 @@ watchOS 27+、tvOS 不可）。本アプリは **手動ソート時のみ**有�
   `ReorderDifference<String, ReorderableSingleCollectionIdentifier>` を受け、`sources` を抜いて
   `destination.position`（`.before(id)` / `.end`）へ差し込む拡張（`@available(iOS 27,…)` で
   ガード）で新 id 順を算出 → 上記 Intent 経路へ。
+- **渡すのは全体の順序**: ドラッグは見えている行しか報告しないので、`manualOrder(applying:to:)`
+  で全体の順序に差し込んでから `TodoService` へ渡す（→ 絞り込み中のドラッグは全体の順序に差し込む）
 - **`#available` の当て方**: `.reorderable()` は `ForEach` の型を変えるので、`List` builder 内で
   `if #available(iOS 27, macOS 27, visionOS 27, *), isReorderable { ForEach…​.reorderable() } else { ForEach… }`
   と条件分岐（availability + bool を 1 つの `if` で結合可）。`.reorderContainer` は `ViewModifier`
@@ -825,6 +877,28 @@ SwiftUI に「dismiss しようとした」を観測する公開 API は無い�
   常に dirty になる）
 - **保存経路は塞がらない**: Intent は `NavigationModel` のフラグを倒して閉じており、これは
   presenter 側の状態なので `interactiveDismissDisabled` の対象外
+
+### 追加シートの「続けて追加」は閉じるか空にするかを NavigationModel で分ける
+
+`AddTodoIntent.perform()` は成功時に `NavigationModel.didAddTodo()` を呼ぶだけで、**閉じるか・
+空にして開いたままにするかは `NavigationModel.keepsAddingTodos`（シートのトグル、UserDefaults に保持）
+で決まる**。「Intent 成功 = シートが次の状態へ進む」の 1 対 1 は崩さない。
+
+- 開いたままにするときは `addTodoResetCount` を進め、`AddTodoView` が `.onChange` でフォームを
+  作り直してタイトル欄にフォーカスを戻す（Intent からシートの `@State` には触れないので、カウンタで渡す）。
+  リスト / セクションは次の 1 件に引き継ぐ
+- **確定は `Button(intent:)` 1 本のまま**。ボタンを「追加」「追加して次へ」の 2 本に分けると、
+  どちらが押されたかを `perform()` に渡すには公開 Intent に UI 専用のパラメータを足すことになる。
+  トグルなら状態が先に `NavigationModel` に載っている
+- シートが開いていなければ何もしない（Siri / Shortcuts / ウィジェット経由の追加）
+- **タイトル欄の初期フォーカスは入れていない**。入れると開いた瞬間にキーボードが出て、システムが
+  シートを `.large` まで広げるので、「半分の高さで開く」が無くなる（フォーカスしたときに広がるのは
+  システムの挙動。キーボードがフォームを隠すことはない）。フォーカスを戻すのは続けて追加するときだけ
+
+**⏸ 既存の todo どうしの間に挿入する導線は作らない**。位置に意味があるのは手動ソートのときだけで、
+その場合は追加してからドラッグすれば足りる。挿入位置を `AddTodoIntent` に持たせると、
+Siri / Shortcuts からは意味の無い公開パラメータが 1 つ増える。
+経緯: [docs/devlog/2026-09-26-issues-142-onward.md](../devlog/2026-09-26-issues-142-onward.md)
 
 ### 落とし穴
 

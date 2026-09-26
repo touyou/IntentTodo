@@ -171,6 +171,15 @@ public struct TodoAppEntity: AppEntity {
 Spotlight テスト（`testNewTodoIsIndexedInSpotlight` / `testDeletedTodoIsRemovedFromSpotlight`）は
 グリーンなので、名前付き index でも検索からは見える。
 
+**`urls` が空の todo でも Cascade（Siri / Apple Intelligence 側の索引）への donate は成功する**。
+外部サンプルが報告する「`.reminders.reminder` の `urls` が空配列だと `LNSpotlightCascadeTranslator`
+Code=5 で索引が失敗する」（FB23563297）は、このアプリには当たらない。`urls` を `@DeferredProperty`
+にしているので、そもそも index に値が載らない（下記 `@DeferredProperty` 節）。`urls` を `@Property`
+に変えるときはここを測り直すこと。確かめ方は `log show` で `process == "<実行ファイル名>"` の
+`CascadeSets` / `com.apple.corespotlight:index` を見て、`Finished set donation <AppIntentsIndexedEntity…>`
+と `result: success` が出るかどうか。
+経緯: [docs/devlog/2026-09-26-issues-142-onward.md](../devlog/2026-09-26-issues-142-onward.md)
+
 ### EntityQuery と EntityStringQuery
 
 ```swift
@@ -628,6 +637,11 @@ Widget は自前の catalog を持たず watch アプリのものを共有して
 同居するため、シンボル生成が衝突する。4 ターゲットとも
 `STRING_CATALOG_GENERATE_SYMBOLS = NO`（生成シンボルはどこからも使っていない）。
 
+**手動キーが実際にシステムから引かれることは実機で確認済み**（2026-09-25 / ja の実機）。
+Shortcuts アプリでアクション名・説明・パラメータ名・entity / enum の型名がいずれも ja で出た。
+それまでは「同じ形の `shortTitle` / `parameterSummary` が ja で出ている」ことからの推論だった。
+**Siri の読み上げ側（`IntentDialog`）はまだ推論**で、#30 に残してある。
+
 ### `IntentDialog` の中で英語の屈折を Swift で組み立てない
 
 ```swift
@@ -1046,6 +1060,10 @@ public enum TodoOrCategory: Sendable {   // ← public enum は Sendable 自動�
   「Type '...' does not conform to the 'Sendable' protocol」（生成ソース内）でビルド失敗する。
 - 各ケースの associated value は単一の値型（AppEntity 等）にする。`SearchEverythingIntent` は
   `ReturnsValue<[TodoOrCategory]>` で todo とカテゴリの混在結果を返す。
+- **`@Parameter` 側は 27.2 SDK で広がった**。union を受ける `IntentParameter` に `default:` 付き
+  イニシャライザと、コレクション（`[TodoOrCategory]`）用の `size:`（`IntentCollectionSize` /
+  `IntentWidgetFamily` 別）が `@available(anyAppleOS 27.2, *)` で追加された。本アプリの deployment target は
+  27.0 なのでまだ書けない。戻り値としての利用は影響を受けない。
 
 ## Phase 5: Visual Intelligence（#297）
 

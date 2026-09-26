@@ -33,6 +33,13 @@ public struct TodoListView: View {
     /// Feedback that could not be delivered because a channel is disabled in Settings.
     @State private var missedFeedback = MissedFeedbackModel()
     @State private var showingSettings = false
+    /// The clock the post-completion grace period is measured against.
+    ///
+    /// Re-stamped when the oldest grace period runs out, which is what takes the row off
+    /// the list: completing a todo is a store change and redraws on its own, but the row
+    /// *leaving* three seconds later is not. Reading a stale value only ever keeps a row
+    /// a frame longer, and scheduling on a past deadline corrects it immediately.
+    @State private var graceNow = Date()
     /// Owned here rather than left to the system so the sidebar button and the View menu
     /// drive the same state.
     ///
@@ -79,7 +86,8 @@ public struct TodoListView: View {
         viewModel.filteredTodos(
             from: todoItems.map { TodoAppEntity(from: $0) },
             focusFilter: focusFilterStore.effectiveFilter,
-            organize: organize
+            organize: organize,
+            now: graceNow
         )
     }
 
@@ -111,19 +119,24 @@ public struct TodoListView: View {
 
     public var body: some View {
         @Bindable var navigationModel = navigationModel
+        // Evaluated once and passed down: the list, the empty state and the grace-period
+        // wake-up all need the same answer, and each read re-runs the whole filter.
+        let visibleTodos = filteredTodos
+        let graceExpiry = viewModel.nextCompletionGraceExpiry(in: visibleTodos, now: graceNow)
         // One `NavigationSplitView` covers iPhone, iPad and Mac: at compact width it
         // collapses into push navigation on its own. visionOS has its own view.
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        return NavigationSplitView(columnVisibility: $columnVisibility) {
             Group {
-                if filteredTodos.isEmpty {
+                if visibleTodos.isEmpty {
                     TodoListEmptyView(
                         filter: viewModel.filter,
                         searchText: viewModel.searchText,
-                        isNarrowed: viewModel.isNarrowedByListOrTag
+                        isNarrowed: viewModel.isNarrowedByListOrTag,
+                        isStoreEmpty: todoItems.isEmpty
                     )
                 } else {
                     TodoListSidebar(
-                        todos: filteredTodos,
+                        todos: visibleTodos,
                         selection: $navigationModel.selectedTodo,
                         // Drag-to-reorder is only meaningful when the list is showing
                         // the user's manual order (WWDC 2026 reorderable containers,
@@ -154,6 +167,22 @@ public struct TodoListView: View {
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 missedFeedback.refresh()
+            }
+            // Takes a just-completed row off the list once its grace period is up. The id
+            // is `nil` whenever no row is waiting, so an idle list schedules nothing.
+            .task(id: graceExpiry) {
+                guard let graceExpiry else { return }
+                let remaining = graceExpiry.timeIntervalSinceNow
+                if remaining > 0 {
+                    try? await Task.sleep(for: .seconds(remaining))
+                    guard !Task.isCancelled else { return }
+                }
+                // Not a bare `Date()`: the sleep is measured on the continuous clock while
+                // this is the wall clock, so an adjustment during the wait can leave the
+                // new stamp short of the deadline. The row would then still be inside its
+                // grace period, `graceExpiry` would be unchanged, and the task would not
+                // run again — leaving the row until the next store change.
+                graceNow = max(Date(), graceExpiry)
             }
             // Keeps the list and tag filters in step with the store. The read is a fetch, so
             // the `@Query` results are only the change signal.
@@ -285,9 +314,16 @@ public struct TodoListView: View {
     /// `Button(intent:)`, so it calls the same `TodoService` the canonical
     /// `ReorderTodosIntent` runs — no logic is duplicated. `modelContext.container`
     /// is the app's shared container, so the write lands in the `@Query`'s context.
+    ///
+    /// The drag only ever reports the rows that were on screen, so it is spliced back into
+    /// the order of the whole store first: `reorderTodos(orderedIDs:)` numbers what it is
+    /// given from zero, which would collide with every todo a filter was hiding.
     private func persistReorder(_ orderedIDs: [String]) {
         let service = TodoService.swiftDataBacked(container: modelContext.container)
-        try? service.reorderTodos(orderedIDs: orderedIDs)
+        let all = todoItems.map { TodoAppEntity(from: $0) }
+        try? service.reorderTodos(
+            orderedIDs: viewModel.manualOrder(applying: orderedIDs, to: all)
+        )
     }
 
     /// Puts a todo in front of the delete confirmation.
@@ -351,6 +387,20 @@ private struct TodoListSidebar: View {
         #endif
     }
 
+    /// Whether the row offers its actions as a menu.
+    ///
+    /// Always on the Mac, where the menu is a right-click and cannot be confused with
+    /// anything else. On iOS a long press is how the reorderable list is dragged, so the
+    /// menu stands down while manual order is the one in effect — otherwise the same
+    /// gesture would mean two things.
+    private var showsRowMenu: Bool {
+        #if os(macOS)
+        true
+        #else
+        !isReorderable
+        #endif
+    }
+
     @ViewBuilder
     private func row(_ todo: TodoAppEntity) -> some View {
         TodoRowView(
@@ -361,24 +411,51 @@ private struct TodoListSidebar: View {
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 DeleteButton(todo: todo)
             }
-            #if os(macOS)
-            // There is no swipe on the Mac, so the row's own actions live in a
-            // right-click menu. Same intents the checkbox and the star run.
-            .contextMenu {
-                Button(intent: ToggleTodoCompletionIntent(todo: todo)) {
-                    Text(todo.isCompleted ? .copy("Mark as Not Completed") : .copy("Mark as Completed"))
-                }
-                Button(intent: ToggleFavoriteIntent(todo: todo)) {
-                    Text(todo.isFavorite ? .copy("Remove from Favorites") : .copy("Add to Favorites"))
-                }
-                Divider()
-                Button(role: .destructive) {
-                    onRequestDeletion(todo)
-                } label: {
-                    Text(.copy("Delete"))
-                }
-            }
-            #endif
+            .modifier(RowMenu(isEnabled: showsRowMenu) { rowMenu(todo) })
+    }
+
+    /// The row's own actions. Same intents the checkbox, the star and the swipe run.
+    @ViewBuilder
+    private func rowMenu(_ todo: TodoAppEntity) -> some View {
+        Button(intent: ToggleTodoCompletionIntent(todo: todo)) {
+            Text(todo.isCompleted ? .copy("Mark as Not Completed") : .copy("Mark as Completed"))
+        }
+        Button(intent: ToggleFavoriteIntent(todo: todo)) {
+            Text(todo.isFavorite ? .copy("Remove from Favorites") : .copy("Add to Favorites"))
+        }
+        Divider()
+        #if os(macOS)
+        // Confirmed by the list, which owns the dialog: `requestConfirmation` has no
+        // surface to present on when the caller is the app itself.
+        Button(role: .destructive) {
+            onRequestDeletion(todo)
+        } label: {
+            Text(.copy("Delete"))
+        }
+        #else
+        // Matches the swipe action, where revealing Delete and pressing it is already the
+        // confirmation, so the non-confirming intent is the right one.
+        Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: todo)) {
+            Text(.copy("Delete"))
+        }
+        #endif
+    }
+}
+
+/// Attaches the row's context menu, or leaves the long press alone.
+///
+/// A `contextMenu` with empty content still opens an empty menu, so the choice has to be
+/// whether the modifier is applied at all.
+private struct RowMenu<Menu: View>: ViewModifier {
+    let isEnabled: Bool
+    @ViewBuilder let menu: () -> Menu
+
+    func body(content: Content) -> some View {
+        if isEnabled {
+            content.contextMenu { menu() }
+        } else {
+            content
+        }
     }
 }
 
@@ -458,7 +535,16 @@ private struct TodoListEmptyView: View {
     /// Whether a list or tag filter is also narrowing the list. Without it, "All Done!"
     /// would claim every todo is finished when in fact one list is simply empty.
     let isNarrowed: Bool
+    /// Whether there are no todos at all. Read before the filter, which since it defaults
+    /// to incomplete would otherwise greet a brand-new install with "All Done!".
+    let isStoreEmpty: Bool
     @Environment(NavigationModel.self) private var navigationModel
+
+    /// Whether nothing but an empty store explains the empty list, which is the one case
+    /// worth offering the create action in.
+    private var isFirstRun: Bool {
+        isStoreEmpty && searchText.isEmpty && !isNarrowed
+    }
 
     var body: some View {
         let content = emptyContent
@@ -467,7 +553,7 @@ private struct TodoListEmptyView: View {
         } description: {
             Text(content.description)
         } actions: {
-            if filter == .all && searchText.isEmpty && !isNarrowed {
+            if isFirstRun {
                 Button(.copy("Add Todo")) { navigationModel.showAddTodo() }
                     .buttonStyle(.borderedProminent)
             }
@@ -487,6 +573,13 @@ private struct TodoListEmptyView: View {
                 title: .copy("Nothing Here"),
                 icon: "line.3.horizontal.decrease.circle",
                 description: .copy("No todos match the list or tag you picked.")
+            )
+        }
+        if isFirstRun {
+            return EmptyContent(
+                title: .copy("No Todos"),
+                icon: "checklist",
+                description: .copy("Tap + to add your first todo.")
             )
         }
         switch filter {
@@ -679,7 +772,7 @@ private struct AddTodoButton: View {
 // MARK: - Add Todo Sheet
 
 /// Sheet container for `AddTodoView`. Dismissal is driven by `AddTodoIntent.perform()`
-/// which calls `navigationModel.dismissAddTodo()` on success — no need to observe
+/// which calls `navigationModel.didAddTodo()` on success — no need to observe
 /// `@Query` count drift here.
 private struct AddTodoSheet: View {
     var body: some View {
