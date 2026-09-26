@@ -15,6 +15,11 @@ public struct ShowTodoCountIntent: AppIntent {
     public static let description = IntentDescription("Shows how many todos are still incomplete")
     public static let supportedModes: IntentModes = [.background]
 
+    // An App Shortcut phrase is resolved against `AppShortcutsProvider`, which only the app
+    // target has. Left unpinned, a phrase spoken while the app is not running goes to the
+    // widget extension and fails there.
+    public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
+
     @Dependency
     var todoService: TodoService
 

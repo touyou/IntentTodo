@@ -78,7 +78,7 @@ public struct TodoEntityQuery: EntityQuery {
 |--------------|-------------|----------------|
 | `.foreground(.immediate)` | メインアプリ（開かれる） | `App.init()` |
 | `.foreground` | メインアプリ | `App.init()` |
-| `.background` / Siri / Shortcuts | メインアプリ | `App.init()` |
+| `.background` / Siri / Shortcuts（`allowedExecutionTargets` 未指定） | **アプリ未起動なら拡張に回る**（`linkd`: `Failed to find process state for application bundle; will use extension if available`） | 両方。ただし App Shortcut のフレーズ起点は拡張では解決できないので `[.main]` にする |
 | `.background` / Widget ControlWidgetButton（`allowedExecutionTargets` 未指定 = 読み取り系のみ） | **ヒューリスティクスで決定**（アプリ起動中はメインアプリ優先、未起動なら Widget Extension） | **両方**（`App.init()` と `WidgetBundle.init()`） |
 | 同上（`allowedExecutionTargets = [.main]` = 書き込み系すべて） | メインアプリに固定 | `App.init()` のみ |
 | Live Activity ボタン | **メインアプリプロセス**（`perform()` は公式保証。entity 事前解決も実測でメインアプリ） | `App.init()` |
@@ -1000,7 +1000,7 @@ Equatable`（Xcode 27 beta 5 の swiftinterface で確認）なのでテスト�
 
 経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
-**方針: SwiftData を書き換える Intent はすべて `[.main]`、読み取り系は未指定（`.default`）。**
+**方針: SwiftData を書き換える Intent と App Shortcut に登録した Intent は `[.main]`、それ以外の読み取り系は未指定（`.default`）。**
 
 セッションが挙げる動機がこのアプリの構成そのものだった（wwdc2026-345 16:30 "My widget shares the data
 model with the app — but having two processes write to the same data store can cause conflicts. So I
@@ -1012,13 +1012,19 @@ Extension にもリンクされているため、未指定だと**アプリ未�
 - 固定対象は 13 intent（`TodoService` の変更メソッドを呼ぶもの全部）。`ToggleTodoCompletionIntent` /
   `QuickSnoozeTodoIntent` は iOS では `LiveActivityIntent` 準拠で実質アプリ実行だが、macOS / watchOS には
   その保証が無いので同じく明示する。
-- 読み取り系（`ShowTodoCountIntent` / `GetTodoSummaryIntent` / `SearchEverythingIntent` 等）は**あえて固定
+- **App Shortcut に登録した Intent は読み取り系でも `[.main]`**（`ShowTodosIntent` / `ShowTodoCountIntent`）。
+  登録フレーズからのアクション解決は `AppShortcutsProvider` を引くが、これはアプリターゲットにしか無い
+  （ルール 5）。未指定だとアプリ未起動時に `linkd` がウィジェット拡張を選び、拡張が
+  `Couldn't find AppShortcutsProvider.`（`LNActionForAutoShortcutPhraseFetchError` Code=1）で失敗して、
+  `linkd` が 0.5 秒おきに再試行した末に Siri は「something went wrong」になる（TestFlight 実機のログで確認）
+- それ以外の読み取り系（`GetTodoSummaryIntent` / `SearchEverythingIntent` 等）は**あえて固定
   しない**。Extension で応答できたほうがアプリを起こさずに済んで速い。よって `WidgetBundle.init()` の
   `TodoService` 登録は残す（読み取り専用の利用に用途が変わった）。二重登録は撤廃ではなく**役割の分離**。
 - 守り方: `Packages/TodoAppIntents/Tests/.../IntentExecutionTargetsTests.swift`。①13 intent の
-  `allowedExecutionTargets == [.main]` を個別に assert ②読み取り系が `.default` のままか ③`Intents/` の
+  `allowedExecutionTargets == [.main]` を個別に assert ②登録していない読み取り系が `.default` のままか ③`Intents/` の
   ソースを走査して「`todoService` の変更メソッドを呼ぶのに `allowedExecutionTargets` を宣言していない
   ファイル」を検出（新規 intent の宣言漏れ対策）。③ は probe intent を置いて**実際に落ちることを確認済み**。
+  ④`IntentTodo/TodoAppShortcuts.swift` を読んで、登録された Intent がすべて `[.main]` か（固定を外すと落ちることを確認済み）。
 - **`allowedExecutionTargets` が制御するのは「どのプロセスが perform するか」だけ**で、entity 解決の有無は
   変えられない。かつて「だから FromExtension 分離は `allowedExecutionTargets` では統合できない」と結論して
   いたが、そもそもの前提（LA からの entity 解決が crash する）が iOS 27 で成立しなくなったため、この論点は

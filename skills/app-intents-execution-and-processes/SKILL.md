@@ -43,9 +43,11 @@ public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
 
 `.main` / `.appIntentsExtension` / `.widgetKitExtension` are the three options [Apple: wwdc2026-345 16:55]. It controls **who performs**, not whether entity resolution happens — resolution runs regardless.
 
-**Rule of thumb: pin every intent that writes to the store to `[.main]`, and leave read-only intents unpinned.** A shared package linked into a widget extension otherwise lets the extension become a second writer to the same store when the app is not running — the configuration wwdc2026-345 16:30 names as the one to avoid. Read-only intents are better left free: answering from an already-running extension is faster than launching the app.
+**Rule of thumb: pin every intent that writes to the store, and every intent registered as an App Shortcut, to `[.main]`; leave the other read-only intents unpinned.** A shared package linked into a widget extension otherwise lets the extension become a second writer to the same store when the app is not running — the configuration wwdc2026-345 16:30 names as the one to avoid. Other read-only intents are better left free: answering from an already-running extension is faster than launching the app.
 
-A test can enforce that: enumerate the intents that call a mutating service method and assert each declares `[.main]`. It is a rule no linter knows about and a forgotten declaration has no symptom.
+**App Shortcut intents are the exception among read-only ones.** A spoken phrase is resolved to its action through `AppShortcutsProvider`, which exists only in the app target. When the app is not running, `linkd` logs `Failed to find process state for application bundle; will use extension if available`, sends the unpinned intent to the widget extension, and the extension answers `Couldn't find AppShortcutsProvider.` (`LNActionForAutoShortcutPhraseFetchError` Code=1). `linkd` retries every half second and Siri ends with "something went wrong" [measured on device, TestFlight, 2026-09-26]. Nothing shows in the simulator or in metadata.
+
+A test can enforce both: enumerate the intents that call a mutating service method, and read the intents named in the `AppShortcutsProvider` source, and assert each declares `[.main]`. It is a rule no linter knows about and a forgotten declaration has no symptom.
 
 ### Registration matrix
 
@@ -53,7 +55,7 @@ A test can enforce that: enumerate the intents that call a mutating service meth
 
 | Caller | Executes in | Register in |
 |---|---|---|
-| Siri / Shortcuts | main app for app-only or `[.main]` intents; otherwise check eligible extension targets | each eligible process |
+| Siri / Shortcuts | main app for app-only or `[.main]` intents; otherwise **an extension when the app is not running** | each eligible process — and pin App Shortcut intents to `[.main]` |
 | App UI `Button(intent:)` | main app | `App.init()` |
 | Widget `Button(intent:)`, `.foreground(.immediate)` | main app | `App.init()` |
 | Live Activity button | main app — `perform()` guaranteed [Apple]; entity pre-resolution measured there too [measured 2026-08-12] | `App.init()` |
