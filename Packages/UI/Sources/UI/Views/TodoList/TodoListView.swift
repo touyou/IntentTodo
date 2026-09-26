@@ -137,7 +137,9 @@ public struct TodoListView: View {
                 } else {
                     TodoListSidebar(
                         todos: visibleTodos,
-                        selection: $navigationModel.selectedTodo,
+                        selection: $navigationModel.selectedTodo.onUserSet { todo in
+                            if let todo { UIActionDonation.openTodo(todo) }
+                        },
                         // Drag-to-reorder is only meaningful when the list is showing
                         // the user's manual order (WWDC 2026 reorderable containers,
                         // 27+; gated inside the sidebar).
