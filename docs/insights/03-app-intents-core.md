@@ -731,46 +731,48 @@ public enum TodoFilterType: String, AppEnum {
 - **Entity は `@Dependency` を使えない**。Apple 公式: 「dependency injection は main app から *intent* へデータを渡すためだけに使える」。`EntityQuery` では使えるが `AppEntity` では `Unknown attribute 'Dependency'` になる。→ 共有 `ModelContainer` を App 起動時に `TodoEntityStore`（`@MainActor enum` の static）へ登録し、deferred getter から参照する（Apple サンプルの ambient `modelData` パターン相当）。
 - **プロパティマクロは非 `Hashable` な `EntityProperty` backing を生成する**ため `Hashable` / `Equatable` の自動合成が壊れる。→ `==` / `hash(into:)` を明示実装（id ベースの hash + スナップショット比較の等価）。
 
-### Intent Modes: `.foreground(.dynamic)` は使っていない（適所なし）
+### Intent Modes: 値を返す Intent は `.foreground` だけにしない
 
-`.foreground(.dynamic)` + `continueInForeground` は「背景で走らせ、必要になったら前面に
-引き上げる」ための API（deprecated な `ForegroundContinuableIntent` の後継）。**本アプリでは
-採用していない**。API を把握した上での不採用なので、理由を残す。
+**`.foreground` だけの Intent は、アプリを前面に出せない実行経路で丸ごと拒否される**。
+Shortcuts で「実行時に開く」をオフにすると `not allowed`、Siri でも実行に失敗する
+（`ShowTodosIntent` を TestFlight 実機で確認）。値や読み上げ文を返す Intent はバックグラウンドで
+完結できるようにし、画面を開くのは「開ける場面では開く」に留める。
+
+`ShowTodosIntent` はこの形にしている:
 
 ```swift
-// 採用していない形
 public static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
 
 func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog {
     let entities = try todoService.listTodos(filter: filter)
     if systemContext.currentMode.canContinueInForeground {
-        try? await continueInForeground(alwaysConfirm: false)
-        navigationModel.navigateToRoot()
+        do {
+            try await continueInForeground(alwaysConfirm: false)
+            navigationModel.showList(filter: ...)
+        } catch {
+            // Declined; the dialog still answers.
+        }
     }
     return .result(value: entities, dialog: dialog(for: entities))
 }
 ```
 
-**`OpensIntent` と両立しない**のが判断の中心。`OpensIntent` は返り値の型に現れるので
-「条件によっては開かない」を表現できず、dynamic を使うなら Intent 合成
-（`ShowTodosIntent` → `LaunchAppIntent`）を外して `NavigationModel` 直叩きに替える必要がある。
-一度その形を入れて revert した（`93d0230` → `cab8e67`）。
-
-**代わりに埋まっている手段**（2026-08-27 に全 21 intent を見直して確認）:
+- **`OpensIntent` とは両立しない**。`OpensIntent` は返り値の型に現れるので「条件によっては開かない」を
+  表現できず、バックグラウンド実行でもアプリを開こうとする。dynamic を使うなら Intent 合成
+  （`→ LaunchAppIntent`）を外して `NavigationModel` を直接呼ぶ
+- `NavigationModel` を `@Dependency` で持つので、読み取り系でも `allowedExecutionTargets = [.main]` にする
+  （Widget Extension には `NavigationModel` を登録していない。下記「`allowedExecutionTargets`」）
+- 出荷メタデータの `supportedModes` はビット和で出る（`.background` = 1、`.foreground(.immediate)` = 2、
+  `.foreground(.dynamic)` = 8。`ShowTodosIntent` は 9）。`.foreground` を含まない限り `openAppWhenRun` は false
 
 | やりたいこと | 使っている手段 |
 |------------|--------------|
-| アプリの該当画面へ送る | `OpensIntent` + `LaunchAppIntent`（`.foreground(.immediate)`）の Intent 合成 |
+| アプリの該当画面へ送る | `LaunchAppIntent` / `OpenTodoIntent`（`.foreground(.immediate)`、開くこと自体が目的の Intent） / `.foreground(.dynamic)` + `continueInForeground`（開けないときも値を返したい Intent） |
 | 実行中に選ばせる / 確認を取る | `requestChoice`（`SnoozeTodoIntent`）/ `requestConfirmation`（`DeleteTodoIntent`） |
 | 結果を読ませる / 見せる | `IntentDialog(full:supporting:)` + `snippetIntent:` |
 | 時間のかかる一括処理 | `LongRunningIntent` + `CancellableIntent`（`CompleteTodosIntent`） |
 
-残るのは「背景で始めて、途中で前面が必要になる」形だが、**このアプリの 21 intent にその形の
-操作が無い**（todo の CRUD はパラメータが揃っていれば背景で完結し、揃わないケースは
-パラメータ解決 / `requestChoice` が拾う）。`.foreground(.dynamic)` に当て先ができるのは、
-たとえば「途中でカメラや地図のような別 UI を出さないと完了できない操作」が生えたとき。
-
-経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)（2026-08-27 の #55）
+経緯: [docs/devlog/2026-09-26-issues-142-onward.md](../devlog/2026-09-26-issues-142-onward.md)
 
 ### Onscreen Entities（画面コンテンツを Siri / Apple Intelligence に提供）
 
@@ -1010,6 +1012,7 @@ Equatable`（Xcode 27 beta 5 の swiftinterface で確認）なのでテスト�
 経緯: [docs/devlog/03-app-intents-core.md](../devlog/03-app-intents-core.md)
 
 **方針: SwiftData を書き換える Intent はすべて `[.main]`、読み取り系は未指定（`.default`）。**
+ただし画面遷移のために `NavigationModel` を持つ読み取り系（`ShowTodosIntent`）は `[.main]`。
 
 セッションが挙げる動機がこのアプリの構成そのものだった（wwdc2026-345 16:30 "My widget shares the data
 model with the app — but having two processes write to the same data store can cause conflicts. So I

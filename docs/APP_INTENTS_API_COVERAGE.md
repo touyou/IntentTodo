@@ -43,7 +43,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `isAssistantOnly`（`AssistantSchemaIntent`） | Shortcuts に出さず Apple Intelligence 専用にする | ⏸ | 単に隠すだけなら `isDiscoverable = false` で足りている。**本来の用途は移行**で、公開済み Intent の形がスキーマ要求と合わないときは「別 Intent + `isAssistantOnly = true`」で旧 Intent に保存済みショートカットを担わせる（Apple の指示）。本アプリは 1.0 が公開前だったので `AddTodoIntent` / `UpdateTodoIntent` を直接作り直した（#138 / 経緯は devlog 2026-09-12） |
 | `isDiscoverable = false` | 内部用 Intent を Siri / Shortcuts から隠す | ✅ | 6 本（`QuickSnooze` / `DeleteTodoImmediately` / `SetTodoCompletion` / `Reorder` / snippet 2 本） |
 | `IntentResult` / `.result(value:dialog:)` | 実行結果の返却 | ✅ | 全 Intent |
-| `OpensIntent` | 別 Intent を続けて開く | ✅ | `AddTodoIntent` / `ShowTodosIntent` |
+| `OpensIntent` | 別 Intent を続けて開く | ⏸ | 返り値の型に現れるので、バックグラウンド実行でも開こうとする。`ShowTodosIntent` は `.foreground(.dynamic)` に移した（開けない経路で `not allowed` になったため） |
 | `CustomAppIntentErrorConvertible` | 自前エラーをシステムのエラー語彙へ | ✅ | `IntentError.notFound` → `entityNotFound` |
 | `CustomLocalizedStringResourceConvertible` | エラー文言のローカライズ | ⏸ | 上記の `CustomAppIntentErrorConvertible` を採用したので不要 |
 | `AppIntentsPackage` | Intent をパッケージに置く | ⏸ 意図的不使用 | 全パッケージが静的リンクなのでマージは宣言なしで起きる。宣言が足す `extract.packagedata`（マングル名での実行時参照）が、配布ビルドで App Intents がバンドルごと読まれない原因だったため全廃した。詳細は insights/03 |
@@ -77,7 +77,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `CustomIntentMigratedAppIntent` | SiriKit からの移行 | 🚫 | SiriKit 資産がない |
 | `LiveActivityStartingIntent` | 旧・LA 開始専用 | ⛔ | iOS 17 で deprecated。`LiveActivityIntent` が後継 |
 | `PredictableIntent` | 実行タイミングを予測して提案 | ⬜ | 前提の donation はシステムが記録している（2026-08-30 実測）ので、**不可能ではなく未着手**（#68） |
-| `ForegroundContinuableIntent` | 旧・動的 foreground 化 | ⛔ | `.foreground(.dynamic)` が後継（そちらも #55 で不採用） |
+| `ForegroundContinuableIntent` | 旧・動的 foreground 化 | ⛔ | `.foreground(.dynamic)` が後継 |
 
 ## 3. 実行制御
 
@@ -86,7 +86,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `supportedModes` `.background` | アプリを開かない | ✅ | 変更系のほぼ全部 |
 | `.foreground(.immediate)` | すぐ前面 | ✅ | `LaunchAppIntent` / `Open*Intent` |
 | `.foreground(.deferred)` | 背景で始めて必要なら前面 | ✅ | `AddTodoIntent` |
-| `.foreground(.dynamic)` / `continueInForeground()` | `perform()` 内で前面化を判断 | ⏸ | **#55 で「適所なし」と結論**。開くは `OpensIntent`、対話は `requestChoice`、読ませるは dialog + snippet で埋まっている |
+| `.foreground(.dynamic)` / `continueInForeground()` | `perform()` 内で前面化を判断 | ✅ | `ShowTodosIntent`（`[.background, .foreground(.dynamic)]`）。開けるときだけ一覧画面へ送り、開けないときも値と dialog を返す |
 | `systemContext.currentMode` / `canContinueInForeground` | 実行モードの参照 | ⏸ | 上と同じ理由で参照する必要がない |
 | `systemContext.locale` / `isVoiceOnly` | 実行文脈の言語・音声のみかの参照 | ⏸ | RC 27A266a / 27.1 / 27.2 beta の公開 SDK に存在（`preciseTimestamp` / `isVoiceOnly` / `locale` の 3 つのまま）。現行は返却する値と dialog に表示を任せるため直接参照しない。呼出元の識別には使えない |
 | `allowedExecutionTargets` | 実行プロセスを固定 | ✅ | **書き込み系は全部 `[.main]`**。読み取り系は固定しない。宣言漏れは `IntentExecutionTargetsTests` が検出 |

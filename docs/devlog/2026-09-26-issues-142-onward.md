@@ -126,3 +126,26 @@ TestFlight / App Store 版（本番環境）には届いていないはず。す
 - `asc validate` は 3 つとも errors 0。warnings 2 件（サブタイトル未設定 / キーワードがアプリ名の語を含む）は
   1.1.4 から変えていない掲載情報についてのもので、そのまま提出した
 - 1.1.4 のときの消せないドラフト `40b194d5` は今回も「stale なのでスキップ」で迂回された
+
+## 追記: #167 は `ShowTodosIntent` が `.foreground` 専用だったことが効いていた
+
+1.1.5 の TestFlight で本人が確かめた結果:
+
+- Siri で一覧すると「something went wrong」。Query Calls には `TodoEntityQuery.entities(for:)` が
+  1 件頼まれて 1 件返した行だけ（登録 todo は 2 件）
+- Shortcuts で Show Todos を「実行時に開く」オフで走らせると `not allowed`
+
+後者で原因が確定した。`ShowTodosIntent` だけが `supportedModes = .foreground` で、アプリを前面に
+出せない実行経路では丸ごと拒否される。8/27（#55）に「`OpensIntent` との Intent 合成を保つ」ために
+`.foreground(.dynamic)` を差し戻していたが、その結果、値を返すだけの経路が無くなっていた。
+
+本人の判断で、3 案（`[.background, .foreground]` + `OpensIntent` を残す / バックグラウンド専用 /
+`.foreground(.dynamic)`）のうち `.foreground(.dynamic)` から試す。`OpensIntent` は返り値の型に出るので
+dynamic と両立せず、`NavigationModel.showList(filter:)` を直接呼ぶ形にした。`NavigationModel` は
+Widget Extension に登録していないので、読み取り系だが `allowedExecutionTargets = [.main]` にした。
+
+クリーンビルドの統合メタデータで `supportedModes: 9`（`.background` 1 + `.foreground(.dynamic)` 8）、
+`openAppWhenRun: false` を確認。iOS シミュレータの `testAddThenShowChain` は緑。Mac で同じテストを
+流すと Widget Extension が `0xdead10cc`（App Group の SQLite ロックを持ったまま停止して RunningBoard に
+落とされる）で落ちて失敗した。スタックにアプリのコードは無く、この変更で Widget Extension は
+`ShowTodosIntent` を走らせなくなっている。実機の Siri / Shortcuts での確認は TestFlight に回した。
