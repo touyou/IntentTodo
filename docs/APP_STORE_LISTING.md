@@ -124,8 +124,8 @@ reported back to the person; declining it does not restrict any feature.
 
 | ASC の枠 | ファイル | 画素数 |
 |---|---|---|
-| iPhone 6.9" | `Screenshots/iphone/<locale>/` | 1320x2868 × 4 |
-| iPad 13" | `Screenshots/ipad/<locale>/` | 2064x2752 × 4 |
+| iPhone 6.9" | `Screenshots/iphone/<locale>/` | 1320x2868 × 5 |
+| iPad 13" | `Screenshots/ipad/<locale>/` | 2064x2752 × 5 |
 | Mac | `Screenshots/mac/<locale>/` | 2880x1800 × 3 |
 | Apple Vision Pro | `Screenshots/vision/<locale>/` | 3840x2160 × 3 |
 | Apple Watch | `Screenshots/watch/<locale>/` | 422x514 × 2 |
