@@ -227,3 +227,8 @@ bundle; will use extension if available` と判断して `ShowTodosIntent` を�
 した。`IntentExecutionTargetsTests` に「`TodoAppShortcuts.swift` に登録された Intent はすべて `[.main]`」を
 足し、固定を外すと落ちることを確かめた。AGENTS.md のルール 3 と insights 03、skills の
 execution-and-processes も同じ内容に直した。
+
+build 48（run #48。`production` への push で自動起動しなかったので `asc xcode-cloud run --workflow Default
+--branch production` で手動起動）を本人が TestFlight で確かめ、"Show todos in Intento" でアプリが開かずに
+一覧のスニペットが出ることを確認した。そのあとで 1.1.5 の 3 プラットフォームを build 48 に付け替えて
+再提出した（`asc validate` は errors 0 / warnings 2）。
