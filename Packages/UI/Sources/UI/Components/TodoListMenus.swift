@@ -19,7 +19,7 @@ public struct FilterPicker: View {
     }
 
     public var body: some View {
-        Picker(.copy("Filter"), selection: $selection) {
+        Picker(.copy("Filter"), selection: $selection.onUserSet(UIActionDonation.showList)) {
             ForEach(TodoFilter.allCases) { filter in
                 Label(filter.displayName, systemImage: filter.systemImage)
                     .tag(filter)

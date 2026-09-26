@@ -149,3 +149,34 @@ Widget Extension に登録していないので、読み取り系だが `allowed
 流すと Widget Extension が `0xdead10cc`（App Group の SQLite ロックを持ったまま停止して RunningBoard に
 落とされる）で落ちて失敗した。スタックにアプリのコードは無く、この変更で Widget Extension は
 `ShowTodosIntent` を走らせなくなっている。実機の Siri / Shortcuts での確認は TestFlight に回した。
+
+## 追記: Siri は一覧の依頼を OmniSearch で答えていた / donation の漏れを埋めた
+
+TestFlight（build 45）で本人に 2 回ログを取ってもらった（`sudo log collect --device-udid …`）。
+
+**1 回目（リンクの無い todo を編集した直後）**: アプリのプロセスで Spotlight への donate と
+Cascade（`AppIntentsIndexedEntity`）への set donation がともに `result: success`。
+`LNSpotlightCascadeTranslator` の `Code=5` / `field url` はどのプロセスからも出なかった。
+「リンク付きの todo しか認識されない」を見て一度「#142 に当たっていた」と訂正したが、それは誤りで、
+#142 の結論（当たらない）はそのままでよかった。
+
+**2 回目（「Intento で未完了のやることを表示」と話しかけた直後）**:
+
+- `ShowTodosIntent` は実行されていない。`searchtoold`（OmniSearch）が Spotlight を横断検索し、
+  Siri に 6 件を返した。内訳は Apple 純正リマインダー（`com.apple.reminders`）5 件と Intento の
+  app entity 1 件。Intento 側は候補 13 件のうちキーワード一致（sparseScore 1.0）の 1 件だけが残った
+- 「リンク付きだけ」は索引の漏れではなく、この順位付けの結果だった
+- `linkd` は App Shortcuts を **en-JP** で補間していた（`Interpolating AppShortcuts for
+  dev.touyou.IntentTodo:en-JP`）。本人の Siri が英語設定で、日本語の登録フレーズは照合に使われて
+  いなかった。日本語で「Intento のやることを表示」と言って `ShowTodoSearchResultsIntent` に
+  落ちたのも、これと合わせて読む必要がある
+
+本人から「donation が効いていないだけでは」と指摘があり、UI の操作経路を洗った。
+`Button(intent:)` を通らないのは、フィルタの選択、行の選択（詳細を開く）、ドラッグでの並び替えの 3 つ。
+前 2 つを `UIActionDonation` で UI 側から `intent.donate()` するようにした（並び替えは ⏸）。
+シミュレータで、フィルタを 3 回切り替えて行を 1 回開き、Transcript に `ShowTodosIntent` 3 件と
+`OpenTodoIntent` 1 件が増えるのを確認した。陽性対照の `Button(intent: ToggleFavoriteIntent)` ×2 も
+Transcript +2 で、Donation ストリームは対照を含めて +0（このシミュレータでは書かれていない）。
+
+`Binding(get:set:)` は SDK 27 で `@isolated(any) @Sendable` のクロージャを取るので、非 Sendable な
+Binding をキャプチャすると警告になる。拡張とクロージャを `@MainActor` にして消した。

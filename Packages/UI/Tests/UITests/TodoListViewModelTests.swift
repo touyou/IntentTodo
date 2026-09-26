@@ -72,6 +72,13 @@ struct TodoListViewModelTests {
 
     // MARK: - Filter Tests
 
+    /// The donation for a picked filter carries `filterType`; a mismatch would teach Siri
+    /// the wrong list.
+    @Test("TodoFilter round-trips through the intent filter", arguments: TodoFilter.allCases)
+    func filterTypeRoundTrips(filter: TodoFilter) {
+        #expect(TodoFilter(filter.filterType) == filter)
+    }
+
     @Test("Filter all shows all todos")
     func filterAll() {
         let viewModel = TodoListViewModel()

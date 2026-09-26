@@ -215,7 +215,7 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 | `MusicContent.appEntityIdentifiers` / `AlarmConfiguration.appEntityIdentifier` | Now Playing / AlarmKit との紐付け | 🚫 | 該当機能がない |
 | `RelevantEntities` + `AppEntityContext` | 文脈に応じた entity 寄付 | 🚫 | **todo / reminders 向けの `AppEntityContext` が存在しない**ため適合不能（RC 27A266a / 27.1 / 27.2 beta でもファクトリは `.audio(_:)` の 1 つだけ） |
 | `RelevantIntent` / `RelevantIntentManager` | Smart Stack への Intent 提案 | ⬜ | `WidgetConfigurationIntent` があるので donation なしで成立する経路（#68） |
-| `IntentDonationManager.donate(_:)` / `AppIntent.donate()` | 実行履歴の寄付 | ⏸ | **#53 で不採用決着**。`perform()` 内 donate は規約違反。加えて **`Button(intent:)` の実行はシステムが既に donation として記録している**（2026-08-30 実測）ので、UI が全部 `Button(intent:)` の本アプリには donate すべきものが残らない。別プロセス（Widget / Control / Live Activity）起点だけは実機でしか測れず未確定（#30） |
+| `IntentDonationManager.donate(_:)` / `AppIntent.donate()` | 実行履歴の寄付 | ✅ | **Intent を通らない UI 操作だけ**（フィルタ選択 → `ShowTodosIntent` / 行の選択 → `OpenTodoIntent`、`UIActionDonation`）。`perform()` 内では donate しない（#53）。`Button(intent:)` の実行はシステムが既に donation として記録する |
 | `AppIntent.callAsFunction(donate:)` | Intent を直接実行し、任意で donate する | ⏸ | **#99 で不採用決着**。アプリ内 UI を `Button(intent:)` からこれに載せ替える案。donate は既にシステムが記録しているので動機が消え、残る利点（戻り値 / エラー / 対話 API）は `@Dependency` + `NavigationModel` と Intent の 2 本立てで足りている。別プロセスでは使えないので、載せ替えると呼び出し形が 2 種類に増える |
 | `deleteDonations(matching:)` | 消えた entity の提案を消す | ✅ | 削除 3 経路すべて（呼出元に関係なく正しい後片付け） |
 | EventKit / Contacts 連携 | 期限 → カレンダー等 | 🚫 | 別フレームワーク軸。記録のみ |

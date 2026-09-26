@@ -1619,9 +1619,25 @@ UI 側で立てて `perform()` 内の donate を切り替える）は成立し�
 
 ### そもそも `Button(intent:)` の実行はシステムが donation として記録している
 
-**アプリ内 UI の操作が全部 `Button(intent:)` である限り、donate すべきものが残らない。**
-本アプリは `donate()` をどこからも呼んでいないが、`Button(intent:)` のタップは
+**`Button(intent:)` を通る操作は donate しなくてよい。** `Button(intent:)` のタップは
 `IntelligenceEngine.Interaction.Donation` に記録される（2026-08-30 に iOS 27 シミュレータで実測）。
+
+**Intent を通らない UI 操作だけは UI 側から `intent.donate()` する**（`UIActionDonation`）。
+Siri から同じことができる操作なのに、アプリ内では View の状態を変えるだけなので記録が 0 になる:
+
+| UI の操作 | donate する Intent | 置き場所 |
+|---|---|---|
+| 一覧のフィルタを選ぶ | `ShowTodosIntent(filter:)` | `FilterPicker` の Binding |
+| 行を選んで詳細を開く | `OpenTodoIntent(target:)` | 一覧の `List(selection:)` の Binding |
+
+- donate は **Binding の setter**（`Binding.onUserSet`）から呼ぶ。setter を通るのはコントロール
+  自身の書き込みだけで、Intent（`LaunchAppIntent` / `OpenTodoIntent`）は `NavigationModel` を直接
+  書き換えるので、システムが donate 済みの実行を二重に数えない
+- ⏸ ドラッグでの並び替え（`TodoService` を直接呼ぶ）は donate しない。`ReorderTodosIntent` は
+  id の並びを丸ごと受ける Intent で、Siri が提案に使える形の操作ではない
+- シミュレータ（iOS 27.1）では Transcript に `ShowTodosIntent` / `OpenTodoIntent` が操作回数ぶん増え、
+  `Button(intent:)` のタップと同じ形で載ることを確認した（Donation ストリームは対照の
+  `Button(intent:)` を含めて書かれなかった）
 
 公式サンプル 4 本が明示 donate を必要とするのは、UI が Manager を直接呼んでいて
 （`Button(` 94 件のうち `Button(intent:)` は **0 件**）その実行がシステムに見えないから。
