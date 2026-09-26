@@ -82,6 +82,7 @@ private struct TodoListsBrowseContent: View {
                 }
             }
         }
+        .accessibilityIdentifier("listsBrowseView")
         .navigationTitle(.copy("Lists"))
         #if os(iOS) || os(visionOS)
         .navigationBarTitleDisplayMode(.inline)

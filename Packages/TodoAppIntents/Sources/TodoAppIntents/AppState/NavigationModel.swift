@@ -12,6 +12,7 @@
 //
 
 import AppIntents
+import Foundation
 import Observation
 
 /// Shared navigation state for the entire app.
@@ -28,6 +29,16 @@ public final class NavigationModel {
 
     /// Whether the add todo sheet is presented.
     public var showingAddTodo: Bool = false
+
+    /// Whether a successful add leaves the sheet open with a cleared form, so several
+    /// todos can be entered in a row. Remembered across launches.
+    public var keepsAddingTodos: Bool {
+        didSet { defaults.set(keepsAddingTodos, forKey: Self.keepsAddingTodosKey) }
+    }
+
+    /// Bumped when an add succeeds while the sheet stays open. The sheet watches it to
+    /// clear its form — the intent cannot reach the sheet's `@State` itself.
+    public private(set) var addTodoResetCount = 0
 
     /// Whether the detail view's attribute editor sheet is presented.
     ///
@@ -57,7 +68,15 @@ public final class NavigationModel {
 
     // MARK: - Initialization
 
-    public init() {}
+    @ObservationIgnored
+    private let defaults: UserDefaults
+
+    static let keepsAddingTodosKey = "navigation.keepsAddingTodos"
+
+    public init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        keepsAddingTodos = defaults.bool(forKey: Self.keepsAddingTodosKey)
+    }
 
     // MARK: - Navigation Methods
 
@@ -105,13 +124,19 @@ public final class NavigationModel {
         pendingFilter = filter
     }
 
-    /// Dismisses the add todo sheet.
+    /// Closes the add todo sheet, or clears it for the next todo when
+    /// ``keepsAddingTodos`` is on.
     ///
     /// Only called when `AddTodoIntent.perform()` succeeds — Cancel goes through
     /// `@Environment(\.dismiss)` instead. A no-op when the sheet isn't open, which is the
     /// normal case for Siri / Shortcuts / widget callers.
-    public func dismissAddTodo() {
-        showingAddTodo = false
+    public func didAddTodo() {
+        guard showingAddTodo else { return }
+        if keepsAddingTodos {
+            addTodoResetCount += 1
+        } else {
+            showingAddTodo = false
+        }
     }
 
     /// Shows the detail view's attribute editor sheet.

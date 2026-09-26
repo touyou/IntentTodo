@@ -214,7 +214,7 @@ private struct VisionOSBottomOrnament: View {
 // MARK: - Add Sheet
 
 /// Sheet container for `AddTodoView` on visionOS. Dismissal is driven by
-/// `AddTodoIntent.perform()` via `navigationModel.dismissAddTodo()` — no need to
+/// `AddTodoIntent.perform()` via `navigationModel.didAddTodo()` — no need to
 /// observe `@Query` count drift here.
 private struct VisionOSAddTodoSheet: View {
     var body: some View {

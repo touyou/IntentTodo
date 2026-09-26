@@ -171,6 +171,15 @@ public struct TodoAppEntity: AppEntity {
 Spotlight テスト（`testNewTodoIsIndexedInSpotlight` / `testDeletedTodoIsRemovedFromSpotlight`）は
 グリーンなので、名前付き index でも検索からは見える。
 
+**`urls` が空の todo でも Cascade（Siri / Apple Intelligence 側の索引）への donate は成功する**。
+外部サンプルが報告する「`.reminders.reminder` の `urls` が空配列だと `LNSpotlightCascadeTranslator`
+Code=5 で索引が失敗する」（FB23563297）は、このアプリには当たらない。`urls` を `@DeferredProperty`
+にしているので、そもそも index に値が載らない（下記 `@DeferredProperty` 節）。`urls` を `@Property`
+に変えるときはここを測り直すこと。確かめ方は `log show` で `process == "<実行ファイル名>"` の
+`CascadeSets` / `com.apple.corespotlight:index` を見て、`Finished set donation <AppIntentsIndexedEntity…>`
+と `result: success` が出るかどうか。
+経緯: [docs/devlog/2026-09-26-issues-142-onward.md](../devlog/2026-09-26-issues-142-onward.md)
+
 ### EntityQuery と EntityStringQuery
 
 ```swift

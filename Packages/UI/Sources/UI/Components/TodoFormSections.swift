@@ -203,17 +203,18 @@ extension View {
 // MARK: - Sections
 
 /// Every editable field, in the order both screens present them.
-struct TodoFormSections: View {
+///
+/// `afterTitle` is for controls only one screen has; it sits right below the title so it
+/// is still on screen when the add sheet opens at half height.
+struct TodoFormSections<AfterTitle: View>: View {
     @Binding var draft: TodoFormDraft
+    var titleFocus: FocusState<Bool>.Binding?
+    @ViewBuilder var afterTitle: AfterTitle
 
     var body: some View {
         Group {
             Section {
-                TextField(.copy("Title"), text: $draft.title)
-                    .accessibilityIdentifier("todoTitleField")
-                #if os(iOS)
-                    .textInputAutocapitalization(.sentences)
-                #endif
+                titleField
 
                 TextField(
                     .copy("Description (optional)"),
@@ -224,6 +225,29 @@ struct TodoFormSections: View {
                 .lineLimit(3...6)
             }
 
+            afterTitle
+
+            otherSections
+        }
+    }
+
+    @ViewBuilder
+    private var titleField: some View {
+        let field = TextField(.copy("Title"), text: $draft.title)
+            .accessibilityIdentifier("todoTitleField")
+        #if os(iOS)
+            .textInputAutocapitalization(.sentences)
+        #endif
+        if let titleFocus {
+            field.focused(titleFocus)
+        } else {
+            field
+        }
+    }
+
+    @ViewBuilder
+    private var otherSections: some View {
+        Group {
             Section {
                 Toggle(.copy("Set Due Date"), isOn: $draft.hasDueDate.animation())
                     .accessibilityIdentifier("dueDateToggle")
@@ -293,5 +317,11 @@ struct TodoFormSections: View {
             TodoFilingSection(list: $draft.list, section: $draft.section)
             TodoAttachmentsSection(attachments: $draft.attachments)
         }
+    }
+}
+
+extension TodoFormSections where AfterTitle == EmptyView {
+    init(draft: Binding<TodoFormDraft>) {
+        self.init(draft: draft, titleFocus: nil) { EmptyView() }
     }
 }

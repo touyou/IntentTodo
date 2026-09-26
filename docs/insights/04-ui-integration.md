@@ -878,6 +878,28 @@ SwiftUI に「dismiss しようとした」を観測する公開 API は無い�
 - **保存経路は塞がらない**: Intent は `NavigationModel` のフラグを倒して閉じており、これは
   presenter 側の状態なので `interactiveDismissDisabled` の対象外
 
+### 追加シートの「続けて追加」は閉じるか空にするかを NavigationModel で分ける
+
+`AddTodoIntent.perform()` は成功時に `NavigationModel.didAddTodo()` を呼ぶだけで、**閉じるか・
+空にして開いたままにするかは `NavigationModel.keepsAddingTodos`（シートのトグル、UserDefaults に保持）
+で決まる**。「Intent 成功 = シートが次の状態へ進む」の 1 対 1 は崩さない。
+
+- 開いたままにするときは `addTodoResetCount` を進め、`AddTodoView` が `.onChange` でフォームを
+  作り直してタイトル欄にフォーカスを戻す（Intent からシートの `@State` には触れないので、カウンタで渡す）。
+  リスト / セクションは次の 1 件に引き継ぐ
+- **確定は `Button(intent:)` 1 本のまま**。ボタンを「追加」「追加して次へ」の 2 本に分けると、
+  どちらが押されたかを `perform()` に渡すには公開 Intent に UI 専用のパラメータを足すことになる。
+  トグルなら状態が先に `NavigationModel` に載っている
+- シートが開いていなければ何もしない（Siri / Shortcuts / ウィジェット経由の追加）
+- **タイトル欄の初期フォーカスは入れていない**。入れると開いた瞬間にキーボードが出て、システムが
+  シートを `.large` まで広げるので、「半分の高さで開く」が無くなる（フォーカスしたときに広がるのは
+  システムの挙動。キーボードがフォームを隠すことはない）。フォーカスを戻すのは続けて追加するときだけ
+
+**⏸ 既存の todo どうしの間に挿入する導線は作らない**。位置に意味があるのは手動ソートのときだけで、
+その場合は追加してからドラッグすれば足りる。挿入位置を `AddTodoIntent` に持たせると、
+Siri / Shortcuts からは意味の無い公開パラメータが 1 つ増える。
+経緯: [docs/devlog/2026-09-26-issues-142-onward.md](../devlog/2026-09-26-issues-142-onward.md)
+
 ### 落とし穴
 
 - **`@State` のマクロ化（SDK 27）**: 今回の変更では未遭遇だが、`@State` 絡みで

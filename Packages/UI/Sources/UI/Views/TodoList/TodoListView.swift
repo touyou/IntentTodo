@@ -772,7 +772,7 @@ private struct AddTodoButton: View {
 // MARK: - Add Todo Sheet
 
 /// Sheet container for `AddTodoView`. Dismissal is driven by `AddTodoIntent.perform()`
-/// which calls `navigationModel.dismissAddTodo()` on success — no need to observe
+/// which calls `navigationModel.didAddTodo()` on success — no need to observe
 /// `@Query` count drift here.
 private struct AddTodoSheet: View {
     var body: some View {

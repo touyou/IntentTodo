@@ -18,8 +18,10 @@ public struct AddTodoView: View {
     // MARK: - Properties
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(NavigationModel.self) private var navigationModel
 
     @State private var draft: TodoFormDraft
+    @FocusState private var isTitleFocused: Bool
 
     /// The values the sheet opened with, so a half-filled form can ask before it is thrown
     /// away. Set from the same value as `draft` so the two cannot start out of step —
@@ -69,7 +71,12 @@ public struct AddTodoView: View {
 
     public var body: some View {
         Form {
-            TodoFormSections(draft: $draft)
+            TodoFormSections(draft: $draft, titleFocus: $isTitleFocused) {
+                keepAddingSection
+            }
+        }
+        .onChange(of: navigationModel.addTodoResetCount) {
+            startNextTodo()
         }
         #if os(macOS)
         // `.automatic` sits flush against the window edge on macOS with no background.
@@ -109,6 +116,30 @@ public struct AddTodoView: View {
             onDiscard: { dismiss() }
         )
     }
+
+    // MARK: - Keep Adding
+
+    private var keepAddingSection: some View {
+        @Bindable var navigationModel = navigationModel
+        return Section {
+            Toggle(.copy("Keep Adding"), isOn: $navigationModel.keepsAddingTodos)
+                .accessibilityIdentifier("keepAddingToggle")
+        } footer: {
+            Text(.copy("After adding, the form clears for the next todo."))
+        }
+    }
+
+    /// Clears the form after a successful add that kept the sheet open.
+    ///
+    /// List and section carry over: a run of todos usually goes to the same place.
+    private func startNextTodo() {
+        var next = TodoFormDraft()
+        next.list = draft.list
+        next.section = draft.section
+        draft = next
+        openedWith = next
+        isTitleFocused = true
+    }
 }
 
 // MARK: - Preview
@@ -117,4 +148,5 @@ public struct AddTodoView: View {
     NavigationStack {
         AddTodoView()
     }
+    .environment(NavigationModel())
 }

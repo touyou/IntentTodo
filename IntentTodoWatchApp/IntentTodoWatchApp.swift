@@ -91,7 +91,7 @@ struct IntentTodoWatchApp: App {
             AppDependencyManager.shared.add(dependency: todoService)
         }
 
-        // `NavigationModel` too: `AddTodoIntent` calls `dismissAddTodo()` on success, so
+        // `NavigationModel` too: `AddTodoIntent` calls `didAddTodo()` on success, so
         // without it **adding a todo fails outright** with "Failed to retrieve dependency of
         // type NavigationModel" — no crash, no error, nothing on screen.
         let navigation = NavigationModel()
