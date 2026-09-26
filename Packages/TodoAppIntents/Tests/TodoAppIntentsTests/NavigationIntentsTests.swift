@@ -27,12 +27,57 @@ struct NavigationModelTests {
         #expect(navigation.showingAddTodo == true)
     }
 
-    @Test("dismissAddTodo resets the flag")
-    func dismissAddTodoResetsFlag() {
-        let navigation = NavigationModel()
+    /// A throwaway defaults domain, so `keepsAddingTodos` neither leaks between tests nor
+    /// into the test host's own defaults.
+    private func makeDefaults() -> UserDefaults {
+        let suite = "NavigationModelTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        return defaults
+    }
+
+    @Test("didAddTodo closes the sheet by default")
+    func didAddTodoClosesSheet() {
+        let navigation = NavigationModel(defaults: makeDefaults())
         navigation.showAddTodo()
-        navigation.dismissAddTodo()
+        navigation.didAddTodo()
         #expect(navigation.showingAddTodo == false)
+        #expect(navigation.addTodoResetCount == 0)
+    }
+
+    @Test("didAddTodo keeps the sheet open and asks it to clear when keepsAddingTodos is on")
+    func didAddTodoKeepsSheetOpen() {
+        let navigation = NavigationModel(defaults: makeDefaults())
+        navigation.keepsAddingTodos = true
+        navigation.showAddTodo()
+
+        navigation.didAddTodo()
+        navigation.didAddTodo()
+
+        #expect(navigation.showingAddTodo == true)
+        #expect(navigation.addTodoResetCount == 2)
+    }
+
+    @Test("didAddTodo does nothing when the sheet is closed, even with keepsAddingTodos on")
+    func didAddTodoIgnoresAddsFromOutsideTheSheet() {
+        let navigation = NavigationModel(defaults: makeDefaults())
+        navigation.keepsAddingTodos = true
+
+        // Siri, Shortcuts and widgets: the sheet was never open.
+        navigation.didAddTodo()
+
+        #expect(navigation.showingAddTodo == false)
+        #expect(navigation.addTodoResetCount == 0)
+    }
+
+    @Test("keepsAddingTodos is remembered across instances")
+    func keepsAddingTodosPersists() {
+        let defaults = makeDefaults()
+        #expect(NavigationModel(defaults: defaults).keepsAddingTodos == false)
+
+        NavigationModel(defaults: defaults).keepsAddingTodos = true
+
+        #expect(NavigationModel(defaults: defaults).keepsAddingTodos == true)
     }
 
     @Test("navigateToRoot clears the navigation path")

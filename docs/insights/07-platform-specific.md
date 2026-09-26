@@ -46,7 +46,7 @@ watch アプリも `NavigationModel` を `AppDependencyManager` に登録し、`
 
 これで 3 つが揃う:
 
-- **`AddTodoIntent` が動く**。この Intent は完了時に `navigationModel.dismissAddTodo()` を呼ぶので、
+- **`AddTodoIntent` が動く**。この Intent は完了時に `navigationModel.didAddTodo()` を呼ぶので、
   未登録だと watch では追加が**無音で失敗する**（2026-08-27 に実機シミュレータで確認。
   詳細は `AGENTS.md` の `@Dependency` 節）
 - **`OpenTodoIntent`（Siri / Spotlight の「この Todo を開く」）が watch でも遷移先を持つ**。
