@@ -9,15 +9,11 @@ import AppIntents
 public struct ShowTodosIntent: AppIntent {
     public static var title: LocalizedStringResource { "Show Todos" }
     public static let description = IntentDescription("Shows your todo items")
-    // Background-first. A foreground-only intent is refused outright wherever the app
-    // cannot come forward — Shortcuts with "Open When Run" off answers "not allowed" — so
-    // the list is returned from the background and the app is opened only when the
-    // system permits it.
-    public static var supportedModes: IntentModes { [.background, .foreground(.dynamic)] }
-
-    // Read-only, but it navigates: `NavigationModel` is registered in the app, not the
-    // widget extension, and an unresolved `@Dependency` fails the intent without a trace.
-    public static var allowedExecutionTargets: IntentExecutionTargets { [.main] }
+    // Returns the list and never opens the app, whoever runs it. Opening is
+    // `LaunchAppIntent`'s job, reached from the snippet's button. A foreground mode here
+    // would be refused where the app cannot come forward (Shortcuts with "Open When Run"
+    // off), and taken every time from Siri, where it always can.
+    public static var supportedModes: IntentModes { .background }
 
     public static var parameterSummary: some ParameterSummary {
         Summary("Show \(\.$filter) todos")
@@ -28,9 +24,6 @@ public struct ShowTodosIntent: AppIntent {
 
     @Dependency
     var todoService: TodoService
-
-    @Dependency
-    var navigationModel: NavigationModel
 
     public init() {
         self.filter = .all
@@ -43,20 +36,6 @@ public struct ShowTodosIntent: AppIntent {
     @MainActor
     public func perform() async throws -> some IntentResult & ReturnsValue<[TodoAppEntity]> & ProvidesDialog & ShowsSnippetIntent {
         let entities = try todoService.listTodos(filter: filter)
-
-        // `OpensIntent` cannot be used here: it is part of the result type, so it would
-        // open the app even on a run that asked to stay in the background.
-        if systemContext.currentMode.canContinueInForeground {
-            do {
-                try await continueInForeground(alwaysConfirm: false)
-                navigationModel.showList(
-                    filter: LaunchAppIntent.listFilter(for: Self.screenTarget(for: filter))
-                )
-            } catch {
-                // The system declined the transition; the dialog still answers.
-            }
-        }
-
         return .result(
             value: entities,
             dialog: dialog(for: entities),

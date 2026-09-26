@@ -68,7 +68,7 @@ Siri の音声経路 / Spotlight の実 UI での見え方 / 通知の cold star
 | `QuickSnoozeTodoIntent` | `LiveActivityIntent`（内部用） | `.background` | ✅ | スヌーズ 30 分即実行（Live Activity のボタン用） |
 | `ToggleUrgentTodoIntent` | — | `.background` | ✅ | 最緊急 Todo の完了切替（Control 用） |
 | `ReorderTodosIntent` | 内部用 | `.background` | ✅ | 並び替え（UI 専用） |
-| `ShowTodosIntent` | `IntentDialog(full:supporting:)` + `OpensIntent` | `.foreground` | — | Todo 表示（filter で絞り込み） |
+| `ShowTodosIntent` | `IntentDialog(full:supporting:)` + `ShowsSnippetIntent` | `.background` | — | Todo 表示（filter で絞り込み。一覧はスニペットで見せ、アプリは開かない） |
 | `ShowTodoCountIntent` | — | `.background` | — | 未完了数を通知で表示（Control 用） |
 | `GetTodoSummaryIntent` | `TransientAppEntity` を返す | `.background` | — | 統計サマリ（Shortcuts の条件分岐に使える） |
 | `SearchEverythingIntent` | `@UnionValue` | `.background` | — | Todo + Category 横断検索 |
