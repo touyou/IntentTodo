@@ -24,6 +24,20 @@ CloudKit 同期を有効にする場合、[Apple 公式: Syncing model data acro
 詳細と entity 側の対処（配列属性は `@DeferredProperty` で id から引き直す）:
 [03-app-intents-core.md](03-app-intents-core.md#reminder-本体スキーマ適合562026-08-29-に適合済み)
 
+### ⚠️ in-memory ストアも既定では iCloud と同期する
+
+`ModelConfiguration(isStoredInMemoryOnly: true)` の `cloudKitDatabase` は既定が `.automatic` なので、
+CloudKit の entitlement を持つアプリのプロセスでは **in-memory でもミラーリングが動く**。
+UI テスト / スクショ用の一時ストア（`SharedModelContainer.createInMemoryContainer()`）が
+これに当たっていて、フィクスチャが iCloud に上がって他の端末に降り、逆に本物のデータが撮影中の画面に
+写り込み、フィクスチャの「流し込む前に全件削除」が降りてきた行まで消しうる状態だった。
+**一時ストアは `cloudKitDatabase: .none` を明示する**。
+
+効いているかは、シミュレータ（iCloud 未サインインでも mirroring delegate は立ち上がる）で起動して
+`process == "<実行ファイル名>" AND subsystem == "com.apple.coredata" AND category == "CloudKit"` の
+行数を見る。一時ストアで 0、共有ストアでは出る。
+経緯: [docs/devlog/2026-09-26-issues-142-onward.md](../devlog/2026-09-26-issues-142-onward.md)
+
 ### 推奨パターン
 
 ```swift

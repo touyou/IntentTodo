@@ -114,12 +114,19 @@ public enum SharedModelContainer {
     }
 
     /// Creates a ModelContainer for in-memory use (testing/previews).
+    ///
+    /// **CloudKit is switched off explicitly.** `cloudKitDatabase` defaults to `.automatic`
+    /// even for an in-memory store, so inside an entitled app process it mirrors to iCloud:
+    /// the screenshot fixture uploads to every device on the account, real todos download
+    /// into the capture, and the fixture's wipe-before-seed deletes whatever has arrived.
+    ///
     /// - Returns: An in-memory ModelContainer.
     /// - Throws: Error if container creation fails.
     public static func createInMemoryContainer() throws -> ModelContainer {
         let config = ModelConfiguration(
             schema: schema,
-            isStoredInMemoryOnly: true
+            isStoredInMemoryOnly: true,
+            cloudKitDatabase: .none
         )
         return try ModelContainer(for: schema, configurations: [config])
     }

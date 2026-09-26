@@ -82,3 +82,33 @@ Spotlight 索引の漏れではない。
 `ShowTodosIntent` は `todoService.listTodos(filter:)` をストアから引くだけで、作った経路で絞る処理はない。
 「Siri で作ったものだけ」になるなら、Siri がこの Intent を呼ばずに、自分が作った結果（transcript）から
 答えている可能性が高い。実機でしか分からないので #167 に残した。
+
+## 追記: スクショ用の一時ストアが iCloud と同期していた
+
+撮影を回した後に本人から「しばらくすると同期されるようで、macOS の追加画面のスクショに写り込む。
+同じデータなので、削除すると同じものがまとめて消える」と報告があった。
+
+原因は `SharedModelContainer.createInMemoryContainer()` が `ModelConfiguration(schema:isStoredInMemoryOnly:)`
+だけで作られていたこと。`cloudKitDatabase` の既定は `.automatic` なので、アプリのプロセス
+（CloudKit の entitlement を持つ）で作ると in-memory でもミラーリングが動く。その結果:
+
+- フィクスチャ（id が毎回同じ）が iCloud に上がり、DEBUG ビルドの入った他の端末に降りる。
+  同じ `id` の行が撮影のたびに増えるので、1 つ消すと同じ `id` の行がまとめて消える
+- 本物のデータが撮影中のストアに降りてきて、Mac のように画面ごとに起動し直すカットに写り込む
+- フィクスチャは流し込む前にストアの todo とリストを全件消すので、降りてきた行を消して、
+  その削除を上げうる
+
+`cloudKitDatabase: .none` を明示して直した。iPhone 17 Pro シミュレータ（iCloud 未サインイン。
+mirroring delegate は立ち上がってアカウント無しで止まるので、行数で比べられる）で
+`com.apple.coredata:CloudKit` の行数を数えた:
+
+| ビルド | ストア | `CoreData+CloudKit` の行数 |
+|---|---|---|
+| 修正前 | 一時ストア（`-uitest-ephemeral-store -uitest-screenshot-fixture`） | 11 |
+| 修正後 | 一時ストア | 0 |
+| 修正後 | 共有ストア（引数なし） | 11 |
+
+Mac では対照を取らなかった。`/Applications` の App Store 版と DEBUG ビルドは同じ App Group の
+ストアファイルを共有するので、DEBUG ビルドを共有ストアで起動すると、本番のストアを開発用の
+CloudKit 環境で開くことになる。影響を受けたのは DEBUG ビルド（開発用 CloudKit 環境）の同期先で、
+TestFlight / App Store 版（本番環境）には届いていないはず。すでに混ざったフィクスチャは本人に消してもらう。
