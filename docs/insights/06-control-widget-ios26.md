@@ -210,6 +210,9 @@ Control に**公式に**用意されているフィードバック経路は次�
 > 件数サマリのような「読ませたい情報」は Control ではなく **Siri / Spotlight / Shortcuts 側**に
 > 寄せる（`ShowTodoCountIntent` / `GetTodoSummaryIntent` が dialog +
 > `snippetIntent: TodoSummarySnippetIntent()` を返す。Spotlight で表示を実機確認済み）。
+> 一覧も同じで、`ShowTodosIntent` は dialog + `snippetIntent: ShowTodosSnippetIntent(filter:)`
+> （先頭 5 件と完了ボタン、「アプリで開く」）を返す。値だけ返すと、面ごとに見え方がばらばらになる
+> （Shortcuts は値の羅列、Siri は dialog だけ）。
 > Control 側は「その場で完結する即時アクション + 状態表示」に徹し、読ませたい情報が
 > 主目的なら `LaunchAppIntent` でアプリの該当画面に送る（`TodoCountControl` が未完了一覧を開くのがこれ）。
 
@@ -239,7 +242,7 @@ Control の失敗報告がローカル通知の一本足なので、**通知が�
 
 ### Extension プロセスでも `TodoEntityStore` を登録する
 
-`SnippetIntent`（`TodoSnippetIntent` / `TodoSummarySnippetIntent`）と `TodoAppEntity` の deferred property は `@Dependency` を使えないため `TodoEntityStore.container` からコンテナを読む。アプリ側 (`IntentTodoApp.init`) だけに登録していると、**Widget Extension プロセスで解決されたときに中身が空になり「Todo not found」を描く**。Widget / Control の Intent は既定でどちらのプロセスでも実行されうるので、`IntentTodoWidgetBundle.init()` でも登録しておく。
+`SnippetIntent`（`TodoSnippetIntent` / `TodoSummarySnippetIntent` / `ShowTodosSnippetIntent`）と `TodoAppEntity` の deferred property は `@Dependency` を使えないため `TodoEntityStore.container` からコンテナを読む。アプリ側 (`IntentTodoApp.init`) だけに登録していると、**Widget Extension プロセスで解決されたときに中身が空になり「Todo not found」を描く**。Widget / Control の Intent は既定でどちらのプロセスでも実行されうるので、`IntentTodoWidgetBundle.init()` でも登録しておく。
 
 ```swift
 MainActor.assumeIsolated {
