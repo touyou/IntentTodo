@@ -326,6 +326,16 @@ public enum TodoFilter: String, CaseIterable, Identifiable, Sendable {
         case .favorites: self = .favorites
         }
     }
+
+    /// The intent-facing filter this one stands for, the inverse of ``init(_:)``.
+    public var filterType: TodoFilterType {
+        switch self {
+        case .all: .all
+        case .incomplete: .incomplete
+        case .completed: .completed
+        case .favorites: .favorites
+        }
+    }
 }
 
 /// Sort options for the todo list.

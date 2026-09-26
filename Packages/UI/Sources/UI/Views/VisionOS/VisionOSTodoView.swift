@@ -41,7 +41,9 @@ public struct VisionOSTodoListView: View {
             VisionOSSidebar(
                 todos: visibleTodos,
                 viewModel: $viewModel,
-                selectedTodo: $navigationModel.selectedTodo,
+                selectedTodo: $navigationModel.selectedTodo.onUserSet { todo in
+                    if let todo { UIActionDonation.openTodo(todo) }
+                },
                 showingSettings: $showingSettings
             )
             .navigationTitle(.copy("Todos"))
