@@ -267,6 +267,10 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
         todoCell.tap()
 
+        let moreMenu = app.buttons["todoDetailMoreMenu"]
+        XCTAssertTrue(moreMenu.waitForExistence(timeout: 5), "Detail view should offer the More menu")
+        moreMenu.tap()
+
         let deleteButton = app.buttons["deleteTodoButton"]
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Detail view should offer Delete Todo")
         deleteButton.tap()
@@ -407,6 +411,10 @@ final class IntentTodoUITest: XCTestCase {
         let todoCell = findTodoCell(title: todoTitle)
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
         todoCell.tap()
+
+        let moreMenu = app.buttons["todoDetailMoreMenu"]
+        XCTAssertTrue(moreMenu.waitForExistence(timeout: 5), "Detail view should offer the More menu")
+        moreMenu.tap()
 
         let editButton = app.buttons["editDetailsButton"]
         XCTAssertTrue(editButton.waitForExistence(timeout: 5), "Edit Details button should exist on detail view")
