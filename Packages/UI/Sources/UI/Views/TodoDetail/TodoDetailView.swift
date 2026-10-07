@@ -110,6 +110,8 @@ private struct TodoDetailContent: View {
     /// off a deleted object is not safe, while a fetch simply comes back empty.
     @State private var attachments: [TodoAttachmentValue] = []
 
+    @State private var isConfirmingDelete = false
+
     @Environment(\.modelContext) private var modelContext
 
     private var entity: TodoAppEntity { TodoAppEntity(from: todo) }
@@ -161,10 +163,6 @@ private struct TodoDetailContent: View {
             Section(.copy("Info")) {
                 TodoDetailMetadataSection(todo: todo)
             }
-
-            Section {
-                TodoDetailActionsSection(entity: entity)
-            }
         }
         #if os(visionOS)
         .listStyle(.plain)
@@ -178,14 +176,57 @@ private struct TodoDetailContent: View {
         }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                // Stays a word while the sheet's own buttons became symbols: the HIG asks
-                // toolbars to prefer symbols "except for actions like *edit* that aren't
-                // well-represented by symbols" [Apple: HIG, Toolbars].
-                Button(.copy("Edit")) {
-                    navigationModel.showAttributeEditor()
+                Button(intent: ToggleFavoriteIntent(todo: entity)) {
+                    Label(
+                        entity.isFavorite ? .copy("Remove from Favorites") : .copy("Add to Favorites"),
+                        systemImage: entity.isFavorite ? "star.fill" : "star"
+                    )
+                    .labelStyle(.iconOnly)
                 }
-                .accessibilityIdentifier("editDetailsButton")
+                .accessibilityIdentifier("toggleFavoriteButton")
             }
+
+            // Edit and delete are secondary to favoriting, so they share one menu rather
+            // than each taking a seat in a bar that is narrow in a split view's detail pane.
+            ToolbarItem(placement: .primaryAction) {
+                Menu {
+                    Button {
+                        navigationModel.showAttributeEditor()
+                    } label: {
+                        Label(.copy("Edit"), systemImage: "pencil")
+                    }
+                    .accessibilityIdentifier("editDetailsButton")
+
+                    Divider()
+
+                    // Confirmed here, not by the intent: `requestConfirmation` has no
+                    // surface to present on when the caller is an in-app button, so the
+                    // confirming intent would fail silently. The non-confirming one runs
+                    // from the dialog.
+                    Button(role: .destructive) {
+                        isConfirmingDelete = true
+                    } label: {
+                        Label(.copy("Delete Todo"), systemImage: "trash")
+                    }
+                    .accessibilityIdentifier("deleteTodoButton")
+                } label: {
+                    Label(.copy("More"), systemImage: "ellipsis.circle")
+                        .labelStyle(.iconOnly)
+                }
+                .accessibilityIdentifier("todoDetailMoreMenu")
+            }
+        }
+        // On the content rather than inside the menu: a dialog attached to a menu item goes
+        // away with the menu.
+        .confirmationDialog(
+            .copy("Delete “\(todo.title)”?"),
+            isPresented: $isConfirmingDelete,
+            titleVisibility: .visible
+        ) {
+            Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
+                Text(.copy("Delete"))
+            }
+            .accessibilityIdentifier("confirmDeleteTodoButton")
         }
         // Presentation state lives in `NavigationModel` because the intent is what closes
         // the sheet, and an intent cannot reach `@Environment(\.dismiss)`.
@@ -382,45 +423,6 @@ private struct TodoDetailSubtasksSection: View {
                     .strikethrough(subtask.isCompleted)
                     .foregroundStyle(subtask.isCompleted ? .secondary : .primary)
             }
-        }
-    }
-}
-
-// MARK: - Actions
-
-private struct TodoDetailActionsSection: View {
-    let entity: TodoAppEntity
-
-    @State private var isConfirmingDelete = false
-
-    var body: some View {
-        Group {
-            Button(intent: ToggleFavoriteIntent(todo: entity)) {
-                Label(
-                    entity.isFavorite ? .copy("Remove from Favorites") : .copy("Add to Favorites"),
-                    systemImage: entity.isFavorite ? "star.slash" : "star"
-                )
-            }
-
-            // Confirmed here, not by the intent: `requestConfirmation` has no surface to
-            // present on when the caller is an in-app button, so the confirming intent
-            // would fail silently. The non-confirming one runs afterwards.
-            Button(role: .destructive) {
-                isConfirmingDelete = true
-            } label: {
-                Label(.copy("Delete Todo"), systemImage: "trash")
-            }
-            .accessibilityIdentifier("deleteTodoButton")
-        }
-        .confirmationDialog(
-            .copy("Delete “\(entity.title)”?"),
-            isPresented: $isConfirmingDelete,
-            titleVisibility: .visible
-        ) {
-            Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
-                Text(.copy("Delete"))
-            }
-            .accessibilityIdentifier("confirmDeleteTodoButton")
         }
     }
 }

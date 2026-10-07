@@ -69,12 +69,11 @@ public struct TodoListView: View {
     // MARK: - Computed Properties
 
     #if os(iOS)
-    /// Whether the create action is a prominent button over the detail column.
+    /// Whether the create action sits in the detail column's bottom bar.
     ///
     /// Two columns means a list column whose bar is too narrow to hold another item and
     /// which the person can close outright. The detail column is on screen either way,
-    /// and a button of its own reads as the primary action rather than as one more icon
-    /// beside Edit.
+    /// and the bottom bar keeps `+` apart from Edit at the top.
     private var addsTodoFromDetail: Bool {
         horizontalSizeClass == .regular
     }
@@ -239,11 +238,15 @@ public struct TodoListView: View {
                 }
             }
             #if os(iOS)
-            // Over the detail column, which stays on screen when the list column is
-            // closed — the one state where nothing the list owns is reachable.
-            .safeAreaInset(edge: .bottom) {
+            // In the detail column's bottom bar, which stays on screen when the list column
+            // is closed — the one state where nothing the list owns is reachable. The list
+            // column's own bottom bar renders nothing at these widths.
+            .toolbar {
                 if addsTodoFromDetail {
-                    ProminentAddTodoButton()
+                    ToolbarSpacer(.flexible, placement: .bottomBar)
+                    ToolbarItem(placement: .bottomBar) {
+                        AddTodoButton()
+                    }
                 }
             }
             #endif
@@ -726,34 +729,8 @@ private struct TodoListToolbar: ToolbarContent {
 
 }
 
-#if os(iOS)
-/// The create action as a prominent button in the detail column's trailing bottom
-/// corner, the way Reminders presents "New Reminder". Used where the list column's bar
-/// has no room for another item and the column itself can be closed.
-private struct ProminentAddTodoButton: View {
-    @Environment(NavigationModel.self) private var navigationModel
-
-    var body: some View {
-        Button {
-            navigationModel.showAddTodo()
-        } label: {
-            // Icon only: the button floats over the detail content, and `+` needs no
-            // gloss next to a list of todos. The label is still there for VoiceOver.
-            Label(.copy("Add Todo"), systemImage: "plus")
-                .labelStyle(.iconOnly)
-        }
-        .buttonStyle(.borderedProminent)
-        .buttonBorderShape(.circle)
-        .controlSize(.extraLarge)
-        .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 12)
-        .accessibilityIdentifier("addTodoButton")
-    }
-}
-#endif
-
-/// The create action as a bar button, for widths where the bar has room for it.
+/// The create action as a bar button: in the list column's top bar at compact width, in
+/// the detail column's bottom bar at regular width.
 private struct AddTodoButton: View {
     @Environment(NavigationModel.self) private var navigationModel
 
@@ -767,6 +744,10 @@ private struct AddTodoButton: View {
             Label(.copy("Add todo"), systemImage: "plus")
                 .labelStyle(.iconOnly)
         }
+        #if os(iOS)
+        // The one tinted control on screen, so creating a todo reads as the primary action.
+        .buttonStyle(.glassProminent)
+        #endif
         .accessibilityIdentifier("addTodoButton")
     }
 }
