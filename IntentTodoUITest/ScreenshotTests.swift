@@ -91,8 +91,8 @@ final class ScreenshotTests: XCTestCase {
 
         // 2. Detail of the first todo.
         firstRow.tap()
-        let editButton = app.buttons["editDetailsButton"]
-        XCTAssertTrue(editButton.waitForExistence(timeout: 10), "Tapping a row should open the detail screen")
+        let favoriteButton = app.buttons["toggleFavoriteButton"]
+        XCTAssertTrue(favoriteButton.waitForExistence(timeout: 10), "Tapping a row should open the detail screen")
         capture("02-detail")
         returnToList()
 
