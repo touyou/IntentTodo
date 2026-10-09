@@ -4,5 +4,5 @@
   "marketingUrl": "https://github.com/touyou/IntentTodo",
   "promotionalText": "Say it and it's on the list. Add, complete and snooze from Siri, widgets, Control Center, the Lock Screen, Apple Watch and Spotlight — the app itself is optional.",
   "supportUrl": "https://github.com/touyou/IntentTodo/issues",
-  "whatsNew": "Small fixes and improvements."
+  "whatsNew": "Check off todos right from the widget.\n\n· Tap the circle next to a todo in the widget to complete it without opening the app. Tapping the title still opens the todo"
 }
