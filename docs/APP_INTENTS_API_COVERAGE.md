@@ -224,9 +224,9 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 
 | API | 一言 | 状態 | このアプリでの扱い |
 |---|---|:--:|---|
-| `Button(intent:)`（ウィジェット） | ウィジェットからアクション | ✅ | Live Activity（`LockScreenLiveActivityView`）。ホーム画面ウィジェットの行は開くだけなので `Link` |
-| `Toggle(isOn:intent:)`（ウィジェット） | ウィジェット内のトグル | ⬜ | 行は `Link` なので置き換えではなく操作の追加になる。`SetTodoCompletionIntent` は `.main` 固定なので、ウィジェットから押したときの実行経路の確認が先（#68） |
-| `Link(destination:)` / `widgetURL(_:)` | アプリを開くだけの導線 | ✅ | 行タップ（公式推奨） |
+| `Button(intent:)`（ウィジェット） | ウィジェットからアクション | ✅ | ホーム画面ウィジェットの行のチェック（`TodoWidgetRow`）と Live Activity。どちらも `ToggleTodoCompletionIntent`（`.main` 固定）で、書き込みはアプリのプロセスで起きる |
+| `Toggle(isOn:intent:)`（ウィジェット） | ウィジェット内のトグル | ⏸ | 行のチェックは `Button(intent: ToggleTodoCompletionIntent)` にした。アプリ内のチェック（`TodoCheckbox`）/ Live Activity と同じ Intent に揃え、完了の入口を 1 つに保つ |
+| `Link(destination:)` / `widgetURL(_:)` | アプリを開くだけの導線 | ✅ | 行のタイトル部分（公式推奨）。チェックの `Button` とは入れ子にせず横に並べる |
 | `invalidatableContent()` | 無効化中の見た目 | ⬜ | Button 実行中の表示を作り込むなら（#68） |
 | `AppIntentConfiguration` | 設定可能ウィジェット | ✅ | `IntentTodoWidget` |
 | `supportedFamilies` | サイズ対応 | ✅ | Small / Medium / Large / ExtraLargePortrait |
