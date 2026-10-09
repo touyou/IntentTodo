@@ -85,6 +85,21 @@ Xcode を戻して production を再ビルドし（run #42）、iOS / macOS / vi
 なお、失敗した提出が残したドラフト `40b194d5` は `Resource is not in cancellable state` で
 `asc submit cancel` から消せず、2 回目は「stale なのでスキップした」と言われて迂回された。
 
+## 追記（2026-10-07）: 追加ボタンを詳細列の下部ツールバーへ移して 1.1.6 を出した
+
+#186 で、レギュラー幅（Duo 展開時 / iPad）の丸い `+` を詳細列の `.bottomBar` 右端（`.glassProminent`）へ移し、
+詳細画面のツールバーを ☆ + `⋯`（編集 / 削除）にまとめた。PR 時点で未実行だった UI テスト 4 本
+（`testDeleteTodoFromDetailView` / `testAddTagFromDetailView` / `testAddTodo` / `testNavigateToTodoDetail`）を
+iPhone 17 Pro Max / iPad Pro 13" シミュレータで流して緑を確かめてからマージした。
+
+- `scripts/capture_screenshots.sh` で全プラットフォーム × ja / en を撮り直した
+- `asc versions create --copy-metadata-from 1.1.5 --exclude-fields whatsNew` → `asc metadata apply` で whatsNew だけ入れ、
+  スクショは 10 セットとも `--replace --confirm`。今回は途中で止まったセットは無く、`sourceFileChecksum` もローカルの md5 と 10 セット一致
+- production への push で Xcode Cloud run #49 が自動で走った（ワークフローは本人が Xcode 27.1 に修正済み）
+- `asc validate` は 3 つとも errors 0 / warnings 2（サブタイトル未設定 / キーワードがアプリ名の語を含む。1.1.5 から変えていない項目）
+- `asc review submit` で iOS / macOS / visionOS を build 49 で提出。ドラフト `40b194d5` は今回も「stale なのでスキップ」で迂回された
+
 ## 関連
 
 - #162 追加ボタンの修正 / #163 1.1.4 bump とメタデータ / #164 UI テストの macOS 対応
+- #186 追加ボタンを下部ツールバーへ / #187 1.1.6 bump とメタデータ

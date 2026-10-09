@@ -141,6 +141,26 @@
         }
       }
     },
+    "Mark as complete" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "完了にする"
+          }
+        }
+      }
+    },
+    "Mark as incomplete" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "未完了にする"
+          }
+        }
+      }
+    },
     "Merge ${lists} into ${destination}" : {
       "localizations" : {
         "ja" : {

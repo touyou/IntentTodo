@@ -11,26 +11,34 @@ import TodoAppIntents
 
 /// Row component for displaying a todo item in widgets.
 ///
-/// Tapping a row only opens the todo, so it is a `Link`, not a `Button(intent:)` — Apple:
-/// "If you want to offer an interaction that opens the app, use `Link`". The destination is
-/// the same URL the entity's `URLRepresentableEntity` produces, so Siri and the widget point
-/// at the same place.
+/// The checkbox completes the todo in place with `Button(intent:)`; the rest of the row only
+/// opens the todo, so it is a `Link` — Apple: "If you want to offer an interaction that opens
+/// the app, use `Link`". The two sit side by side because a button nested inside a link does
+/// not get its taps reliably. The link destination is the same URL the entity's
+/// `URLRepresentableEntity` produces, so Siri and the widget point at the same place.
 struct TodoWidgetRow: View {
     let todo: TodoAppEntity
     let compact: Bool
 
     var body: some View {
-        Link(destination: TodoDeepLink.todo(id: todo.id).url) {
-            rowContent
+        HStack(spacing: 8) {
+            Button(intent: ToggleTodoCompletionIntent(todo: todo)) {
+                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(todo.isCompleted ? .green : .secondary)
+                    .font(compact ? .caption : .body)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(todo.isCompleted ? .copy("Mark as incomplete") : .copy("Mark as complete"))
+
+            Link(destination: TodoDeepLink.todo(id: todo.id).url) {
+                rowContent
+            }
         }
     }
 
     private var rowContent: some View {
         HStack(spacing: 8) {
-            Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(todo.isCompleted ? .green : .secondary)
-                .font(compact ? .caption : .body)
-
             Text(todo.title)
                 .font(compact ? .caption : .subheadline)
                 .lineLimit(1)

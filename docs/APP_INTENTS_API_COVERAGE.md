@@ -195,7 +195,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `@AppIntent(schema: .reminders.createList)` | リスト作成 | ✅ | `CreateListIntent`。要求は `name` + `type` → `ListEntity` で、`type` は唯一のケースなので `default: .standard` を付けて聞かれないようにしている。**同名を渡すと既存のリストを返す**（リストは名前でしか識別されない面が多いので、2 本目を作ると Todo が静かに分かれる） |
 | `@AppIntent(schema: .reminders.createSection)` | セクション作成 | ✅ | `CreateSectionIntent`。要求は `name` + `list` → `SectionEntity` を返す形で、初回ビルドで一致した |
 | `@AppEntity(schema: .reminders.section)` | セクション | ✅ | `TodoSectionAppEntity`（watch 用は `WatchTodoSectionAppEntity`）。`TodoSection` をモデルに足してカテゴリ配下のセクションを実装した |
-| `@AppEntity(schema: .reminders.group)` | リストのグループ | ⬜ | カテゴリをまとめる概念がまだ無い（#139） |
+| `@AppEntity(schema: .reminders.group)` | リストのグループ | ⏸ | 適合するにはリストの上にもう 1 階層（モデル + 管理画面 + 作成 Intent）が要る。「リスト → セクション」の 2 階層で足りており、Todo アプリとして階層を深くしない（#139） |
 | `@AppIntent(schema: .visualIntelligence.semanticContentSearch)` | Visual Intelligence の「もっと見る」 | ✅ | `TodoSemanticContentSearchIntent` |
 | `.system.search`（旧名） | — | ⛔ | `.system.searchInApp` にリネーム |
 | `@AppIntent(schema: .camera.openInCaptureMode)` + `@AppEnum(schema: .camera.captureMode)` | カメラを撮影モード付きで開く | 🚫 | 題材にカメラが無い。なお**外部で「Siri から呼ぶと動かない」報告**がある（[FB23562640](https://github.com/kntkymt/ios-app-intents-sample/tree/main/broken-open-camera-intent)。Siri が "something wrong" を返す）ので、採用を検討する日が来たら先に再現を確認する |
@@ -224,14 +224,16 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 
 | API | 一言 | 状態 | このアプリでの扱い |
 |---|---|:--:|---|
-| `Button(intent:)`（ウィジェット） | ウィジェットからアクション | ✅ | `TodoWidgetRow` ほか |
-| `Toggle(isOn:intent:)`（ウィジェット） | ウィジェット内のトグル | ⬜ | `SetTodoCompletionIntent` があるので素直に置き換えられる（#68） |
-| `Link(destination:)` / `widgetURL(_:)` | アプリを開くだけの導線 | ✅ | 行タップ（公式推奨） |
+| `Button(intent:)`（ウィジェット） | ウィジェットからアクション | ✅ | ホーム画面ウィジェットの行のチェック（`TodoWidgetRow`）と Live Activity。どちらも `ToggleTodoCompletionIntent`（`.main` 固定）で、書き込みはアプリのプロセスで起きる |
+| `Toggle(isOn:intent:)`（ウィジェット） | ウィジェット内のトグル | ⏸ | 行のチェックは `Button(intent: ToggleTodoCompletionIntent)` にした。アプリ内のチェック（`TodoCheckbox`）/ Live Activity と同じ Intent に揃え、完了の入口を 1 つに保つ |
+| `Link(destination:)` / `widgetURL(_:)` | アプリを開くだけの導線 | ✅ | 行のタイトル部分（公式推奨）。チェックの `Button` とは入れ子にせず横に並べる |
 | `invalidatableContent()` | 無効化中の見た目 | ⬜ | Button 実行中の表示を作り込むなら（#68） |
 | `AppIntentConfiguration` | 設定可能ウィジェット | ✅ | `IntentTodoWidget` |
 | `supportedFamilies` | サイズ対応 | ✅ | Small / Medium / Large / ExtraLargePortrait |
 | `widgetAccentedRenderingMode` / `widgetAccentable()` | ティント表示時の制御 | ⏸ | SF Symbols のみなので実害が薄い |
-| `supportedMountingStyles` / `widgetTexture` / `levelOfDetail` | visionOS ウィジェット強化 | ⬜ | WidgetKit 側の拡張候補（#68） |
+| `levelOfDetail` | visionOS で離れて見たときの表示 | ✅ | `.simplified` のときは件数と数件のタイトルだけを大きく出す（`SimplifiedTodoWidgetView`）。macOS / watchOS の SDK には無いので `#if os(iOS) \|\| os(visionOS)` |
+| `supportedMountingStyles` | visionOS の壁埋め込み / 置き型 | ⏸ | 既定（両方）のまま。一覧は机にも壁にも置けてよく、片方に絞る理由が無い |
+| `widgetTexture` | visionOS の表面素材 | ⏸ | 既定の `.glass` のまま。システムの見た目に揃える |
 | `ControlWidget` + `StaticControlConfiguration` | 設定なしコントロール | ✅ | `QuickAddTodoControl` / `TodoCountControl` |
 | `AppIntentControlConfiguration` | 設定可能コントロール | ✅ | `ToggleTodoControl`（対象 todo を固定） |
 | `ControlWidgetButton` / `ControlWidgetToggle` | 単発 / 2 状態 | ✅ | 用途で使い分け |

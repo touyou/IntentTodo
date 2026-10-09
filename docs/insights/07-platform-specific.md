@@ -332,7 +332,8 @@ struct LiveActivityMonitorModifier: ViewModifier {
 
 ## Widget への Button(intent:) 統合
 
-Widget 内のボタンからも同じ Intent をそのまま実行する（`TodoWidgetRow` の完了トグルなど）。
+Widget / Live Activity のボタンからも同じ Intent をそのまま実行する（`TodoWidgetRow` の完了チェック、
+Live Activity の完了ボタン）。行のタイトル部分は開くだけなので `Link`（下の注意点）。
 
 ```swift
 Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
@@ -344,6 +345,8 @@ Button(intent: ToggleTodoCompletionIntent(todo: entity)) {
 ### 注意点
 
 - `AppIntents`モジュールのimportが必要
+- **`Button(intent:)` を `Link` の中に入れない**。行の中でチェックだけを `Button`、残りを `Link` にするときは `HStack` で横に並べる
+- `ToggleTodoCompletionIntent` は SwiftData を書くので `.main` 固定。ウィジェットから押してもアプリのプロセスで実行される
 - Intent の実行モード（`supportedModes`）で挙動が決まる（`.background` / `.foreground(.immediate)` 等）
 - **アプリを開くだけが目的の場合は `Link(destination:)` が公式推奨**（[Adding interactivity to widgets and Live Activities](https://developer.apple.com/documentation/widgetkit/adding-interactivity-to-widgets-and-live-activities) より "An interaction with a button or toggle should do more than open the app. If you want to offer an interaction that opens the app, use `Link` and `widgetURL(_:)`"）。行タップは `TodoDeepLink` 経由で該当 Todo の詳細へ飛ばしている
 
