@@ -13,6 +13,10 @@ import WidgetKit
 /// Main entry view that switches based on widget family.
 public struct TodoWidgetEntryView: View {
     @Environment(\.widgetFamily) private var family
+    #if os(iOS) || os(visionOS)
+    // Unavailable on macOS / watchOS. Only visionOS ever reports `.simplified`.
+    @Environment(\.levelOfDetail) private var levelOfDetail
+    #endif
     let todos: [TodoAppEntity]
     let incompleteCount: Int
     let loadFailed: Bool
@@ -23,9 +27,23 @@ public struct TodoWidgetEntryView: View {
         self.loadFailed = loadFailed
     }
 
+    private var isSimplified: Bool {
+        #if os(iOS) || os(visionOS)
+        levelOfDetail == .simplified
+        #else
+        false
+        #endif
+    }
+
     public var body: some View {
         if loadFailed {
             WidgetLoadFailureView()
+        } else if isSimplified {
+            SimplifiedTodoWidgetView(
+                todos: todos,
+                incompleteCount: incompleteCount,
+                rowLimit: SimplifiedTodoWidgetView.rowLimit(for: family)
+            )
         } else {
             switch family {
             case .systemSmall:
@@ -60,6 +78,60 @@ struct WidgetLoadFailureView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding()
+        .containerBackground(.fill.tertiary, for: .widget)
+    }
+}
+
+/// The layout visionOS shows when the person is far from the widget: the count and a few
+/// titles, large enough to read across a room. Due dates and the add link are dropped.
+struct SimplifiedTodoWidgetView: View {
+    let todos: [TodoAppEntity]
+    let incompleteCount: Int
+    let rowLimit: Int
+
+    static func rowLimit(for family: WidgetFamily) -> Int {
+        switch family {
+        case .systemSmall: 0
+        case .systemMedium: 2
+        case .systemLarge: 3
+        default: 5
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                Image(systemName: "checklist")
+                    .font(.title)
+                    .foregroundStyle(.orange)
+                Spacer()
+                Text(incompleteCount, format: .number)
+                    .font(.system(size: 56, weight: .bold, design: .rounded))
+                    .foregroundStyle(.orange)
+                    .contentTransition(.numericText())
+            }
+
+            if todos.isEmpty {
+                Spacer()
+                Label {
+                    Text(.copy("All done!"))
+                } icon: {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(.green)
+                }
+                .font(.title2.bold())
+                .frame(maxWidth: .infinity)
+            } else {
+                ForEach(todos.prefix(rowLimit)) { todo in
+                    Text(todo.title)
+                        .font(.title2)
+                        .lineLimit(1)
+                        .strikethrough(todo.isCompleted)
+                        .foregroundStyle(todo.isCompleted ? .secondary : .primary)
+                }
+            }
+            Spacer()
+        }
         .containerBackground(.fill.tertiary, for: .widget)
     }
 }
@@ -272,4 +344,22 @@ struct WidgetAddTodoLink: View {
             .background(.orange.opacity(0.15), in: RoundedRectangle(cornerRadius: 8))
         }
     }
+}
+
+#Preview("Simplified", traits: .sizeThatFitsLayout) {
+    let todos = [
+        TodoAppEntity(id: "1", title: "Buy groceries", isCompleted: false, dueDate: Date()),
+        TodoAppEntity(id: "2", title: "Call mom", isCompleted: false),
+        TodoAppEntity(id: "3", title: "Write the release notes", isCompleted: false),
+        TodoAppEntity(id: "4", title: "Book a dentist appointment", isCompleted: false),
+    ]
+    VStack(spacing: 16) {
+        SimplifiedTodoWidgetView(todos: todos, incompleteCount: 4, rowLimit: 0)
+            .frame(width: 158, height: 158)
+        SimplifiedTodoWidgetView(todos: todos, incompleteCount: 4, rowLimit: 2)
+            .frame(width: 338, height: 158)
+        SimplifiedTodoWidgetView(todos: [], incompleteCount: 0, rowLimit: 3)
+            .frame(width: 338, height: 158)
+    }
+    .padding()
 }

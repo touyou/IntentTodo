@@ -332,7 +332,8 @@ struct LiveActivityMonitorModifier: ViewModifier {
 
 ## Widget への Button(intent:) 統合
 
-Widget 内のボタンからも同じ Intent をそのまま実行する（`TodoWidgetRow` の完了トグルなど）。
+Widget / Live Activity のボタンからも同じ Intent をそのまま実行する（Live Activity の完了ボタンなど）。
+ホーム画面ウィジェットの行は開くだけなので `Button(intent:)` ではなく `Link`（下の注意点）。
 
 ```swift
 Button(intent: ToggleTodoCompletionIntent(todo: entity)) {

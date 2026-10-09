@@ -129,7 +129,7 @@ Siri フレーズまで通し）。
    on/off の置き場は設定の連携セクション（`SettingsView`）にできた
 3. **連携先の拡張** — `AudioPlaybackIntent`（「この Todo をやる間これを流す」）。未採用の Intent 種別で、
    設定の連携セクションが受け皿になる。なお SDK 27 の assistant schema に music / health ドメインは無い
-4. **visionOS ウィジェット強化** — `supportedMountingStyles` / `widgetTexture` / `levelOfDetail`
+4. **visionOS ウィジェット強化** — `levelOfDetail` は対応済み。`supportedMountingStyles` / `widgetTexture` は既定のまま（理由は API カバレッジ）
 5. **3 言語目** — ja は #70 で通し済み（ソース言語 en + 訳 ja、12 catalog）。次の言語を足すときの
    手順とハマりどころは [insights/04-ui-integration.md](insights/04-ui-integration.md#ja-を入れて分かった-catalog-の配置)
 
