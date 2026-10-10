@@ -50,7 +50,9 @@ struct TodoWidgetProvider: AppIntentTimelineProvider {
     @MainActor
     private func fetchEntry(for configuration: Intent) async -> TodoWidgetEntry {
         do {
-            let repository = SwiftDataTodoRepository(modelContext: sharedWidgetModelContainer.mainContext)
+            // A fresh context per reload: the app process does the writing, and a long-lived
+            // context here keeps handing back the rows it already loaded.
+            let repository = SwiftDataTodoRepository(modelContext: ModelContext(sharedWidgetModelContainer))
             let todos = try repository.fetchAll()
 
             let filteredTodos: [TodoItem]

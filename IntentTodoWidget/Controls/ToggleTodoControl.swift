@@ -76,7 +76,7 @@ extension ToggleTodoControl {
                 return .unconfigured
             }
             return try await MainActor.run {
-                let context = sharedWidgetModelContainer.mainContext
+                let context = ModelContext(sharedWidgetModelContainer)
                 var descriptor = FetchDescriptor<TodoItem>(
                     predicate: #Predicate { $0.id == uuid }
                 )
