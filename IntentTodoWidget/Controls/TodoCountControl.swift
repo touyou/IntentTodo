@@ -48,7 +48,7 @@ extension TodoCountControl {
 
         func currentValue() async throws -> Int {
             try await MainActor.run {
-                let context = sharedWidgetModelContainer.mainContext
+                let context = ModelContext(sharedWidgetModelContainer)
                 let descriptor = FetchDescriptor<TodoItem>(
                     predicate: #Predicate { !$0.isCompleted }
                 )
