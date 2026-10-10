@@ -227,7 +227,7 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 | `Button(intent:)`（ウィジェット） | ウィジェットからアクション | ✅ | Live Activity の完了ボタン。`ToggleTodoCompletionIntent`（`.main` 固定）で、書き込みはアプリのプロセスで起きる |
 | `Toggle(isOn:intent:)`（ウィジェット） | ウィジェット内のトグル | ✅ | ホーム画面ウィジェットの行のチェック（`TodoWidgetRow`）。Intent はアプリ内のチェック（`TodoCheckbox`）/ Live Activity と同じ `ToggleTodoCompletionIntent`。書き込みがアプリのプロセスで起きてからリロードが届くまで間があるので、タップ時にシステムが `isOn` を先に反転するトグルにして、丸がその場で切り替わるようにした |
 | `Link(destination:)` / `widgetURL(_:)` | アプリを開くだけの導線 | ✅ | 行のタイトル部分（公式推奨）。チェックの `Toggle` とは入れ子にせず横に並べる |
-| `invalidatableContent()` | 無効化中の見た目 | ✅ | ウィジェットの行のタイトル側。チェックのタップからリロードまでの間、取り消し線がまだ変わらないタイトルを無効化表示にする |
+| `invalidatableContent()` | 無効化中の見た目 | ⏸ | 行のタイトル（`Link` の中身）に付けると、その `Link` が URL を渡さなくなり、タップしてもアプリが開くだけになる（iOS 27 シミュレータのホーム画面で実測）。チェックはトグルが先に反転するので、無効化表示は足さない |
 | `AppIntentConfiguration` | 設定可能ウィジェット | ✅ | `IntentTodoWidget` |
 | `supportedFamilies` | サイズ対応 | ✅ | Small / Medium / Large / ExtraLargePortrait |
 | `widgetAccentedRenderingMode` / `widgetAccentable()` | ティント表示時の制御 | ⏸ | SF Symbols のみなので実害が薄い |
