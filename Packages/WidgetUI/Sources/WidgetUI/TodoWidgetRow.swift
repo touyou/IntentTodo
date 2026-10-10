@@ -33,10 +33,7 @@ struct TodoWidgetRow: View {
             .accessibilityLabel(todo.isCompleted ? .copy("Mark as incomplete") : .copy("Mark as complete"))
 
             Link(destination: TodoDeepLink.todo(id: todo.id).url) {
-                // Dimmed until the reload lands, since the title's strikethrough only
-                // changes with the next entry.
                 rowContent
-                    .invalidatableContent()
             }
         }
     }
