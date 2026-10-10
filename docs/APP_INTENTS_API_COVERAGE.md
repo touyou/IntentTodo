@@ -224,10 +224,10 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 
 | API | 一言 | 状態 | このアプリでの扱い |
 |---|---|:--:|---|
-| `Button(intent:)`（ウィジェット） | ウィジェットからアクション | ✅ | ホーム画面ウィジェットの行のチェック（`TodoWidgetRow`）と Live Activity。どちらも `ToggleTodoCompletionIntent`（`.main` 固定）で、書き込みはアプリのプロセスで起きる |
-| `Toggle(isOn:intent:)`（ウィジェット） | ウィジェット内のトグル | ⏸ | 行のチェックは `Button(intent: ToggleTodoCompletionIntent)` にした。アプリ内のチェック（`TodoCheckbox`）/ Live Activity と同じ Intent に揃え、完了の入口を 1 つに保つ |
-| `Link(destination:)` / `widgetURL(_:)` | アプリを開くだけの導線 | ✅ | 行のタイトル部分（公式推奨）。チェックの `Button` とは入れ子にせず横に並べる |
-| `invalidatableContent()` | 無効化中の見た目 | ⬜ | Button 実行中の表示を作り込むなら（#68） |
+| `Button(intent:)`（ウィジェット） | ウィジェットからアクション | ✅ | Live Activity の完了ボタン。`ToggleTodoCompletionIntent`（`.main` 固定）で、書き込みはアプリのプロセスで起きる |
+| `Toggle(isOn:intent:)`（ウィジェット） | ウィジェット内のトグル | ✅ | ホーム画面ウィジェットの行のチェック（`TodoWidgetRow`）。Intent はアプリ内のチェック（`TodoCheckbox`）/ Live Activity と同じ `ToggleTodoCompletionIntent`。書き込みがアプリのプロセスで起きてからリロードが届くまで間があるので、タップ時にシステムが `isOn` を先に反転するトグルにして、丸がその場で切り替わるようにした |
+| `Link(destination:)` / `widgetURL(_:)` | アプリを開くだけの導線 | ✅ | 行のタイトル部分（公式推奨）。チェックの `Toggle` とは入れ子にせず横に並べる |
+| `invalidatableContent()` | 無効化中の見た目 | ✅ | ウィジェットの行のタイトル側。チェックのタップからリロードまでの間、取り消し線がまだ変わらないタイトルを無効化表示にする |
 | `AppIntentConfiguration` | 設定可能ウィジェット | ✅ | `IntentTodoWidget` |
 | `supportedFamilies` | サイズ対応 | ✅ | Small / Medium / Large / ExtraLargePortrait |
 | `widgetAccentedRenderingMode` / `widgetAccentable()` | ティント表示時の制御 | ⏸ | SF Symbols のみなので実害が薄い |
@@ -266,11 +266,10 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 着手判断は **#68** で行う。理由と前提は各行の「このアプリでの扱い」列に書いてある。
 
 1. `.controlWidgetStatus(_:)` — Control のフィードバック経路がもう 1 本増える可能性
-2. `Toggle(isOn:intent:)` — 完了切り替えの意味論に合う
-3. `invalidatableContent()` / `SnippetIntent.reload()` — 表示の追随
-4. `RelevantIntent` — donation なしで成立する提案経路。**設定の連携セクションに on/off の置き場ができた**
-5. visionOS ウィジェット強化（`supportedMountingStyles` / `widgetTexture` / `levelOfDetail`）
-6. `AudioPlaybackIntent` — 「この Todo をやる間これを流す」。未採用の Intent 種別
+2. `SnippetIntent.reload()` — 表示の追随
+3. `RelevantIntent` — donation なしで成立する提案経路。**設定の連携セクションに on/off の置き場ができた**
+4. visionOS ウィジェット強化（`supportedMountingStyles` / `widgetTexture` / `levelOfDetail`）
+5. `AudioPlaybackIntent` — 「この Todo をやる間これを流す」。未採用の Intent 種別
 
 ブロック中のものは #57（GM SDK 棚卸し）。App Schema と watch ターゲットの両立は Apple 報告済みで
 #57 にぶら下げた（FB24570185 / `docs/feedback/2026-08-30-app-schema-watch-metadata-merge.md`）。

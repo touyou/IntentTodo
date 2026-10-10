@@ -11,10 +11,14 @@ import TodoAppIntents
 
 /// Row component for displaying a todo item in widgets.
 ///
-/// The checkbox completes the todo in place with `Button(intent:)`; the rest of the row only
-/// opens the todo, so it is a `Link` — Apple: "If you want to offer an interaction that opens
-/// the app, use `Link`". The two sit side by side because a button nested inside a link does
-/// not get its taps reliably. The link destination is the same URL the entity's
+/// The checkbox completes the todo in place with `Toggle(isOn:intent:)`; the rest of the row
+/// only opens the todo, so it is a `Link` — Apple: "If you want to offer an interaction that
+/// opens the app, use `Link`". The two sit side by side because a control nested inside a link
+/// does not get its taps reliably.
+///
+/// A toggle rather than a button because the intent runs in the app process and the reload
+/// that follows takes a moment: the system flips a toggle's `isOn` on tap, so the circle
+/// answers at once instead of looking like the tap was dropped. The link destination is the same URL the entity's
 /// `URLRepresentableEntity` produces, so Siri and the widget point at the same place.
 struct TodoWidgetRow: View {
     let todo: TodoAppEntity
@@ -22,17 +26,17 @@ struct TodoWidgetRow: View {
 
     var body: some View {
         HStack(spacing: 8) {
-            Button(intent: ToggleTodoCompletionIntent(todo: todo)) {
-                Image(systemName: todo.isCompleted ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(todo.isCompleted ? .green : .secondary)
-                    .font(compact ? .caption : .body)
-                    .contentTransition(.symbolEffect(.replace))
+            Toggle(isOn: todo.isCompleted, intent: ToggleTodoCompletionIntent(todo: todo)) {
+                EmptyView()
             }
-            .buttonStyle(.plain)
+            .toggleStyle(CheckboxToggleStyle(compact: compact))
             .accessibilityLabel(todo.isCompleted ? .copy("Mark as incomplete") : .copy("Mark as complete"))
 
             Link(destination: TodoDeepLink.todo(id: todo.id).url) {
+                // Dimmed until the reload lands, since the title's strikethrough only
+                // changes with the next entry.
                 rowContent
+                    .invalidatableContent()
             }
         }
     }
@@ -51,6 +55,19 @@ struct TodoWidgetRow: View {
                 DueDateBadge(date: dueDate, isCompleted: todo.isCompleted)
             }
         }
+    }
+}
+
+/// Draws the row's circle from the toggle's own `isOn`, which the system flips on tap ahead
+/// of the timeline reload.
+private struct CheckboxToggleStyle: ToggleStyle {
+    let compact: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        Image(systemName: configuration.isOn ? "checkmark.circle.fill" : "circle")
+            .foregroundStyle(configuration.isOn ? .green : .secondary)
+            .font(compact ? .caption : .body)
+            .contentTransition(.symbolEffect(.replace))
     }
 }
 
