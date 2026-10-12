@@ -48,11 +48,16 @@ struct QueryCallLogView: View {
         .navigationTitle(Text(verbatim: "Query Calls"))
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button {
+                Button(role: .destructive) {
                     QueryCallLog.clear()
                     entries = []
                 } label: {
-                    Image(systemName: "trash")
+                    Label {
+                        Text(verbatim: "Clear")
+                    } icon: {
+                        Image(systemName: "trash")
+                    }
+                    .labelStyle(.iconOnly)
                 }
                 .disabled(entries.isEmpty)
                 .accessibilityIdentifier("queryCallLogClearButton")

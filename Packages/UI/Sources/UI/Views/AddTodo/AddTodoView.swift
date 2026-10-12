@@ -88,7 +88,7 @@ public struct AddTodoView: View {
         #endif
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button {
+                Button(role: .cancel) {
                     if hasChanges {
                         isConfirmingDiscard = true
                     } else {
@@ -102,7 +102,7 @@ public struct AddTodoView: View {
             }
 
             ToolbarItem(placement: .confirmationAction) {
-                Button(intent: addTodoIntent) {
+                Button(role: .confirm, intent: addTodoIntent) {
                     ToolbarActionLabel(text: .copy("Add"), systemImage: "checkmark")
                 }
                 .accessibilityIdentifier("addButton")
