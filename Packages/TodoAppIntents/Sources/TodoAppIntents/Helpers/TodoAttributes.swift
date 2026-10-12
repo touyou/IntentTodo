@@ -61,4 +61,15 @@ public enum TodoAttributes {
         }
         return seen
     }
+
+    /// Whether an attached link may be opened from the app.
+    ///
+    /// Only web links. A todo's links arrive from Siri and Shortcuts as well as from the
+    /// form, and sync across devices, so the scheme is not something the app chose: `tel:`
+    /// or another app's scheme would act the moment the row is tapped. Anything else is
+    /// still stored and shown — as text.
+    public static func isOpenable(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased() else { return false }
+        return scheme == "https" || scheme == "http"
+    }
 }

@@ -293,12 +293,8 @@ private struct VisionOSAttributesSection: View {
                 Label(tag, systemImage: "number").font(.body)
             }
             ForEach(urls, id: \.self) { url in
-                Link(destination: url) {
-                    Label(url.absoluteString, systemImage: "link")
-                        .font(.body)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                }
+                TodoLinkRow(url: url)
+                    .font(.body)
             }
             if let recurrenceFrequency {
                 Label {
