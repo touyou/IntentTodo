@@ -44,6 +44,15 @@ Button(role: .destructive, intent: DeleteTodoImmediatelyIntent(todo: entity)) {
 
 `DeleteTodoIntent`（確認付き）は Siri / Shortcuts 専用と考える。**AppIntentsTesting では検出できない**（Siri/Shortcuts 経路では成功するため）ので、UI 経路は UI テストで押さえる。経緯: [docs/devlog/06-control-widget-ios26.md](../devlog/06-control-widget-ios26.md)、詳細: [03-app-intents-core.md](03-app-intents-core.md)。
 
+**⏸ `MergeListsIntent` には確認を付けない。** 統合元のリストは消えるが、やることは統合先へ移るので失われない。
+確認を付けるのは「データが失われる操作」（やること / リスト / タグの削除）に限る。
+
+### 添付リンクは web リンクだけ開く
+
+やることの `urls` は Siri / ショートカットからも入り、iCloud で同期されるので、スキームはアプリが選んだものではない。
+`TodoLinkRow` は `TodoAttributes.isOpenable(_:)`（`http` / `https`）のときだけ `Link` にし、それ以外（`tel:` や
+他アプリのスキーム）は文字として表示する。保存はそのまま行う（書き込み時に捨てると「入れたリンクが消えた」になる）。
+
 ### 直接 `perform()` を呼ばない
 
 Intent の `@Dependency` はシステムが `Button(intent:)` 経由で dispatch した時にのみ `AppDependencyManager` から解決される。`Task { try? await intent.perform() }` のように手動で呼ぶと `@Dependency` がゼロ初期化状態になり、ModelContainer 利用時点でクラッシュする。
