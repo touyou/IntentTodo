@@ -25,17 +25,32 @@ struct TodoDetailTagsSection: View {
 
 // MARK: - Links
 
+/// One attached link: tappable when it is a web link, plain text otherwise.
+struct TodoLinkRow: View {
+    let url: URL
+
+    var body: some View {
+        if TodoAttributes.isOpenable(url) {
+            Link(destination: url) { label }
+        } else {
+            label
+        }
+    }
+
+    private var label: some View {
+        Label(url.absoluteString, systemImage: "link")
+            .lineLimit(1)
+            .truncationMode(.middle)
+    }
+}
+
 struct TodoDetailLinksSection: View {
     let urls: [URL]
 
     var body: some View {
         ForEach(urls, id: \.self) { url in
-            Link(destination: url) {
-                Label(url.absoluteString, systemImage: "link")
-                    .font(.subheadline)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-            }
+            TodoLinkRow(url: url)
+                .font(.subheadline)
         }
     }
 }
