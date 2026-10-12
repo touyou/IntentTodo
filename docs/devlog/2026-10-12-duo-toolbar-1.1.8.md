@@ -60,3 +60,21 @@ Xcode 27.1 RC（27A9275）+ iPhone Duo シミュレータ（iOS 27.1）/ iPhone 
 - #197 / #198 ツールバー / #199 1.1.8 bump とメタデータ
 
 残り: Duo を開いた状態と実機での確認、macOS 1.1.8 の起動確認は #30
+
+## 追記（同日）: 添付リンクの修正を 1.1.9 で 3 プラットフォームに出した
+
+同じ日のセキュリティ点検で、やることの添付リンクをスキームを絞らずに開いていたのが見つかり、#201 で
+web リンクだけ開くようにした。これを出そうとした時点で **iOS 1.1.8 は既に審査を通って公開されていた**ので、1.1.9 にした。
+
+- 審査待ちだった macOS 1.1.8（build 55）と visionOS 1.1.7（build 54）は `asc submit cancel --id` で取り下げた。
+  版の状態が `DEVELOPER_REJECTED` に変わるまで 1 分ほどかかり、その後 `asc versions update --version-id … --version 1.1.9` で
+  **同じ版レコードを改名**した（メタデータとスクショはそのまま残る）。iOS だけ `asc versions create` で新規
+- 取り下げ後は編集できる app info の ID が変わった（`metadata apply --app-info` に渡す値が変わる）。
+  審査待ちが無くなったので app info は 2 つ（公開中 / 編集中）のまま
+- macOS / visionOS の whatsNew は、届いていなかった前の版の内容に添付リンクの 1 行を足した
+- iPhone / iPad は設定画面にバージョン番号が写るので撮り直し、24 枚とも `sourceFileChecksum` が一致
+- Xcode Cloud run #56 が 3 プラットフォームとも成功。`asc review submit --dry-run` を見てから build 56 で 3 つ提出
+
+- #201 添付リンク / #202 1.1.9 bump とメタデータ
+
+残り: macOS / visionOS の 1.1.9 と、web 以外のリンクが文字で出ることの目視は #30
