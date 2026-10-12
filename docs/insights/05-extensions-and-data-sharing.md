@@ -290,3 +290,18 @@ public func toggleCompletion(todoId: String) throws -> TodoToggleResult {
 集約の理由と `dataDidChange()` の中身: [03-app-intents-core.md](03-app-intents-core.md#データ更新の後処理は-todoservicedatadidchange-に集約する)
 
 `WidgetReloader` は `TodoAppIntents` パッケージ内にあり、`IntentTodoLiveActivity` / `IntentTodoWidget` の両 Extension ターゲットは（Intent 型を使うために）既に `import TodoAppIntents` している。Extension から import できるかどうかはプラットフォーム制約ではなく、Extension ターゲットの SPM 依存グラフに `WidgetReloader` の所在パッケージが含まれているかどうかの問題であり、本プロジェクトでは既に含まれている。全 `WidgetReloader.reloadAllWidgets()` 呼び出しは `TodoService`（`TodoAppIntents` パッケージ内）に集約されており、Extension ターゲットのコードから直接 `WidgetCenter.shared.reloadAllTimelines()` を呼んでいる箇所は無い。依存が無いケースに遭遇したら、`WidgetReloader` の所在パッケージを Extension ターゲットの依存に追加すれば import できる。経緯は [docs/devlog/05-extensions-and-data-sharing.md](../devlog/05-extensions-and-data-sharing.md) 参照。
+
+### 拡張側は取得のたびに `ModelContext` を作る
+
+タイムライン / コントロールの値取得は `ModelContext(sharedWidgetModelContainer)` を毎回作って読む。
+書くのはアプリのプロセスで、拡張のプロセスに生き続ける `mainContext` は既に読み込んだ行を抱えたままになる。
+ウィジェット自身のタップからリロードが走る場合は、拡張プロセスが確実に生きている。
+経緯: [docs/devlog/2026-10-10-widget-checkbox-1.1.7.md](../devlog/2026-10-10-widget-checkbox-1.1.7.md)
+
+### 行のチェックは `Toggle(isOn:intent:)`、タイトルの `Link` には `invalidatableContent()` を付けない
+
+- Intent がアプリのプロセスで走ってリロードが届くまでには間がある。`Button(intent:)` だとその間は
+  タップが効いていないように見えるので、タップ時にシステムが `isOn` を先に反転する `Toggle(isOn:intent:)` に
+  専用の `ToggleStyle` を当てて丸を描く
+- `Link` の中身に `invalidatableContent()` を付けると、その `Link` が URL を渡さなくなり、タップしても
+  アプリが開くだけになる（iOS 27 シミュレータのホーム画面と実機で確認）

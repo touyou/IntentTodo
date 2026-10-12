@@ -629,6 +629,7 @@ private struct TodoListToolbar: ToolbarContent {
     let includesAddTodo: Bool
     @Environment(NavigationModel.self) private var navigationModel
 
+    #if !os(iOS)
     /// `.topBarTrailing` does not exist on macOS.
     private var optionsPlacement: ToolbarItemPlacement {
         #if os(macOS)
@@ -637,6 +638,7 @@ private struct TodoListToolbar: ToolbarContent {
         .topBarTrailing
         #endif
     }
+    #endif
 
     /// The lists button sits at the leading edge, where "go up a level" is read.
     private var listsPlacement: ToolbarItemPlacement {
@@ -689,29 +691,16 @@ private struct TodoListToolbar: ToolbarContent {
         // One menu for everything that is not creating a todo or changing lists. Four
         // separate controls did not fit the list column's bar: the system moved them
         // into its own overflow menu and squeezed out the title.
+        #if os(iOS)
+        // The system's menu rather than one of our own behind an ellipsis: that symbol is
+        // the system overflow's, and this is where the bar's own overflow lands too.
+        ToolbarOverflowMenu {
+            optionsMenuContent
+        }
+        #else
         ToolbarItem(placement: optionsPlacement) {
             Menu {
-                FilterPicker(selection: $viewModel.filter)
-                if let organize, !organize.tags.isEmpty {
-                    Menu(.copy("Tag")) {
-                        TagFilterPicker(selection: $viewModel.tagFilter, tags: organize.tags)
-                    }
-                }
-                Divider()
-                Menu(.copy("Sort")) {
-                    SortPicker(selection: $viewModel.sortOrder)
-                }
-                #if os(iOS)
-                Divider()
-                // `SettingsView` is not built on macOS (no `ShortcutsLink` there), so
-                // this row is iOS-only; the Mac has it in the app menu.
-                Button {
-                    showingSettings = true
-                } label: {
-                    Label(.copy("Settings"), systemImage: "gearshape")
-                }
-                .accessibilityIdentifier("settingsButton")
-                #endif
+                optionsMenuContent
             } label: {
                 // Filled while something is narrowing the list, so an accidental filter is
                 // visible from the toolbar rather than only from inside the menu.
@@ -725,6 +714,31 @@ private struct TodoListToolbar: ToolbarContent {
             }
             .accessibilityIdentifier("filterSortMenu")
         }
+        #endif
+    }
+
+    @ViewBuilder
+    private var optionsMenuContent: some View {
+        FilterPicker(selection: $viewModel.filter)
+        if let organize, !organize.tags.isEmpty {
+            Menu(.copy("Tag")) {
+                TagFilterPicker(selection: $viewModel.tagFilter, tags: organize.tags)
+            }
+        }
+        Divider()
+        Menu(.copy("Sort")) {
+            SortPicker(selection: $viewModel.sortOrder)
+        }
+        #if os(iOS)
+        Divider()
+        // `SettingsView` is not built on macOS (no `ShortcutsLink` there), so
+        // this row is iOS-only; the Mac has it in the app menu.
+        Button {
+            showingSettings = true
+        } label: {
+            Label(.copy("Settings"), systemImage: "gearshape")
+        }
+        #endif
     }
 
 }

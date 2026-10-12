@@ -110,8 +110,8 @@ final class ScreenshotTests: XCTestCase {
         // iOS only, mirroring the app: `SettingsView` is built around `ShortcutsLink`, which
         // does not exist on macOS, so `TodoListToolbar` omits the button there.
         #if os(iOS)
-        app.buttons["filterSortMenu"].tap()
-        let settingsButton = app.buttons["settingsButton"]
+        app.toolbarMenu(.listOptions).tap()
+        let settingsButton = app.toolbarMenuRow("settingsButton", symbol: "gearshape")
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 10), "Settings row should exist")
         settingsButton.tap()
         XCTAssertTrue(

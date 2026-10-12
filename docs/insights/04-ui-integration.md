@@ -417,16 +417,38 @@ TestFlight の判定はレシートのファイル名（`sandboxReceipt`）で�
 |---|---|---|
 | 追加 / 編集シートの Cancel | `xmark` | Close は標準記号にする、と HIG が名指し |
 | 追加シートの Add / 編集シートの Save / リスト詳細の Save | `checkmark` | 確定操作は記号で伝わる |
-| 設定シートの Done | `xmark` | 同（モーダルを閉じる） |
+| 設定シートの Done | `xmark`（`.cancellationAction`。確定するものが無いので閉じる側の席） | 同（モーダルを閉じる） |
 | 詳細画面の Edit | **文字のまま** | HIG が *edit* を例外として名指ししている |
 
 **macOS だけ文字を残す。** `ToolbarActionLabel` が `#if os(macOS)` で分けており、Mac ではこれらが
 ウィンドウのツールバーに並ぶ（フォームの上のダイアログという扱いで、タイトル付きプッシュボタンが
 期待される面）。分岐を 1 つの型に閉じてあるので、追加シートと編集シートが別々に変わることはない。
 
-一覧画面のツールバーは元から全部アイコン。絞り込みが効いている間だけ
-`line.3.horizontal.decrease.circle` を `.fill` に差し替えて、**メニューを開かなくても絞り込み中と
-分かる**ようにしてある。
+一覧画面のツールバーは元から全部アイコン。
+
+### 項目にはタイトル・placement・role を必ず付ける（iPhone Duo の縦のバー）
+
+iPhone Duo ではツールバーの項目が画面端の縦のバーへ自動で移り、シートのツールバーも同じバーに入る。
+入りきらない項目はシステムのオーバーフロー（⋯）へ回る。そのときに使われるのがタイトルと placement / role。
+
+| ルール | 書き方 | 守らないと |
+|---|---|---|
+| 画像だけの項目にもタイトル | `Label(…, systemImage:)` + `.labelStyle(.iconOnly)`（素の `Image` + `accessibilityLabel` は不可） | オーバーフローに載れず、畳まれる代わりに**消える** |
+| 閉じる / キャンセルは `.cancellationAction` | `Button(role: .close)` / `Button(role: .cancel)` | 確定の席に並んでしまう |
+| 確定は `.confirmationAction` | `Button(role: .confirm, intent:)`（`Button(intent:)` にも role を渡せる） | 目立つ扱いにならない |
+| 「その他」は自前の ellipsis メニューにしない | iOS は `ToolbarOverflowMenu { … }` | ⋯ がシステムのものと 2 つ並びうる |
+
+`ToolbarOverflowMenu` は iOS / visionOS 27 のみ（macOS には無い）。このアプリは **iOS だけ**置き換え、
+macOS / visionOS は自前の `Menu` のまま。引き換えにしたものが 2 つある:
+
+- **⋯ のアイコンは変えられない。** 絞り込み中にアイコンを `.fill` にする表示は iOS では出せない
+  （macOS / visionOS には残してある）
+- **メニュー内の項目から `accessibilityIdentifier` が落ちる。** ボタン自体はシステムの識別子
+  （`OverflowBarButtonItem`、Duo の縦のバーでは `BottomOverflowBarButtonItem`）になる。
+  UI テストは `IntentTodoUITest/ToolbarMenus.swift` を通し、行は記号（`gearshape` など）で引く。
+  split view では列ごとに ⋯ が 1 つずつ出る
+
+経緯: [docs/devlog/2026-10-12-duo-toolbar-1.1.8.md](../devlog/2026-10-12-duo-toolbar-1.1.8.md)
 
 ---
 

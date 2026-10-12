@@ -267,11 +267,11 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
         todoCell.tap()
 
-        let moreMenu = app.buttons["todoDetailMoreMenu"]
+        let moreMenu = app.toolbarMenu(.detailMore)
         XCTAssertTrue(moreMenu.waitForExistence(timeout: 5), "Detail view should offer the More menu")
         moreMenu.tap()
 
-        let deleteButton = app.buttons["deleteTodoButton"]
+        let deleteButton = app.toolbarMenuRow("deleteTodoButton", symbol: "trash")
         XCTAssertTrue(deleteButton.waitForExistence(timeout: 5), "Detail view should offer Delete Todo")
         deleteButton.tap()
 
@@ -322,7 +322,7 @@ final class IntentTodoUITest: XCTestCase {
     @MainActor
     func testFilterMenu() throws {
         // Tap filter menu
-        let filterMenu = app.buttons["filterSortMenu"]
+        let filterMenu = app.toolbarMenu(.listOptions)
         XCTAssertTrue(filterMenu.waitForExistence(timeout: 5), "Filter menu should exist")
         filterMenu.tap()
 
@@ -412,11 +412,11 @@ final class IntentTodoUITest: XCTestCase {
         XCTAssertTrue(todoCell.waitForExistence(timeout: 5), "Todo should exist")
         todoCell.tap()
 
-        let moreMenu = app.buttons["todoDetailMoreMenu"]
+        let moreMenu = app.toolbarMenu(.detailMore)
         XCTAssertTrue(moreMenu.waitForExistence(timeout: 5), "Detail view should offer the More menu")
         moreMenu.tap()
 
-        let editButton = app.buttons["editDetailsButton"]
+        let editButton = app.toolbarMenuRow("editDetailsButton", symbol: "pencil")
         XCTAssertTrue(editButton.waitForExistence(timeout: 5), "Edit Details button should exist on detail view")
         editButton.tap()
 
@@ -454,11 +454,11 @@ final class IntentTodoUITest: XCTestCase {
     func testSettingsShowsShortcutsLink() throws {
         // Settings is a row of the list's options menu, not a bar button: the list
         // column's bar is too narrow for a separate control.
-        let optionsMenu = app.buttons["filterSortMenu"]
+        let optionsMenu = app.toolbarMenu(.listOptions)
         XCTAssertTrue(optionsMenu.waitForExistence(timeout: 5), "Options menu should exist")
         optionsMenu.tap()
 
-        let settingsButton = app.buttons["settingsButton"]
+        let settingsButton = app.toolbarMenuRow("settingsButton", symbol: "gearshape")
         XCTAssertTrue(settingsButton.waitForExistence(timeout: 5), "Settings row should exist")
         settingsButton.tap()
 
