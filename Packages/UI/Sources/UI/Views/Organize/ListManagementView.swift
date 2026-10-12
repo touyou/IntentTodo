@@ -65,10 +65,10 @@ private struct ListManagementContent: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button(action: startAddingList) {
-                    Image(systemName: "plus")
+                    Label(.copy("Create List"), systemImage: "plus")
+                        .labelStyle(.iconOnly)
                 }
                 .accessibilityIdentifier("addListButton")
-                .accessibilityLabel(.copy("Create List"))
             }
         }
         // An alert rather than a sheet: it closes itself when either button is tapped, so
@@ -338,6 +338,7 @@ private struct ListDetailView: View {
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button(
+                    role: .confirm,
                     intent: UpdateListIntent(
                         list: list,
                         name: trimmedName,

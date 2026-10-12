@@ -188,33 +188,21 @@ private struct TodoDetailContent: View {
 
             // Edit and delete are secondary to favoriting, so they share one menu rather
             // than each taking a seat in a bar that is narrow in a split view's detail pane.
+            #if os(iOS)
+            ToolbarOverflowMenu {
+                detailMenuContent
+            }
+            #else
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button {
-                        navigationModel.showAttributeEditor()
-                    } label: {
-                        Label(.copy("Edit"), systemImage: "pencil")
-                    }
-                    .accessibilityIdentifier("editDetailsButton")
-
-                    Divider()
-
-                    // Confirmed here, not by the intent: `requestConfirmation` has no
-                    // surface to present on when the caller is an in-app button, so the
-                    // confirming intent would fail silently. The non-confirming one runs
-                    // from the dialog.
-                    Button(role: .destructive) {
-                        isConfirmingDelete = true
-                    } label: {
-                        Label(.copy("Delete Todo"), systemImage: "trash")
-                    }
-                    .accessibilityIdentifier("deleteTodoButton")
+                    detailMenuContent
                 } label: {
                     Label(.copy("More"), systemImage: "ellipsis.circle")
                         .labelStyle(.iconOnly)
                 }
                 .accessibilityIdentifier("todoDetailMoreMenu")
             }
+            #endif
         }
         // On the content rather than inside the menu: a dialog attached to a menu item goes
         // away with the menu.
@@ -240,6 +228,29 @@ private struct TodoDetailContent: View {
         .task(id: todo.modifiedAt) {
             await refreshCollections(of: entity)
         }
+    }
+
+    @ViewBuilder
+    private var detailMenuContent: some View {
+        Button {
+            navigationModel.showAttributeEditor()
+        } label: {
+            Label(.copy("Edit"), systemImage: "pencil")
+        }
+        .accessibilityIdentifier("editDetailsButton")
+
+        Divider()
+
+        // Confirmed here, not by the intent: `requestConfirmation` has no
+        // surface to present on when the caller is an in-app button, so the
+        // confirming intent would fail silently. The non-confirming one runs
+        // from the dialog.
+        Button(role: .destructive) {
+            isConfirmingDelete = true
+        } label: {
+            Label(.copy("Delete Todo"), systemImage: "trash")
+        }
+        .accessibilityIdentifier("deleteTodoButton")
     }
 
     /// Re-fetches the collections by id, yielding empty for a deleted todo.

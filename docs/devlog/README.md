@@ -20,6 +20,7 @@
 
 ## 目次
 
+- [2026-10-12-duo-toolbar-1.1.8.md](2026-10-12-duo-toolbar-1.1.8.md) — iPhone Duo の縦のバーに合わせてツールバーを揃えた記録（**`ToolbarOverflowMenu` は中の項目の accessibilityIdentifier を落とす**件 / Duo シミュレータは XCUITest からなら撮れる件）
 - [2026-10-10-widget-checkbox-1.1.7.md](2026-10-10-widget-checkbox-1.1.7.md) — ウィジェットのチェックを実機で通して 1.1.7 を出した経緯（**拡張側の生き続ける `mainContext` が古い行を返す**件 / `Button(intent:)` を `Toggle(isOn:intent:)` にしてタップと同時に丸を切り替える件 / **`Link` の中身に `invalidatableContent()` を付けると URL が渡らなくなる**件 / SpringBoard を UI テストで操作してホーム画面のウィジェットをタップさせた切り分け / Xcode Cloud の書き出しが Apple 側の 502 で落ちた件）
 - [2026-09-26-issues-142-onward.md](2026-09-26-issues-142-onward.md) — #142 以降の issue を片付けた記録（**`urls` が空でも Cascade への donate は成功し、FB23563297 が当たらないのは `urls` が `@DeferredProperty` で index に載らないから**だった件 / **medium の追加シートはフォーカスでシステムが `.large` まで広げるのでキーボードは隠さない**件 / 「続けて追加」をボタン 2 本ではなくトグルにした理由 / 間への挿入を作らない判断 / **`simctl spawn … defaults write` はアプリのコンテナに書かない**件 / #167 は Spotlight 索引の漏れではなかった件）
 - [2026-09-25-list-ux-triage.md](2026-09-25-list-ux-triage.md) — 「スマホで快適な TODO アプリ」の 13 の論点を実装に当てて 4 件直した記録（**フィルタ中のドラッグが `sortIndex` を見えている分だけ 0..n で振り直して全体順序を壊していた**件 / 完了済みを既定で隠すのに `completionDate` を初めて UI から読んだ件と**猶予切れはストアの変化ではないので `.task(id:)` で起床が要る**件 / 既定フィルタを変えると `isNarrowed` と空状態が嘘になる件 / **iOS の行の長押しが手動ソートのときだけ並び替えに化けていた**件 / **App Intents 中心設計ではインライン編集の確定を `onSubmit` に載せられない**件）

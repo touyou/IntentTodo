@@ -80,7 +80,7 @@ struct TodoEditView: View {
             #endif
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button {
+                    Button(role: .cancel) {
                         if hasChanges {
                             isConfirmingDiscard = true
                         } else {
@@ -97,7 +97,7 @@ struct TodoEditView: View {
                     // The sheet is closed by `UpdateTodoIntent.perform()`. Dismissing here
                     // as well would also close it when the intent fails, which reads as
                     // "saved".
-                    Button(intent: updateIntent) {
+                    Button(role: .confirm, intent: updateIntent) {
                         ToolbarActionLabel(text: .copy("Save"), systemImage: "checkmark")
                     }
                     .accessibilityIdentifier("saveAttributesButton")

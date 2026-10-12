@@ -113,17 +113,19 @@ private struct SettingsForm: View {
         .navigationTitle(.copy("Settings"))
         #if os(iOS) || os(visionOS)
         .toolbar {
-            ToolbarItem(placement: .confirmationAction) {
+            // Nothing here is confirmed — settings apply as they change — so this is the
+            // close seat, not the confirming one.
+            ToolbarItem(placement: .cancellationAction) {
                 // The standard close symbol rather than the word "Done": the HIG asks for
                 // symbols in toolbars, and names Back and Close as the two that have to be
                 // the standard ones.
-                Button {
+                Button(role: .close) {
                     dismiss()
                 } label: {
-                    Image(systemName: "xmark")
+                    Label(.copy("Done"), systemImage: "xmark")
+                        .labelStyle(.iconOnly)
                 }
                 .accessibilityIdentifier("settingsDoneButton")
-                .accessibilityLabel(.copy("Done"))
             }
         }
         #endif

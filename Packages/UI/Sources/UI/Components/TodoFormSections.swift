@@ -148,6 +148,9 @@ struct TodoFormDraft: Equatable {
 /// one. macOS keeps the words — these items land in the window's own toolbar above a form,
 /// where the platform expects titled push buttons.
 ///
+/// The symbol is an icon-only `Label`, not a bare `Image`: the title is what the system
+/// shows when the item moves into an overflow menu or an expanded bar.
+///
 /// Shared by the add and edit sheets so the two can't drift apart.
 struct ToolbarActionLabel: View {
     let text: LocalizedStringResource
@@ -157,7 +160,8 @@ struct ToolbarActionLabel: View {
         #if os(macOS)
         Text(text)
         #else
-        Image(systemName: systemImage)
+        Label(text, systemImage: systemImage)
+            .labelStyle(.iconOnly)
         #endif
     }
 }
