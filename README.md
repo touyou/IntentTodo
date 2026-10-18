@@ -229,6 +229,9 @@ DEBUG 限定の `ScreenshotFixture`（`Domain`）が in-memory ストアに ja /
 撮った iPhone / iPad の画面に見出し・背景・端末の枠を付けたストア画像は、
 [touyou/skills の `store-screenshot-composer`](https://github.com/touyou/skills/tree/main/skills/store-screenshot-composer)
 で `scripts/store_frames.json` から作る（見出しの文言もこのファイルにある）。出力は `StoreImages/<platform>/<locale>/`（gitignore）。
+iPhone / iPad とも 5 枚を 1 枚の横長の絵として描いてから切り分ける（帯と傾けた端末が隣の画像へつながる）ので、
+1 枚でも撮れていないとそのセットは書き出されない。1 枚目の拡大カードは一覧の上 2 行を切り出す位置にしてあるので、
+撮り直して画面の並びが変わったら `callout.box` を合わせる。
 
 ```bash
 python3 <skills>/store-screenshot-composer/scripts/compose.py scripts/store_frames.json --sheet
