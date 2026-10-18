@@ -226,6 +226,14 @@ DEBUG 限定の `ScreenshotFixture`（`Domain`）が in-memory ストアに ja /
 いずれも App Store Connect が受け付ける寸法。ASC へ入れる文言は
 [docs/APP_STORE_LISTING.md](docs/APP_STORE_LISTING.md)。
 
+撮った iPhone / iPad の画面に見出し・背景・端末の枠を付けたストア画像は、
+[touyou/skills の `store-screenshot-composer`](https://github.com/touyou/skills/tree/main/skills/store-screenshot-composer)
+で `scripts/store_frames.json` から作る（見出しの文言もこのファイルにある）。出力は `StoreImages/<platform>/<locale>/`（gitignore）。
+
+```bash
+python3 <skills>/store-screenshot-composer/scripts/compose.py scripts/store_frames.json --sheet
+```
+
 ## App Shortcuts
 
 8 件を `IntentTodo/TodoAppShortcuts.swift`（アプリターゲット直下）で定義。

@@ -120,7 +120,9 @@ reported back to the person; declining it does not restrict any feature.
 
 ## 7. スクリーンショット
 
-`scripts/capture_screenshots.sh` の出力をそのまま上げる。
+`scripts/capture_screenshots.sh` の出力をそのまま上げている。iPhone / iPad は見出し付きの
+`StoreImages/<platform>/<locale>/`（`scripts/store_frames.json`、作り方は README の「提出用スクリーンショット」）に
+差し替えられる。寸法は同じなので下表の枠にそのまま入る。
 
 | ASC の枠 | ファイル | 画素数 |
 |---|---|---|
