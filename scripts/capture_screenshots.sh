@@ -46,7 +46,8 @@ BUNDLE_ID="dev.touyou.IntentTodo"
 # iPhone Duo only exists on the iOS 27.1 runtime.
 DUO_DEST="${DUO_DEST:-platform=iOS Simulator,name=iPhone Duo,OS=27.1}"
 DUO_OPEN_SIZE="2853x2007"
-DUO_CLOSED_SIZE="1398x2034"
+# The folded Duo's inner screen (all black) captures smaller than this.
+DUO_INNER_BLANK_MAX_BYTES=1000000
 
 UITEST_PLATFORMS=(
   "iphone|IntentTodoUITest|IntentTodoUITest/ScreenshotTests|platform=iOS Simulator,name=iPhone 17 Pro Max,OS=27.0"
@@ -102,11 +103,11 @@ pixel_size() {
   sips -g pixelWidth -g pixelHeight "$1" | awk '/pixelWidth/ {w=$2} /pixelHeight/ {h=$2} END {print w"x"h}'
 }
 
-# Boots the Duo, checks it is folded the way this platform needs (judged by the default
-# screen's size: the outer screen when folded, the inner one when unfolded) and pins the
-# status bar, which xcodebuild doesn't do for the clock in the Duo's side bar.
+# Boots the Duo, checks it is folded the way this platform needs (judged by whether the
+# inner screen shows anything) and pins the status bar, which xcodebuild doesn't do for the
+# clock in the Duo's side bar.
 prepare_duo() {
-  local platform=$1 destination=$2 udid shot size
+  local platform=$1 destination=$2 udid shot bytes state
   udid=$(udid_for "$destination")
   if [ -z "$udid" ]; then
     echo "    FAILED — no iPhone Duo simulator for $destination"
@@ -114,18 +115,23 @@ prepare_duo() {
   fi
   xcrun simctl boot "$udid" 2>/dev/null || true
   xcrun simctl bootstatus "$udid" -b > /dev/null 2>&1 || true
-  shot="$WORK/duo-state.png"
-  xcrun simctl io "$udid" screenshot "$shot" > /dev/null 2>&1
-  size=$(pixel_size "$shot")
+  # The inner screen is black while folded, which compresses to about 100KB as a PNG (a
+  # screen with content is several MB). The default screen's size can't tell: unfolded, it
+  # has come back as the outer screen turned sideways.
+  shot="$WORK/duo-inner.png"
+  xcrun simctl io "$udid" screenshot --display=primary-1 "$shot" > /dev/null 2>&1
+  bytes=$(stat -f%z "$shot" 2>/dev/null || echo 0)
+  state=folded
+  [ "$bytes" -gt "$DUO_INNER_BLANK_MAX_BYTES" ] && state=unfolded
   case "$platform" in
     duo-open)
-      if [ "$size" != "$DUO_OPEN_SIZE" ]; then
-        echo "    FAILED — the Duo is folded ($size). Unfold it with the button under the device in DeviceHub, then run again"
+      if [ "$state" != unfolded ]; then
+        echo "    FAILED — the Duo is folded. Unfold it with the button under the device in DeviceHub, then run again"
         return 1
       fi ;;
     duo-closed)
-      if [ "$size" != "$DUO_CLOSED_SIZE" ]; then
-        echo "    FAILED — the Duo is unfolded ($size). Fold it in DeviceHub or reboot the simulator, then run again"
+      if [ "$state" != folded ]; then
+        echo "    FAILED — the Duo is unfolded. Fold it in DeviceHub or reboot the simulator, then run again"
         return 1
       fi ;;
   esac
