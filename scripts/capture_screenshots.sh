@@ -141,6 +141,27 @@ prepare_duo() {
     > /dev/null 2>&1 || true
 }
 
+# Drops the orientation metadata (eXIf and XMP) from a PNG. XCUIScreen's image carries
+# "turn 90° when shown" (orientation 6); left in after the pixels are turned, it makes browsers
+# and App Store Connect turn the image a second time.
+strip_png_orientation() {
+  python3 - "$1" <<'EXIF'
+import struct, sys
+
+path = sys.argv[1]
+data = open(path, "rb").read()
+out, i = [data[:8]], 8
+while i < len(data):
+    length, kind = struct.unpack(">I4s", data[i:i + 8])
+    chunk = data[i:i + 12 + length]
+    xmp = kind == b"iTXt" and data[i + 8:i + 8 + 17] == b"XML:com.adobe.xmp"
+    if kind != b"eXIf" and not xmp:
+        out.append(chunk)
+    i += 12 + length
+open(path, "wb").write(b"".join(out))
+EXIF
+}
+
 # The unfolded Duo's inner screen comes back as a portrait-shaped framebuffer: turn it to
 # landscape and size it to 2853x2007 (XCUIScreen's image is 1px short, 2006x2852).
 normalize_duo_open() {
@@ -154,6 +175,7 @@ normalize_duo_open() {
     if [ "$(pixel_size "$png")" != "$DUO_OPEN_SIZE" ]; then
       sips -z "${DUO_OPEN_SIZE#*x}" "${DUO_OPEN_SIZE%x*}" "$png" > /dev/null
     fi
+    strip_png_orientation "$png"
   done
   echo "    normalized to $DUO_OPEN_SIZE"
 }
