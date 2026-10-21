@@ -31,8 +31,19 @@ final class ScreenshotTests: XCTestCase {
         "-ApplePersistenceIgnoreState", "YES"
     ]
 
+    /// Set by the capture script (`TEST_RUNNER_SCREENSHOT_DUO_OPEN=1`) when shooting
+    /// an unfolded iPhone Duo.
+    private let isDuoOpen = ProcessInfo.processInfo.environment["SCREENSHOT_DUO_OPEN"] == "1"
+
     override func setUpWithError() throws {
         continueAfterFailure = false
+        #if os(iOS)
+        // An unfolded Duo is shot in landscape; the capture script's clockwise 90° turn
+        // assumes landscapeLeft.
+        if isDuoOpen {
+            XCUIDevice.shared.orientation = .landscapeLeft
+        }
+        #endif
         app = XCUIApplication()
         app.launchArguments = baseArguments
         app.launch()
@@ -44,6 +55,23 @@ final class ScreenshotTests: XCTestCase {
 
     // MARK: - Capture
 
+    #if os(iOS)
+    /// The screen to capture: `XCUIScreen.main`, except on an unfolded iPhone Duo.
+    ///
+    /// The Duo has an outer and an inner screen, and `XCUIScreen.main` stays the
+    /// outer one even when the device is open. Unfolded, take the screen with the
+    /// most pixels (the inner one). Its framebuffer is still portrait-shaped; the
+    /// capture script turns it to landscape and fixes the size.
+    private func screenToCapture() -> XCUIScreen {
+        guard isDuoOpen else { return XCUIScreen.main }
+        func pixels(_ screen: XCUIScreen) -> CGFloat {
+            let size = screen.screenshot().image.size
+            return size.width * size.height
+        }
+        return XCUIScreen.screens.max { pixels($0) < pixels($1) } ?? XCUIScreen.main
+    }
+    #endif
+
     /// Attaches a capture under a name the extraction script can order by.
     private func capture(_ name: String) {
         #if os(macOS)
@@ -52,7 +80,7 @@ final class ScreenshotTests: XCTestCase {
         let screenshot = app.windows.firstMatch.screenshot()
         #else
         // The device's framebuffer, at exactly the pixel size App Store Connect asks for.
-        let screenshot = XCUIScreen.main.screenshot()
+        let screenshot = screenToCapture().screenshot()
         #endif
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name
@@ -164,7 +192,11 @@ final class ScreenshotTests: XCTestCase {
     @MainActor
     private func returnToList() {
         guard !app.buttons["addTodoButton"].exists else { return }
-        let backButton = app.navigationBars.buttons.element(boundBy: 0)
+        // The folded iPhone Duo moves the back button out of the navigation bar into the
+        // side bar, where it is only reachable by its identifier.
+        let navigationBack = app.navigationBars.buttons.element(boundBy: 0)
+        let sideBarBack = app.buttons["BackButton"]
+        let backButton = navigationBack.waitForExistence(timeout: 5) ? navigationBack : sideBarBack
         XCTAssertTrue(backButton.waitForExistence(timeout: 10), "Detail screen should offer a back button")
         backButton.tap()
     }
