@@ -29,7 +29,16 @@ final class ScreenshotTests: XCTestCase {
         // a menu bar and nothing else, and every element lookup times out. Ignored on the
         // other platforms.
         "-ApplePersistenceIgnoreState", "YES"
-    ]
+    ] + ScreenshotTests.appearanceArguments
+
+    #if os(macOS)
+    /// Keeps the app in the light appearance whatever the Mac's own setting is, so the
+    /// App Store screenshots match the light iPhone / iPad ones. Only this app is affected;
+    /// the system appearance is left alone.
+    private static let appearanceArguments = ["-NSRequiresAquaSystemAppearance", "YES"]
+    #else
+    private static let appearanceArguments: [String] = []
+    #endif
 
     /// Set by the capture script (`TEST_RUNNER_SCREENSHOT_DUO_OPEN=1`) when shooting
     /// an unfolded iPhone Duo.
