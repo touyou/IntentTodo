@@ -87,9 +87,11 @@ final class ScreenshotTests: XCTestCase {
         // The window, not `app.screenshot()` and not `XCUIScreen.main`: both of those come
         // back as the whole display, with the desktop and every other app in the shot.
         let screenshot = app.windows.firstMatch.screenshot()
-        #else
+        #elseif os(iOS)
         // The device's framebuffer, at exactly the pixel size App Store Connect asks for.
         let screenshot = screenToCapture().screenshot()
+        #else
+        let screenshot = XCUIScreen.main.screenshot()
         #endif
         let attachment = XCTAttachment(screenshot: screenshot)
         attachment.name = name
