@@ -12,7 +12,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 > 着手すると決めた時点で issue を立て、ここの状態列を更新する。
 
 **SDK の確認基準**: 🚫 のうち「SDK にその形が無い」を根拠にしている行は、**Xcode 27.0 RC（27A266a）/
-27.1（27A9269）/ 27.2 beta（27B5019j）/ 27.2 正式版（27B52）**の swiftinterface で再確認済みで、いずれも変わっていない。
+27.1（27A9269）/ 27.2 正式版（27B52）**の swiftinterface で再確認済みで、いずれも変わっていない。
 **27.0 → 27.1 は App Intents の差分 0**（`user-module-version` も同一）なので、
 下の表で「27.2 追加」と書いているものは 27.1 には入っていない。**beta にあって正式版で消えた宣言もある**
 （`DynamicPropertyPath.get(as:)`）ので、「27.2 追加」はすべて正式版で確認したものだけを書いている。
@@ -129,7 +129,7 @@ SDK が上がったら同じ差分の取り方で棚卸しする（手順: [devl
 | `SyncableEntity` | デバイス間 ID 一貫性 | ✅ | `TodoAppEntity`（String UUID id でそのまま適合） |
 | `SyncableEntityIdentifier` | ローカル ID と安定 ID のペア | ⏸ | id が最初から安定なのでペアにする必要がない |
 | `OwnershipProvidingEntity` / `EntityOwnership` | public / shared の宣言 | ⏸ | 共有機能がない（個人利用主体）。CloudKit 共有を入れるなら候補 |
-| `IntentPerson` / `PlaceDescriptor` への `ValueRepresentation` | システム値型へ bridge | ✅ | 担当者 → `IntentPerson` / 場所 → `PlaceDescriptor`。`TodoAppEntity.location` は `PlaceDescriptor?`（`@Property` は SSU バグを踏まない、2026-08-29 実測）。退避が必要なのは **App Shortcut 登録済み Intent の `@Parameter`** だけで、`AddTodoIntent.location` は `String` のまま（FB24548956 → #57。**Xcode 27.2 の toolchain では直った**ので、Xcode Cloud が 27.2 になり TestFlight で確かめたら戻せる）。**受け取るだけの `init(importing:)` が 27.2 SDK で追加**（`anyAppleOS 27.2`）。export も持つ本アプリには不要 |
+| `IntentPerson` / `PlaceDescriptor` への `ValueRepresentation` | システム値型へ bridge | ✅ | 担当者 → `IntentPerson` / 場所 → `PlaceDescriptor`。`TodoAppEntity.location` は `PlaceDescriptor?`（`@Property` は SSU バグを踏まない、2026-08-29 実測）。退避が必要なのは **App Shortcut 登録済み Intent の `@Parameter`** だけで、`AddTodoIntent.location` は `String` のまま（FB24548956 → #57。27.2 toolchain で直ったが、戻す条件は insights 03 の `ValueRepresentation` 節）。**受け取るだけの `init(importing:)` が 27.2 SDK で追加**（`anyAppleOS 27.2`）。export も持つ本アプリには不要 |
 | `Transferable` + `ProxyRepresentation` | 共有・ドラッグ&ドロップ | ✅ | `TodoAppEntity` |
 | `DataRepresentation` / `FileRepresentation` | バイト列 / ファイルでの転送 | 🚫 | Todo はファイルベースのコンテンツを持たない |
 | `URLRepresentableEntity` | URL で Identity を表現 | ✅ | `TodoAppEntity` + `TodoDeepLink` |

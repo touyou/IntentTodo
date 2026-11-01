@@ -1311,8 +1311,9 @@ Spotlight のセマンティックインデックスのキーへ宣言的にマ�
     実測値は [devlog 2026-08-28](../devlog/2026-08-28-ssu-system-value-type-bug.md) /
     [2026-08-29](../devlog/2026-08-29-entity-placedescriptor-restore.md)。Apple 報告済み（FB24548956 / #57）。
   - **Xcode 27.2 の toolchain では直った**（SSU 変数名が `GeoToolbox_PlaceDescriptorEntity` になり
-    ドットが消えた）。ただしビルド時のバグなので、効くのは**配布ビルドの Xcode** で、Xcode Cloud は
-    まだ 27.1。`AddTodoIntent.location` を戻すのはそれが 27.2 になり TestFlight で確かめてから
+    ドットが消えた。別 Intent の probe で確認）。ビルド時のバグなので、効くのは**配布ビルドの Xcode**。
+    `AddTodoIntent.location` を戻すのは、Xcode Cloud が 27.2 以上でビルドし、TestFlight で発話が通ってから
+    （Xcode Cloud の版は #57 で追う）
     （[devlog 2026-11-01](../devlog/2026-11-01-xcode27.2-release-recheck.md)）
 
 ### `IntentParameter.valueState`（部分更新、#344 / #45）

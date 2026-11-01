@@ -51,8 +51,7 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
 8. **App Shortcut に登録した Intent の `@Parameter` に system value 型を置かない**
    （`PlaceDescriptor` / `LinkMetadata` / `AudioSearch` / `PHAsset`。SDK バグ FB24548956 で
    音声理解の学習アセットが丸ごと消え、ローカルは `BUILD SUCCEEDED` のまま。
-   **Xcode 27.2 の toolchain では直った**が、Xcode Cloud が 27.1 でビルドしているあいだは配布物が踏むので維持。
-   外すのは配布ビルドが 27.2 以上になり TestFlight で確かめてから）
+   27.2 toolchain で直ったが、外す条件は [03-app-intents-core](docs/insights/03-app-intents-core.md) の `ValueRepresentation` 節）
 9. **App Schema は watchOS / tvOS に存在しない**。**entity / enum は watch 用に別の型名**を与える
    （同じ型名だと iOS の出荷メタデータが watchOS スライスに上書きされる。FB24570185、Xcode 27.2 でも再現）。
    **Intent は `#if !os(watchOS)` をマクロ行だけに掛ければよい**（型名は 1 つで上書きされない）
