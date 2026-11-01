@@ -12,10 +12,12 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 > 着手すると決めた時点で issue を立て、ここの状態列を更新する。
 
 **SDK の確認基準**: 🚫 のうち「SDK にその形が無い」を根拠にしている行は、**Xcode 27.0 RC（27A266a）/
-27.1（27A9269）/ 27.2 beta（27B5019j）の 3 点**の swiftinterface で再確認済みで、いずれも変わっていない。
+27.1（27A9269）/ 27.2 beta（27B5019j）/ 27.2 正式版（27B52）**の swiftinterface で再確認済みで、いずれも変わっていない。
 **27.0 → 27.1 は App Intents の差分 0**（`user-module-version` も同一）なので、
-下の表で「27.2 追加」と書いているものは 27.1 には入っていない。SDK が上がったら同じ差分の取り方で棚卸しする
-（手順と全差分: [devlog/2026-09-25-xcode27.2-appintents-recheck.md](devlog/2026-09-25-xcode27.2-appintents-recheck.md)）。
+下の表で「27.2 追加」と書いているものは 27.1 には入っていない。**beta にあって正式版で消えた宣言もある**
+（`DynamicPropertyPath.get(as:)`）ので、「27.2 追加」はすべて正式版で確認したものだけを書いている。
+SDK が上がったら同じ差分の取り方で棚卸しする（手順: [devlog/2026-09-25-xcode27.2-appintents-recheck.md](devlog/2026-09-25-xcode27.2-appintents-recheck.md)、
+正式版の結果: [devlog/2026-11-01-xcode27.2-release-recheck.md](devlog/2026-11-01-xcode27.2-release-recheck.md)）。
 
 ## 凡例
 
@@ -72,8 +74,8 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `UISceneAppIntent` + `AppIntentSceneDelegate` | cold start でシーンに Intent を届ける | ✅ | `LaunchAppIntent` / `OpenTodoIntent` + `SceneDelegate.applyNavigation()` |
 | `URLRepresentableIntent` | Intent を URL で表現 | ✅ | `OpenTodoIntent`（`OpenIntent` との組み合わせで無償） |
 | `AudioPlaybackIntent` | 再生系 | 🚫 | 再生機能がない |
-| `RunSystemShortcutIntent` / `SystemShortcut` | システム側ショートカットの実行（iOS 27, iOS 限定） | 🚫 | `SystemShortcut` に公開イニシャライザが無く、アプリから値を作れない（RC 27A266a / 27.1 / 27.2 beta の swiftinterface で確認） |
-| `_ModelDelegationIntent` / `IntentResponseStream` | 応答をストリームで返す（iOS 27） | 🚫 | 下線付き + `@_documentation(visibility: internal)`。公開 API として使えない（27.1 / 27.2 beta でも同じ） |
+| `RunSystemShortcutIntent` / `SystemShortcut` | システム側ショートカットの実行（iOS 27, iOS 限定） | 🚫 | `SystemShortcut` に公開イニシャライザが無く、アプリから値を作れない（RC 27A266a / 27.1 / 27.2 の swiftinterface で確認） |
+| `_ModelDelegationIntent` / `IntentResponseStream` | 応答をストリームで返す（iOS 27） | 🚫 | 下線付き + `@_documentation(visibility: internal)`。公開 API として使えない（27.1 / 27.2 でも同じ） |
 | `CustomIntentMigratedAppIntent` | SiriKit からの移行 | 🚫 | SiriKit 資産がない |
 | `LiveActivityStartingIntent` | 旧・LA 開始専用 | ⛔ | iOS 17 で deprecated。`LiveActivityIntent` が後継 |
 | `PredictableIntent` | 実行タイミングを予測して提案 | ⬜ | 前提の donation はシステムが記録している（2026-08-30 実測）ので、**不可能ではなく未着手**（#68） |
@@ -88,7 +90,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `.foreground(.deferred)` | 背景で始めて必要なら前面 | ✅ | `AddTodoIntent` |
 | `.foreground(.dynamic)` / `continueInForeground()` | `perform()` 内で前面化を判断 | ⏸ | Siri からは `canContinueInForeground` が常に真なので、「開けるなら開く」は Siri から呼ぶたびにアプリを開く。値を返す Intent は `.background` 専用、開くのは `LaunchAppIntent` / `OpenTodoIntent` と役割で分ける（`ShowTodosIntent` で一度採用して戻した） |
 | `systemContext.currentMode` / `canContinueInForeground` | 実行モードの参照 | ⏸ | 上と同じ理由で参照する必要がない |
-| `systemContext.locale` / `isVoiceOnly` | 実行文脈の言語・音声のみかの参照 | ⏸ | RC 27A266a / 27.1 / 27.2 beta の公開 SDK に存在（`preciseTimestamp` / `isVoiceOnly` / `locale` の 3 つのまま）。現行は返却する値と dialog に表示を任せるため直接参照しない。呼出元の識別には使えない |
+| `systemContext.locale` / `isVoiceOnly` | 実行文脈の言語・音声のみかの参照 | ⏸ | RC 27A266a / 27.1 / 27.2 の公開 SDK に存在（`preciseTimestamp` / `isVoiceOnly` / `locale` の 3 つのまま）。現行は返却する値と dialog に表示を任せるため直接参照しない。呼出元の識別には使えない |
 | `allowedExecutionTargets` | 実行プロセスを固定 | ✅ | **書き込み系は全部 `[.main]`**。読み取り系は固定しない。宣言漏れは `IntentExecutionTargetsTests` が検出 |
 | `performBackgroundTask` | 長時間処理の入れ物 | ✅ | `CompleteTodosIntent` |
 | `performBackgroundTask(options:)` / `LongRunningTaskOptions` | `.requiresGPU` の宣言（iOS 27） | 🚫 | GPU を使う処理がない。バルク完了は SwiftData の書き込みだけ |
@@ -127,7 +129,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 | `SyncableEntity` | デバイス間 ID 一貫性 | ✅ | `TodoAppEntity`（String UUID id でそのまま適合） |
 | `SyncableEntityIdentifier` | ローカル ID と安定 ID のペア | ⏸ | id が最初から安定なのでペアにする必要がない |
 | `OwnershipProvidingEntity` / `EntityOwnership` | public / shared の宣言 | ⏸ | 共有機能がない（個人利用主体）。CloudKit 共有を入れるなら候補 |
-| `IntentPerson` / `PlaceDescriptor` への `ValueRepresentation` | システム値型へ bridge | ✅ | 担当者 → `IntentPerson` / 場所 → `PlaceDescriptor`。`TodoAppEntity.location` は `PlaceDescriptor?`（`@Property` は SSU バグを踏まない、2026-08-29 実測）。退避が必要なのは **App Shortcut 登録済み Intent の `@Parameter`** だけで、`AddTodoIntent.location` は `String` のまま（FB24548956 → #57） |
+| `IntentPerson` / `PlaceDescriptor` への `ValueRepresentation` | システム値型へ bridge | ✅ | 担当者 → `IntentPerson` / 場所 → `PlaceDescriptor`。`TodoAppEntity.location` は `PlaceDescriptor?`（`@Property` は SSU バグを踏まない、2026-08-29 実測）。退避が必要なのは **App Shortcut 登録済み Intent の `@Parameter`** だけで、`AddTodoIntent.location` は `String` のまま（FB24548956 → #57。**Xcode 27.2 の toolchain では直った**ので、Xcode Cloud が 27.2 になり TestFlight で確かめたら戻せる）。**受け取るだけの `init(importing:)` が 27.2 SDK で追加**（`anyAppleOS 27.2`）。export も持つ本アプリには不要 |
 | `Transferable` + `ProxyRepresentation` | 共有・ドラッグ&ドロップ | ✅ | `TodoAppEntity` |
 | `DataRepresentation` / `FileRepresentation` | バイト列 / ファイルでの転送 | 🚫 | Todo はファイルベースのコンテンツを持たない |
 | `URLRepresentableEntity` | URL で Identity を表現 | ✅ | `TodoAppEntity` + `TodoDeepLink` |
@@ -213,7 +215,7 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 | `UNMutableNotificationContent.appEntityIdentifiers` | 通知に entity を紐付け | ✅ | Control のエラー通知 |
 | `AppEntityAnnotatable` / `UICollectionViewAppIntentsDataSource` | UIKit 側の onscreen 提供 | 🚫 | SwiftUI アプリなので対象外 |
 | `MusicContent.appEntityIdentifiers` / `AlarmConfiguration.appEntityIdentifier` | Now Playing / AlarmKit との紐付け | 🚫 | 該当機能がない |
-| `RelevantEntities` + `AppEntityContext` | 文脈に応じた entity 寄付 | 🚫 | **todo / reminders 向けの `AppEntityContext` が存在しない**ため適合不能（RC 27A266a / 27.1 / 27.2 beta でもファクトリは `.audio(_:)` の 1 つだけ） |
+| `RelevantEntities` + `AppEntityContext` | 文脈に応じた entity 寄付 | 🚫 | **todo / reminders 向けの `AppEntityContext` が存在しない**ため適合不能（RC 27A266a / 27.1 / 27.2 でもファクトリは `.audio(_:)` の 1 つだけ） |
 | `RelevantIntent` / `RelevantIntentManager` | Smart Stack への Intent 提案 | ⬜ | `WidgetConfigurationIntent` があるので donation なしで成立する経路（#68） |
 | `IntentDonationManager.donate(_:)` / `AppIntent.donate()` | 実行履歴の寄付 | ✅ | **Intent を通らない UI 操作だけ**（フィルタ選択 → `ShowTodosIntent` / 行の選択 → `OpenTodoIntent`、`UIActionDonation`）。`perform()` 内では donate しない（#53）。`Button(intent:)` の実行はシステムが既に donation として記録する |
 | `AppIntent.callAsFunction(donate:)` | Intent を直接実行し、任意で donate する | ⏸ | **#99 で不採用決着**。アプリ内 UI を `Button(intent:)` からこれに載せ替える案。donate は既にシステムが記録しているので動機が消え、残る利点（戻り値 / エラー / 対話 API）は `@Dependency` + `NavigationModel` と Intent の 2 本立てで足りている。別プロセスでは使えないので、載せ替えると呼び出し形が 2 種類に増える |
@@ -257,7 +259,7 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 | `values(for:)`（valueQueries） | `IntentValueQuery` の検証 | 🚫 | `VisualIntelligence.framework` が Simulator SDK に無く、ビルドから除外される |
 | watchOS での `run()` | — | 🚫 | `LNPerformActionPrebuiltErrorCodeActionNotAllowed` で落ちる。watchOS は手動確認（#30） |
 | フレーズ（Siri）のルーティング | — | 🚫 | `AppIntentsTesting` に phrase / siri 相当の API が無い。Apple の想定どおり手動（#30） |
-| `DynamicPropertyPath.get(as:)` | 値の読み出し（27.2 追加、**async**） | ⏳ | 既存の `as(_:)` / 添字は同期なので、非同期に解決する属性（`@DeferredProperty` の `subtaskProgress`）を読む手が無い。`anyAppleOS 27.2` なので deployment target 27.0 では書けず、これが該当する API かも未確認（#57） |
+| 非同期に解決する属性の読み出し | `@DeferredProperty`（`subtaskProgress`）の検証 | 🚫 | 読み出しは同期の `as(_:)` / 添字だけで、27.2 正式版（27B52）にも async の読み出しは無い（beta の `get(as:)` は出荷されなかった） |
 
 ---
 
@@ -272,7 +274,7 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 5. `AudioPlaybackIntent` — 「この Todo をやる間これを流す」。未採用の Intent 種別
 
 ブロック中のものは #57（GM SDK 棚卸し）。App Schema と watch ターゲットの両立は Apple 報告済みで
-#57 にぶら下げた（FB24570185 / `docs/feedback/2026-08-30-app-schema-watch-metadata-merge.md`）。
+#57 にぶら下げた（FB24570185 / `docs/feedback/2026-08-30-app-schema-watch-metadata-merge.md`。Xcode 27.2 でも再現）。
 
 > このリストから外れたもの（`ShortcutsLink` / `AppShortcuts.xcstrings` など）が、いつ・どの判断で
 > 外れたかは [docs/devlog/](devlog/README.md) にある。ここには**現在の状態だけ**を置く。

@@ -99,7 +99,7 @@ Layered / Clean Architecture との対応表・砂時計図・置き場の判定
 - String 型パラメータはフレーズに埋め込まない（`AppEntity` / `AppEnum` のみ）
 - `shortTitle` と `systemImageName` を設定。パラメータ無しのフレーズも 1 つ残す
 - `AppShortcutsProvider` は 1 つだけ。パラメータ入りフレーズには `updateAppShortcutParameters()` の配線が必要
-- 登録済み Intent の `@Parameter` に system value 型（`PlaceDescriptor` 等）を置かない（SDK バグ / FB24548956）
+- 登録済み Intent の `@Parameter` に system value 型（`PlaceDescriptor` 等）を置かない（SDK バグ / FB24548956。Xcode 27.2 で修正済みだが配布ビルドが 27.2 になるまで維持）
 
 **確認の手段**
 

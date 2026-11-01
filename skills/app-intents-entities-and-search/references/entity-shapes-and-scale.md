@@ -77,6 +77,7 @@ extension TodoAppEntity: Transferable {          // concrete type, never a typea
 }
 ```
 
+- Before the 27.2 SDK every initialiser takes `exporting:` (alone or with `importing:`). **An import-only `ValueRepresentation(importing:)` arrived at `@available(anyAppleOS 27.2, *)`** [Apple SDK, 27B52], so an entity that should only *receive* a system value can now say so — below that deployment target you still have to supply an export.
 - `IntentPerson(identifier:name:handle:)` requires **all** arguments; omitting any gives `Missing arguments for parameters 'identifier', 'handle'`.
 - Export closures are `async throws` — **throw** when there is no value, so the representation is simply absent. Don't export an empty placeholder.
 - **Export the richest value you hold.** A `ValueRepresentation` that reassembles a `PlaceDescriptor` from a name only, dropping the coordinates you actually store, silently degrades every hand-off to Maps. If the entity carries the native type, return it directly.

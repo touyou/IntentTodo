@@ -50,9 +50,11 @@ App Intents は**無音で失敗する**（ビルド緑・診断ゼロ・機能�
    スキーマ要求と合わないときは別 Intent + `isAssistantOnly = true` で移行する）
 8. **App Shortcut に登録した Intent の `@Parameter` に system value 型を置かない**
    （`PlaceDescriptor` / `LinkMetadata` / `AudioSearch` / `PHAsset`。SDK バグ FB24548956 で
-   音声理解の学習アセットが丸ごと消え、ローカルは `BUILD SUCCEEDED` のまま）
+   音声理解の学習アセットが丸ごと消え、ローカルは `BUILD SUCCEEDED` のまま。
+   **Xcode 27.2 の toolchain では直った**が、Xcode Cloud が 27.1 でビルドしているあいだは配布物が踏むので維持。
+   外すのは配布ビルドが 27.2 以上になり TestFlight で確かめてから）
 9. **App Schema は watchOS / tvOS に存在しない**。**entity / enum は watch 用に別の型名**を与える
-   （同じ型名だと iOS の出荷メタデータが watchOS スライスに上書きされる。FB24570185）。
+   （同じ型名だと iOS の出荷メタデータが watchOS スライスに上書きされる。FB24570185、Xcode 27.2 でも再現）。
    **Intent は `#if !os(watchOS)` をマクロ行だけに掛ければよい**（型名は 1 つで上書きされない）
 10. **UI コピーは `LocalizedStringResource`**。パッケージでは `.copy(_:)` を通す。
     文言を足したら 12 catalog 全部を埋める

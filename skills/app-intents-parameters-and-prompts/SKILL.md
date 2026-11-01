@@ -65,7 +65,7 @@ The firing condition is narrow, and it matters:
 
 So the workaround is only ever needed on the `@Parameter`: carry a `String` (plus coordinates, if you have them) there and reassemble the real type inside `perform()`. Leave entity properties and value representations alone.
 
-Reported as **FB24548956**; reproduces on released Xcode 26.6 as well as 27 betas, so it is not a beta-only issue. [measured 2026-08-28/29]
+Reported as **FB24548956**; reproduces on released Xcode 26.6 as well as 27 betas. [measured 2026-08-28/29] **Fixed in the Xcode 27.2 toolchain**: the SSU variable becomes `GeoToolbox_PlaceDescriptorEntity` and training archives every locale. [measured 2026-11-01] It is a build-time bug, so what matters is the Xcode that builds the *distributed* binary — keep the workaround until your CI builds with 27.2 or later, and confirm on TestFlight before removing it.
 
 **Judging it requires a clean build** — `AppIntentsSSUTraining` does not re-run when `Metadata.appintents` is unchanged, and an incremental log replays the previous output. And in a localised app the assets land in `<locale>.lproj/nlu.appintents/`, not `Metadata.appintents/nlu/`; look in the right place before concluding they are missing.
 

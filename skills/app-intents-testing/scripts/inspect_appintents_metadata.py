@@ -169,6 +169,9 @@ def find_in_derived_data(name: str) -> list[str]:
 def label_for(path: str) -> str:
     """Human label: the bundle that owns this Metadata.appintents."""
     owner = os.path.dirname(os.path.dirname(path))
+    # macOS bundles keep it in App.app/Contents/Resources/, not at the bundle root.
+    if os.path.basename(owner) == "Resources" and os.path.basename(os.path.dirname(owner)) == "Contents":
+        owner = os.path.dirname(os.path.dirname(owner))
     return os.path.basename(owner)
 
 
