@@ -26,11 +26,12 @@ This skill is the entry point and the cross-cutting rules. Each job below has it
 |---|---|
 | Working out *with someone* which intents this app should have, taking an inventory of an existing adoption, going from screens to actions | `app-intents-design-session` |
 | Deciding where an action should appear — widget, Control Center, Watch, Live Activity, Action button, camera, Focus | `app-intents-system-surfaces` |
+| Letting Siri's model call your intents as tools (27.3+), app skills for Siri | `app-intents-system-surfaces` |
 | Choosing `supportedModes` / `allowedExecutionTargets`, registering `@Dependency`, laying out packages, platform guards | `app-intents-execution-and-processes` |
 | Running intents from your own SwiftUI UI, navigation, dialogs / snippets / notifications | `app-intents-ui-and-feedback` |
 | Adding parameters, parameter summaries, asking the person to confirm or choose, partial updates | `app-intents-parameters-and-prompts` |
 | Modelling content as entities, Spotlight, queries, `AppEnum`, App Schema domains, scale | `app-intents-entities-and-search` |
-| Proving any of it works: AppIntentsTesting, UI tests, metadata inspection | `app-intents-testing` |
+| Proving any of it works: AppIntentsTesting, UI tests, metadata inspection, the Siri Metadata Analyzer, SiriEvaluations | `app-intents-testing` |
 | Translating intent names, descriptions, Siri responses and phrases | `app-intents-localization` |
 
 ### Symptom → skill
@@ -51,6 +52,7 @@ Failures here are almost always silent, so the symptom rarely names the cause.
 | An action worked but a control or widget still shows the old value | reload fan-out | this skill, [side-effects](references/service-and-side-effects.md) |
 | Nothing was said or shown after the action | wrong feedback channel for that caller | `app-intents-ui-and-feedback` |
 | Everything is translated except the intent's own words | intent copy is not auto-extracted | `app-intents-localization` |
+| Siri never calls an action it should (27.3+) | not a tool, a primary-domain schema intent, or metadata the model cannot read | `app-intents-system-surfaces`, then `app-intents-testing` (analyzer) |
 | Build is green, feature does not exist | any of the above | `app-intents-testing` |
 
 ## Start at the smallest level that is true for this project

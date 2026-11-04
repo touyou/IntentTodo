@@ -1,6 +1,6 @@
 ---
 name: app-intents-testing
-description: Find out whether App Intents actually work, given that they fail with no error at all. Use when the build succeeds but a feature never appears in Shortcuts, Siri or Spotlight, when an action shows up but its parameters or values are missing, when you want automated tests for intents instead of checking by hand, when writing AppIntentsTesting or XCUITest cases for intents, when a test passes but the feature is visibly broken, when you need to see what the build actually told the system, or when you are trying to settle a question like "does that surface support this?" without guessing.
+description: Find out whether App Intents actually work, given that they fail with no error at all. Use when the build succeeds but a feature never appears in Shortcuts, Siri or Spotlight, when an action shows up but its parameters or values are missing, when you want automated tests for intents instead of checking by hand, when writing AppIntentsTesting or XCUITest cases for intents, when a test passes but the feature is visibly broken, when you need to see what the build actually told the system, when running the Siri Metadata Analyzer (sirimetadataanalyzer) or SiriEvaluations, or when you are trying to settle a question like "does that surface support this?" without guessing.
 license: MIT
 ---
 
@@ -17,12 +17,18 @@ Assumes the rules in `app-intents-centric-design`.
 | Rung | Tool | Proves |
 |---|---|---|
 | **0** | the built metadata | that the system was told about it at all |
+| 0.5 | **`xcrun sirimetadataanalyzer`** (27.3+) | that Siri's model can read the tools' metadata: titles, descriptions, entity properties, overlap with system schemas |
 | 1 | **AppIntentsTesting** | intent execution and entity/query integration in a live app process; no Siri language routing |
 | 2 | **Shortcuts app** | the shape of the intent: parameters, parameter summary, action list |
 | 3 | **Spotlight** | that content is indexed and findable |
-| 4 | **Siri** | natural language, entity resolution, onscreen references, cross-app — end to end |
+| 4 | **Siri**, scripted with **SiriEvaluations** (27.3+, device only) | natural language, entity resolution, onscreen references, cross-app — end to end |
 
 **AppIntentsTesting does not exercise rung 4.** "Be sure to test your intents **manually** with Siri and the Shortcuts app" [Apple: wwdc2026-295 24:46]. AppIntentsTesting's public API contains no phrase / utterance / shortcut symbol at all, and it looks intents up by **type name** — the `AppShortcutsProvider` phrase path is structurally out of reach.
+
+**Rung 0.5 and rung 4 have their own tools from 27.3** (Xcode 27.3 beta 27C5020n) [measured]:
+
+- **`xcrun sirimetadataanalyzer <App>.app`** reads the *built* metadata, needs no device, and exits `2` on error-level findings. It only looks at intents that are tools (`ToolIntent`, `app-intents-system-surfaces`): **with zero tools it reports a single `SMA109` and checks nothing else**, so a clean run on an app with no tools proves nothing. Run it in the development language too — with `--language ja` the English-only rules are skipped. A finding you decide to keep goes in a `--config` file with a reason, not in a different description. Details: [references/siri-metadata-analyzer.md](references/siri-metadata-analyzer.md).
+- **SiriEvaluations** drives the real Siri on a device (not the simulator) from a Swift Testing target whose deployment target is 27.3: scenarios of `UserTurn`s with `Calls` / `Finds` / `OnScreen` / `Loads` / `SiriResponse` expectations, graded into an evaluation report. It is the first automated route to rung 4. Siri is nondeterministic, so treat one failing paraphrase as a signal, not a verdict [Apple: Xcode 27.3 beta, `siri-evaluations` skill].
 
 Below the ladder sit two static checks that cost nothing:
 
@@ -58,7 +64,7 @@ python3 scripts/inspect_appintents_metadata.py --find MyProject               # 
 
 After automated checks, keep manual coverage for these system experiences; this list is not a claim that all other paths are automatable:
 
-1. **App Shortcut phrase routing** — say one phrase to Siri.
+1. **App Shortcut phrase routing** — say one phrase to Siri (on 27.3+, a SiriEvaluations scenario on a device can script this).
 2. **How system UI actually looks** — dialog read aloud, snippet rendering, control appearance.
 3. **Anything the simulator lacks** — Visual Intelligence, and the real Control Center gesture path.
 
@@ -108,5 +114,6 @@ python3 scripts/inspect_donation_stream.py --diff --bundle ""
 | [metadata](references/metadata.md) | rung 0 in full: what to read, what each anomaly means, doing it without the script |
 | [query-call-log](references/query-call-log.md) | recording the system's calls into your queries, so "never called" and "returned nothing" stop looking alike |
 | [appintents-testing](references/appintents-testing.md) | setup, the string-keyed API, every measured pitfall, what to cover, getting to a known state, platform limits |
+| [siri-metadata-analyzer](references/siri-metadata-analyzer.md) | rung 0.5: running `sirimetadataanalyzer`, what it does not check, suppressing a finding with a reason, the `todo` placeholder false positive |
 | [tests-that-lie](references/tests-that-lie.md) | conditional assertions, fixed sleeps, localised labels, missing scheme entries, parallelisation |
 | [templates](references/templates.md) | an AppIntentsTesting base class and a representative case |

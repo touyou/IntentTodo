@@ -72,6 +72,15 @@ Queries *can* use `@Dependency`; entities cannot (`app-intents-execution-and-pro
 
 A schema is how you stop relying on your own wording: Siri knows the action *is* "create a reminder" and can route sentences you never thought of. Three tiers (full Siri understanding / Shortcuts-only / single-purpose), three all-or-nothing domain groups, and one hard platform fact: **App Schema does not exist on watchOS or tvOS in any domain**, and the watch workaround has a trap that silently deletes properties from your iOS metadata. Details: [schema-domains](references/schema-domains.md).
 
+## What Siri's model reads from an entity (27.3+)
+
+When an entity is a tool's parameter or result, Siri's model reads its `displayRepresentation` and every exposed property's title and description, and uses them to pick an entity, answer questions and pass values on [Apple: Xcode 27.3 beta, `siri-app-integration` skill].
+
+- **`@Property(title:description:authenticationPolicy:visibility:)`** (and the same on `@ComputedProperty` / `@DeferredProperty`) arrive in 27.3 on every platform. `visibility: .internal` keeps a property for the app and its extensions only; never combine it with `indexingKey:`.
+- **None of these arguments build on an entity that also ships before 27.3**, because a stored property cannot be marked newer than its type: `'init(title:description:authenticationPolicy:visibility:)' is only available in iOS 27.3 or newer`. Until the deployment target reaches 27.3, make titles carry the meaning ("Closing Time (Local)"), spell formats out in the tool parameter's description, and do not expose a sensitive property you cannot yet hide. The analyzer keeps reporting `SMA203` for these; that is expected, not a regression.
+- **`@AppEntity(.generable)`** (`GenerableEntity: TransientAppEntity`) is for a plain value the model writes from the request and a tool acts on, such as a plan, a draft or a time window. Every property must be a value type, an `AppEnum` or another generable entity; an app-owned entity inside one is a build error that stops the target's metadata export. Move it to its own intent parameter. Not for search criteria, and not for anything the app stores.
+- `AppEntity` also gained `static var authenticationPolicy` in 27.3, with a default implementation.
+
 ## Fast decisions
 
 | Goal | Use | Not |

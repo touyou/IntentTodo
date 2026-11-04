@@ -51,7 +51,7 @@ skills/
 │   └── references/{interview, gap-analysis, artifacts}.md
 ├── app-intents-system-surfaces/
 │   └── references/{surface-catalog, controls,
-│                   visual-intelligence-and-onscreen}.md
+│                   visual-intelligence-and-onscreen, siri-tools-and-app-skills}.md
 ├── app-intents-execution-and-processes/
 │   └── references/{execution-modes, dependencies-and-registration,
 │                   packaging, platform-availability, templates}.md
@@ -67,7 +67,7 @@ skills/
 │   ├── scripts/dump_query_call_log.py           # システムが query を呼んだ記録を読む
 │   ├── scripts/inspect_donation_stream.py       # donation 観測（検証専用・非公開パス）
 │   └── references/{metadata, query-call-log, appintents-testing,
-│                   tests-that-lie, templates}.md
+│                   siri-metadata-analyzer, tests-that-lie, templates}.md
 └── app-intents-localization/
     ├── scripts/check_intent_copy_localization.py  # Intent コピーの訳漏れ検出
     └── references/{intent-copy, package-ui-copy, siri-phrases, verifying}.md

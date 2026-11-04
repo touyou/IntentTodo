@@ -1,6 +1,6 @@
 ---
 name: app-intents-system-surfaces
-description: Decide where an action or piece of content should appear outside your app, and use the right API for that place. Use when you want to put a working button in a home screen or lock screen widget, add something to Control Center, show live status in the Dynamic Island or on the lock screen, support an Apple Watch complication or Smart Stack, wire up the Action button, let the camera or a screenshot find your content, change app behaviour per Focus mode, tell Siri what is currently on screen, or make content findable system-wide — and when the question is "where should this action live?", "which of these places is worth it?", or "can Apple's frameworks even reach that place?".
+description: Decide where an action or piece of content should appear outside your app, and use the right API for that place. Use when you want to put a working button in a home screen or lock screen widget, add something to Control Center, show live status in the Dynamic Island or on the lock screen, support an Apple Watch complication or Smart Stack, wire up the Action button, let the camera or a screenshot find your content, change app behaviour per Focus mode, tell Siri what is currently on screen, let Siri's model call your intents as tools (ToolIntent, iOS 27.3+) or ship app skills for Siri, or make content findable system-wide — and when the question is "where should this action live?", "which of these places is worth it?", or "can Apple's frameworks even reach that place?".
 license: MIT
 ---
 
@@ -65,6 +65,34 @@ The surface dictates the API even when the intent is identical.
 **A toggle needs a fixed target.** `isOn` must be a value the provider can read back on the next reload. "Complete the most urgent item" cannot be a toggle: completing it makes the provider return a *different*, incomplete item, so the on-state never persists. Either pin the target through configuration, or use a button.
 
 **Control `kind` strings are system-wide identifiers.** Use reverse-DNS (`com.example.MyApp.MyTarget.MyControl`) as every Apple sample does.
+
+## Siri's model: schemas first, tools for the rest (27.3+)
+
+From iOS / macOS / visionOS 27.3, Siri's model can call an app's own intents as **tools** in the middle of a request [Apple: Xcode 27.3 beta, `siri-app-integration` skill; measured on Xcode 27.3 beta 27C5020n]. The surface order is:
+
+1. **An action that matches a schema in a primary domain** (`reminders`, `messages`, `notes`, `system`, …) adopts the schema with `@AppIntent(schema:)`. Siri already handles it. **Adding `ToolIntent` to it is a build error that stops the whole target's App Intents metadata export**: `'ToolIntent' can't be adopted by an intent that conforms to '.reminders.createReminder' because the schema is in a primary domain`, followed by "no AppIntents metadata have been exported".
+2. **Every other action a person would ask Siri for** becomes a tool. For an intent that already ships on earlier releases, add the conformance in a gated extension and leave the type alone:
+
+   ```swift
+   #if !os(watchOS) && !os(tvOS)
+   @available(iOS 27.3, macOS 27.3, visionOS 27.3, *)
+   extension ToggleTodoCompletionIntent: ToolIntent {}
+   #endif
+   ```
+
+   `@available(..., *)` alone is not enough: `ToolIntent` is unavailable on watchOS and tvOS. The only change in the built metadata is `com.apple.link.systemProtocol.ToolIntent` in that action's `systemProtocols` [measured].
+
+Choosing tools:
+
+- **Tools are callable whenever Siri can reach the app**: when the request names it, while it is in the foreground, **while one of its Live Activities is running**, or after Siri retrieved one of its entities from search. Do not make a tool of something that only works on one screen or while the app is open.
+- **No search or find tools.** Siri finds entities itself through Spotlight (`IndexedEntity`) and `EnumerableEntityQuery`; it does not call `suggestedEntities()`, `EntityStringQuery` or `EntityPropertyQuery` for tools. Write tools that **act on** an entity.
+- **Do include actions with effects** (delete, purchase, send). Keep their `requestConfirmation`.
+- **Leave out duplicates** of a schema intent or of another tool. One clear tool beats two overlapping ones; the analyzer does not detect overlap between your own tools.
+- **The metadata Shortcuts shows is the metadata Siri reads.** There is no model-only description. Every tool parameter needs a description that says what the value means (`SMA202`), and `IntentDescription(_:searchKeywords:)` helps Siri retrieve the tool by words the title does not contain.
+- **A tool should return something useful and throw readable errors** (`CustomLocalizedStringResourceConvertible`): Siri reads both to decide the next step.
+- **The SDK symbol does not exist before 27.3.** `@available` cannot guard a type the SDK lacks: the same file fails on Xcode 27.2 with `cannot find type 'ToolIntent' in scope`. `#if compiler(...)` cannot tell 27.2 and 27.3 apart (both ship Swift 6.4.2); `#if canImport(AppIntents, _version: 301.2)` can [measured].
+
+Then check it with the analyzer and SiriEvaluations (`app-intents-testing`). For values the model should write itself (`@AppEntity(.generable)`) and property descriptions, see `app-intents-entities-and-search`. For task-level guidance Siri reads at runtime, an app can ship a `Skills.skillsbundle`: [siri-tools-and-app-skills](references/siri-tools-and-app-skills.md).
 
 ## App Shortcuts budget
 
@@ -133,3 +161,4 @@ Run `python3 ../app-intents-centric-design/scripts/audit_intents.py . --coverage
 | [surface-catalog](references/surface-catalog.md) | every surface an intent can reach, the conformance each needs, action semantics the system already knows, choosing by app kind |
 | [controls](references/controls.md) | Control Center specifics: buttons vs toggles, configuration, value providers, templates |
 | [visual-intelligence-and-onscreen](references/visual-intelligence-and-onscreen.md) | camera / screenshot search, telling Siri what is on screen, the `List`-only annotation trap |
+| [siri-tools-and-app-skills](references/siri-tools-and-app-skills.md) | choosing which intents become tools, the exclusion list from a real app, `Skills.skillsbundle` rules and the ways it ships nothing |
