@@ -1,0 +1,59 @@
+{
+  "suppressions": [
+    {
+      "rule": "SMA206",
+      "subject": "DeleteTagIntent",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "GetTodoSummaryIntent",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "RenameTagIntent",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "ShowTodosIntent",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "SnoozeTodoIntent.todo",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "ToggleFavoriteIntent",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "ToggleFavoriteIntent.todo",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "ToggleTodoCompletionIntent",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "ToggleTodoCompletionIntent.todo",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA206",
+      "subject": "ToggleUrgentTodoIntent",
+      "reason": "'todo' is the app's own noun for an item (the entity is TodoAppEntity), not placeholder text."
+    },
+    {
+      "rule": "SMA701",
+      "subject": "RenameTagIntent",
+      "reason": "Renames a todo tag, not a file; the description already says it works on tags."
+    }
+  ]
+}

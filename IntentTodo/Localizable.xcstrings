@@ -150,6 +150,17 @@
         }
       }
     },
+    "Which todos to show: all, incomplete, completed, or favorites" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "表示するやることの種類（すべて・未完了・完了済み・お気に入り）"
+          }
+        }
+      }
+    },
     "^[%lld pending todo](inflect: true), %lld overdue" : {
       "extractionState" : "manual",
       "localizations" : {

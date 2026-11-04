@@ -24,7 +24,11 @@ public struct ShowTodosIntent: AppIntent {
         Summary("Show \(\.$filter) todos")
     }
 
-    @Parameter(title: "Filter", default: .all)
+    @Parameter(
+        title: "Filter",
+        description: "Which todos to show: all, incomplete, completed, or favorites",
+        default: .all
+    )
     public var filter: TodoFilterType
 
     @Dependency
