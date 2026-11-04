@@ -894,10 +894,11 @@ Siri が実行できる宣言（`AssistantIntent` マーカー + schema エン�
 
 Entity 側の適合と要求の出方が違うので、別に書く。
 
-- **アクションが Siri で実行可能になるのはスキーマ適合した分だけ**。素の App Intent は Shortcuts /
-  Spotlight / ウィジェットには出るが、Siri の自然言語実行には載らない（wwdc2026-240 `9:41`–`15:10`
+- **スキーマ適合は、Siri が自分で扱う領域（primary domain）への入り口**（wwdc2026-240 `9:41`–`15:10`
   "actions use schemas to become executable by Siri"）。`.reminders.*` / `.system.*` の
-  supported experiences も *Siri / Shortcuts* の 2 つ
+  supported experiences も *Siri / Shortcuts* の 2 つ。**スキーマに当てはまらないアクションは
+  27.3 から `ToolIntent` で Siri のモデルに渡す**（下の「Siri のツール」節）。27.2 以前の OS では、
+  素の App Intent は Shortcuts / Spotlight / ウィジェットには出るが Siri の自然言語実行には載らない
 - **要求はビルドでしか出ない**。ライブ診断（`XcodeRefreshCodeIssuesInFile`）とホストの `swift build` は
   スキーマ名の解決だけを見て**形の検証をしない**。存在しないスキーマ名は即エラーになるのに、
   明らかに形の合わない適合が診断ゼロで通る。**要求の洗い出しは Xcode ビルドで行う**
@@ -1136,6 +1137,63 @@ visual search の「More results」に対応する intent。`@Parameter var sema
 「期限→カレンダー / 担当者→連絡先」は EventKit / Contacts という**別フレームワーク連携**で、App Intents
 中心設計の検証主眼からは外れる。本ブランチでは未実装とし、必要になった時点で独立タスクとして扱う。
 
+### Siri のツール（`ToolIntent`）
+
+**Xcode 27.3 beta（27C5020n）/ iOS・macOS・visionOS 27.3 の Siri AI Developer Preview** で実測。
+プレビューが動くのは開発署名のビルドと TestFlight の内部テスターだけ。Siri 上での動作は未確認（#30）。
+
+- **スキーマ外の Intent も Siri のモデルが「ツール」として呼べる**。Siri は会話の途中で Intent を選び、
+  パラメータを会話から埋める。何を選ぶかは Intent の `title` / `description` と各パラメータの
+  `title` / `description` で決まる。**Shortcuts に出るメタデータがそのまま読まれる**（モデル専用の説明は無い）
+- **既存の Intent は型に触らず、別ファイルの拡張で適合させる**（`ToolIntentConformances.swift`）:
+  ```swift
+  #if !os(watchOS) && !os(tvOS)
+  @available(iOS 27.3, macOS 27.3, visionOS 27.3, *)
+  extension ToggleTodoCompletionIntent: ToolIntent {}
+  #endif
+  ```
+  型に `@available(27.3)` を付けると 27.0〜27.2 の Shortcuts / Spotlight から消える。`ToolIntent` は
+  watchOS / tvOS で unavailable なので `#if` が要る（`TodoAppIntents` は watchOS でもコンパイルされる）
+- **出荷メタデータの差は `systemProtocols` に `com.apple.link.systemProtocol.ToolIntent` が 1 つ増えるだけ**
+  （`extract.actionsdata` をツール化の前後で比較。他のフィールドとトップレベルは同一）
+- 🚨 **primary domain のスキーマに適合した Intent に `ToolIntent` を足すとビルドエラーで、ターゲットの
+  App Intents メタデータが 1 つも出力されなくなる**（`AddTodoIntent` で実測）:
+  `'ToolIntent' can't be adopted by an intent that conforms to '.reminders.createReminder' because the
+  schema is in a primary domain` → `no AppIntents metadata have been exported and this target is not
+  usable with AppIntents`。ビルドは赤くなるので気づけるが、1 行で全 Intent が巻き添えになる
+- **27.2 の SDK では `ToolIntent` という型そのものが無い**ので、`@available` で囲んでも 27.2 でビルドできない
+  （`cannot find type 'ToolIntent' in scope`）。`#if compiler(>=…)` では区別できない（27.2 と 27.3 beta の
+  Swift はどちらも 6.4.2）。区別できるのは `#if canImport(AppIntents, _version: 301.2)`
+  （AppIntents の `user-module-version` が 27.2 = 301.1.16 / 27.3 beta = 301.2.7.2）。**このブランチは
+  ガードを入れず、27.3 正式版で main に入れる**（ガードは下線つきの非公開寄りの構文なので、
+  正式版を待てば要らなくなるものに使わない）
+- **ツールにする / しないの判断**（12 本をツールにした）:
+
+  | Intent | ツール | 理由 |
+  |---|:--:|---|
+  | Toggle Todo Completion / Complete Todos / Toggle Urgent Todo / Snooze Todo / Toggle Favorite | ✅ | 「終わった」「明日にして」など、Siri に頼む動作そのもの |
+  | Show Todos / Get Todo Summary | ✅ | 読み取り系。「今日やることは？」に答えるため（Apple も読み取りのツールを置けと言う） |
+  | Update List / Merge Lists / Delete List / Rename Tag / Delete Tag | ✅ | 整理の動作。削除系も対象にする（確認が要るものは `requestConfirmation` を残す） |
+  | Add / Update Todo、Delete Todos、Create List / Section、Open Todo / Category、Show Todo Search Results | — | primary domain（reminders / system）のスキーマ適合。Siri が既に扱い、ツールにするとビルドエラー |
+  | Delete Todo | — | `.reminders.deleteReminders`（Delete Todos）と同じ仕事。重なるツールは Siri の選択を迷わせる |
+  | Show Todo Count | — | Get Todo Summary が同じ問いにより詳しく答える |
+  | Search Todos and Categories / Todo Semantic Content Search | — | 検索ツールは作らない。Siri は Spotlight（`IndexedEntity`）と query で entity を自分で探す |
+  | Launch App、Snippet 3 本、Focus Filter、`isDiscoverable = false` の UI 用変種 | — | 画面やシステム面の部品で、Siri が単独で呼ぶ動作ではない |
+
+- **ツールはアプリに Siri が届く限りいつでも呼ばれる**（リクエストでアプリ名が出たとき / 前面にあるとき /
+  **Live Activity が動いているとき** / アプリの entity が検索で取れたとき）。書き込み系は既に
+  `allowedExecutionTargets = [.main]` なので、アプリ未起動でもアプリのプロセスで走る（ルール 3）
+- **entity のプロパティ説明（`@Property(description:)`）は deployment target 27.0 のままでは付けられない**。
+  27.0 からも出す entity の stored property に 27.3 の init を使うことになるため。**deployment target は
+  上げない**（27.0〜27.2 の利用者を切らない）。アナライザの `SMA203` が `TodoAppEntity` 8 件 /
+  `TodoListSummaryEntity` 5 件残るのは既知（上げるときは #57）
+- **app skill**: `IntentTodo/Skills.skillsbundle/Skills/<name>/SKILL.md`。アプリターゲットは同期フォルダなので
+  置くだけで Copy Bundle Resources に入る（プロジェクトファイルを触らない）。frontmatter は `name`
+  （ディレクトリ名と一致）と `description` だけ。Siri はスキルを選ぶとき `description` しか読まない。
+  本文ではツールを型名ではなくタイトルで呼ぶ（"the Merge Lists tool"）
+
+経緯: [docs/devlog/2026-11-04-siri-ai-developer-preview.md](../devlog/2026-11-04-siri-ai-developer-preview.md)
+
 ## Phase 6: テスト基盤（#295 AppIntentsTesting）
 
 ### UI テストバンドル必須（unit test 不可）
@@ -1218,6 +1276,18 @@ wwdc2026-240 (24:13–25:57) が「progressive validation」として順序を�
 2. **Shortcuts アプリ** — intent の形（パラメータ / parameter summary）
 3. **Spotlight** — コンテンツの index
 4. **Siri** — 自然言語・entity 解決・onscreen・cross-app を通した end-to-end
+
+27.3（beta 27C5020n で確認）から、この梯子に 2 段が加わる:
+
+- **0.5: `xcrun sirimetadataanalyzer <App>.app`** — ビルド済みメタデータを、Siri のモデルが読める形か
+  静的に検査する。実機もシミュレータも要らない。**ツール（`ToolIntent`）だけが対象**で、ツールが 0 本だと
+  `SMA109` が 1 件出るだけで他のルールは何も見ない（34 Intent・ツール 0 本の時点で実測）。
+  `--language ja` では英語専用のルール（SMA105 / 204 / 205 / 603）が飛ぶので en でも回す。
+  `todo` という語を書きかけの目印と読む `SMA206` の誤検知は `scripts/sirimetadataanalyzer-config.json`
+  に理由つきで抑止している（手順: [skills/app-intents-testing](../../skills/app-intents-testing/references/siri-metadata-analyzer.md)）
+- **4 の自動化: `SiriEvaluations`** — Swift Testing から実機の Siri に発話させ、呼んだ Intent・パラメータ・
+  見つけた entity・読んだ app skill・返答を採点する。**実機のみ**、テストターゲットの deployment target は
+  27.3 以上。このリポジトリでは 27.3 正式版でテストターゲットを足す（#30）
 
 **4 は AppIntentsTesting の対象外**。wwdc2026-295 (24:46) も "be sure to test your intents **manually** with Siri and
 the Shortcuts app" と手動を明示しており、`AppIntentsTesting` の公開 API にも `shortcut` / `phrase` /

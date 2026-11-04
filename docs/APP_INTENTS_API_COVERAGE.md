@@ -16,6 +16,7 @@ App Intents（+ 密接に絡む WidgetKit / ActivityKit / Spotlight）の API �
 **27.0 → 27.1 は App Intents の差分 0**（`user-module-version` も同一）なので、
 下の表で「27.2 追加」と書いているものは 27.1 には入っていない。**beta にあって正式版で消えた宣言もある**
 （`DynamicPropertyPath.get(as:)`）ので、「27.2 追加」はすべて正式版で確認したものだけを書いている。
+**27.3 beta（27C5020n）の追加分**は下の「13. Siri のツール」節にまとめた（27.2 → 27.3 beta の AppIntents は追加だけで、削除・変更は無い）。
 SDK が上がったら同じ差分の取り方で棚卸しする（手順: [devlog/2026-09-25-xcode27.2-appintents-recheck.md](devlog/2026-09-25-xcode27.2-appintents-recheck.md)、
 正式版の結果: [devlog/2026-11-01-xcode27.2-release-recheck.md](devlog/2026-11-01-xcode27.2-release-recheck.md)）。
 
@@ -258,8 +259,29 @@ Intent 側の適合は**要求がビルドでしか出ない**（ライブ診断
 | `viewAnnotations()` | onscreen annotation の検証 | ✅ | 一覧の全行 + 詳細画面 |
 | `values(for:)`（valueQueries） | `IntentValueQuery` の検証 | 🚫 | `VisualIntelligence.framework` が Simulator SDK に無く、ビルドから除外される |
 | watchOS での `run()` | — | 🚫 | `LNPerformActionPrebuiltErrorCodeActionNotAllowed` で落ちる。watchOS は手動確認（#30） |
-| フレーズ（Siri）のルーティング | — | 🚫 | `AppIntentsTesting` に phrase / siri 相当の API が無い。Apple の想定どおり手動（#30） |
+| フレーズ（Siri）のルーティング | — | ⏳ | `AppIntentsTesting` に phrase / siri 相当の API は無い。**27.3 beta（27C5020n）で `SiriEvaluations` が入り、実機で Siri を自動で走らせられる**（下の 13 節）。27.3 正式版待ち。それまでは手動（#30） |
+| `SiriEvaluations` | Siri に発話させ、呼んだ Intent / 見つけた entity / 読んだ app skill / 返答を採点 | ⏳ | **実機のみ**（シミュレータ不可）・テストターゲットの deployment target 27.3 以上。テストターゲットの追加はプロジェクトファイルの編集になるので 27.3 正式版で Xcode から足す（#30） |
+| `xcrun sirimetadataanalyzer` | ビルド済みメタデータを Siri のモデルが読める形か静的に検査 | ✅ | 27.3 beta のツールチェーンにだけある。**ツールが 0 本だと `SMA109` しか出さず他のルールは何も見ない**。抑止の判断は `scripts/sirimetadataanalyzer-config.json`（理由つき） |
 | 非同期に解決する属性の読み出し | `@DeferredProperty`（`subtaskProgress`）の検証 | 🚫 | 読み出しは同期の `as(_:)` / 添字だけで、27.2 正式版（27B52）にも async の読み出しは無い（beta の `get(as:)` は出荷されなかった） |
+
+## 13. Siri のツール（27.3 beta 27C5020n）
+
+Siri AI Developer Preview（iOS / macOS / visionOS 27.3）で、**スキーマに当てはまらない自前の Intent も Siri のモデルが「ツール」として呼べる**ようになった。どれも **27.2 の SDK には型そのものが無い**ので、`@available` だけでは 27.2 でビルドが通らない（`cannot find type 'ToolIntent' in scope`）。実装形と落とし穴: [insights/03-app-intents-core.md](insights/03-app-intents-core.md#siri-のツールtoolintent)
+
+| API | 一言 | 状態 | このアプリでの扱い |
+|---|---|:--:|---|
+| `ToolIntent` / `@AppIntent(.tool)` | Intent を Siri のツールにする | ✅ | **12 本**（`ToolIntentConformances.swift`。既存 Intent なので `@available(27.3) extension X: ToolIntent {}` + `#if !os(watchOS) && !os(tvOS)`）。外した Intent と理由はファイル冒頭のコメントと insights |
+| `ToolIntent` + primary domain の schema | — | 🚫 | **ビルドエラーで、ターゲットの App Intents メタデータが 1 つも出力されなくなる**（`AddTodoIntent` で実測）。reminders / system の schema 適合 Intent は Siri が既に扱う |
+| `@AppEntity(.generable)` / `GenerableEntity` | モデルが値を自分で書く transient entity | ⏸ | ツールが受け取る「プレーンな値」（計画・下書き・時間枠）が無い。スヌーズの長さは `requestChoice` の 4 択で足りている |
+| `@Property(description:)`（`@ComputedProperty` / `@DeferredProperty` も） | モデルが読むプロパティの説明 | ⏳ | **27.0 からも出す entity に付けるとビルドできない**。deployment target を 27.3 に上げるまで使えない（上げない判断。`SMA203` が 13 件残る） |
+| `@Property(visibility: .internal)` / `IntentVisibility` | Siri / Shortcuts から隠す | ⏸ | 隠すべき機微な値を持っていない。使う場合も上と同じく 27.3 の deployment target が要る |
+| `@Property(authenticationPolicy:)` / `AppEntity.authenticationPolicy` | プロパティ / entity 単位の認証 | ⏸ | 認証が要るデータが無い |
+| `IntentDescription(_:searchKeywords:)` | ツール検索に使われるキーワード | ✅ | 既存（iOS 16 からある）。ツールの多くが既に持っている |
+| `Skills.skillsbundle`（app skills） | Siri が実行時に読むタスクの手引き | ✅ | `IntentTodo/Skills.skillsbundle`（同期フォルダなのでプロジェクトファイルの編集は不要） |
+| `SnippetRepresentableEntity` / `EntitySnippetContent` | entity 単位の標準スニペット | 🚫 | SDK にあるが説明が無い（27.3 beta）。ドキュメントが出たら判断する（#57） |
+| `DeleteIntent.Target`（`AppEntityCollectionValue`） | 削除対象を `EntityCollection` / `Set` でも受ける | ⏸ | `DeleteTodosIntent` は `[TodoAppEntity]` のままで要求を満たす（既定の `Target = [Entity]`） |
+| `EntityCollectionSearchCriteria` | `EntityCollection` を検索条件に | ⏸ | 宣言は 27.3 SDK から、可用性は anyAppleOS 27.0。使い道が見えるまで据え置き |
+| `@AppIntent(schema: .video.*)` ほか video ドメイン | 動画の再生・ウォッチリスト | 🚫 | 題材に動画が無い。iOS / tvOS / visionOS のみ（macOS 不可） |
 
 ---
 

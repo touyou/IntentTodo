@@ -208,6 +208,7 @@
   - ここが面白いポイント: **「ドメイン」という 2016 年の発想が、App Intents 側に戻ってきた**
     - ただし意味が違う。2016 のドメインは**檻**（外に出られない）、2024 のスキーマは**共通語彙**（適合すると AI が意味を理解する。適合しなくても自前 Intent は Shortcuts / Spotlight / ウィジェット等で普通に動く）
     - ⚠️ **「任意適合」と言い切らない**。2026 の Group Lab で **「新しい Siri AI との統合にはスキーマ適合が必要」**と明言されている（#8011 `3:09`）。S21 と揃えて **2 層**で話す（[03-group-lab-evidence.md](03-group-lab-evidence.md)）
+      - 27.3 からはスキーマ外の Intent も `ToolIntent` で Siri AI に届くので、S21 の表は 3 層になる
   - `IndexedEntity` で Spotlight のセマンティック検索へ。「ペット」で犬・猫の写真が出る、の類
   - **ControlWidget**（コントロールセンター）も追加。Intent の出口がまた増えた
 - **出典**: wwdc2024-10133「Bring your app to Siri」`1:03`–`3:21` / wwdc2024-10134 / wwdc2024-10157
@@ -364,8 +365,10 @@
     |---|---|---|
     | **App Intents（スキーマ不要）** | `AppIntent` / `AppEntity` / `Query` / `AppShortcutsProvider` | Shortcuts / Spotlight / ウィジェット / コントロール / ライブアクティビティ / 従来の Siri フレーズ |
     | **App Schema 適合** | + `@AppEntity(schema:)` / `@AppIntent(schema:)` | **新しい agentic Siri**（多ターン会話・自然な言い回し・確認や所有権の自動処理・ローカライズ） |
+    | **ツール化（27.3〜）** | + `ToolIntent`（スキーマに当てはまらない Intent） | **新しい Siri のモデルが会話の途中で呼ぶ**。primary domain のスキーマ適合 Intent には付けられない（ビルドエラー） |
   - 2026 の Group Lab は **「Siri AI との統合にはスキーマ適合が必要」**（#8011 `3:09`）と言う一方、**「advantage（優遇）という捉え方は違う」**（`21:47`）とも言っている。矛盾ではなく、**スキーマは Siri AI への入場券であって、既存 Intent を格下げするものではない**
   - **檻との違いは残る**: 2016 は「当てはまらなければ不可能」、2026 は「部分一致でいい / `system` ドメインでいい / App Shortcuts でもいい」と**逃げ道が複数用意されている**（`3:09` / `7:08` / `58:01`）
+  - ⚠️ **27.3（Siri AI Developer Preview、beta 27C5020n）で前提が 1 つ変わった**: スキーマに当てはまらない自前の Intent も `ToolIntent` で Siri のモデルから呼べる。**「Siri で実行できるのはスキーマ適合した分だけ」とは言わない**。話すなら「スキーマ = Siri が自分で扱う領域の共通語彙、ツール = それ以外のアプリ固有の動作」の 2 本立て。プレビューは開発署名のビルドと TestFlight 内部テスターだけで、App Store 版では効かない（[Apple: Siri AI Developer Preview](https://developer.apple.com/documentation/appintents/siri-ai-developer-preview)）
 - **出典**: S05 / S07 / S14 / S18 の各出典 / [03-group-lab-evidence.md](03-group-lab-evidence.md)（#8011 `3:09` / `21:47`）
 
 ---

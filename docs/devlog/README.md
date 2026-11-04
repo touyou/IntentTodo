@@ -20,6 +20,7 @@
 
 ## 目次
 
+- [2026-11-04-siri-ai-developer-preview.md](2026-11-04-siri-ai-developer-preview.md) — Xcode 27.3 beta（27C5020n）の Siri AI Developer Preview に対応した記録（**ツールが 0 本だとアナライザは `SMA109` しか出さず何も見ない**件 / 12 本をツールにして外した Intent の理由 / **primary domain のスキーマ適合 Intent に `ToolIntent` を足すとターゲットのメタデータが丸ごと出力されない**件 / **`todo` を書きかけの目印と読む `SMA206` の誤検知**を理由つきで抑止した件 / `#if compiler` では 27.2 と区別できず `canImport(AppIntents, _version:)` ならできる件 / 同期フォルダに置くだけで app skill が入った件 / プロパティ説明は deployment target 27.0 のままでは付けられない件）
 - [2026-11-01-xcode27.2-release-recheck.md](2026-11-01-xcode27.2-release-recheck.md) — Xcode 27.2 正式版（27B52）で測り直した記録（**beta にあった `DynamicPropertyPath.get(as:)` が正式版に入らなかった**件 / 代わりに `ValueRepresentation` の受け取り専用 `init(importing:)` が増えた件 / **FB24548956 は 27.2 の toolchain で直ったが、Xcode Cloud が 27.1 なので回避策は残した**件 / FB24570185 は直っていない件 / `inspect_appintents_metadata.py` が macOS の `.app` を見落としていた件 / 旧版の Xcode を消していて sort diff が取れなかった件）
 - [2026-10-12-duo-toolbar-1.1.8.md](2026-10-12-duo-toolbar-1.1.8.md) — iPhone Duo の縦のバーに合わせてツールバーを揃えた記録（**`ToolbarOverflowMenu` は中の項目の accessibilityIdentifier を落とす**件 / Duo シミュレータは XCUITest からなら撮れる件）
 - [2026-10-10-widget-checkbox-1.1.7.md](2026-10-10-widget-checkbox-1.1.7.md) — ウィジェットのチェックを実機で通して 1.1.7 を出した経緯（**拡張側の生き続ける `mainContext` が古い行を返す**件 / `Button(intent:)` を `Toggle(isOn:intent:)` にしてタップと同時に丸を切り替える件 / **`Link` の中身に `invalidatableContent()` を付けると URL が渡らなくなる**件 / SpringBoard を UI テストで操作してホーム画面のウィジェットをタップさせた切り分け / Xcode Cloud の書き出しが Apple 側の 502 で落ちた件）

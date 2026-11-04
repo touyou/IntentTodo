@@ -39,6 +39,7 @@
 - Intent のコピーはどこから引かれるか（main bundle 強制 / 自動抽出は `parameterSummary` だけ）
 - Intent統合のベストプラクティス
 - AppEnum
+- Siri のツール（`ToolIntent`、27.3 beta）: ツールにする / しないの判断、primary domain のスキーマ適合 Intent に付けるとメタデータが丸ごと出ない件、27.2 でビルドできない件、app skill の置き場
 - WWDC26 公式サンプル 4 本との突き合わせ（Phase 9）: 表示表現とローカライズ、Siri が読む subtitle、donation の置き場所、Spotlight 属性の二重書き、onscreen annotation の適用先
 
 ### [04. UI層とIntent統合](insights/04-ui-integration.md)

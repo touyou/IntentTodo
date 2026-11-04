@@ -435,6 +435,43 @@ App Schemas による Siri 統合の新アプローチ、AppIntentsTesting フ�
 
 ---
 
+## iOS 27.3 beta — Siri AI Developer Preview（Xcode 27.3 beta 27C5020n）
+
+WWDC のセッションではなく、27.3 beta と同時に出た開発者プレビュー。**スキーマに当てはまらない自前の Intent を、Siri のモデルが「ツール」として呼べる**ようになった。プレビューが動くのは開発署名のビルドと TestFlight の内部テスターだけで、Apple Intelligence 対応端末が要る。watchOS / tvOS は対象外。以下は 27.3 beta（27C5020n）の SDK・ツールチェーン・Xcode が書き出す公式スキル（`xcrun agent skills export`）で確認したもので、**正式版で変わる可能性がある**。
+
+| 資料 | 概要 |
+|---|---|
+| [Siri AI Developer Preview](https://developer.apple.com/documentation/appintents/siri-ai-developer-preview) | プレビューの範囲と条件 |
+| [Bringing custom actions and content to Siri](https://developer.apple.com/documentation/appintents/bringing-custom-actions-and-content-to-siri) | ツール化と entity プロパティの説明 |
+| [Orchestrating complex actions with app skills](https://developer.apple.com/documentation/appintents/orchestrating-complex-actions-with-app-skills) | `Skills.skillsbundle` |
+| [SiriEvaluations](https://developer.apple.com/documentation/sirievaluations) | Siri を実機で自動評価するテストフレームワーク |
+
+### 新機能
+
+| API / 機能 | 概要 |
+|-----------|------|
+| `ToolIntent` / `AppIntentTraits.tool` / `@AppIntent(.tool)` / `@AppIntent(.tool, schema:)` | Intent を Siri のツールにする。要件は `AppIntent` と同じ。iOS / macOS / visionOS 27.3（watchOS / tvOS は unavailable）。**primary domain のスキーマとは併用できない**（ビルドエラー）。Shortcuts 専用ドメイン（books / browser / journal / presentation / reader / spreadsheet / whiteboard / wordProcessor）とは併用できる |
+| `GenerableEntity: TransientAppEntity` / `AppEntityTraits.generable` / `@AppEntity(.generable)` | モデルが会話から値を直接書く transient entity。プロパティは値型・`AppEnum`・generable entity（とその配列）だけ |
+| `IntentVisibility`（`.default` / `.internal`） | `.internal` のプロパティはアプリと拡張だけが読み、Siri / Shortcuts からは見えない。anyAppleOS 27.3 |
+| `@Property` / `@ComputedProperty` / `@DeferredProperty` の `description:` / `authenticationPolicy:` / `visibility:` | モデルが読むプロパティの説明、プロパティ単位の認証・可視性。anyAppleOS 27.3（`indexingKey:` 版は iOS / macOS / visionOS） |
+| `AppEntity.authenticationPolicy`（static） | entity 単位の認証ポリシー。既定実装つきの要件として追加 |
+| `Skills.skillsbundle`（app skills） | アプリに同梱する `Skills/<name>/SKILL.md`。Siri がタスクの文脈とツールの組み合わせ方を読む。ビルドで `Metadata.appintents/*.skillsc` にコンパイルされる |
+| `xcrun sirimetadataanalyzer` | ビルド済みメタデータを Siri のモデルが読める形か静的に検査（SMA1xx〜7xx）。27.3 のツールチェーンにだけある |
+| `SiriEvaluations` | Swift Testing から実機の Siri にシナリオを発話させ、Intent 呼び出し・entity・skill・返答を採点（実機のみ、テストターゲットは 27.3 以上） |
+
+### SDK にあるが説明が無いもの（27.3 beta）
+
+| API | 概要 |
+|-----|------|
+| `@AppIntent(schema: .video.*)` / `@AppEntity(schema: .video.*)` / `@AppEnum(schema: .video.*)` | 新しい video ドメイン（addToWatchList / removeFromWatchList / playContent / playTrailer、movie / tvShow / tvSeason / tvEpisode / freeformVideo / image / contentCreator / person、videoContentType / imageType / personRole）。iOS / tvOS / visionOS 27.3、macOS 不可 |
+| `SnippetRepresentableEntity` / `EntitySnippetContent` / `EntitySnippetContentBuilder` | entity 単位で標準スニペットを宣言する仕組みと見られる |
+| `DeleteIntent.Target`（`AppEntityCollectionValue` = `Array` / `Set` / `EntityCollection`） | 削除対象をコレクション型で受ける。`entities` は既定実装に移った |
+| `EntityCollectionSearchCriteria<Entity>` | `EntityCollection` を `SearchCriteria` として渡す。宣言は 27.3 SDK からだが可用性は anyAppleOS 27.0 |
+
+このアプリでの採用状況: [APP_INTENTS_API_COVERAGE.md の 13 節](APP_INTENTS_API_COVERAGE.md#13-siri-のツール273-beta-27c5020n)
+
+---
+
 ## 非推奨化タイムライン まとめ
 
 | API | 移行先 | 非推奨化タイミング |
