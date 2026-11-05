@@ -85,6 +85,11 @@ A non-optional `AppEnum` parameter auto-disambiguates: the system asks the perso
 
 **`AppEnum` raw values are a two-way contract.** They are persisted by string in every shortcut a person has built, so cases can be added but never renamed or reordered. If the same enum is also a stored model value, it is a contract twice over.
 
+**A published intent's parameter names and types are a contract too.** A saved shortcut binds its values by parameter name; renaming a parameter or changing its type silently unbinds them, and renaming the intent type loses the whole action. Apple: "Removing or changing the older intent breaks any shortcuts that use it" [Apple: Making actions and content discoverable by Apple Intelligence — Migrate existing intents to schemas]. So:
+
+- **Before the first public release, reshape freely.** Approved but not yet released (`PENDING_APPLE_RELEASE`) still has no users: withdrawing the approved version, reshaping the intents and resubmitting is the cheapest point to fix a shape. Intento threw away its approved 1.0.0 to match App Schema and shipped the reshaped intents as 1.1.0 [measured 2026-09, Intento].
+- **After release, migrate instead of editing.** Add a new intent with the new shape and `isAssistantOnly = true`; the old intent keeps serving saved shortcuts. Retire it once the migration is done [Apple, same page].
+
 ## Asking at run time
 
 | API | Asks for | Available from |
