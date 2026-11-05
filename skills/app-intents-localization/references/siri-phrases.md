@@ -53,6 +53,13 @@ is not a duplicate even if both translate to something that starts the same way.
 - ≤ 10 `AppShortcut` entries per app; ~1,000 phrases across them.
 - Adding a language multiplies the phrase count, not the entry count. The 10-entry limit is per app, not per language.
 
+## When Xcode extracts phrases for you
+
+[measured: GRAPHICA, Xcode 27.0, 2026-10]
+
+- The build's `.stringsdata` (`SWIFT_EMIT_LOC_STRINGS`) carried **only the first phrase of each shortcut**. Diffing it against `AppShortcuts.xcstrings` misses the rest; take the full list from the built metadata.
+- Letting Xcode re-extract the phrases **demotes translations you already checked to `needs_review`**. Review the catalog diff before committing it, and keep `translated` where you have verified the wording.
+
 ## What phrases cannot carry
 
 Only `AppEntity` and `AppEnum` parameters can be embedded [Apple: wwdc2022-10170 14:40–15:15]. A free-text `String` cannot appear in a phrase in any language; Siri asks for it afterwards.
