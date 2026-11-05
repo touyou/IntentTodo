@@ -41,6 +41,8 @@ struct MyApp: App {
 }
 ```
 
+**Pass a local, never `self.x`.** `add(dependency:)` takes an escaping, nonisolated `@autoclosure`, so `AppDependencyManager.shared.add(dependency: self.container)` inside `App.init()` captures `self` before every stored property is set and fails to compile. Build the value into a local, assign it, then register the local, as above. [measured 2026-10, CheckItOut, Xcode 27.x]
+
 **Never wrap registration in `Task { @MainActor in … }`.** `perform()` can start before the task completes, and `@Dependency` resolution fails — intermittently, which is worse than always.
 
 ```swift
