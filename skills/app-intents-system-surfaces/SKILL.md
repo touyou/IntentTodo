@@ -68,7 +68,7 @@ The surface dictates the API even when the intent is identical.
 
 **Never put `invalidatableContent()` inside a widget `Link`.** The `Link` stops delivering its URL and the tap only opens the app [measured 2026-10, iOS 27 simulator home screen and device].
 
-**Read widget timelines and control values from a fresh `ModelContext` each time**, not the container's `mainContext`. The app process writes; the extension's long-lived `mainContext` keeps returning rows it already loaded, so a widget showed a stale completion state [measured 2026-10, Intento 1.1.7].
+**Read widget timelines and control values from a fresh `ModelContext` each time**, not the container's `mainContext`. The app process writes; the extension's long-lived `mainContext` keeps returning rows it already loaded, so a widget showed a stale completion state. Switching to a fresh context made it go away, but whether that or a faster reload fixed it was not isolated [inferred 2026-10, Intento 1.1.7].
 
 **Control `kind` strings are system-wide identifiers.** Use reverse-DNS (`com.example.MyApp.MyTarget.MyControl`) as every Apple sample does.
 
