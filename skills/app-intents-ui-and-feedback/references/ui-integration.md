@@ -103,6 +103,10 @@ Two system views, and neither belongs everywhere:
 - **`SiriTipView`** — a dismissible tip for one shortcut. Show it contextually and let it stay dismissed; a permanently mounted tip is chrome the person cannot remove.
 - **`ShortcutsLink`** — sends the person to your shortcuts in the Shortcuts app. This belongs in settings or an "about" area, not in the main flow.
 
+## Destructive commands that cannot take an intent
+
+macOS `.onDeleteCommand` (and any other closure-only hook) cannot be a `Button(intent:)`. Do not delete from the closure. Store the target in `@State`, present `.confirmationDialog(_:item:)`, and let the dialog's `Button(role: .destructive, intent: DeleteIntent(...))` perform it. The Delete key, the row's context menu and the menu command then converge on one confirmation and one intent [measured 2026-09, macOS 27, Intento].
+
 ## View structure
 
 - Extract sections into `private struct: View`, not computed `some View` properties. A computed property is not a diffing unit, so the parent `body` re-evaluates wholesale.
