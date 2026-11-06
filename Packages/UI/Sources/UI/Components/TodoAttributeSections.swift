@@ -353,7 +353,7 @@ private struct AttachmentRow: View {
     }
 }
 
-/// A small preview of the bytes, or a AttachmentPlaceholder() when they aren't an image.
+/// A small preview of the bytes, or a placeholder when they aren't an image.
 struct AttachmentThumbnail: View {
     let data: Data
 
