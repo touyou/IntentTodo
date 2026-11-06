@@ -34,6 +34,8 @@ python3 scripts/inspect_appintents_metadata.py --find MyProject               # 
 
 `--coverage` answers a different question from the rest of the ladder: not "does this work" but "does this exist". A declaration it reports as reached has still proved nothing about runtime behaviour.
 
+**Put the weight in the middle.** Most of the suite should be rung-1 behaviour tests: run one intent with `run()`, then assert on what the app now holds (entities, query results, the service's state). Keep service unit tests thin — only primitives whose edge cases a `run()` cannot reach — and keep live system checks thinner still. The intent list is already the app's whole public action surface, so a test written against it is a test of what a person, Siri, a widget or a coding agent can actually do. [Shopify Engineering, "Reflex", 2026-11-05: a "testing trophy" whose wide middle is behaviour tests driven through the same action surface the UI uses]
+
 **Before doing anything by hand, ask what could be a test instead.** Manual checks do not catch regressions; tests do. A surprising amount of what looks like it needs a device — entity id resolution, suggestions, Spotlight indexing, transient entity values, onscreen annotations, tri-state parameter clearing — is reachable from AppIntentsTesting.
 
 ## Symptom → rung
@@ -108,5 +110,5 @@ python3 scripts/inspect_donation_stream.py --diff --bundle ""
 | [metadata](references/metadata.md) | rung 0 in full: what to read, what each anomaly means, doing it without the script |
 | [query-call-log](references/query-call-log.md) | recording the system's calls into your queries, so "never called" and "returned nothing" stop looking alike |
 | [appintents-testing](references/appintents-testing.md) | setup, the string-keyed API, every measured pitfall, what to cover, getting to a known state, platform limits |
-| [tests-that-lie](references/tests-that-lie.md) | conditional assertions, fixed sleeps, localised labels, missing scheme entries, parallelisation |
+| [tests-that-lie](references/tests-that-lie.md) | conditional assertions, fixed sleeps, localised labels, missing scheme entries, parallelisation, a test that reached the network |
 | [templates](references/templates.md) | an AppIntentsTesting base class and a representative case |

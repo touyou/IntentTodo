@@ -1,6 +1,6 @@
 # Tests that lie
 
-Six shapes that pass while the feature is broken. Each has hidden a real failure for a long time.
+Seven shapes that pass while the feature is broken. The first six have each hidden a real failure for a long time; the seventh is `[inferred]` from other projects.
 
 ## 1. The conditional assertion
 
@@ -55,6 +55,12 @@ For a local package: `ReferencedContainer = "container:Packages/<name>"`, `Build
 ## 6. Parallelisation that only adds cost
 
 Enabling parallel UI test execution clones the simulator, booting a whole OS per clone. With a single UI test class there is nothing to distribute, so the clone cost is pure overhead. Measure before enabling; for most projects with one or two UI test classes, off is faster.
+
+## 7. A test that reached the network
+
+An intent whose service fetches a feed or calls an API stays green against the live endpoint — until the endpoint changes, rate-limits CI, or returns the one payload the fixtures never covered. Worse, an app that recovers from a failed request (empty list, cached copy) passes either way, so the test never told you which path ran.
+
+Make any outbound request **fail the test**, even when the app would recover. Route the service's `URLSession` through a `URLProtocol` in the test launch configuration that answers from fixtures and records every unmatched request; assert the record is empty at the end. Keep the protocol's static state per suite — Swift Testing runs suites in parallel.
 
 ## And when the measurement itself lies
 
