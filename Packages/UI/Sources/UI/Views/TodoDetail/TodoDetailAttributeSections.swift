@@ -31,13 +31,17 @@ struct TodoLinkRow: View {
 
     var body: some View {
         if TodoAttributes.isOpenable(url) {
-            Link(destination: url) { label }
+            Link(destination: url) { TodoLinkLabel(url: url) }
         } else {
-            label
+            TodoLinkLabel(url: url)
         }
     }
+}
 
-    private var label: some View {
+private struct TodoLinkLabel: View {
+    let url: URL
+
+    var body: some View {
         Label(url.absoluteString, systemImage: "link")
             .lineLimit(1)
             .truncationMode(.middle)

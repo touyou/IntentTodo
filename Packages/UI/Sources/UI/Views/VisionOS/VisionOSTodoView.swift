@@ -124,16 +124,16 @@ private struct VisionOSSidebar: View {
                 Button {
                     showingSettings = true
                 } label: {
-                    Image(systemName: "gearshape")
+                    Label(.copy("Settings"), systemImage: "gearshape")
                 }
-                .accessibilityLabel(.copy("Settings"))
             }
 
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     navigationModel.showAddTodo()
                 } label: {
-                    Image(systemName: "plus")
+                    // A Label, not a bare Image, so VoiceOver and the toolbar overflow get a title.
+                    Label(.copy("Add Todo"), systemImage: "plus")
                 }
             }
         }

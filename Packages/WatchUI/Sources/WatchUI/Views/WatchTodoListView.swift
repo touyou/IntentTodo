@@ -32,9 +32,9 @@ public struct WatchTodoListView: View {
         NavigationStack(path: $navigationModel.path) {
             Group {
                 if incompleteTodos.isEmpty {
-                    emptyView
+                    WatchAllDoneView()
                 } else {
-                    todoList
+                    WatchTodoSections(incompleteTodos: incompleteTodos)
                 }
             }
             .navigationTitle(.copy("Todos"))
@@ -61,8 +61,10 @@ public struct WatchTodoListView: View {
             }
         }
     }
+}
 
-    private var emptyView: some View {
+private struct WatchAllDoneView: View {
+    var body: some View {
         VStack(spacing: 12) {
             Image(systemName: "checkmark.circle.fill")
                 .font(.largeTitle)
@@ -76,8 +78,12 @@ public struct WatchTodoListView: View {
                 .foregroundStyle(.secondary)
         }
     }
+}
 
-    private var todoList: some View {
+private struct WatchTodoSections: View {
+    let incompleteTodos: [TodoItem]
+
+    var body: some View {
         // Partitioned in one pass with a single `Date()`: the watch has little CPU to spare.
         let now = Date()
         let oneHourFromNow = now.addingTimeInterval(3600)
