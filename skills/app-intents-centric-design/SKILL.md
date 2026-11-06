@@ -72,7 +72,7 @@ Eleven rules that are cheap to follow and expensive to discover. **From** is the
 
 | # | From | Rule | Why it bites | Detail |
 |---|---|---|---|---|
-| 1 | 0 | Every user-visible action is an `AppIntent`; UI triggers it with `Button(intent:)` | Logic that lives only in a view model is invisible to Siri, Shortcuts, widgets and controls forever | [actions-and-intents](references/actions-and-intents.md) |
+| 1 | 0 | Every user-visible action is an `AppIntent`; UI triggers it with `Button(intent:)` | Logic that lives only in a view model is invisible to Siri, Shortcuts, widgets and controls forever, and out of reach of AppIntentsTesting (`app-intents-testing`) | [actions-and-intents](references/actions-and-intents.md) |
 | 2 | 0 | One action = one intent, regardless of caller | Per-caller clones drift; the entity re-resolves from its `id` before `perform()` anyway | [actions-and-intents](references/actions-and-intents.md) |
 | 3 | 0 | Intents stay thin; a `@MainActor` service owns persistence + side effects | Keeps `perform()` retriable and the logic testable without `AppDependencyManager` | [side-effects](references/service-and-side-effects.md) · audit `swiftdata-in-intent` |
 | 4 | 1 | Register `@Dependency` in **every** process that may execute the intent | Process choice is a heuristic, not a rule; an unregistered dependency traps at runtime with a green build | `app-intents-execution-and-processes` |
