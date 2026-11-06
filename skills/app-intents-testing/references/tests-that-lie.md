@@ -60,7 +60,7 @@ Enabling parallel UI test execution clones the simulator, booting a whole OS per
 
 An intent whose service fetches a feed or calls an API stays green against the live endpoint — until the endpoint changes, rate-limits CI, or returns the one payload the fixtures never covered. Worse, an app that recovers from a failed request (empty list, cached copy) passes either way, so the test never told you which path ran.
 
-Make any outbound request **fail the test**, even when the app would recover. The app runs in its own process, so the switch has to be a launch argument (`-uitest-stub-network`) that a `#if DEBUG` branch honours by registering a `URLProtocol` on the service's `URLSessionConfiguration`. The protocol answers from fixtures and records every unmatched request somewhere the test can read: App Group `UserDefaults` (as the [query call log](query-call-log.md) does), or a hidden DEBUG intent read through `run()`. Assert the record is empty in teardown, and clear it when the app launches, because a reused app process keeps it between tests.
+Make any outbound request **fail the test**, even when the app would recover. The app runs in its own process, so the switch has to be a launch argument (`-uitest-stub-network`) that a `#if DEBUG` branch honours by registering a `URLProtocol` on the service's `URLSessionConfiguration`. The protocol answers from fixtures and records every unmatched request; hand the record back through a hidden DEBUG intent read with `run()` (the UI test runner is a separate bundle and does not share the app's App Group). Assert the record is empty in teardown, and clear it when the app launches, because a reused app process keeps it between tests.
 
 ## And when the measurement itself lies
 
