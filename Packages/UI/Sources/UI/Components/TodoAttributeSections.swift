@@ -353,7 +353,7 @@ private struct AttachmentRow: View {
     }
 }
 
-/// A small preview of the bytes, or a placeholder when they aren't an image.
+/// A small preview of the bytes, or a AttachmentPlaceholder() when they aren't an image.
 struct AttachmentThumbnail: View {
     let data: Data
 
@@ -367,23 +367,25 @@ struct AttachmentThumbnail: View {
             if let image = UIImage(data: data) {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                placeholder
+                AttachmentPlaceholder()
             }
             #elseif canImport(AppKit)
             if let image = NSImage(data: data) {
                 Image(nsImage: image).resizable().scaledToFill()
             } else {
-                placeholder
+                AttachmentPlaceholder()
             }
             #else
-            placeholder
+            AttachmentPlaceholder()
             #endif
         }
         .frame(width: side, height: side)
         .clipShape(.rect(cornerRadius: 4))
     }
+}
 
-    private var placeholder: some View {
+private struct AttachmentPlaceholder: View {
+    var body: some View {
         Image(systemName: "doc")
             .foregroundStyle(.secondary)
     }

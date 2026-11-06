@@ -58,7 +58,7 @@ private struct ListManagementContent: View {
                         .buttonStyle(.borderedProminent)
                 }
             } else {
-                listRows
+                ListRows(snapshot: snapshot, listPendingDeletion: $listPendingDeletion, listPendingMerge: $listPendingMerge)
             }
         }
         .navigationTitle(.copy("Lists"))
@@ -114,7 +114,20 @@ private struct ListManagementContent: View {
         }
     }
 
-    private var listRows: some View {
+    private func startAddingList() {
+        newListName = ""
+        isAddingList = true
+    }
+}
+
+private struct ListRows: View {
+    let snapshot: TodoOrganizeSnapshot?
+    @Binding var listPendingDeletion: CategoryAppEntity?
+    @Binding var listPendingMerge: CategoryAppEntity?
+
+    private var lists: [CategoryAppEntity] { snapshot?.lists ?? [] }
+
+    var body: some View {
         List {
             if let snapshot, !snapshot.duplicateNameGroups.isEmpty {
                 DuplicateListsSection(groups: snapshot.duplicateNameGroups)
@@ -164,11 +177,6 @@ private struct ListManagementContent: View {
                 .foregroundStyle(.secondary)
             }
         }
-    }
-
-    private func startAddingList() {
-        newListName = ""
-        isAddingList = true
     }
 }
 
