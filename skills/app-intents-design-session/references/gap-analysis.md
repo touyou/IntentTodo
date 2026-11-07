@@ -62,7 +62,7 @@ python3 ../app-intents-centric-design/scripts/audit_intents.py . --gap --write-b
 python3 ../app-intents-centric-design/scripts/audit_intents.py . --gap --check intents-gap.json
 ```
 
-- A key is `Owner.method` for an action and `kind file: line text` for a UI row, so moving code does not break it but editing the line does. Re-triage the edited line; that is the point. Identical lines in one file are numbered in order (`Button { (2)`), so wiring the first of them to an intent shifts the rest down by one: `--check` then reports one row new and one gone, and the fix is to move the reasons, not to re-triage.
+- A key is `Owner.method` for an action and `kind file: line text` for a UI row. Moving an action keeps its key; moving a UI row to another file, or editing a button's line, makes it a new row to triage again. Other UI rows (menus, swipe actions) blank the text inside string literals, so retitling one does not show up. Identical lines in one file are numbered in order (`Button { (2)`). Wiring the first of them to an intent shifts the rest down by one: `--check` stays green and only reports the last number as gone, while each kept reason now sits on the row below it. When a row with a number goes away, move the reasons up yourself.
 - The reason is what stops the next round from re-litigating it: "plumbing: widget reload", "local form state", "settings-screen only: set once".
 - `--check` fails on a new row or an empty reason and lists rows that are gone. `--write-baseline` again keeps the reasons and drops the gone rows.
 - Put `--check` in CI or the PR checklist. A green check means every row was looked at, not that the intent set is right.

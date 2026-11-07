@@ -134,23 +134,36 @@ class SwiftFile:
         return out
 
     def type_body(self, name: str) -> str:
-        """Code from `name`'s declaration up to the next declaration in the file.
+        """The braced bodies of `name`'s declaration and of its extensions in this file.
 
         Several intents often share one file; a file-wide search would give every one of
         them the confirmation prompt or the `isDiscoverable = false` of a neighbour.
         """
-        starts = {d.line for d in self.decls}
-        own = [d.line for d in self.decls if d.name == name and d.kind != "extension"]
+        heads = [d.line for d in self.decls if d.name == name]
         for m in re.finditer(r"@AppIntent\s*\([^)]*\)\s*(?:public\s+)?struct\s+(\w+)", self.code):
-            line = self.code[: m.start()].count("\n") + 1
-            starts.add(line)
             if m.group(1) == name:
-                own.append(line)
-        if not own:
+                heads.append(self.code[: m.end()].count("\n") + 1)
+        if not heads:
             return self.code
-        start = min(own)
-        stop = min((b for b in starts if b > start), default=len(self.code_lines) + 1)
-        return "\n".join(self.code_lines[start - 1 : stop - 1])
+        offsets = [0]
+        for ln in self.code_lines:
+            offsets.append(offsets[-1] + len(ln) + 1)
+        bodies = []
+        for line in sorted(set(heads)):
+            i = self.code.find("{", offsets[line - 1])
+            if i < 0:
+                continue
+            depth = 0
+            for j in range(i, len(self.code)):
+                c = self.code[j]
+                if c == "{":
+                    depth += 1
+                elif c == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+            bodies.append(self.code[offsets[line - 1] : j + 1])
+        return "\n".join(bodies) or self.code
 
 
 def blank_noncode(text: str) -> str:
@@ -1324,7 +1337,7 @@ def check_baseline(g: dict, path: str) -> int:
     keys = {section: set(rows) for section, rows in gap_keys(g).items()}
     new = [(section, k) for section, rows in keys.items() for k in rows if k not in base.get(section, {})]
     unexplained = [(section, k) for section, rows in base.items() for k, reason in rows.items()
-                   if not reason.strip() and k in keys.get(section, [])]
+                   if not str(reason or "").strip() and k in keys.get(section, [])]
     stale = [(section, k) for section, rows in base.items() for k in rows if k not in keys.get(section, [])]
     for section, k in new:
         print(f"new      [{section}] {k}")
@@ -1378,6 +1391,8 @@ def main(argv: list[str]) -> int:
     args = ap.parse_args(argv)
     if (args.write_baseline or args.check) and not args.gap:
         ap.error("--write-baseline and --check need --gap")
+    if args.write_baseline and args.check:
+        ap.error("use --write-baseline or --check, not both")
 
     if args.list_rules:
         for name, doc in RULES.items():
