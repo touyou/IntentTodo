@@ -24,6 +24,7 @@ that actually proves things (AppIntentsTesting -> Shortcuts -> Spotlight -> Siri
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import os
 import re
@@ -257,6 +258,7 @@ def parse_conformances(raw: str | None) -> list[str]:
     return out
 
 
+@functools.lru_cache(maxsize=None)
 def nearest_project(root: str, dirpath: str) -> str | None:
     """Closest directory from dirpath up to root that holds an .xcodeproj."""
     root = os.path.abspath(root)
@@ -1319,7 +1321,7 @@ def check_baseline(g: dict, path: str) -> int:
         print(f"{path} not found. Triage the --gap rows, then create it with --write-baseline.")
         return 1
     base = json.load(open(path, encoding="utf-8"))
-    keys = gap_keys(g)
+    keys = {section: set(rows) for section, rows in gap_keys(g).items()}
     new = [(section, k) for section, rows in keys.items() for k in rows if k not in base.get(section, {})]
     unexplained = [(section, k) for section, rows in base.items() for k, reason in rows.items()
                    if not reason.strip() and k in keys.get(section, [])]
@@ -1374,6 +1376,8 @@ def main(argv: list[str]) -> int:
                     help="with --gap: exit 1 when a row is not in FILE or has no reason (run before each PR)")
     ap.add_argument("--fail-on", choices=["error", "warn", "never"], default="error")
     args = ap.parse_args(argv)
+    if (args.write_baseline or args.check) and not args.gap:
+        ap.error("--write-baseline and --check need --gap")
 
     if args.list_rules:
         for name, doc in RULES.items():
