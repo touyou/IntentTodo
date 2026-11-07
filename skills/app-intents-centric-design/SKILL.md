@@ -96,6 +96,7 @@ Rules 1, 2 and 4 are the ones no linter can check — they are design decisions,
 6. **Claim the semantics the system already knows** — `OpenIntent`, `DeleteIntent`, `SetValueIntent`, media/camera conformances, a schema domain if one genuinely matches. Reach is usually a new conformance on an intent you already have, not a new intent. (`app-intents-system-surfaces`, `app-intents-entities-and-search`)
 7. **Compose the app UI last**, out of the now-stable intent set. (`app-intents-ui-and-feedback`)
 8. **Climb the verification ladder** before believing any of it works. (`app-intents-testing`)
+9. **Every later feature starts again at step 1.** A feature added after the first round is designed as a screen change, so its action never reaches the intent set and nothing fails. Write its use-case row first, then the intent, then the UI that runs it (state that only the screen holds, such as a sheet or a text field, stays in the view). Keep the triage in a baseline and check it before each PR (`audit_intents.py --gap --check`, `app-intents-design-session` → gap-analysis).
 
 ## Workarounds that are already known to be wrong
 
@@ -166,6 +167,11 @@ python3 scripts/audit_intents.py . --coverage
 # What exists (intents / entities / App Shortcut slots) vs the actions in the app
 # that no intent reaches. Material for a design session, not a defect list.
 python3 scripts/audit_intents.py . --gap
+
+# Record the triaged rows, then fill in a reason for each row the baseline keeps;
+# --check fails on a new row and on a kept row with an empty reason.
+python3 scripts/audit_intents.py . --gap --write-baseline intents-gap.json
+python3 scripts/audit_intents.py . --gap --check intents-gap.json
 ```
 
 ## Evidence discipline

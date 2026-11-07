@@ -52,7 +52,30 @@ Say these out loud rather than presenting the list as findings; a triage list yo
 | one generic settings mutator (`updateSettings { $0[keyPath:] = … }`) reached only from bindings | every setting the screen exposes collapses into a single gap row. List the settings one by one and triage each: the ones a person changes again and again (filters, sources) are real actions; the ones set once (rules, thresholds) are usually settings-screen-only, and that decision belongs in the use-case table with its reason |
 | `.refreshable { await service.refresh() }` and other gesture closures | a gesture cannot run an intent, so this is not a defect, but if an intent for the same action exists, check both call the same service method with the same arguments |
 
-Features added after the first design round are where this shows up: the screen grows, the use-case table does not, and nothing turns red. Re-run `--gap` when a feature lands, not only at the start.
+## Keeping the triage: the baseline
+
+The first round settles the list. What breaks the design later is a feature that lands as "a screen change": the screen grows, the use-case table does not, and nothing turns red. Record the rows you decided to keep, and let a later run fail on any row nobody decided on:
+
+```bash
+python3 ../app-intents-centric-design/scripts/audit_intents.py . --gap --write-baseline intents-gap.json
+# fill in a reason for every kept row, commit the file, then before each PR:
+python3 ../app-intents-centric-design/scripts/audit_intents.py . --gap --check intents-gap.json
+```
+
+- A key is `Owner.method` for an action and `kind file: line text` for a UI row. Moving an action keeps its key; moving a UI row to another file, or editing a button's line, makes it a new row to triage again. Other UI rows (menus, swipe actions) blank the text inside string literals, so retitling one does not show up. Identical lines in one file are numbered in order (`Button { (2)`). Wiring the first of them to an intent shifts the rest down by one: `--check` stays green and only reports the last number as gone, while each kept reason now sits on the row below it. When a row with a number goes away, move the reasons up yourself.
+- The reason is what stops the next round from re-litigating it: "plumbing: widget reload", "local form state", "settings-screen only: set once".
+- `--check` fails on a new row or an empty reason and lists rows that are gone. `--write-baseline` again keeps the reasons and drops the gone rows.
+- Put `--check` in CI or the PR checklist. A green check means every row was looked at, not that the intent set is right.
+
+The baseline only sees what `--gap` sees. These shapes slip past it, so ask about them whenever a feature lands:
+
+| Shape the feature took | What was missing | Fix |
+|---|---|---|
+| a new screen or tab that shows data (a "new arrivals" list, a stats page) | a read-only intent that returns the same data | a `ReturnsValue` intent through the same service query |
+| a new parameter on an existing action, added to the screen only (a theme for a generated quiz, a filter) | the intent still runs the old, narrower action | add an optional `@Parameter` and list it in `parameterSummary` |
+| a settings toggle or choice reached through a binding (sources, minimum severity) | an intent per setting a person changes again and again | see the settings row in the table above |
+| a new kind of thing (decks next to cards, recordings next to sounds) | no entity, so no intent can name it | an entity first, then the verbs on it |
+| a destructive or bulk action behind a confirmation alert | the alert's button calls the store directly | a confirming intent for Siri and a non-asking twin for the alert (`app-intents-parameters-and-prompts`) |
 
 ## What `--coverage` adds
 
@@ -69,4 +92,4 @@ Read it as a menu, never as a checklist — the coverage output says so itself. 
 1. Run both. Read the intent list back and ask whether it matches what people actually do (round 1).
 2. Triage the gap rows *with* the person, in the four categories above. Real actions join the use-case table.
 3. Only then look at `--coverage`, and only for actions that survived round 1's frequency question.
-4. After implementation, re-run `--gap`. Rows that remain should be rows you decided to keep.
+4. After implementation, re-run `--gap`. Rows that remain should be rows you decided to keep: write them to the baseline with their reasons (above).

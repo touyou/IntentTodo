@@ -1,0 +1,40 @@
+{
+  "actions": {
+    "MockTodoRepository.deleteAttachments": "plumbing: test double",
+    "SwiftDataTodoRepository.deleteAttachments": "plumbing: called by TodoService when a todo's attachments change",
+    "TodoLiveActivityManager.startActivity": "plumbing: the Live Activity follows data changes (dataDidChange)",
+    "TodoLiveActivityManager.updateActivities": "plumbing: the Live Activity follows data changes (dataDidChange)"
+  },
+  "ui": {
+    "menu-command Packages/UI/Sources/UI/Commands/TodoCommands.swift: CommandGroup(after: .textEditing) {": "menu container; its items run intents (Button(intent:)) or only focus/select",
+    "menu-command Packages/UI/Sources/UI/Commands/TodoCommands.swift: CommandGroup(replacing: .newItem) {": "menu container; its items run intents (Button(intent:)) or only focus/select",
+    "menu-command Packages/UI/Sources/UI/Commands/TodoCommands.swift: CommandMenu(String(localized: .copy(\"    \"))) {": "menu container; its items run intents (Button(intent:)) or only focus/select",
+    "menu-command Packages/UI/Sources/UI/Commands/TodoCommands.swift: public struct TodoCommands: Commands {": "menu container; its items run intents (Button(intent:)) or only focus/select",
+    "ui-button Packages/UI/Sources/UI/Commands/TodoCommands.swift: Button(.copy(\"Add to Favorites\")) {}": "placeholder shown while nothing is selected; the enabled item runs the intent",
+    "ui-button Packages/UI/Sources/UI/Commands/TodoCommands.swift: Button(.copy(\"Mark as Completed\")) {}": "placeholder shown while nothing is selected; the enabled item runs the intent",
+    "ui-button Packages/UI/Sources/UI/Components/FocusFilterBanner.swift: Button(store.isSuspended ? .copy(\"Apply\") : .copy(\"Show All\")) {": "local UI state: suspends or applies the Focus filter on this screen",
+    "ui-button Packages/UI/Sources/UI/Components/TodoAttributeSections.swift: Button(.copy(\"Add\"), action: addLink)": "local form state: edits a draft before Save runs the intent",
+    "ui-button Packages/UI/Sources/UI/Components/TodoAttributeSections.swift: Button(.copy(\"Add\"), action: addTag)": "local form state: edits a draft before Save runs the intent",
+    "ui-button Packages/UI/Sources/UI/Components/TodoFormSections.swift: Button(role: .destructive, action: onDiscard) {": "local form state: edits a draft before Save runs the intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/ListManagementView.swift: Button {": "opens a sheet or picks a value in a form; the sheet's confirm runs the intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/ListManagementView.swift: Button { (2)": "opens a sheet or picks a value in a form; the sheet's confirm runs the intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/ListManagementView.swift: Button(.copy(\"Create List\"), action: startAddingList)": "opens a sheet or picks a value in a form; the sheet's confirm runs the intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/ListManagementView.swift: Button(action: startAddingList) {": "opens a sheet or picks a value in a form; the sheet's confirm runs the intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/ListManagementView.swift: Button(role: .cancel) {} label: { Text(.copy(\"Cancel\")) }": "dismisses a dialog",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/ListManagementView.swift: Button(role: .destructive) {": "confirm step: the dialog's confirm button runs the non-asking intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/ListManagementView.swift: Button(role: .destructive) { (2)": "confirm step: the dialog's confirm button runs the non-asking intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/TagManagementView.swift: Button {": "opens the rename or delete confirmation; confirming runs the intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/TagManagementView.swift: Button { (2)": "opens the rename or delete confirmation; confirming runs the intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/TagManagementView.swift: Button(role: .cancel) {} label: { Text(.copy(\"Cancel\")) }": "dismisses a dialog",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/TagManagementView.swift: Button(role: .destructive) {": "confirm step: the dialog's confirm button runs the non-asking intent",
+    "ui-button Packages/UI/Sources/UI/Views/Organize/TagManagementView.swift: Button(role: .destructive) { (2)": "confirm step: the dialog's confirm button runs the non-asking intent",
+    "ui-button Packages/UI/Sources/UI/Views/Settings/QueryCallLogView.swift: Button(role: .destructive) {": "debug screen: clears a local log",
+    "ui-button Packages/UI/Sources/UI/Views/Settings/SettingsView.swift: Button {": "debug screen: reloads system surfaces by hand",
+    "ui-button Packages/UI/Sources/UI/Views/Settings/SettingsView.swift: Button { (2)": "debug screen: reloads system surfaces by hand",
+    "ui-button Packages/UI/Sources/UI/Views/Settings/SettingsView.swift: Button { (3)": "debug screen: reloads system surfaces by hand",
+    "ui-button Packages/UI/Sources/UI/Views/TodoDetail/TodoDetailView.swift: Button(role: .destructive) {": "confirm step: the dialog's confirm button runs the non-asking intent",
+    "ui-button Packages/UI/Sources/UI/Views/TodoList/TodoListView.swift: Button(role: .destructive) {": "confirm step: the dialog's confirm button runs the non-asking intent",
+    "ui-button Packages/UI/Sources/UI/Views/VisionOS/VisionOSTodoDetailView.swift: Button(role: .destructive) {": "confirm step: the dialog's confirm button runs the non-asking intent",
+    "ui-button Packages/WatchUI/Sources/WatchUI/Views/WatchTodoDetailView.swift: Button(role: .destructive) {": "confirm step: the dialog's confirm button runs the non-asking intent"
+  }
+}
