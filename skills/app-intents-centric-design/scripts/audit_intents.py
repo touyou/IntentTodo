@@ -132,6 +132,25 @@ class SwiftFile:
             out.add(m.group(1))
         return out
 
+    def type_body(self, name: str) -> str:
+        """Code from `name`'s declaration up to the next declaration in the file.
+
+        Several intents often share one file; a file-wide search would give every one of
+        them the confirmation prompt or the `isDiscoverable = false` of a neighbour.
+        """
+        starts = {d.line for d in self.decls}
+        own = [d.line for d in self.decls if d.name == name and d.kind != "extension"]
+        for m in re.finditer(r"@AppIntent\s*\([^)]*\)\s*(?:public\s+)?struct\s+(\w+)", self.code):
+            line = self.code[: m.start()].count("\n") + 1
+            starts.add(line)
+            if m.group(1) == name:
+                own.append(line)
+        if not own:
+            return self.code
+        start = min(own)
+        stop = min((b for b in starts if b > start), default=len(self.code_lines) + 1)
+        return "\n".join(self.code_lines[start - 1 : stop - 1])
+
 
 def blank_noncode(text: str) -> str:
     """Blank out comments and string-literal contents, preserving line structure.
@@ -444,8 +463,8 @@ def r_interactive_from_button(files: list[SwiftFile]) -> Iterable[Finding]:
     for f in files:
         if not f.declares_intent():
             continue
-        if f.has(r"\brequest(?:Confirmation|Choice)\s*\("):
-            for name in f.intent_type_names():
+        for name in f.intent_type_names():
+            if re.search(r"\brequest(?:Confirmation|Choice)\s*\(", f.type_body(name)):
                 interactive[name] = f.path
     if not interactive:
         return
@@ -1130,7 +1149,7 @@ def gap(root: str) -> dict:
                 "name": name,
                 "file": f.path,
                 "schema": bool(re.search(rf"@AppIntent\s*\(\s*schema\s*:[^)]*\)\s*(?:public\s+)?struct\s+{name}\b", f.code)),
-                "discoverable": not re.search(r"isDiscoverable\s*[:=]\s*(?:Bool\s*\{\s*)?false", f.code),
+                "discoverable": not re.search(r"isDiscoverable\s*(?::\s*Bool\s*)?(?:=|\{)\s*false", f.type_body(name)),
             })
         entity_lines = {
             d.name: d.line for d in f.decls
