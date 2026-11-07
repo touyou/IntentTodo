@@ -234,6 +234,26 @@ def parse_conformances(raw: str | None) -> list[str]:
     return out
 
 
+def in_swift_package(root: str, dirpath: str) -> bool:
+    """True when a Package.swift sits in dirpath or an ancestor up to root.
+
+    A folder named Sources is not enough: app targets often keep their code in
+    App/Sources/, and treating that as a package flags the AppShortcutsProvider
+    that is correctly placed in the app target.
+    """
+    root = os.path.abspath(root)
+    d = os.path.abspath(dirpath)
+    while True:
+        if os.path.isfile(os.path.join(d, "Package.swift")):
+            return True
+        if d == root:
+            return False
+        parent = os.path.dirname(d)
+        if parent == d:
+            return False
+        d = parent
+
+
 def load_files(root: str) -> list[SwiftFile]:
     files: list[SwiftFile] = []
     for dirpath, dirnames, filenames in os.walk(root):
@@ -269,7 +289,7 @@ def load_files(root: str) -> list[SwiftFile]:
                 target=parts[0],
                 module=module,
                 is_test=is_test,
-                is_package="Packages" in parts or "Sources" in parts,
+                is_package=in_swift_package(root, dirpath),
             )
             for i, ln in enumerate(sf.code_lines):
                 m = DECL_RE.match(ln)
@@ -469,8 +489,13 @@ def r_button_role_order(files: list[SwiftFile]) -> Iterable[Finding]:
 @rule("widget-reload-coverage", "A data mutation must reload timelines AND controls")
 def r_widget_reload(files: list[SwiftFile]) -> Iterable[Finding]:
     timeline_files = [f for f in files if f.has(r"reloadAllTimelines\s*\(")]
+    # Without a control there is nothing for reloadAllControls() to refresh.
+    has_controls = any(
+        f.has(r"\bControlWidget(?:Button|Toggle)?\b|\bStaticControlConfiguration\s*\(|\bAppIntentControlConfiguration\s*\(")
+        for f in files
+    )
     for f in timeline_files:
-        if f.has(r"reloadAllControls\s*\("):
+        if not has_controls or f.has(r"reloadAllControls\s*\("):
             continue
         line = f.find(r"reloadAllTimelines\s*\(")[0][0]
         yield Finding(

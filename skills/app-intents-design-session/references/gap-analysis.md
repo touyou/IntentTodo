@@ -45,6 +45,15 @@ Say these out loud rather than presenting the list as findings; a triage list yo
 | custom URL scheme | a scheme used for OS integration the app does not own (OAuth callbacks, MDM) is not a deep link to replace |
 | action method reached by *no* file | a method called only from another service method reads as unreached; check the caller before calling it a gap |
 
+## What `--gap` under-counts
+
+| Signal | What it hides |
+|---|---|
+| one generic settings mutator (`updateSettings { $0[keyPath:] = … }`) reached only from bindings | every setting the screen exposes collapses into a single gap row. List the settings one by one and triage each: the ones a person changes again and again (filters, sources) are real actions; the ones set once (rules, thresholds) are usually settings-screen-only, and that decision belongs in the use-case table with its reason |
+| `.refreshable { await service.refresh() }` and other gesture closures | a gesture cannot run an intent, so this is not a defect, but if an intent for the same action exists, check both call the same service method with the same arguments |
+
+Features added after the first design round are where this shows up: the screen grows, the use-case table does not, and nothing turns red. Re-run `--gap` when a feature lands, not only at the start.
+
 ## What `--coverage` adds
 
 `--gap` answers "which of this app's actions can the system reach". `--coverage` answers "which parts of the system are reached at all", and lists what each missing surface would take.
