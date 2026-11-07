@@ -1143,6 +1143,7 @@ def gap(root: str) -> dict:
     intents: list[dict] = []
     entities: list[dict] = []
     shortcut_intents: set[str] = set()
+    slots: dict[str, int] = {}  # per app (project): the 10-shortcut limit is per app
     for f in files:
         for name in sorted(f.intent_type_names()):
             intents.append({
@@ -1171,6 +1172,8 @@ def gap(root: str) -> dict:
             })
         for m in re.finditer(r"AppShortcut\s*\(\s*intent\s*:\s*(\w+)\s*\(", f.code):
             shortcut_intents.add(m.group(1))
+            app = os.path.relpath(f.project, root) if f.project else "."
+            slots[app] = slots.get(app, 0) + 1
 
     intent_files = [f for f in files if f.declares_intent()]
     intent_code = "\n".join(f.code for f in intent_files)
@@ -1217,6 +1220,7 @@ def gap(root: str) -> dict:
         "intents": sorted(intents, key=lambda d: d["name"]),
         "entities": sorted(entities, key=lambda d: d["name"]),
         "app_shortcuts": sorted(shortcut_intents),
+        "app_shortcut_slots": slots,
         "actions": sorted(actions, key=lambda d: (d["reached_by_intent"], d["owner"], d["func"])),
         "ui_candidates": sorted(ui, key=lambda d: (d["kind"], d["file"], d["line"])),
     }
@@ -1250,7 +1254,10 @@ def print_gap(g: dict) -> None:
     for e in g["entities"]:
         prop = f"{e['properties']} @Property" if e["properties"] else "NO @Property — invisible to Shortcuts/Siri"
         print(f"  entity   {e['name']}  [{prop}]")
-    print(f"\n  App Shortcut slots used: {len(g['app_shortcuts'])}/10")
+    slots = g["app_shortcut_slots"] or {".": 0}
+    for project, used in sorted(slots.items()):
+        where = "" if len(slots) == 1 else f" ({project})"
+        print(f"\n  App Shortcut slots used{where}: {used}/10" if project == min(slots) else f"  App Shortcut slots used{where}: {used}/10")
 
     unreached = [a for a in g["actions"] if not a["reached_by_intent"]]
     reached = [a for a in g["actions"] if a["reached_by_intent"]]
