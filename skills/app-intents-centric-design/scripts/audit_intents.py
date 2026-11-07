@@ -10,6 +10,8 @@ Usage:
                              [--fail-on {error,warn,never}]
     python3 audit_intents.py [ROOT] --coverage   # which system surfaces are reached
     python3 audit_intents.py [ROOT] --gap        # intents that exist vs actions no intent reaches
+    python3 audit_intents.py [ROOT] --gap --write-baseline intents-gap.json   # record triaged rows
+    python3 audit_intents.py [ROOT] --gap --check intents-gap.json            # fail on untriaged rows
 
 Exit status: 0 clean, 1 findings at or above --fail-on (default: error).
 
@@ -79,6 +81,7 @@ class SwiftFile:
     module: str | None  # module name when under Sources/<Module>/
     is_test: bool
     is_package: bool
+    project: str | None = None  # closest directory holding an .xcodeproj (one app family per project)
     decls: list[Decl] = field(default_factory=list)
 
     # convenience -----------------------------------------------------------
@@ -106,7 +109,8 @@ class SwiftFile:
         return out
 
     def declares_intent(self) -> bool:
-        return any(c.endswith("Intent") for c in self.conformance_names())
+        # `@AppIntent(schema:) struct Foo {}` declares no conformance in source.
+        return any(c.endswith("Intent") for c in self.conformance_names()) or self.has(r"@AppIntent\s*\(")
 
     def declares_entity(self) -> bool:
         names = self.conformance_names()
@@ -234,6 +238,21 @@ def parse_conformances(raw: str | None) -> list[str]:
     return out
 
 
+def nearest_project(root: str, dirpath: str) -> str | None:
+    """Closest directory from dirpath up to root that holds an .xcodeproj."""
+    root = os.path.abspath(root)
+    d = os.path.abspath(dirpath)
+    while True:
+        try:
+            if any(n.endswith(".xcodeproj") for n in os.listdir(d)):
+                return d
+        except OSError:
+            pass
+        if d == root or os.path.dirname(d) == d:
+            return None
+        d = os.path.dirname(d)
+
+
 def in_swift_package(root: str, dirpath: str) -> bool:
     """True when a Package.swift sits in dirpath or an ancestor up to root.
 
@@ -290,6 +309,7 @@ def load_files(root: str) -> list[SwiftFile]:
                 module=module,
                 is_test=is_test,
                 is_package=in_swift_package(root, dirpath),
+                project=nearest_project(root, dirpath),
             )
             for i, ln in enumerate(sf.code_lines):
                 m = DECL_RE.match(ln)
@@ -357,14 +377,20 @@ def r_shortcuts_placement(files: list[SwiftFile]) -> Iterable[Finding]:
                 "Metadata.appintents — App Shortcuts silently never register. Move the "
                 f"provider to the app target and `import` the intents. See app-intents-execution-and-processes/references/packaging.md",
             )
-    if len(providers) > 1:
-        f, d = providers[1]
-        yield Finding(
-            "shortcuts-provider-placement", "error", f.path, d.line,
-            f"{len(providers)} AppShortcutsProvider declarations found "
-            f"({', '.join(p[1].name for p in providers)}).",
-            "An app supports exactly one AppShortcutsProvider; more than one is a build error.",
-        )
+    # A repository can hold several apps, one .xcodeproj each; the limit is per app.
+    by_project: dict[str | None, list[tuple[SwiftFile, Decl]]] = {}
+    for f, d in providers:
+        by_project.setdefault(f.project, []).append((f, d))
+    for group in by_project.values():
+        if len(group) > 1:
+            f, d = group[1]
+            yield Finding(
+                "shortcuts-provider-placement", "error", f.path, d.line,
+                f"{len(group)} AppShortcutsProvider declarations found in one project "
+                f"({', '.join(p[1].name for p in group)}).",
+                "An app supports exactly one AppShortcutsProvider; more than one is a build error. "
+                "If they belong to different app targets of one project, this is a false positive.",
+            )
     for f, _ in providers:
         count = len(re.findall(r"\bAppShortcut\s*\(", f.code))
         if count > 10:
@@ -1165,7 +1191,7 @@ def gap(root: str) -> dict:
             if "intent:" in window or UI_NAVIGATION_RE.search(window):
                 continue
             ui.append({"kind": "ui-button", "label": "Button that is not wired to an intent",
-                       "file": f.path, "line": i + 1, "snippet": ln.strip()[:100],
+                       "file": f.path, "line": i + 1, "snippet": f.lines[i].strip()[:100],
                        "ask": "if this performs a real action, it belongs in an intent (rule 1)"})
 
     return {
@@ -1230,6 +1256,63 @@ def print_gap(g: dict) -> None:
           "app-intents-design-session/references/gap-analysis.md.")
 
 
+def gap_keys(g: dict) -> dict[str, list[str]]:
+    """Line-independent keys for every row the triage has to decide on."""
+    def numbered(raw: list[str]) -> list[str]:
+        # Identical lines in one file (`Button {`) stay distinct, so adding one more is still a new row.
+        seen: dict[str, int] = {}
+        out = []
+        for k in raw:
+            seen[k] = seen.get(k, 0) + 1
+            out.append(k if seen[k] == 1 else f"{k} ({seen[k]})")
+        return sorted(out)
+
+    return {
+        "actions": numbered([f"{a['owner']}.{a['func']}" for a in g["actions"] if not a["reached_by_intent"]]),
+        "ui": numbered([f"{r['kind']} {r['file']}: {r['snippet']}" for r in g["ui_candidates"]]),
+    }
+
+
+def write_baseline(g: dict, path: str) -> None:
+    """Record today's rows. Reasons already in the file are kept; new rows get an empty one to fill in."""
+    old: dict = {}
+    if os.path.isfile(path):
+        old = json.load(open(path, encoding="utf-8"))
+    keys = gap_keys(g)
+    out = {section: {k: old.get(section, {}).get(k, "") for k in rows} for section, rows in keys.items()}
+    with open(path, "w", encoding="utf-8") as fh:
+        json.dump(out, fh, ensure_ascii=False, indent=2)
+        fh.write("\n")
+    blank = sum(1 for rows in out.values() for reason in rows.values() if not reason)
+    print(f"wrote {path}: {sum(len(r) for r in out.values())} row(s), {blank} without a reason yet.")
+
+
+def check_baseline(g: dict, path: str) -> int:
+    """Fail when a row appears that nobody triaged, or a kept row has no reason."""
+    if not os.path.isfile(path):
+        print(f"{path} not found. Triage the --gap rows, then create it with --write-baseline.")
+        return 1
+    base = json.load(open(path, encoding="utf-8"))
+    keys = gap_keys(g)
+    new = [(section, k) for section, rows in keys.items() for k in rows if k not in base.get(section, {})]
+    unexplained = [(section, k) for section, rows in base.items() for k, reason in rows.items()
+                   if not reason.strip() and k in keys.get(section, [])]
+    stale = [(section, k) for section, rows in base.items() for k in rows if k not in keys.get(section, [])]
+    for section, k in new:
+        print(f"new      [{section}] {k}")
+    for section, k in unexplained:
+        print(f"no reason [{section}] {k}")
+    for section, k in stale:
+        print(f"gone     [{section}] {k}  (remove it with --write-baseline)")
+    if new or unexplained:
+        print(f"\n{len(new)} new row(s), {len(unexplained)} without a reason. A new row is usually a feature that "
+              "skipped the intent set: add the intent, or record why it stays out. "
+              "See app-intents-design-session/references/gap-analysis.md")
+        return 1
+    print(f"gap check: every row is triaged ({sum(len(r) for r in keys.values())}).")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # main
 # ---------------------------------------------------------------------------
@@ -1259,6 +1342,10 @@ def main(argv: list[str]) -> int:
                     help="report which system surfaces the project reaches, and what the rest would take")
     ap.add_argument("--gap", action="store_true",
                     help="inventory the intents/entities that exist, and the actions in the app that no intent reaches")
+    ap.add_argument("--write-baseline", metavar="FILE",
+                    help="with --gap: record today's rows (keeps existing reasons) so later runs can --check")
+    ap.add_argument("--check", metavar="FILE",
+                    help="with --gap: exit 1 when a row is not in FILE or has no reason (run before each PR)")
     ap.add_argument("--fail-on", choices=["error", "warn", "never"], default="error")
     args = ap.parse_args(argv)
 
@@ -1269,6 +1356,11 @@ def main(argv: list[str]) -> int:
 
     if args.gap:
         g = gap(args.root)
+        if args.write_baseline:
+            write_baseline(g, args.write_baseline)
+            return 0
+        if args.check:
+            return check_baseline(g, args.check)
         if args.json:
             print(json.dumps({"root": os.path.abspath(args.root), **g}, indent=2))
         else:

@@ -89,6 +89,9 @@ App Intents は**無音で失敗する**（ビルドは緑、IDE も綺麗、機
 python3 skills/app-intents-centric-design/scripts/audit_intents.py . --fail-on error
 python3 skills/app-intents-centric-design/scripts/audit_intents.py . --coverage
 
+# 機能を足したら: Intent に届かない操作が増えていないか（判断済みの行と理由は intents-gap.json）
+python3 skills/app-intents-centric-design/scripts/audit_intents.py . --gap --check intents-gap.json
+
 # システムが実際に読むメタデータ（autoShortcuts 0 件 / プロパティ 0 件の entity /
 # 編集画面に出ないパラメータ / 登録されなかった schema / 同じ schema を主張する型が 2 つ）
 python3 skills/app-intents-testing/scripts/inspect_appintents_metadata.py --find IntentTodo
