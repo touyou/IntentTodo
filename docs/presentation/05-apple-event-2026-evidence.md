@@ -151,7 +151,7 @@ Apple 自身が言っていること:
    このアプリは `systemContext.isVoiceOnly` を [APP_INTENTS_API_COVERAGE.md](../APP_INTENTS_API_COVERAGE.md) で
    **⏸ 意図的不使用**にしているが、Audio Intelligence の文脈だとこの判断を**あえて見せる**価値が出る。
    「**呼出元は判別できないが、音声のみかは分かる**」は App Intents の設計制約のきれいな実例
-   （RC SDK の `IntentSystemContext` は `preciseTimestamp` / `isVoiceOnly` / `locale` の 3 つだけ — §3）
+   （SDK の `IntentSystemContext` は `preciseTimestamp` / `currentMode` / `isVoiceOnly` / `locale` の 4 つだけ — §3）
 2. **Siri Recap が「Siri アプリに entity が溜まる」形をとっている**。
    会話の要約という**アプリの外で生まれたもの**がシステム側の面に置かれ、そこから参照される。
    「システム側の面が増え続ける」という発表全体のテーマの、今年いちばん分かりやすい追加例

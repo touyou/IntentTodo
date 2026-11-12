@@ -421,7 +421,7 @@ CfP のアジェンダ 3 は **「新設計の実践プロジェクト『IntentT
 
 1. **前半の宿題を出す**（30 秒）。公式ルールは「donation は**アプリの UI 起点の操作だけ**に限れ /
    Siri・Shortcuts 起点にはするな」。ところが `perform()` は呼出元を判別できない
-   （`IntentSystemContext` にあるのは `currentMode` と `isVoiceOnly` だけ）。
+   （`IntentSystemContext` にあるのは `preciseTimestamp` / `currentMode` / `isVoiceOnly` / `locale` だけ）。
    **UI も `Button(intent:)` にした時点で、この条件を書き分けられない**
 2. ⭐ **答え合わせ**（1.5 分）。**測ったら、システムが勝手に記録していた**。
    `Button(intent: AddTodoIntent)` を 1 回 → donation +1。`donate()` は 1 行も書いていない。
