@@ -449,7 +449,9 @@ App Intents 中心設計はそこに別の軸を持ち込む。
 ### 正直に残る非対称（読み取りは層を貫通する）
 
 `TodoEntityQuery` / `CategoryEntityQuery` / `SubTaskEntityQuery` などの読み取り経路は
-`@Dependency var modelContainer` で **`TodoService` も Repository も飛ばして**ストアに直接到達する。
+`@Dependency var modelContainer` を受け取り、**`TodoService` を飛ばす**。`TodoEntityQuery` は
+`SwiftDataTodoRepository` を直接作って読み、`CategoryEntityQuery` / `SubTaskEntityQuery` などは
+Repository も通らずに `FetchDescriptor` でストアから直接読む。
 書き込み経路は必ず `TodoService` を通る。
 
 つまり実態は **書き込み側だけ層が厚い CQRS 的な非対称**。図でも「読みは細い直通線、書きは Service 経由」と

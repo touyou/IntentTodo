@@ -94,7 +94,7 @@ issue には「`AppEntityDefinition.viewAnnotations()` で押さえる」と書�
 - `AppIntentsTesting.framework` は watchOS SDK にも存在し、リンクも runner の起動も通る
 - `IntentDefinitions(bundleIdentifier: "dev.touyou.IntentTodo.watchkitapp")` と
   `suggestedEntities()` は動く（＝メタデータの発見までは成立している）
-- しかし **intent の `run()` が `LNPerformActionPrebuiltErrorDomain` code 4025
+- しかし **intent の `run()` が `LNPerformIntentPrebuiltErrorDomain` code 4025
   `LNPerformActionPrebuiltErrorCodeActionNotAllowed` で落ちる**。テストの前提データを作る
   `AddTodoIntent`（`.background` + `allowedExecutionTargets = [.main]`）が走らないので、
   annotation を読む地点まで到達できない
