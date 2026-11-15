@@ -218,7 +218,7 @@ struct TodoFormSections<AfterTitle: View>: View {
     var body: some View {
         Group {
             Section {
-                titleField
+                TodoTitleField(title: $draft.title, focus: titleFocus)
 
                 TextField(
                     .copy("Description (optional)"),
@@ -231,26 +231,33 @@ struct TodoFormSections<AfterTitle: View>: View {
 
             afterTitle
 
-            otherSections
+            TodoDetailFieldSections(draft: $draft)
         }
     }
+}
 
-    @ViewBuilder
-    private var titleField: some View {
-        let field = TextField(.copy("Title"), text: $draft.title)
+private struct TodoTitleField: View {
+    @Binding var title: String
+    var focus: FocusState<Bool>.Binding?
+
+    var body: some View {
+        let field = TextField(.copy("Title"), text: $title)
             .accessibilityIdentifier("todoTitleField")
         #if os(iOS)
             .textInputAutocapitalization(.sentences)
         #endif
-        if let titleFocus {
-            field.focused(titleFocus)
+        if let focus {
+            field.focused(focus)
         } else {
             field
         }
     }
+}
 
-    @ViewBuilder
-    private var otherSections: some View {
+private struct TodoDetailFieldSections: View {
+    @Binding var draft: TodoFormDraft
+
+    var body: some View {
         Group {
             Section {
                 Toggle(.copy("Set Due Date"), isOn: $draft.hasDueDate.animation())

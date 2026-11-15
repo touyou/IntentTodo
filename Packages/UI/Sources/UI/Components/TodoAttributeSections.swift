@@ -367,23 +367,25 @@ struct AttachmentThumbnail: View {
             if let image = UIImage(data: data) {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
-                placeholder
+                AttachmentPlaceholder()
             }
             #elseif canImport(AppKit)
             if let image = NSImage(data: data) {
                 Image(nsImage: image).resizable().scaledToFill()
             } else {
-                placeholder
+                AttachmentPlaceholder()
             }
             #else
-            placeholder
+            AttachmentPlaceholder()
             #endif
         }
         .frame(width: side, height: side)
         .clipShape(.rect(cornerRadius: 4))
     }
+}
 
-    private var placeholder: some View {
+private struct AttachmentPlaceholder: View {
+    var body: some View {
         Image(systemName: "doc")
             .foregroundStyle(.secondary)
     }

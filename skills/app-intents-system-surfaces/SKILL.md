@@ -64,6 +64,12 @@ The surface dictates the API even when the intent is identical.
 
 **A toggle needs a fixed target.** `isOn` must be a value the provider can read back on the next reload. "Complete the most urgent item" cannot be a toggle: completing it makes the provider return a *different*, incomplete item, so the on-state never persists. Either pin the target through configuration, or use a button.
 
+**A widget row's checkbox wants `Toggle(isOn:intent:)`, not `Button(intent:)`.** The intent runs in the app process and the reload arrives later, so a button looks dead in between. A toggle's `isOn` is flipped by the system on tap; draw the circle with a custom `ToggleStyle` [measured 2026-10, iOS 27 device, Intento 1.1.7].
+
+**Never put `invalidatableContent()` inside a widget `Link`.** The `Link` stops delivering its URL and the tap only opens the app [measured 2026-10, iOS 27 simulator home screen and device].
+
+**Read widget timelines and control values from a fresh `ModelContext` each time**, not the container's `mainContext`. The app process writes; the extension's long-lived `mainContext` keeps returning rows it already loaded, so a widget showed a stale completion state. Switching to a fresh context made it go away, but whether that or a faster reload fixed it was not isolated [inferred 2026-10, Intento 1.1.7].
+
 **Control `kind` strings are system-wide identifiers.** Use reverse-DNS (`com.example.MyApp.MyTarget.MyControl`) as every Apple sample does.
 
 ## App Shortcuts budget

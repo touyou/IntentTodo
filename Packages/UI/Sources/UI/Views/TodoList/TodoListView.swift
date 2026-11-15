@@ -367,10 +367,18 @@ private struct TodoListSidebar: View {
             // one. It's 27+ only, so gate it; on older OSes (or non-manual sort) the
             // rows render exactly as before.
             if #available(iOS 27, macOS 27, visionOS 27, *), isReorderable {
-                ForEach(todos, id: \.id) { row($0) }
+                ForEach(todos, id: \.id) { todo in
+                    TodoListRow(todo: todo, searchTerm: searchTerm, organize: organize,
+                                showsMenu: showsRowMenu, onRequestDeletion: onRequestDeletion)
+                        .tag(todo)
+                }
                     .reorderable()
             } else {
-                ForEach(todos, id: \.id) { row($0) }
+                ForEach(todos, id: \.id) { todo in
+                    TodoListRow(todo: todo, searchTerm: searchTerm, organize: organize,
+                                showsMenu: showsRowMenu, onRequestDeletion: onRequestDeletion)
+                        .tag(todo)
+                }
             }
         }
         // Collection onscreen (WWDC 2026 #343): advertise every visible row's
@@ -405,23 +413,35 @@ private struct TodoListSidebar: View {
         !isReorderable
         #endif
     }
+}
 
-    @ViewBuilder
-    private func row(_ todo: TodoAppEntity) -> some View {
+private struct TodoListRow: View {
+    let todo: TodoAppEntity
+    let searchTerm: String
+    let organize: TodoOrganizeSnapshot?
+    let showsMenu: Bool
+    let onRequestDeletion: (TodoAppEntity) -> Void
+
+    var body: some View {
         TodoRowView(
             todo: todo,
             searchMatch: TodoSearchMatch.make(for: todo, term: searchTerm, organize: organize)
         )
-            .tag(todo)
             .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                 DeleteButton(todo: todo)
             }
-            .modifier(RowMenu(isEnabled: showsRowMenu) { rowMenu(todo) })
+            .modifier(RowMenu(isEnabled: showsMenu) {
+                TodoRowMenu(todo: todo, onRequestDeletion: onRequestDeletion)
+            })
     }
+}
 
-    /// The row's own actions. Same intents the checkbox, the star and the swipe run.
-    @ViewBuilder
-    private func rowMenu(_ todo: TodoAppEntity) -> some View {
+/// The row's own actions. Same intents the checkbox, the star and the swipe run.
+private struct TodoRowMenu: View {
+    let todo: TodoAppEntity
+    let onRequestDeletion: (TodoAppEntity) -> Void
+
+    var body: some View {
         Button(intent: ToggleTodoCompletionIntent(todo: todo)) {
             Text(todo.isCompleted ? .copy("Mark as Not Completed") : .copy("Mark as Completed"))
         }
@@ -451,9 +471,9 @@ private struct TodoListSidebar: View {
 ///
 /// A `contextMenu` with empty content still opens an empty menu, so the choice has to be
 /// whether the modifier is applied at all.
-private struct RowMenu<Menu: View>: ViewModifier {
+private struct RowMenu<MenuContent: View>: ViewModifier {
     let isEnabled: Bool
-    @ViewBuilder let menu: () -> Menu
+    @ViewBuilder let menu: () -> MenuContent
 
     func body(content: Content) -> some View {
         if isEnabled {

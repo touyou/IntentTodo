@@ -31,6 +31,12 @@ The English set deliberately uses **different words**: `Snooze` / `Delay`, `Star
 
 The same principle applies to any target language: reach for the synonyms a person would actually use, not conjugations of one verb.
 
+Languages do not need the same number of phrases. The value is a per-language `stringSet`, so add a phrase by appending to that language's array, not by adding a key (CheckItOut ships 3 in English and 5 in Japanese).
+
+## When people say a different name than the display name
+
+If the app is spoken by a name that is not its display name (CheckItOut is said as 「チェケラ」), add `INAlternativeAppNames` to the app's Info.plist, each entry with `INAlternativeAppName` and `INAlternativeAppNamePronunciationHint`. Otherwise Siri cannot tell which app a phrase spoken with that name belongs to. [Apple]
+
 ## Compare like with like
 
 Judge redundancy only **within the same parameter shape**. A pair like:
@@ -46,6 +52,13 @@ is not a duplicate even if both translate to something that starts the same way.
 
 - ≤ 10 `AppShortcut` entries per app; ~1,000 phrases across them.
 - Adding a language multiplies the phrase count, not the entry count. The 10-entry limit is per app, not per language.
+
+## When Xcode extracts phrases for you
+
+[measured: GRAPHICA, Xcode 27.0, 2026-10]
+
+- The build's `.stringsdata` (`SWIFT_EMIT_LOC_STRINGS`) carried **only the first phrase of each shortcut**. Diffing it against `AppShortcuts.xcstrings` misses the rest; take the full list from the built metadata.
+- Letting Xcode re-extract the phrases **demotes translations you already checked to `needs_review`**. Review the catalog diff before committing it, and keep `translated` where you have verified the wording.
 
 ## What phrases cannot carry
 

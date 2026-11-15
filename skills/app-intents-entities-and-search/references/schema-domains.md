@@ -104,7 +104,7 @@ Rules for the fallback side:
 - **`Transferable` and `URLRepresentableEntity` must be declared on the concrete type.** These are read by const extraction, which does not follow a `typealias` — `extension TodoAppEntity: Transferable` fails in the watch slice with `The property 'transferRepresentation' must be static, have a compile-time constant value, and cannot be computed or dynamic`.
 - **Intents that only make sense with a schema** (an in-app search intent) are excluded wholesale with `#if !os(watchOS)`. Nothing is lost: watchOS does not route those experiences.
 
-Reported as **FB24570185**. Apple's four Apple Intelligence samples all ship without a watch target, so the combination has never been exercised officially, and the documentation does not mention multi-target metadata merging at all.
+Reported as **FB24570185**; still reproduces with Xcode 27.2 (27B52), including the last-wins order dependence [measured 2026-11-01]. Apple's four Apple Intelligence samples all ship without a watch target, so the combination has never been exercised officially, and the documentation does not mention multi-target metadata merging at all.
 
 **How to check you got it right:** run the metadata inspector and confirm that **exactly one type claims each schema**. A summary count of "all clear" does not catch two types claiming `reminders.ListEntity`.
 

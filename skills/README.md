@@ -29,8 +29,9 @@ Claude Code / Codex / Gemini CLI / GitHub Copilot / Cursor で同じファイル
 方針をそのまま適用している。
 
 検証ベースは **iOS 27 / Xcode 27 RC（27A266a）で実行して測ったもの**。
-宣言（`[Apple SDK]`）については **Xcode 27.2 beta（27B5019j）の swiftinterface まで再確認済み**で、
-27.2 で増えた 3 件は該当箇所に注記してある。記述には根拠ラベル
+宣言（`[Apple SDK]`）については **Xcode 27.2 正式版（27B52）の swiftinterface まで再確認済み**で、
+27.2 で増えたもの（`caseDisplayRepresentations` の既定実装 / `@UnionValue` の `default:`・`size:` /
+`ValueRepresentation` の `init(importing:)`）は該当箇所に注記してある。記述には根拠ラベル
 （`[Apple]` / `[Apple SDK]` / `[measured]` / `[inferred]`）が付いているので、SDK が上がったら `[measured]` を
 優先的に再確認すればよい。
 

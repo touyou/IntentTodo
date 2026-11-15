@@ -106,7 +106,7 @@ Details and examples: [siri-phrases](references/siri-phrases.md).
 
 | File | Covers |
 |---|---|
-| [intent-copy](references/intent-copy.md) | where each kind of copy resolves, the manual-key workflow, the temporary-extraction trick for `IntentDialog`, catalog key ordering, sharing enum labels with the UI |
+| [intent-copy](references/intent-copy.md) | where each kind of copy resolves, the manual-key workflow, the temporary-extraction trick for `IntentDialog`, catalog key ordering, sharing enum labels with the UI, keys whose spelling differs from the literal, copy that fails submission (ITMS-90626) |
 | [package-ui-copy](references/package-ui-copy.md) | why a view package needs both a catalog and an accessor, the `String`-typed-property trap, `LocalizedStringKey`-only interpolations |
-| [siri-phrases](references/siri-phrases.md) | String Sets, `${applicationName}`, writing variations that add recognition paths |
+| [siri-phrases](references/siri-phrases.md) | String Sets, `${applicationName}`, writing variations that add recognition paths, what Xcode's phrase extraction drops or demotes |
 | [verifying](references/verifying.md) | `-exportLocalizations`, the checker script, what unit counts do and do not mean, UI tests and host language |

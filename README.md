@@ -210,8 +210,10 @@ cd Packages/UI && swift test
 ## 提出用スクリーンショット
 
 ```bash
-./scripts/capture_screenshots.sh              # 全プラットフォーム × ja / en
+./scripts/capture_screenshots.sh              # 全プラットフォーム × ja / en（iPhone Duo を除く）
 ./scripts/capture_screenshots.sh iphone       # 一部だけ撮り直す
+./scripts/capture_screenshots.sh duo-closed   # iPhone Duo を閉じた状態で
+./scripts/capture_screenshots.sh duo-open     # iPhone Duo を開いた状態で（先に DeviceHub で開く）
 ```
 
 DEBUG 限定の `ScreenshotFixture`（`Domain`）が in-memory ストアに ja / en それぞれのサンプルを
@@ -220,10 +222,15 @@ DEBUG 限定の `ScreenshotFixture`（`Domain`）が in-memory ストアに ja /
 | プラットフォーム | 撮り方 | 画素数 |
 |:--|:--|:--|
 | iPhone 17 Pro Max / iPad Pro 13" / Apple Watch Ultra | XCUITest が操作して `XCUIScreen.main.screenshot()` を添付 | 1320x2868 / 2064x2752 / 422x514 |
+| iPhone Duo（閉じた状態） | iPhone と同じ。外側の画面を撮る | 1398x2034 |
+| iPhone Duo（開いた状態） | XCUITest が内側の画面を撮り、スクリプトが横向きに回して寸法を合わせる | 2853x2007 |
 | Mac | XCUITest が起動引数 `-uitest-screenshot-screen` で画面を選び、ウィンドウだけを撮る | 2880x1800 |
 | Apple Vision Pro | `simctl io screenshot`（部屋ごと撮る）。画面の選び方は Mac と同じ | 3840x2160 |
 
-いずれも App Store Connect が受け付ける寸法。ASC へ入れる文言は
+iPhone Duo の開閉はシミュレータのコマンドから切り替えられず、DeviceHub でデバイスの下のボタンを押すしかない。
+そのため Duo の 2 つは名前を指定したときだけ撮り、撮る前に今の状態が合っているかを確かめる（起動し直した直後は閉じている）。
+
+iPhone Duo 以外は、いずれも App Store Connect が受け付ける寸法。ASC へ入れる文言は
 [docs/APP_STORE_LISTING.md](docs/APP_STORE_LISTING.md)。
 
 ## App Shortcuts

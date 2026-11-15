@@ -51,7 +51,7 @@ private struct TagManagementContent: View {
                     Text(.copy("Tags come from the Tags field on a todo. Add one there and it shows up here."))
                 }
             } else {
-                tagRows
+                TagRows(snapshot: snapshot, tagPendingDeletion: $tagPendingDeletion, onRename: startRenaming)
             }
         }
         .navigationTitle(.copy("Tags"))
@@ -84,12 +84,25 @@ private struct TagManagementContent: View {
         }
     }
 
-    private var tagRows: some View {
+    private func startRenaming(_ tag: String) {
+        renamedTag = tag
+        tagPendingRename = tag
+    }
+}
+
+private struct TagRows: View {
+    let snapshot: TodoOrganizeSnapshot?
+    @Binding var tagPendingDeletion: String?
+    let onRename: (String) -> Void
+
+    private var tags: [String] { snapshot?.tags ?? [] }
+
+    var body: some View {
         List {
             Section {
                 ForEach(tags, id: \.self) { tag in
                     Button {
-                        startRenaming(tag)
+                        onRename(tag)
                     } label: {
                         LabeledContent {
                             Text(.copy("\(snapshot?.todoCount(withTag: tag) ?? 0) todos"))
@@ -100,7 +113,7 @@ private struct TagManagementContent: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         Button {
-                            startRenaming(tag)
+                            onRename(tag)
                         } label: {
                             Label(.copy("Rename Tag"), systemImage: "pencil")
                         }
@@ -122,11 +135,6 @@ private struct TagManagementContent: View {
                 Text(.copy("Tap a tag to rename it everywhere. To see the todos carrying one, filter the list by tag."))
             }
         }
-    }
-
-    private func startRenaming(_ tag: String) {
-        renamedTag = tag
-        tagPendingRename = tag
     }
 }
 

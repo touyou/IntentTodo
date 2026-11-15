@@ -20,6 +20,7 @@
 
 ## 目次
 
+- [2026-11-01-xcode27.2-release-recheck.md](2026-11-01-xcode27.2-release-recheck.md) — Xcode 27.2 正式版（27B52）で測り直した記録（**beta にあった `DynamicPropertyPath.get(as:)` が正式版に入らなかった**件 / 代わりに `ValueRepresentation` の受け取り専用 `init(importing:)` が増えた件 / **FB24548956 は 27.2 の toolchain で直ったが、Xcode Cloud が 27.1 なので回避策は残した**件 / FB24570185 は直っていない件 / `inspect_appintents_metadata.py` が macOS の `.app` を見落としていた件 / 旧版の Xcode を消していて sort diff が取れなかった件）
 - [2026-10-12-duo-toolbar-1.1.8.md](2026-10-12-duo-toolbar-1.1.8.md) — iPhone Duo の縦のバーに合わせてツールバーを揃えた記録（**`ToolbarOverflowMenu` は中の項目の accessibilityIdentifier を落とす**件 / Duo シミュレータは XCUITest からなら撮れる件）
 - [2026-10-10-widget-checkbox-1.1.7.md](2026-10-10-widget-checkbox-1.1.7.md) — ウィジェットのチェックを実機で通して 1.1.7 を出した経緯（**拡張側の生き続ける `mainContext` が古い行を返す**件 / `Button(intent:)` を `Toggle(isOn:intent:)` にしてタップと同時に丸を切り替える件 / **`Link` の中身に `invalidatableContent()` を付けると URL が渡らなくなる**件 / SpringBoard を UI テストで操作してホーム画面のウィジェットをタップさせた切り分け / Xcode Cloud の書き出しが Apple 側の 502 で落ちた件）
 - [2026-09-26-issues-142-onward.md](2026-09-26-issues-142-onward.md) — #142 以降の issue を片付けた記録（**`urls` が空でも Cascade への donate は成功し、FB23563297 が当たらないのは `urls` が `@DeferredProperty` で index に載らないから**だった件 / **medium の追加シートはフォーカスでシステムが `.large` まで広げるのでキーボードは隠さない**件 / 「続けて追加」をボタン 2 本ではなくトグルにした理由 / 間への挿入を作らない判断 / **`simctl spawn … defaults write` はアプリのコンテナに書かない**件 / #167 は Spotlight 索引の漏れではなかった件）

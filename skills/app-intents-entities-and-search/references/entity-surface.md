@@ -102,6 +102,8 @@ That keeps Siri and the app saying the same words. Keeping a second copy in a UI
 
 `suggestedEntities()` is what fills parameter pickers. Returning an empty default means "no suggestions" — users see an empty picker and assume the app is broken. If it is cheap, implement it.
 
+Order matters too: put the entities people use most first (in CheckItOut, the sounds already assigned to pads). The same list appears to be the candidate set Siri matches a spoken name against. [inferred]
+
 **`entities(for:)` is batched** — resolve the whole `[ID]` in one fetch, not in a loop.
 
 **Since you own the filtering in `entities(matching:)`, own it correctly.** The input is something a person said or typed, so compare with `localizedStandardContains(_:)` — `lowercased().contains()` is locale-independent and treats kana/katakana, diacritics and Turkish dotless I as different characters. `audit`: `locale-insensitive-entity-match`

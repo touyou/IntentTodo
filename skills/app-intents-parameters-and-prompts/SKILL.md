@@ -65,7 +65,7 @@ The firing condition is narrow, and it matters:
 
 So the workaround is only ever needed on the `@Parameter`: carry a `String` (plus coordinates, if you have them) there and reassemble the real type inside `perform()`. Leave entity properties and value representations alone.
 
-Reported as **FB24548956**; reproduces on released Xcode 26.6 as well as 27 betas, so it is not a beta-only issue. [measured 2026-08-28/29]
+Reported as **FB24548956**; reproduces on released Xcode 26.6 as well as 27 betas. [measured 2026-08-28/29] **Fixed in the Xcode 27.2 toolchain**: the SSU variable becomes `GeoToolbox_PlaceDescriptorEntity` and training archives every locale. [measured 2026-11-01] It is a build-time bug, so what matters is the Xcode that builds the *distributed* binary — keep the workaround until your CI builds with 27.2 or later, and confirm on TestFlight before removing it.
 
 **Judging it requires a clean build** — `AppIntentsSSUTraining` does not re-run when `Metadata.appintents` is unchanged, and an incremental log replays the previous output. And in a localised app the assets land in `<locale>.lproj/nlu.appintents/`, not `Metadata.appintents/nlu/`; look in the right place before concluding they are missing.
 
@@ -84,6 +84,11 @@ Reported as **FB24548956**; reproduces on released Xcode 26.6 as well as 27 beta
 A non-optional `AppEnum` parameter auto-disambiguates: the system asks the person to pick rather than failing. That is usually better than an optional with a default.
 
 **`AppEnum` raw values are a two-way contract.** They are persisted by string in every shortcut a person has built, so cases can be added but never renamed or reordered. If the same enum is also a stored model value, it is a contract twice over.
+
+**A published intent's parameter names and types are a contract too.** A saved shortcut binds its values by parameter name; renaming a parameter or changing its type silently unbinds them, and renaming the intent type loses the whole action. Apple: "Removing or changing the older intent breaks any shortcuts that use it" [Apple: Making actions and content discoverable by Apple Intelligence — Migrate existing intents to schemas]. So:
+
+- **Before the first public release, reshape freely.** Approved but not yet released (`PENDING_APPLE_RELEASE`) still has no users: withdrawing the approved version, reshaping the intents and resubmitting is the cheapest point to fix a shape. Intento threw away its approved 1.0.0 to match App Schema and shipped the reshaped intents as 1.1.0 [measured 2026-09, Intento].
+- **After release, migrate instead of editing.** Add a new intent with the new shape and `isAssistantOnly = true`; the old intent keeps serving saved shortcuts. Retire it once the migration is done [Apple, same page].
 
 ## Asking at run time
 

@@ -72,7 +72,7 @@ public struct AddTodoView: View {
     public var body: some View {
         Form {
             TodoFormSections(draft: $draft, titleFocus: $isTitleFocused) {
-                keepAddingSection
+                KeepAddingSection()
             }
         }
         .onChange(of: navigationModel.addTodoResetCount) {
@@ -117,18 +117,6 @@ public struct AddTodoView: View {
         )
     }
 
-    // MARK: - Keep Adding
-
-    private var keepAddingSection: some View {
-        @Bindable var navigationModel = navigationModel
-        return Section {
-            Toggle(.copy("Keep Adding"), isOn: $navigationModel.keepsAddingTodos)
-                .accessibilityIdentifier("keepAddingToggle")
-        } footer: {
-            Text(.copy("After adding, the form clears for the next todo."))
-        }
-    }
-
     /// Clears the form after a successful add that kept the sheet open.
     ///
     /// List and section carry over: a run of todos usually goes to the same place.
@@ -139,6 +127,20 @@ public struct AddTodoView: View {
         draft = next
         openedWith = next
         isTitleFocused = true
+    }
+}
+
+private struct KeepAddingSection: View {
+    @Environment(NavigationModel.self) private var navigationModel
+
+    var body: some View {
+        @Bindable var navigationModel = navigationModel
+        Section {
+            Toggle(.copy("Keep Adding"), isOn: $navigationModel.keepsAddingTodos)
+                .accessibilityIdentifier("keepAddingToggle")
+        } footer: {
+            Text(.copy("After adding, the form clears for the next todo."))
+        }
     }
 }
 

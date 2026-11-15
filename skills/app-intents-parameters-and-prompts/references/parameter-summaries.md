@@ -123,6 +123,8 @@ The workaround, therefore, is minimal: keep the `@Parameter` as a `String` (plus
 
 Reproduces in Apple's own `UnicornChat` sample with a 13-line addition, so it is not a project-configuration problem. **FB24548956**.
 
+**Fixed in the Xcode 27.2 toolchain** [measured 2026-11-01]: the same `@Parameter var place: PlaceDescriptor?` on an App-Shortcut intent now yields `GeoToolbox_PlaceDescriptorEntity` (underscore, no dot), no regex error, and `archived N locales`. The fix is in the build tool, not the OS, so it only helps binaries built with 27.2+: if CI still builds with an older Xcode, the shipped app still loses its assets. Remove the `String` workaround only after CI is on 27.2+ and a TestFlight build answers the phrase.
+
 ### Measuring it
 
 - **Always a clean build.** `AppIntentsSSUTraining` does not re-run when `Metadata.appintents` is unchanged, and the incremental log replays the previous output. Use a throwaway `-derivedDataPath`.

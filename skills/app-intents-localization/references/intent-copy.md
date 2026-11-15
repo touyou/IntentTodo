@@ -79,6 +79,15 @@ Dialogs are built inside `perform()`, so they never appear in the metadata and t
 3. Read the key list; add the ones you need as manual keys in the real targets.
 4. **Remove the package catalog again** — left in place it is translated and never read, which is worse than absent.
 
+### Keys whose spelling you cannot guess
+
+- **Write the source copy in the source language.** With a `ja` source catalog, `TypeDisplayRepresentation(name: "Work")` has no `ja` translation to fall back to, so Japanese devices show English. A check that looks for "untranslated Japanese" passes it, because the literal is not Japanese [measured: GRAPHICA, 2026-10].
+- **A numeric-format key is stored in its metadata spelling.** `TypeDisplayRepresentation(numericFormat: "\(placeholder: .int) 件の作品")` is looked up as `${int} 件の作品`, not as the Swift literal. Build, read the key out of `extract.actionsdata`, and only then add it to the catalog [measured: GRAPHICA].
+
+### Words that fail App Store processing
+
+An intent's `title` / `IntentDescription` containing an Apple trademark such as "iPhone" was rejected with **ITMS-90626** when the build was processed for distribution, after local builds and installs had all passed [measured: GRAPHICA, 2026-10]. Keep device names out of intent copy ("Open on iPhone"): the same strings are what Siri reads out, so it is also the wrong wording on every other device. Nothing in the build flags it, so run one build through TestFlight early.
+
 ## Sharing enum labels with your own UI
 
 `AppEnum` inherits `CaseDisplayRepresentable`, which supplies `localizedStringResource` by default:
