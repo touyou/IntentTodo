@@ -17,9 +17,11 @@ public enum ReviewPrompt {
     static let minimumDays = 3
     static let minimumAchievements = 2
 
-    /// UI test and screenshot runs pass this argument; they must never see the prompt.
+    /// UI test and screenshot runs pass one of these; they must never see the prompt.
+    /// The App Intents tests keep the real store, so they pass only the second.
     static var isUITestLaunch: Bool {
-        ProcessInfo.processInfo.arguments.contains("-uitest-ephemeral-store")
+        let arguments = ProcessInfo.processInfo.arguments
+        return arguments.contains("-uitest-ephemeral-store") || arguments.contains("-reviewPromptDisabled")
     }
 
     public static func recordLaunch(defaults: UserDefaults = .standard, now: Date = .now) {
