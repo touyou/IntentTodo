@@ -42,6 +42,9 @@ class AppIntentsTestCase: XCTestCase {
     override func setUp() async throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        // Keeps the real store (no ephemeral flag) but never shows the App Store review prompt,
+        // which these tests would otherwise earn by completing the last open todo.
+        app.launchArguments = ["-reviewPromptDisabled"]
         // `activate()`, not `launch()`: the latter terminates and relaunches a running app,
         // which makes the simulator fail intermittently with "did not return a process
         // handle nor launch error" once there are enough tests.

@@ -8,6 +8,7 @@ import Domain
 #if os(iOS)
 import LiveActivity
 #endif
+import StoreKit
 import SwiftData
 import SwiftUI
 import TodoAppIntents
@@ -65,6 +66,7 @@ public struct TodoListView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(NavigationModel.self) private var navigationModel
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.requestReview) private var requestReview
 
     // MARK: - Computed Properties
 
@@ -164,7 +166,10 @@ public struct TodoListView: View {
                     MissedFeedbackBanner(model: missedFeedback)
                 }
             }
-            .onAppear { missedFeedback.refresh() }
+            .onAppear {
+                missedFeedback.refresh()
+                ReviewPrompt.recordLaunch()
+            }
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 missedFeedback.refresh()
@@ -190,6 +195,18 @@ public struct TodoListView: View {
             .task(id: TodoStoreDigest.make(todos: todoItems, categories: categories)) {
                 let service = TodoService.swiftDataBacked(container: modelContext.container)
                 organize = (try? service.organizeSnapshot()) ?? .empty
+            }
+            // Clearing the last open todo is the moment to ask for a review — after the
+            // row has had a second to leave, not while the checkbox is animating.
+            .onChange(of: ReviewPrompt.Progress(
+                open: todoItems.count { !$0.isCompleted },
+                completed: todoItems.count { $0.isCompleted }
+            )) { old, new in
+                guard new.isCleared(from: old), scenePhase == .active, !ReviewPrompt.isUITestLaunch else { return }
+                Task {
+                    try? await Task.sleep(for: .seconds(1))
+                    if ReviewPrompt.recordAchievement() { requestReview() }
+                }
             }
             #if os(macOS)
             // The system's own toggle sits at the *trailing* edge of the sidebar's
