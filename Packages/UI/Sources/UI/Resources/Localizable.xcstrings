@@ -803,16 +803,6 @@
         }
       }
     },
-    "Everything this app can do is an App Intent, so Siri, Shortcuts, widgets, controls and Spotlight all reach the same actions." : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "このアプリでできることはすべてApp Intentとして定義されています。そのため、Siri、ショートカット、ウィジェット、コントロール、Spotlightのどこからでも同じ操作に届きます。"
-          }
-        }
-      }
-    },
     "favorite" : {
       "localizations" : {
         "ja" : {
@@ -2041,6 +2031,86 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "やることの状況"
+          }
+        }
+      }
+    },
+    "Rate Intento" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intento を評価"
+          }
+        }
+      }
+    },
+    "Feedback & Bug Reports" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "機能要望・不具合報告"
+          }
+        }
+      }
+    },
+    "Share Intento" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Intento を共有"
+          }
+        }
+      }
+    },
+    "Feedback" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フィードバック"
+          }
+        }
+      }
+    },
+    "Developer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開発者について"
+          }
+        }
+      }
+    },
+    "Privacy Policy" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "プライバシーポリシー"
+          }
+        }
+      }
+    },
+    "Open Source Licenses" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "オープンソースライセンス"
+          }
+        }
+      }
+    },
+    "Everything this app can do is an App Intent, so Siri, Shortcuts, widgets, controls and Spotlight all reach the same actions. Made by one developer in Japan." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このアプリでできることはすべてApp Intentとして定義されています。そのため、Siri、ショートカット、ウィジェット、コントロール、Spotlightのどこからでも同じ操作に届きます。日本で個人が開発しています。"
           }
         }
       }

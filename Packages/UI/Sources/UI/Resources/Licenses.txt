@@ -1,0 +1,2 @@
+このアプリは、ライセンスの表示が必要な外部のライブラリやフォントを使っていません。
+This app does not include third-party libraries or fonts that require attribution.
