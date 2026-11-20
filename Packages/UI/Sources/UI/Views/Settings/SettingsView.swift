@@ -2,7 +2,7 @@
 //  SettingsView.swift
 //  UI
 //
-//  Organising, system integration, what this build is, and the diagnostics.
+//  Organising, system integration, the About screen, and the diagnostics.
 //
 
 #if os(iOS) || os(visionOS) || os(macOS)
@@ -24,9 +24,8 @@ import TodoAppIntents
 /// 2. **Siri & Shortcuts** — `ShortcutsLink` is for *exploring* the App Shortcuts, "great
 ///    if your app has a lot of App Shortcuts and you want to let users explore all of them"
 ///    [Apple: wwdc2022-10170 20:19], which is a settings-shaped job.
-/// 3. **About** — which build this is, which matters as soon as a report says "it doesn't
-///    work" and the answer depends on whether the App Intents metadata survived
-///    distribution.
+/// 3. **About** — a pushed screen (`AboutView`) with the build, the statistics, feedback
+///    and the legal links, so this form keeps only what changes how the app behaves.
 /// 4. **Diagnostics** — debug and TestFlight builds only. See `DiagnosticsAvailability`.
 ///
 /// `ShortcutsLink` does not exist in the macOS SDK, so that one section is conditional; the
@@ -99,8 +98,14 @@ private struct SettingsForm: View {
             }
             #endif
 
-            StatisticsSection(todos: todos, organize: organize)
-            AboutSection()
+            Section {
+                NavigationLink {
+                    AboutView(todos: todos, organize: organize)
+                } label: {
+                    Label(.copy("About"), systemImage: "info.circle")
+                }
+                .accessibilityIdentifier("aboutLink")
+            }
 
             if DiagnosticsAvailability.isEnabled {
                 DiagnosticsSection()
@@ -129,60 +134,6 @@ private struct SettingsForm: View {
             }
         }
         #endif
-    }
-}
-
-// MARK: - Statistics
-
-private struct StatisticsSection: View {
-    let todos: [TodoItem]
-    let organize: TodoOrganizeSnapshot?
-
-    private var completed: Int { todos.count { $0.isCompleted } }
-    private var favorites: Int { todos.count { $0.isFavorite } }
-
-    var body: some View {
-        Section {
-            LabeledContent(.copy("Total")) { Text(todos.count, format: .number) }
-            LabeledContent(.copy("Incomplete")) { Text(todos.count - completed, format: .number) }
-            LabeledContent(.copy("Completed")) { Text(completed, format: .number) }
-            LabeledContent(.copy("Favorites")) { Text(favorites, format: .number) }
-            if let organize {
-                LabeledContent(.copy("Uncategorized")) {
-                    Text(organize.todoCount(inList: CategoryAppEntity.uncategorizedID), format: .number)
-                }
-            }
-        } header: {
-            Text(.copy("Your Todos"))
-        }
-    }
-}
-
-// MARK: - About
-
-private struct AboutSection: View {
-    /// Read from the bundle rather than kept as a constant: the point of showing it is to
-    /// identify the build a report came from.
-    private var version: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
-    }
-
-    private var build: String {
-        Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "—"
-    }
-
-    var body: some View {
-        Section {
-            LabeledContent(.copy("Version")) {
-                Text(verbatim: "\(version) (\(build))")
-                    .monospacedDigit()
-                    .textSelection(.enabled)
-            }
-        } header: {
-            Text(.copy("About"))
-        } footer: {
-            Text(.copy("Everything this app can do is an App Intent, so Siri, Shortcuts, widgets, controls and Spotlight all reach the same actions."))
-        }
     }
 }
 
