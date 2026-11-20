@@ -2,7 +2,7 @@
 //  AboutView.swift
 //  UI
 //
-//  The build, your statistics, feedback and the legal links, pushed from Settings.
+//  The build, feedback and the privacy policy, pushed from Settings.
 //
 
 #if os(iOS) || os(visionOS) || os(macOS)
@@ -11,13 +11,9 @@ import SwiftUI
 import TodoAppIntents
 
 struct AboutView: View {
-    let todos: [TodoItem]
-    let organize: TodoOrganizeSnapshot?
-
     var body: some View {
         Form {
             AboutHeaderSection()
-            StatisticsSection(todos: todos, organize: organize)
 
             Section {
                 AboutLinkRow(title: .copy("Rate Intento"), systemImage: "star", destination: AboutLinks.writeReview)
@@ -35,11 +31,6 @@ struct AboutView: View {
 
             Section {
                 AboutLinkRow(title: .copy("Privacy Policy"), systemImage: "hand.raised", destination: AboutLinks.privacy)
-                NavigationLink {
-                    LicensesView()
-                } label: {
-                    Label(.copy("Open Source Licenses"), systemImage: "doc.text")
-                }
             }
         }
         #if os(macOS)
@@ -72,30 +63,6 @@ private struct AboutHeaderSection: View {
     }
 }
 
-private struct StatisticsSection: View {
-    let todos: [TodoItem]
-    let organize: TodoOrganizeSnapshot?
-
-    private var completed: Int { todos.count { $0.isCompleted } }
-    private var favorites: Int { todos.count { $0.isFavorite } }
-
-    var body: some View {
-        Section {
-            LabeledContent(.copy("Total")) { Text(todos.count, format: .number) }
-            LabeledContent(.copy("Incomplete")) { Text(todos.count - completed, format: .number) }
-            LabeledContent(.copy("Completed")) { Text(completed, format: .number) }
-            LabeledContent(.copy("Favorites")) { Text(favorites, format: .number) }
-            if let organize {
-                LabeledContent(.copy("Uncategorized")) {
-                    Text(organize.todoCount(inList: CategoryAppEntity.uncategorizedID), format: .number)
-                }
-            }
-        } header: {
-            Text(.copy("Your Todos"))
-        }
-    }
-}
-
 /// A row that leaves the app (Safari or the App Store), marked with an arrow so that is
 /// clear before the tap.
 private struct AboutLinkRow: View {
@@ -114,26 +81,6 @@ private struct AboutLinkRow: View {
                     .accessibilityHidden(true)
             }
         }
-    }
-}
-
-struct LicensesView: View {
-    // Update Licenses.txt when a dependency is added.
-    private let text: String = {
-        guard let url = Bundle.module.url(forResource: "Licenses", withExtension: "txt"),
-              let text = try? String(contentsOf: url, encoding: .utf8) else { return "" }
-        return text
-    }()
-
-    var body: some View {
-        ScrollView {
-            Text(verbatim: text)
-                .font(.footnote.monospaced())
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(24)
-        }
-        .navigationTitle(.copy("Open Source Licenses"))
     }
 }
 
