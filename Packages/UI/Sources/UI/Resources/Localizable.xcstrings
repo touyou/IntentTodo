@@ -2095,16 +2095,6 @@
         }
       }
     },
-    "Open Source Licenses" : {
-      "localizations" : {
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "オープンソースライセンス"
-          }
-        }
-      }
-    },
     "Everything this app can do is an App Intent, so Siri, Shortcuts, widgets, controls and Spotlight all reach the same actions. Made by one developer in Japan." : {
       "localizations" : {
         "ja" : {
