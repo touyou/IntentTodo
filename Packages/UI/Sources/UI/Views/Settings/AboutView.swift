@@ -18,7 +18,11 @@ struct AboutView: View {
             Section {
                 AboutLinkRow(title: .copy("Rate Intento"), systemImage: "star", destination: AboutLinks.writeReview)
                 AboutLinkRow(title: .copy("Feedback & Bug Reports"), systemImage: "envelope", destination: AboutLinks.support)
-                ShareLink(item: AboutLinks.appStore) {
+                ShareLink(
+                    item: AboutLinks.appStore,
+                    subject: Text(verbatim: "Intento"),
+                    message: Text(.copy("Intento is a to-do list you can reach from anywhere: Siri, Shortcuts, widgets and Spotlight."))
+                ) {
                     Label(.copy("Share Intento"), systemImage: "square.and.arrow.up")
                 }
             } header: {
@@ -26,6 +30,13 @@ struct AboutView: View {
             }
 
             Section {
+                if !WhatsNew.releases.isEmpty {
+                    NavigationLink {
+                        WhatsNewHistoryView()
+                    } label: {
+                        Label(.copy("What's New"), systemImage: "sparkles")
+                    }
+                }
                 AboutLinkRow(title: .copy("Developer"), systemImage: "person", destination: AboutLinks.developer)
             }
 
@@ -52,13 +63,28 @@ private struct AboutHeaderSection: View {
 
     var body: some View {
         Section {
-            LabeledContent(.copy("Version")) {
-                Text(verbatim: version)
+            VStack(spacing: 8) {
+                Image("AboutIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 64, height: 64)
+                    .clipShape(.rect(cornerRadius: 14, style: .continuous))
+                    .accessibilityHidden(true)
+                Text(verbatim: "Intento")
+                    .font(.title3.bold())
+                Text(.copy("Version \(version)"))
+                    .font(.subheadline)
                     .monospacedDigit()
+                    .foregroundStyle(.secondary)
                     .textSelection(.enabled)
+                Text(.copy("Made in Japan."))
+                    .font(.footnote)
+                    .padding(.top, 4)
             }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
         } footer: {
-            Text(.copy("Everything this app can do is an App Intent, so Siri, Shortcuts, widgets, controls and Spotlight all reach the same actions. Made by one developer in Japan."))
+            Text(.copy("Everything this app can do is an App Intent, so Siri, Shortcuts, widgets, controls and Spotlight all reach the same actions."))
         }
     }
 }
