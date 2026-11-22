@@ -114,6 +114,7 @@ struct IntentTodoApp: App {
         #if os(iOS) || os(visionOS) || os(macOS)
         MainActor.assumeIsolated {
             NotificationHandler.shared.navigationModel = navigation
+            WhatsNew.prepareOnLaunch()
         }
         #endif
     }
@@ -124,6 +125,9 @@ struct IntentTodoApp: App {
         WindowGroup {
             TodoListView()
                 .environment(navigationModel)
+                #if os(iOS) || os(visionOS) || os(macOS)
+                .whatsNewOnUpdate()
+                #endif
                 #if DEBUG
                 // Screenshot runs pass the ephemeral-store argument too, so this replaces
                 // the contents of a throwaway store rather than the person's own todos.
