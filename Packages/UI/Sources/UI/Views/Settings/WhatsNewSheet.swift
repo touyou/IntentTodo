@@ -23,7 +23,7 @@ public enum WhatsNew {
     /// The release to show at launch, decided by `prepareOnLaunch()`.
     @MainActor private(set) static var pending: Release?
 
-    /// Call once at launch, also in versions with no release, so the seen version is recorded.
+    /// Call once at launch, also in versions with no release, so a fresh install marks this version as seen.
     @MainActor public static func prepareOnLaunch(defaults: UserDefaults = .standard) {
         // No launch record predates this, so people already on the app are first shown the next release.
         let isReturning = false
