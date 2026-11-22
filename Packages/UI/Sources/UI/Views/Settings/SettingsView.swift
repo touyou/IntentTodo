@@ -14,7 +14,7 @@ import TodoAppIntents
 
 /// The app's settings.
 ///
-/// Four things, in the order they are likely to be wanted:
+/// Five things, in the order they are likely to be wanted:
 ///
 /// 1. **Manage** — the lists and tags a todo can be filed under. Editing them lives here
 ///    and *browsing* them lives in the todo list (`TodoListsBrowseView`): renaming a list is
@@ -24,9 +24,9 @@ import TodoAppIntents
 /// 2. **Siri & Shortcuts** — `ShortcutsLink` is for *exploring* the App Shortcuts, "great
 ///    if your app has a lot of App Shortcuts and you want to let users explore all of them"
 ///    [Apple: wwdc2022-10170 20:19], which is a settings-shaped job.
-/// 3. **About** — a pushed screen (`AboutView`) with the build, the statistics, feedback
-///    and the legal links, so this form keeps only what changes how the app behaves.
-/// 4. **Diagnostics** — debug and TestFlight builds only. See `DiagnosticsAvailability`.
+/// 3. **Your Todos** — the counts, which describe the user's data rather than the app.
+/// 4. **About** — a pushed screen (`AboutView`) with the build, feedback and the legal links.
+/// 5. **Diagnostics** — debug and TestFlight builds only. See `DiagnosticsAvailability`.
 ///
 /// `ShortcutsLink` does not exist in the macOS SDK, so that one section is conditional; the
 /// rest of the screen is shared, and macOS reaches it through the standard Settings scene.
@@ -98,9 +98,11 @@ private struct SettingsForm: View {
             }
             #endif
 
+            StatisticsSection(todos: todos, organize: organize)
+
             Section {
                 NavigationLink {
-                    AboutView(todos: todos, organize: organize)
+                    AboutView()
                 } label: {
                     Label(.copy("About"), systemImage: "info.circle")
                 }
@@ -134,6 +136,32 @@ private struct SettingsForm: View {
             }
         }
         #endif
+    }
+}
+
+// MARK: - Statistics
+
+private struct StatisticsSection: View {
+    let todos: [TodoItem]
+    let organize: TodoOrganizeSnapshot?
+
+    private var completed: Int { todos.count { $0.isCompleted } }
+    private var favorites: Int { todos.count { $0.isFavorite } }
+
+    var body: some View {
+        Section {
+            LabeledContent(.copy("Total")) { Text(todos.count, format: .number) }
+            LabeledContent(.copy("Incomplete")) { Text(todos.count - completed, format: .number) }
+            LabeledContent(.copy("Completed")) { Text(completed, format: .number) }
+            LabeledContent(.copy("Favorites")) { Text(favorites, format: .number) }
+            if let organize {
+                LabeledContent(.copy("Uncategorized")) {
+                    Text(organize.todoCount(inList: CategoryAppEntity.uncategorizedID), format: .number)
+                }
+            }
+        } header: {
+            Text(.copy("Your Todos"))
+        }
     }
 }
 
