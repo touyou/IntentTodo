@@ -103,8 +103,8 @@ python3 app-intents-localization/scripts/check_intent_copy_localization.py
 python3 app-intents-testing/scripts/dump_query_call_log.py --group group.com.example.App --empty-only
 
 # donation の観測（シミュレータ限定・検証専用。出荷コードで依存しない）
-python3 app-intents-testing/scripts/inspect_donation_stream.py --snapshot
-python3 app-intents-testing/scripts/inspect_donation_stream.py --diff --bundle ""
+python3 app-intents-testing/scripts/inspect_donation_stream.py --snapshot /tmp/donations-before
+python3 app-intents-testing/scripts/inspect_donation_stream.py --diff /tmp/donations-before
 ```
 
 `inspect_appintents_metadata.py` は「ビルドは緑なのに機能が存在しない」タイプの失敗を唯一可視化できる:

@@ -34,8 +34,8 @@ donation には列挙用の公開 API が無い（`deleteDonations(matching:)` �
 - **positive control を必ず置く**。Spotlight の App Shortcut など、システムが走らせる経路
   （公式に自動 donate されると書かれている）で出ることを確認してからでないと、「出なかった」が
   チャネルの盲目・書き込み遅延・アプリ側の不発のどれなのか分からない。
-- **`--bundle` の既定フィルタで絞りすぎない。** 記録の近傍に bundle id が入らないものがあり、
-  絞ると取りこぼす。判定は `--bundle ""` で行う。
+- **`--bundle` で絞りすぎない。** 記録の近傍に bundle id が入らないものがあり、
+  絞ると取りこぼす。既定は絞らない。判定も絞らずに行い、`--bundle` は一覧を眺めるときだけ使う。
 - ファイルの mtime は当てにならない（mmap 書き込みで更新されない）。中身の時刻を見る。
   中身の時刻は **UTC**。
 """
@@ -107,7 +107,7 @@ def timestamps(data: bytes) -> list[tuple[int, datetime.datetime]]:
     return found
 
 
-def records(data: bytes, bundle_filter: str | None) -> list[dict]:
+def records(data: bytes, bundle_filter: str | None, segment: str) -> list[dict]:
     """型名の出現ごとに、近傍の bundle id と時刻を添えて返す。"""
     stamps = timestamps(data)
     out = []
@@ -121,6 +121,7 @@ def records(data: bytes, bundle_filter: str | None) -> list[dict]:
                 continue
         near = sorted({t for off, t in stamps if abs(off - match.start()) < 400})
         out.append({
+            "segment": segment,
             "offset": match.start(),
             "type": match.group().decode(),
             "bundles": bundles,
@@ -134,7 +135,7 @@ def load(udid: str, bundle_filter: str | None) -> dict[str, list[dict]]:
     for stream in STREAMS:
         rows = []
         for seg in segments(udid, stream):
-            rows += records(seg.read_bytes(), bundle_filter)
+            rows += records(seg.read_bytes(), bundle_filter, seg.name)
         result[stream] = rows
     return result
 
@@ -156,13 +157,14 @@ def snapshot_records(src: Path, bundle_filter: str | None) -> dict[str, list[dic
         d = src / stream
         if d.is_dir():
             for seg in sorted(p for p in d.iterdir() if p.is_file()):
-                rows += records(seg.read_bytes(), bundle_filter)
+                rows += records(seg.read_bytes(), bundle_filter, seg.name)
         result[stream] = rows
     return result
 
 
 def key(row: dict) -> tuple:
-    return (row["offset"], row["type"], tuple(row["bundles"]))
+    # Offsets restart in each mmap segment, so the segment is part of the identity.
+    return (row["segment"], row["offset"], row["type"], tuple(row["bundles"]))
 
 
 def report(rows: list[dict], limit: int) -> None:
@@ -180,8 +182,8 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--device", default="booted", help="UDID / デバイス名 / booted")
-    parser.add_argument("--bundle", default="dev.touyou.IntentTodo",
-                        help="この文字列を含む bundle id の記録だけを見る（空文字で無効化）")
+    parser.add_argument("--bundle", default="",
+                        help="この文字列を含む bundle id の記録だけを見る（既定は絞らない）")
     parser.add_argument("--snapshot", type=Path, help="現在のセグメントをここへ複製する")
     parser.add_argument("--diff", type=Path, help="このスナップショットからの増分だけを出す")
     parser.add_argument("--limit", type=int, default=30, help="表示件数")

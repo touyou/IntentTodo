@@ -12,7 +12,8 @@ main bundle"). So the keys have to be carried as **manual entries** in the app t
 A missing key is invisible: the build is green and the app is fine in the source
 language — only the translated build falls back to English.
 
-Usage:
+Usage (catalog paths are relative to the Git repository that contains the working
+directory, or to --root):
     python3 check_intent_copy_localization.py            # every target that links the package
     python3 check_intent_copy_localization.py --app path/to/MyApp.app \
         --catalog IntentTodo/Localizable.xcstrings
@@ -38,8 +39,25 @@ import os
 import sys
 
 DERIVED_DATA = os.path.expanduser("~/Library/Developer/Xcode/DerivedData")
-REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-DEFAULT_CATALOG = os.path.join(REPO_ROOT, "IntentTodo", "Localizable.xcstrings")
+
+
+def find_repo_root(start: str) -> str:
+    """Nearest ancestor of `start` that holds a `.git` entry, else `start` itself.
+
+    Resolved from the working directory rather than this file, so the result does not
+    depend on where the skill is installed (`skills/`, `.claude/skills/`, `~/.agents/skills/`).
+    """
+    here = os.path.abspath(start)
+    while True:
+        if os.path.exists(os.path.join(here, ".git")):
+            return here
+        parent = os.path.dirname(here)
+        if parent == here:
+            return os.path.abspath(start)
+        here = parent
+
+
+REPO_ROOT = find_repo_root(os.getcwd())
 
 # Every target that links TodoAppIntents needs the keys in *its own* main bundle.
 # The Widget extension has no catalog of its own — it shares the watch app's via a
@@ -142,7 +160,13 @@ def main(argv: list[str]) -> int:
     parser.add_argument("--name", default="IntentTodo", help="scheme/app name to look for in DerivedData")
     parser.add_argument("--catalog", help="check only this catalog against --app (default: every target)")
     parser.add_argument("--locale", default="ja", help="locale to report untranslated keys for")
+    parser.add_argument("--root", help="repository root the TARGETS catalogs are relative to "
+                        "(default: the Git repository that contains the working directory)")
     args = parser.parse_args(argv)
+
+    global REPO_ROOT
+    if args.root:
+        REPO_ROOT = os.path.abspath(args.root)
 
     app = args.app or find_app(args.name)
     if not app:

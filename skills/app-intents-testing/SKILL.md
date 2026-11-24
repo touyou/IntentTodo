@@ -96,9 +96,9 @@ python3 scripts/inspect_appintents_metadata.py path/to/MyApp.app -v
 
 python3 scripts/dump_query_call_log.py --group group.com.example.App --empty-only
 
-python3 scripts/inspect_donation_stream.py --snapshot
+python3 scripts/inspect_donation_stream.py --snapshot /tmp/donations-before
 # … perform exactly one action …
-python3 scripts/inspect_donation_stream.py --diff --bundle ""
+python3 scripts/inspect_donation_stream.py --diff /tmp/donations-before
 ```
 
 `inspect_appintents_metadata.py` is the only way to see several failures at all: an `AppShortcutsProvider` that registered nothing, an entity that exposes zero properties, a parameter absent from the Shortcuts editor, a schema conformance that did not land, two types claiming the same schema. None of them break the build.
