@@ -164,7 +164,8 @@ def snapshot_records(src: Path, bundle_filter: str | None) -> dict[str, list[dic
 
 def key(row: dict) -> tuple:
     # Offsets restart in each mmap segment, so the segment is part of the identity.
-    return (row["segment"], row["offset"], row["type"], tuple(row["bundles"]))
+    # Nearby bundle ids are left out: later appends can land in the same window.
+    return (row["segment"], row["offset"], row["type"])
 
 
 def report(rows: list[dict], limit: int) -> None:
