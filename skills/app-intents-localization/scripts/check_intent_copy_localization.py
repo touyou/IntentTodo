@@ -12,8 +12,8 @@ main bundle"). So the keys have to be carried as **manual entries** in the app t
 A missing key is invisible: the build is green and the app is fine in the source
 language — only the translated build falls back to English.
 
-Usage (catalog paths are relative to the Git repository that contains the working
-directory, or to --root):
+Usage (the built-in TARGETS catalogs are resolved from the Git repository that contains
+the working directory, or from --root; a --catalog path is used as given):
     python3 check_intent_copy_localization.py            # every target that links the package
     python3 check_intent_copy_localization.py --app path/to/MyApp.app \
         --catalog IntentTodo/Localizable.xcstrings
