@@ -96,7 +96,7 @@ public final class TipJar {
         do {
             switch try await action(product) {
             case .success(let result):
-                await handle(result)
+                phase = await handle(result)
             case .pending, .userCancelled:
                 phase = .idle
             @unknown default:
@@ -107,28 +107,28 @@ public final class TipJar {
         }
     }
 
-    private func handle(_ result: VerificationResult<StoreKit.Transaction>) async {
+    /// Only a direct purchase result changes `phase`, so a background delivery never ends an in-flight purchase.
+    @discardableResult
+    private func handle(_ result: VerificationResult<StoreKit.Transaction>) async -> Phase {
         let transaction: StoreKit.Transaction
         switch result {
         case .verified(let verified):
             transaction = verified
         case .unverified(let unverified, _):
-            if isPurchasing { phase = .unverified }
-            guard Self.isTip(unverified) else { return }
+            guard Self.isTip(unverified) else { return .unverified }
             // Not counted, but finished so it stops being redelivered on every launch.
             await unverified.finish()
-            return
+            return .unverified
         }
-        guard Self.isTip(transaction) else { return }
+        guard Self.isTip(transaction) else { return .idle }
         // `updates` and `unfinished` both deliver the same transaction at launch, and a quit
         // between counting and finish() redelivers it, so each id is counted once.
-        if transaction.revocationDate == nil, handledIDs.insert(String(transaction.id)).inserted {
+        let counted = transaction.revocationDate == nil && handledIDs.insert(String(transaction.id)).inserted
+        if counted {
             UserDefaults.standard.set(Array(handledIDs), forKey: Self.handledKey)
-            phase = .thanked
-        } else if isPurchasing {
-            phase = .idle
         }
         await transaction.finish()
+        return counted ? .thanked : .idle
     }
 
     private static func isTip(_ transaction: StoreKit.Transaction) -> Bool {
