@@ -113,6 +113,110 @@
         }
       }
     },
+    "A Coffee" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コーヒー一杯"
+          }
+        }
+      }
+    },
+    "A tip unlocks nothing extra, but it helps keep Intento going." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "機能は増えませんが、Intento を続けていく励みになります。"
+          }
+        }
+      }
+    },
+    "Coffee and Cake" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ケーキも添えて"
+          }
+        }
+      }
+    },
+    "Lunch" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "お昼ごはん"
+          }
+        }
+      }
+    },
+    "Support the Developer" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "開発を応援する"
+          }
+        }
+      }
+    },
+    "Thank you so much! It keeps Intento going." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ありがとうございます！これからも Intento を育てていく力になります。"
+          }
+        }
+      }
+    },
+    "The purchase didn't go through. You haven't been charged." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "購入が完了しませんでした。料金はかかっていません。"
+          }
+        }
+      }
+    },
+    "You've supported Intento %lld times. Thank you!" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You've supported Intento once. Thank you!"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "You've supported Intento %lld times. Thank you!"
+                }
+              }
+            }
+          }
+        },
+        "ja" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "これまでに %lld 回応援してもらいました。ありがとうございます！"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "× %lld" : {
       "localizations" : {
         "ja" : {

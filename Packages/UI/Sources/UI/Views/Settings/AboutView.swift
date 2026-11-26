@@ -29,6 +29,8 @@ struct AboutView: View {
                 Text(.copy("Feedback"))
             }
 
+            TipJarSection()
+
             Section {
                 if !WhatsNew.releases.isEmpty {
                     NavigationLink {
