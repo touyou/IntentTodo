@@ -36,10 +36,11 @@ private struct TipRow: View {
     let tier: TipJar.Tier
     let product: Product
     let jar: TipJar
+    @Environment(\.purchase) private var purchase
 
     var body: some View {
         Button {
-            Task { await jar.purchase(tier) }
+            Task { await jar.purchase(tier, using: purchase) }
         } label: {
             HStack {
                 Text(verbatim: tier.emoji)

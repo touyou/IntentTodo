@@ -7,6 +7,7 @@
 import Foundation
 import Observation
 import StoreKit
+import SwiftUI
 
 /// Consumable tips. A tip unlocks nothing (App Review rejects tips that gate features),
 /// so the only state kept is how many times the person has tipped, on this device.
@@ -61,12 +62,12 @@ public final class TipJar {
     public func startObservingTransactions() {
         guard observer == nil else { return }
         observer = Task { [weak self] in
-            for await result in Transaction.updates {
+            for await result in StoreKit.Transaction.updates {
                 await self?.handle(result)
             }
         }
         Task {
-            for await result in Transaction.unfinished {
+            for await result in StoreKit.Transaction.unfinished {
                 await handle(result)
             }
         }
@@ -80,11 +81,13 @@ public final class TipJar {
         })
     }
 
-    func purchase(_ tier: Tier) async {
+    /// `Product.purchase()` is unavailable on visionOS, so the view passes in SwiftUI's `PurchaseAction`,
+    /// which works on every platform and anchors the sheet to the right scene.
+    func purchase(_ tier: Tier, using action: PurchaseAction) async {
         guard let product = products[tier], phase != .purchasing(tier) else { return }
         phase = .purchasing(tier)
         do {
-            switch try await product.purchase() {
+            switch try await action(product) {
             case .success(let result):
                 await handle(result)
             case .pending, .userCancelled:
@@ -97,7 +100,7 @@ public final class TipJar {
         }
     }
 
-    private func handle(_ result: VerificationResult<Transaction>) async {
+    private func handle(_ result: VerificationResult<StoreKit.Transaction>) async {
         guard case .verified(let transaction) = result,
               Tier.allCases.contains(where: { $0.productID == transaction.productID })
         else { return }
