@@ -57,7 +57,7 @@ private struct TipRow: View {
                 }
             }
         }
-        .disabled(jar.phase == .purchasing(tier))
+        .disabled(jar.isPurchasing)
     }
 }
 
@@ -71,6 +71,8 @@ private struct TipJarFooter: View {
             Text(.copy("Thank you so much! It keeps Intento going."))
         case .failed:
             Text(.copy("The purchase didn't go through. You haven't been charged."))
+        case .unverified:
+            Text(.copy("We couldn't verify the purchase with the App Store."))
         case .idle, .purchasing:
             if tipCount > 0 {
                 Text(.copy("You've supported Intento \(tipCount) times. Thank you!"))

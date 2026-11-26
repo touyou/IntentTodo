@@ -183,6 +183,16 @@
         }
       }
     },
+    "We couldn't verify the purchase with the App Store." : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store で購入を確認できませんでした。"
+          }
+        }
+      }
+    },
     "You've supported Intento %lld times. Thank you!" : {
       "localizations" : {
         "en" : {

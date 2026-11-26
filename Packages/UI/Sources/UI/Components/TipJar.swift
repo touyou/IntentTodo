@@ -44,23 +44,28 @@ public final class TipJar {
         case purchasing(Tier)
         case thanked
         case failed
+        case unverified
     }
 
     private static let countKey = "tipJarCount"
+    private static let handledKey = "tipJarHandledTransactionIDs"
 
     private(set) var products: [Tier: Product] = [:]
     private(set) var phase: Phase = .idle
     private(set) var tipCount: Int
+    private var handledIDs: Set<String>
     private var observer: Task<Void, Never>?
 
     private init() {
         tipCount = UserDefaults.standard.integer(forKey: Self.countKey)
+        handledIDs = Set(UserDefaults.standard.stringArray(forKey: Self.handledKey) ?? [])
     }
 
     /// Call at launch: an Ask to Buy approval or a purchase interrupted by a quit arrives
     /// through `Transaction.updates`, and a consumable left unfinished is redelivered forever.
     public func startObservingTransactions() {
         guard observer == nil else { return }
+        Task { await loadProducts() }
         observer = Task { [weak self] in
             for await result in StoreKit.Transaction.updates {
                 await self?.handle(result)
@@ -71,6 +76,10 @@ public final class TipJar {
                 await handle(result)
             }
         }
+    }
+
+    var isPurchasing: Bool {
+        if case .purchasing = phase { true } else { false }
     }
 
     func loadProducts() async {
@@ -84,7 +93,7 @@ public final class TipJar {
     /// `Product.purchase()` is unavailable on visionOS, so the view passes in SwiftUI's `PurchaseAction`,
     /// which works on every platform and anchors the sheet to the right scene.
     func purchase(_ tier: Tier, using action: PurchaseAction) async {
-        guard let product = products[tier], phase != .purchasing(tier) else { return }
+        guard let product = products[tier], !isPurchasing else { return }
         phase = .purchasing(tier)
         do {
             switch try await action(product) {
@@ -101,15 +110,33 @@ public final class TipJar {
     }
 
     private func handle(_ result: VerificationResult<StoreKit.Transaction>) async {
-        guard case .verified(let transaction) = result,
-              Tier.allCases.contains(where: { $0.productID == transaction.productID })
-        else { return }
-        if transaction.revocationDate == nil {
+        let transaction: StoreKit.Transaction
+        switch result {
+        case .verified(let verified):
+            transaction = verified
+        case .unverified(let unverified, _):
+            guard Self.isTip(unverified) else { return }
+            // Not counted, but finished so it stops being redelivered on every launch.
+            if isPurchasing { phase = .unverified }
+            await unverified.finish()
+            return
+        }
+        guard Self.isTip(transaction) else { return }
+        // `updates` and `unfinished` both deliver the same transaction at launch, and a quit
+        // between counting and finish() redelivers it, so each id is counted once.
+        if transaction.revocationDate == nil, handledIDs.insert(String(transaction.id)).inserted {
             tipCount += 1
             UserDefaults.standard.set(tipCount, forKey: Self.countKey)
+            UserDefaults.standard.set(Array(handledIDs), forKey: Self.handledKey)
             phase = .thanked
+        } else if isPurchasing {
+            phase = .idle
         }
         await transaction.finish()
+    }
+
+    private static func isTip(_ transaction: StoreKit.Transaction) -> Bool {
+        Tier.allCases.contains { $0.productID == transaction.productID }
     }
 }
 #endif
