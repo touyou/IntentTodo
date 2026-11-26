@@ -20,7 +20,7 @@
 | 権利（Copyright） | `2026 touyou`（3 バージョンとも設定済み） |
 | 年齢制限 | 4+（暴力・成人向け要素いずれも「なし」） |
 | 価格 | 無料（free price point / 全 175 テリトリー / 新規テリトリーも自動で有効） |
-| App 内課金 | なし |
+| App 内課金 | チップ（消耗型）3 件のみ。`dev.touyou.IntentTodo.tip.coffee` / `.cake` / `.lunch`、日本 ¥150 / ¥500 / ¥1,000、それ以外 $0.99 / $2.99 / $6.99。何も解放しない |
 | リリース方法 | `AFTER_APPROVAL`（審査通過後に自動公開）。段階的リリースは未設定 |
 
 > `INFOPLIST_KEY_LSApplicationCategoryType` は `public.app-category.utilities`。

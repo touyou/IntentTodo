@@ -115,6 +115,7 @@ struct IntentTodoApp: App {
         MainActor.assumeIsolated {
             NotificationHandler.shared.navigationModel = navigation
             WhatsNew.prepareOnLaunch()
+            TipJar.shared.startObservingTransactions()
         }
         #endif
     }
